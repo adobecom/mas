@@ -57,7 +57,15 @@ const ELEMENTS = {
         ],
     },
     'aem-fragment': {
-        observed: ['fragment', 'loading', 'timeout', 'author', 'preview'],
+        observed: [
+            'fragment',
+            'loading',
+            'timeout',
+            'author',
+            'preview',
+            'mask',
+            'pzn',
+        ],
     },
     'mas-field': {
         observed: ['field'],
@@ -160,6 +168,47 @@ describe('commerce.js public contract', () => {
                 expect(el).to.be.instanceOf(Element);
             });
         }
+    });
+
+    describe('aem-fragment', () => {
+        it('exposes the fragment cache statically and per element', () => {
+            const AemFragment = customElements.get('aem-fragment');
+            const element = document.createElement('aem-fragment');
+            expect(element.cache).to.equal(AemFragment.cache);
+            for (const method of [
+                'clear',
+                'add',
+                'has',
+                'entries',
+                'get',
+                'getAsPromise',
+                'getFetchInfo',
+                'set',
+                'remove',
+            ]) {
+                expect(AemFragment.cache[method], method).to.be.a('function');
+            }
+            for (const method of [
+                'cacheKey',
+                'refresh',
+                'getFragmentClientUrl',
+                'generatePreview',
+            ]) {
+                expect(element[method], method).to.be.a('function');
+            }
+            element.setAttribute('fragment', 'id');
+            element.setAttribute('pzn', 'segment');
+            element.setAttribute('mask', 'story');
+            expect(element.cacheKey()).to.equal('id-p_segment-m_story');
+        });
+    });
+
+    describe('mas-field', () => {
+        it('exposes checkReady', () => {
+            expect(document.createElement('mas-field').checkReady).to.be.a(
+                'function',
+            );
+        });
     });
 
     describe('mas-commerce-service', () => {

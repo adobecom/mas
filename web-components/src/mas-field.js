@@ -3,13 +3,19 @@ import {
     EVENT_AEM_LOAD,
     EVENT_MAS_READY,
     FF_DEFAULTS,
+    MERCH_CARD_LOAD_TIMEOUT,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
-    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
-import { getService, hydrateHeadlessCta } from './utils.js';
+import {
+    getService,
+    hydrateHeadlessCta,
+    injectStyle,
+    toCheckoutLink,
+} from './utils.js';
 import { hostOsi } from './plan-type-text.js';
 import {
+    applyContextPromotionCode,
     applyDisplayAnnualDefault,
     applyHideStPriceLabels,
     mergePriceLiterals,
@@ -17,11 +23,11 @@ import {
     resolveContextPromotionCode,
 } from './mas-context.js';
 import {
-    rewriteImageUrlsForProd,
-    sanitizeAssetUrl,
-    sanitizePictureMarkup,
     buildPictureInnerMarkup,
+    createPicture,
+    escapeAttribute,
     extractBackgroundUrl,
+    sanitizeAssetUrl,
 } from './image-markup.js';
 import { css } from './css.js';
 
@@ -33,187 +39,17 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
-export const CHECKOUT_STYLE_PATTERN =
+const CONTENT_SELECTOR = ':scope > [data-role="mas-field-content"]';
+const COMMERCE_SELECTOR =
+    'a[data-wcs-osi],button[is="checkout-button"],span[is="inline-price"]';
+const BUY_NOW_SELECTOR = 'a[data-analytics-id="buy-now"]';
+const IMAGE_FIELDS = ['image', 'backgroundImage', 'backgrounds'];
+const CHECKOUT_STYLE_PATTERN =
     /\b(accent|primary|secondary)\b(-\b(outline|link)\b)?/g;
-
-/**
- * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
- * fragment's hideTrialCTAs setting is on. merch-card applies this in its
- * hydration path, but compare-plans tables render CTAs through mas-field
- * instead, so the setting would otherwise have no effect there.
- *
- * This matches only the static TRIAL_ANALYTICS_IDS allowlist. merch-card also
- * removes CTAs whose resolved WCS offerType is TRIAL (hydrate.js), a runtime
- * check mas-field does not replicate, so a trial CTA carrying an unlisted
- * analytics id still renders here.
- *
- * Runs AFTER an indexed ref has been resolved, never before: filtering the
- * anchor list first would renumber it, and a positional ref such as ctas[4]
- * would then silently resolve to a different CTA.
- *
- * `indexed` distinguishes the two callers. For the whole `ctas` field we keep
- * every CTA when filtering would empty it, mirroring merch-card so a card is
- * never left with no CTA. For an indexed ref we return null so the single
- * requested slot renders nothing rather than shifting to its neighbour.
- */
-/** Escapes text for safe embedding inside a double-quoted HTML attribute
- *  (e.g. alt text), before it's parsed via template.innerHTML. */
-function escapeAttr(value) {
-    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-}
-
-export async function stripTrialCtas(template, indexed, self) {
-    let buyNowCta = template.content.querySelector(
-        'a[data-analytics-id="buy-now"]',
-    );
-    const anchors = [...template.content.querySelectorAll('a')];
-    const trials = anchors.filter((anchor) =>
-        TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
-    );
-    if (trials.length === 0) return template.innerHTML;
-
-    if (indexed && !buyNowCta) {
-        // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
-        const thisField = self.getAttribute('field');
-
-        const masFieldsReadyPromises = [];
-        const masFields =
-            self.parentElement.querySelectorAll('mas-field').length > 1
-                ? self.parentElement.querySelectorAll(
-                      'mas-field[field^="ctas"]',
-                  )
-                : self.parentElement.parentElement.querySelectorAll(
-                      'mas-field[field^="ctas"]',
-                  );
-        masFields.forEach((c) => {
-            if (c.getAttribute('field') !== thisField) {
-                masFieldsReadyPromises.push(c.checkReady());
-            }
-        });
-        const settleAll = Promise.all(masFieldsReadyPromises);
-        let timeoutId;
-        const timeout = new Promise((resolve) => {
-            timeoutId = setTimeout(() => resolve([]), MERCH_CARD_LOAD_TIMEOUT);
-        });
-        const fieldsReady = await Promise.race([settleAll, timeout]);
-        clearTimeout(timeoutId);
-
-        if (masFieldsReadyPromises.length && !fieldsReady.length) {
-            return template.innerHTML;
-        }
-
-        if (fieldsReady.some((c) => c === true)) {
-            masFields.forEach((c) => {
-                if (c.getAttribute('field') !== thisField) {
-                    buyNowCta ??= c.querySelector(
-                        'a[data-analytics-id="buy-now"]',
-                    );
-                }
-            });
-        }
-    }
-
-    let trialCtaSwapped = false;
-    trials.forEach((anchor) => {
-        if (anchor.hasAttribute('data-replaced-osi')) {
-            const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
-            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
-                anchor.remove();
-            } else {
-                if (anchor.hasAttribute('aria-label'))
-                    anchor.removeAttribute('aria-label');
-                anchor.setAttribute('data-analytics-id', 'buy-now');
-                if (anchor.hasAttribute('data-modal'))
-                    anchor.setAttribute('data-modal', 'crm');
-                anchor.textContent = buyNowText;
-            }
-            trialCtaSwapped = true;
-        } else {
-            anchor.remove();
-        }
-    });
-
-    const buyNowCtaNew =
-        template.content.querySelector('a[data-analytics-id="buy-now"]') ||
-        buyNowCta;
-    if (buyNowCtaNew && trialCtaSwapped) {
-        if (buyNowCtaNew.className.trim()) {
-            buyNowCtaNew.className
-                .match(CHECKOUT_STYLE_PATTERN)
-                ?.forEach((styleClass) => {
-                    buyNowCtaNew.classList.remove(styleClass);
-                });
-        }
-        buyNowCtaNew.classList.add('button', 'con-button', 'blue');
-    }
-
-    return template.innerHTML;
-}
-
-/**
- * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
- * resolve displayTax / displayPerUnit from country+language defaults
- * (the same way merch-card does for its aem-fragment-backed prices).
- * Without this, prices rendered through <mas-field field="prices"> miss
- * locale-driven labels like the FR_fr "TTC" tax indicator.
- */
-export function priceOptionsProvider(element, options) {
-    if (!element) return options;
-    // Milo's unwrap strips the <mas-field> ancestor; #stampContext leaves a
-    // fragment-id on the survivor, so trust that as the ownership marker.
-    const masField = element.closest(MAS_FIELD_TAG);
-    const owned = masField || element.hasAttribute('fragment-id');
-    if (!owned) return options;
-    options[FF_DEFAULTS] = true;
-    options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
-
-    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
-    // label), mirroring merch-card — otherwise labels fall back to the built-in
-    // defaults and locale-specific plan types render empty.
-    mergePriceLiterals(masField?.aemFragment?.data?.priceLiterals, options);
-
-    applyHideStPriceLabels(element, options);
-
-    // Legal disclaimers show the plan type based on the fragment's
-    // displayPlanType setting, mirroring the merch-card variant provider.
-    // mas-field renders legal templates outside a card, so it must apply the
-    // setting itself, otherwise the plan type is always dropped.
-    if (masField && element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-        options.displayPlanType =
-            masField.aemFragment?.data?.settings?.displayPlanType ?? false;
-    }
-
-    if (!options.promotionCode) {
-        const promotionCode =
-            element.dataset.promotionCode ??
-            (masField ? resolveContextPromotionCode(masField) : null);
-        if (promotionCode) options.promotionCode = promotionCode;
-    }
-
-    applyDisplayAnnualDefault(masField, options);
-}
-
-/**
- * Applies the mas-field promo code to checkout options, like merch-card does
- * for cards. Reads the element's own dataset first, so a CTA unwrapped out of
- * its <mas-field> still resolves; falls back to the wrapper when still nested.
- */
-export function checkoutOptionsProvider(element, options) {
-    if (options.promotionCode || !element) return;
-    const masField = element.closest(MAS_FIELD_TAG);
-    const promotionCode =
-        element.dataset.promotionCode ??
-        (masField ? resolveContextPromotionCode(masField) : null);
-    if (promotionCode) options.promotionCode = promotionCode;
-}
-
-function registerOptionsProviders(service) {
-    registerContextOptionsProviders(
-        service,
-        priceOptionsProvider,
-        checkoutOptionsProvider,
-    );
-}
+const BUTTON_SIZE = /^button-(s|m|l|xl|xxl)$/;
+const TOOLTIP_PLACEMENTS = ['top', 'bottom', 'left', 'right'];
+const INFO_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" height="18" width="18" class="icon-milo icon-milo-info" aria-hidden="true"><path fill="currentcolor" d="M10.075,6A1.075,1.075,0,1,1,9,4.925H9A1.075,1.075,0,0,1,10.075,6Zm.09173,6H10V8.2A.20005.20005,0,0,0,9.8,8H7.83324S7.25,8.01612,7.25,8.5c0,.48365.58325.5.58325.5H8v3H7.83325s-.58325.01612-.58325.5c0,.48365.58325.5.58325.5h2.3335s.58325-.01635.58325-.5C10.75,12.01612,10.16673,12,10.16673,12ZM9,.5A8.5,8.5,0,1,0,17.5,9,8.5,8.5,0,0,0,9,.5ZM9,15.6748A6.67481,6.67481,0,1,1,15.67484,9,6.67481,6.67481,0,0,1,9,15.6748Z"></path></svg>';
 
 const MAS_FIELD_STYLES = css`
     mas-field {
@@ -229,7 +65,7 @@ const MAS_FIELD_STYLES = css`
    on the host. Those classes can carry their own display value at the same
    specificity as the rule above, which can beat display:contents and leave an
    empty, still-styled CTA box visible when the field resolves to nothing (e.g. a
-   trial CTA stripped by hideTrialCTAs). #renderField sets [hidden] in that case;
+   trial CTA stripped by hideTrialCTAs). #render sets [hidden] in that case;
    force it to win regardless of what other classes are on the host. */
     mas-field[hidden] {
         display: none !important;
@@ -254,7 +90,7 @@ const MAS_FIELD_STYLES = css`
    glyph with a tooltip when a placeholder is consumed through mas-field outside a
    merch-card (e.g. a headless DA page). Ports Milo's tooltip model (libs/features/
    icons/icons.css) so it looks/behaves like production: a placement class
-   (top|bottom|left|right) drives the popover side and #decorateTooltips re-picks the
+   (top|bottom|left|right) drives the popover side and decorateTooltips re-picks the
    side on hover/focus so it never clips. Kept self-contained because mas-field is a
    bundled component and Milo does not decorate mas-field content. */
     mas-field .icon-button {
@@ -377,7 +213,9 @@ const MAS_FIELD_STYLES = css`
             max-width: 180px;
         }
     }
+`;
 
+const ANNUAL_PRICE_STYLES = css`
     .table .row-heading .col-heading .pricing:has(.price-annual-prefix) {
         display: flex;
         flex-direction: column;
@@ -411,18 +249,330 @@ const MAS_FIELD_STYLES = css`
     }
 `;
 
-if (!document.querySelector('style[data-mas-field]')) {
-    const style = document.createElement('style');
-    style.setAttribute('data-mas-field', '');
-    style.textContent = MAS_FIELD_STYLES;
-    document.head.append(style);
+// Styles Milo table prices too, not only mas-field ones: injected on load.
+injectStyle('mas-annual-price', ANNUAL_PRICE_STYLES);
+
+/** Parses markup with a <template>, so nothing loads or upgrades until inserted. */
+function parseTemplate(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return template;
 }
 
-/** Wraps stored image markup (the picture's inner <source>/<img>) in a <picture>
- *  so the <source>s survive parsing, applying the shared prod asset-URL rewrite. */
-export function renderImageMarkup(inner, location = globalThis.location) {
-    if (typeof inner !== 'string' || !inner) return '';
-    return `<picture>${rewriteImageUrlsForProd(inner, location)}</picture>`;
+const toList = (value) => (Array.isArray(value) ? value : [value]);
+
+/** Unwraps `{ value }` field values. */
+const normalizeFieldValue = (value) => value?.value ?? value;
+
+/** Strips the <p> wrapper from single-paragraph AEM rich text so it renders inline. */
+function unwrapSingleParagraph(html) {
+    const inner = html?.trim?.().match(/^<p>([\s\S]*)<\/p>$/)?.[1];
+    return inner === undefined || inner.includes('<p>') ? html : inner;
+}
+
+/** Parses "ctas[1]" → { name: "ctas", index: 1 },
+ *  "ctas[abc123xyz]" → { name: "ctas", index: "abc123xyz" },
+ *  "customFields[My Label]" → { name: "customFields", index: "My Label" },
+ *  or plain names → { name, index: null }. */
+function parseField(field) {
+    const [, name = field, key = null] = field.match(/^(.+)\[(.+)\]$/) ?? [];
+    return { name, index: /^\d+$/.test(key) ? Number(key) : key };
+}
+
+/**
+ * Reduces the template to one anchor (1-based position, or data-key) without
+ * reordering the field. A page-owned CTA loses its presentation classes;
+ * otherwise the strong/em wrapping the anchor is kept around it.
+ * @returns {HTMLTemplateElement|null}
+ */
+function extractIndexedAnchor(template, index, pageOwnsCta) {
+    const { content } = template;
+    const anchor =
+        content.querySelectorAll('a')[index - 1] ??
+        content.querySelector(`a[data-key="${index}"]`);
+    if (!anchor) return null;
+    let node = anchor;
+    if (pageOwnsCta) {
+        anchor.removeAttribute('class');
+    } else {
+        for (
+            let parent = anchor.parentElement;
+            parent?.matches('strong, em');
+            parent = parent.parentElement
+        ) {
+            const wrapper = content.ownerDocument.createElement(
+                parent.localName,
+            );
+            wrapper.append(node);
+            node = wrapper;
+        }
+    }
+    content.replaceChildren(node);
+    return template;
+}
+
+/**
+ * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
+ * fragment's hideTrialCTAs setting is on. merch-card applies this in its
+ * hydration path, but compare-plans tables render CTAs through mas-field
+ * instead, so the setting would otherwise have no effect there.
+ *
+ * This matches only the static TRIAL_ANALYTICS_IDS allowlist. merch-card also
+ * removes CTAs whose resolved WCS offerType is TRIAL (hydrate.js), a runtime
+ * check mas-field does not replicate, so a trial CTA carrying an unlisted
+ * analytics id still renders here.
+ *
+ * Runs AFTER an indexed ref has been resolved, never before: filtering the
+ * anchor list first would renumber it, and a positional ref such as ctas[4]
+ * would then silently resolve to a different CTA.
+ *
+ * A trial CTA carrying data-replaced-osi becomes the buy-now CTA unless one
+ * exists: in the field, or for an indexed ref, in a neighbour ctas mas-field
+ * (waited for up to MERCH_CARD_LOAD_TIMEOUT, after which nothing is stripped).
+ * Mutates the template content and returns its markup.
+ */
+export async function stripTrialCtas(template, indexed, self) {
+    const { content } = template;
+    const trials = [...content.querySelectorAll('a')].filter((anchor) =>
+        TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
+    );
+    if (!trials.length) return template.innerHTML;
+
+    let buyNowCta = content.querySelector(BUY_NOW_SELECTOR);
+    if (indexed && !buyNowCta) {
+        const field = self.getAttribute('field');
+        const { parentElement } = self;
+        const scope =
+            parentElement.querySelectorAll(MAS_FIELD_TAG).length > 1
+                ? parentElement
+                : parentElement.parentElement;
+        const neighbours = [
+            ...scope.querySelectorAll('mas-field[field^="ctas"]'),
+        ].filter((masField) => masField.getAttribute('field') !== field);
+        let timeoutId;
+        const ready = await Promise.race([
+            Promise.all(neighbours.map((masField) => masField.checkReady())),
+            new Promise((resolve) => {
+                timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+            }),
+        ]);
+        clearTimeout(timeoutId);
+        if (!ready) return template.innerHTML;
+        if (ready.includes(true)) {
+            for (const masField of neighbours) {
+                buyNowCta ??= masField.querySelector(BUY_NOW_SELECTOR);
+            }
+        }
+    }
+
+    let trialCtaSwapped = false;
+    const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
+    for (const anchor of trials) {
+        if (!anchor.hasAttribute('data-replaced-osi')) {
+            anchor.remove();
+            continue;
+        }
+        trialCtaSwapped = true;
+        if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
+            anchor.remove();
+            continue;
+        }
+        anchor.removeAttribute('aria-label');
+        anchor.dataset.analyticsId = 'buy-now';
+        if (anchor.hasAttribute('data-modal')) anchor.dataset.modal = 'crm';
+        anchor.textContent = buyNowText;
+    }
+
+    const buyNow = content.querySelector(BUY_NOW_SELECTOR) ?? buyNowCta;
+    if (buyNow && trialCtaSwapped) {
+        buyNow.classList.remove(
+            ...(buyNow.className.match(CHECKOUT_STYLE_PATTERN) ?? []),
+        );
+        buyNow.classList.add('button', 'con-button', 'blue');
+    }
+    return template.innerHTML;
+}
+
+/**
+ * Applies the field's promo code: the element's own first, so a CTA or price
+ * unwrapped out of its <mas-field> still resolves, else the gated code of the
+ * mas-field still wrapping it. Never overrides an earlier provider's code.
+ */
+function applyFieldPromotionCode(element, masField, options) {
+    applyContextPromotionCode(
+        masField,
+        options,
+        element.dataset.promotionCode ??
+            (masField && resolveContextPromotionCode(masField)),
+    );
+}
+
+/**
+ * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
+ * resolve displayTax / displayPerUnit from country+language defaults
+ * (the same way merch-card does for its aem-fragment-backed prices).
+ * Without this, prices rendered through <mas-field field="prices"> miss
+ * locale-driven labels like the FR_fr "TTC" tax indicator.
+ */
+export function priceOptionsProvider(element, options) {
+    // Milo's unwrap strips the <mas-field> ancestor; #stampContext leaves a
+    // fragment-id on the survivor, so trust that as the ownership marker.
+    const masField = element.closest(MAS_FIELD_TAG);
+    if (!masField && !element.hasAttribute('fragment-id')) return;
+    options[FF_DEFAULTS] = true;
+    options.wrapClauses = true; // let long localized prices wrap between clauses, not mid-word
+    const data = masField?.aemFragment?.data;
+
+    // Apply the fragment's resolved price literals (e.g. the locale's plan-type
+    // label), mirroring merch-card — otherwise labels fall back to the built-in
+    // defaults and locale-specific plan types render empty.
+    mergePriceLiterals(data?.priceLiterals, options);
+
+    applyHideStPriceLabels(element, options);
+
+    // Legal disclaimers show the plan type based on the fragment's
+    // displayPlanType setting, mirroring the merch-card variant provider.
+    // mas-field renders legal templates outside a card, so it must apply the
+    // setting itself, otherwise the plan type is always dropped.
+    if (masField && element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayPlanType = data?.settings?.displayPlanType ?? false;
+    }
+
+    applyFieldPromotionCode(element, masField, options);
+    applyDisplayAnnualDefault(masField, options);
+}
+
+/** Applies the mas-field promo code to checkout options, like merch-card does for cards. */
+export function checkoutOptionsProvider(element, options) {
+    applyFieldPromotionCode(element, element.closest(MAS_FIELD_TAG), options);
+}
+
+function registerOptionsProviders() {
+    registerContextOptionsProviders(
+        getService(),
+        priceOptionsProvider,
+        checkoutOptionsProvider,
+    );
+}
+
+/**
+ * Upgrades the data-wcs-osi anchors of fragment HTML into checkout-links:
+ * customized built-ins are only constructed when `is=` is present at parse
+ * time, and stored fragment HTML for non-ctas fields never carries it.
+ */
+function upgradeCheckoutLinks(container) {
+    for (const link of container.querySelectorAll(
+        'a[data-wcs-osi]:not([is])',
+    )) {
+        link.replaceWith(toCheckoutLink(link));
+    }
+}
+
+/**
+ * Wires any RTE tooltip nodes (.icon-button[data-tooltip]) rendered into the
+ * field so they behave like Milo's tooltips: a11y attributes, an initial
+ * placement class, and hover/focus listeners that reposition (positionTooltip)
+ * to whichever side fits the viewport. Idempotent per icon.
+ */
+function decorateTooltips(root) {
+    for (const icon of root.querySelectorAll(
+        '.icon-button[data-tooltip]:not([data-tooltip-wired])',
+    )) {
+        icon.dataset.tooltipWired = '1';
+        if (!icon.querySelector('svg')) {
+            icon.insertAdjacentHTML('afterbegin', INFO_ICON);
+        }
+        for (const [name, value] of [
+            ['tabindex', '0'],
+            ['role', 'button'],
+            ['aria-label', icon.dataset.tooltip],
+        ]) {
+            if (!icon.hasAttribute(name)) icon.setAttribute(name, value);
+        }
+        const original =
+            [...icon.classList].find((value) =>
+                TOOLTIP_PLACEMENTS.includes(value),
+            ) ?? 'top';
+        icon.classList.add(original, 'hide-tooltip');
+        icon.dataset.originalPosition = original;
+        const show = () => {
+            icon.classList.remove('hide-tooltip');
+            positionTooltip(icon);
+        };
+        const hide = () => icon.classList.add('hide-tooltip');
+        icon.addEventListener('mouseenter', show);
+        icon.addEventListener('focus', show);
+        icon.addEventListener('mouseleave', hide);
+        icon.addEventListener('blur', hide);
+        icon.addEventListener('keydown', ({ key }) => {
+            if (key === 'Escape') hide();
+        });
+    }
+}
+
+/**
+ * Flips a tooltip to whichever side (top/bottom/left/right) keeps its popover
+ * inside the viewport. Ported from Milo's scripts/tooltip.js setTooltipPosition
+ * so headless mas-field tooltips edge-flip the same way as authored Milo ones.
+ */
+function positionTooltip(tooltip) {
+    const { innerWidth, innerHeight } = window;
+    const margin = 12;
+    const headerHeight =
+        document.querySelector('header')?.getBoundingClientRect().height || 0;
+    const before = window.getComputedStyle(tooltip, '::before');
+    const px = (value) => parseFloat(value) || 0;
+    const width =
+        px(before.width) + px(before.paddingLeft) + px(before.paddingRight);
+    const height =
+        px(before.height) + px(before.paddingTop) + px(before.paddingBottom);
+    const rect = tooltip.getBoundingClientRect();
+    const original = tooltip.dataset.originalPosition || 'top';
+    const current = TOOLTIP_PLACEMENTS.find((value) =>
+        tooltip.classList.contains(value),
+    );
+    const isVertical = original === 'top' || original === 'bottom';
+    const effectiveMaxWidth = isVertical ? width / 2 : width;
+    const effectiveHeight = original === 'top' ? height + margin : height / 2;
+    const willCutoffTop = rect.top - effectiveHeight < headerHeight;
+    const willCutoffBottom =
+        rect.bottom + (original === 'bottom' ? height + margin : 0) >
+        innerHeight;
+    const willOverflowRight =
+        rect.right + effectiveMaxWidth + margin > innerWidth;
+    const willOverflowLeft = rect.left - effectiveMaxWidth - margin < 0;
+    const willOverflowRightAtBottom =
+        rect.left + width / 2 + margin > innerWidth;
+    const willOverflowLeftAtBottom = rect.left - width / 2 - margin < 0;
+    const hasOverflow =
+        willOverflowRight ||
+        willOverflowLeft ||
+        willCutoffTop ||
+        willCutoffBottom ||
+        willOverflowRightAtBottom ||
+        willOverflowLeftAtBottom;
+    let updated = original;
+    if (original !== current && !hasOverflow) {
+        updated = original;
+    } else if (willOverflowRight && willOverflowRightAtBottom) {
+        updated = 'left';
+    } else if (willOverflowLeft && willOverflowLeftAtBottom) {
+        updated = 'right';
+    } else if ((willOverflowRight || willOverflowLeft) && willCutoffTop) {
+        updated =
+            (willOverflowRightAtBottom && 'left') ||
+            (willOverflowLeftAtBottom && 'right') ||
+            'bottom';
+    } else if (willOverflowRight !== willOverflowLeft && !willCutoffBottom) {
+        updated = willOverflowRight ? 'left' : 'right';
+    } else if (willCutoffTop && original !== 'bottom') {
+        updated = 'bottom';
+    } else if (willCutoffBottom && original !== 'top') {
+        updated = 'top';
+    }
+    if (current === updated) return;
+    tooltip.classList.remove(...TOOLTIP_PLACEMENTS);
+    tooltip.classList.add(updated);
 }
 
 /**
@@ -433,12 +583,13 @@ export function renderImageMarkup(inner, location = globalThis.location) {
  * Usage: <mas-field field="prices"><aem-fragment fragment="id"></aem-fragment></mas-field>
  */
 class MasField extends HTMLElement {
+    static observedAttributes = ['field'];
+
     #field = null;
+    #fields = null;
     #loaded = false;
     #failed = false;
-    #fields = null;
     settings = null;
-    #contentElement = null;
 
     /**
      * Compat version of the backing fragment, mirroring merch-card. Gates
@@ -457,28 +608,29 @@ class MasField extends HTMLElement {
         return this.getAttribute('data-promotion-code');
     }
 
-    static get observedAttributes() {
-        return ['field'];
+    get aemFragment() {
+        return this.querySelector('aem-fragment');
     }
 
-    /** Stores the field name from the 'field' attribute. */
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'field') {
-            this.#field = newValue;
-            this.#renderField();
-        }
+    get osi() {
+        return hostOsi(this);
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        this.#field = value;
+        this.#render();
     }
 
     /** Starts listening for aem:load and aem:error events bubbling from child aem-fragment. */
     connectedCallback() {
+        injectStyle(MAS_FIELD_TAG, MAS_FIELD_STYLES);
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.addEventListener(EVENT_AEM_ERROR, this.#onFragmentError);
-        this.#ensureContentElement();
+        if (!this.querySelector(CONTENT_SELECTOR)) this.#contentSpan();
         this.aemFragment?.setAttribute('hidden', '');
-        registerOptionsProviders(getService());
+        registerOptionsProviders();
     }
 
-    /** Cleans up the event listener when removed from the DOM. */
     disconnectedCallback() {
         this.removeEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.removeEventListener(EVENT_AEM_ERROR, this.#onFragmentError);
@@ -507,18 +659,20 @@ class MasField extends HTMLElement {
     }
 
     /** Remembers that the fragment failed, so checkReady() can settle without waiting. */
-    #onFragmentError = (event) => {
-        if (event.target !== this.aemFragment) return;
-        this.#failed = true;
+    #onFragmentError = ({ target }) => {
+        if (target === this.aemFragment) this.#failed = true;
     };
 
-    /** Extracts the target field from the fragment data and renders it as innerHTML. */
+    /** Renders the field from the loaded fragment, then dispatches mas:ready. */
     #onFragmentLoad = async (event) => {
         if (event.target !== this.aemFragment) return;
-        this.#fields = event.detail?.fields || null;
-        this.settings = event.detail?.settings ?? null;
+        const { fields, settings = null } = event.detail;
+        this.#fields = fields || null;
+        this.settings = settings;
         this.#loaded = true;
-        await this.#renderField();
+        // Prices are created by the render: register even if the service was not active on connect.
+        registerOptionsProviders();
+        await this.#render();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
         // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(
@@ -530,461 +684,175 @@ class MasField extends HTMLElement {
         );
     };
 
-    get aemFragment() {
-        return this.querySelector('aem-fragment');
+    #hide() {
+        this.hidden = true;
     }
 
-    get osi() {
-        return hostOsi(this);
+    #setContent(content) {
+        content.dataset.role = 'mas-field-content';
+        const current = this.querySelector(CONTENT_SELECTOR);
+        if (current) current.replaceWith(content);
+        else this.append(content);
     }
 
-    #ensureContentElement(requireSpan = false) {
-        if (
-            this.#contentElement?.isConnected &&
-            this.#contentElement.matches('[data-role="mas-field-content"]') &&
-            (!requireSpan || this.#contentElement.tagName === 'SPAN')
-        ) {
-            return this.#contentElement;
+    #contentSpan() {
+        const current = this.querySelector(CONTENT_SELECTOR);
+        if (current?.localName === 'span') return current;
+        const span = document.createElement('span');
+        this.#setContent(span);
+        return span;
+    }
+
+    /** Renders stored image markup as the content root itself (no wrapping span). */
+    #renderPicture(inner) {
+        if (!inner) {
+            this.querySelector(CONTENT_SELECTOR)?.remove();
+            this.#hide();
+            return;
         }
-        const existing = this.querySelector(
-            ':scope > [data-role="mas-field-content"]',
-        );
-        if (existing && (!requireSpan || existing.tagName === 'SPAN')) {
-            this.#contentElement = existing;
-            return existing;
-        }
-        if (requireSpan) existing?.remove();
-        const content = document.createElement('span');
-        content.setAttribute('data-role', 'mas-field-content');
-        this.append(content);
-        this.#contentElement = content;
-        return content;
-    }
-
-    #clearContent() {
-        this.querySelector(
-            ':scope > [data-role="mas-field-content"]',
-        )?.remove();
-        this.#contentElement = null;
-    }
-
-    /** Installs the field's <picture> as the content root, carrying
-     *  data-role="mas-field-content" directly (no wrapping span). */
-    #renderPictureContent(pictureHtml) {
-        const template = document.createElement('template');
-        template.innerHTML = pictureHtml;
-        const picture = template.content.querySelector('picture');
-        if (!picture) return;
-        picture.innerHTML = sanitizePictureMarkup(picture.innerHTML);
-        picture.setAttribute('data-role', 'mas-field-content');
-        const existing = this.querySelector(
-            ':scope > [data-role="mas-field-content"]',
-        );
-        if (existing) existing.replaceWith(picture);
-        else this.append(picture);
-        this.#contentElement = picture;
-        this.#stampContext(picture);
+        this.#setContent(createPicture(inner));
     }
 
     /** Real alt text when authored,
      *  otherwise role="none" (not an empty alt) to mark the image decorative. */
     #backgroundImageMarkup(url) {
-        const altText = this.#unwrapSingleParagraph(
-            this.#normalizeFieldValue(this.#fields.backgroundImageAltText),
+        const alt = unwrapSingleParagraph(
+            normalizeFieldValue(this.#fields.backgroundImageAltText),
         );
-        const altAttr =
-            typeof altText === 'string' && altText
-                ? `alt="${escapeAttr(altText)}"`
-                : 'role="none"';
-        return `<img loading="lazy" ${altAttr} src="${sanitizeAssetUrl(url)}">`;
-    }
-
-    #normalizeFieldValue(value) {
-        if (value && typeof value === 'object' && 'value' in value)
-            return value.value;
-        return value;
-    }
-
-    /** Parses "ctas[1]" → { fieldName: "ctas", index: 1 },
-     *  "ctas[abc123xyz]" → { fieldName: "ctas", index: "abc123xyz" },
-     *  "customFields[My Label]" → { fieldName: "customFields", index: "My Label" },
-     *  or plain names → { fieldName, index: null }. */
-    #parseFieldAndIndex(field) {
-        const numericMatch = field?.match(/^(.+)\[(\d+)\]$/);
-        if (numericMatch)
-            return {
-                fieldName: numericMatch[1],
-                index: parseInt(numericMatch[2], 10),
-            };
-        const bracketMatch = field?.match(/^(.+)\[(.+)\]$/);
-        if (bracketMatch)
-            return { fieldName: bracketMatch[1], index: bracketMatch[2] };
-        return { fieldName: field, index: null };
-    }
-
-    /** Extracts one anchor without reordering the field, stripping presentation only for page-owned CTAs.
-     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
-     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
-    #extractIndexedAnchor(html, index, pageOwnsCta) {
-        if (typeof html !== 'string') return null;
-        const template = document.createElement('template');
-        template.innerHTML = html;
-        let anchor;
-        if (!isNaN(index)) {
-            const i = parseInt(index, 10);
-            anchor = [...template.content.querySelectorAll('a')][i - 1];
-        }
-        if (!anchor) {
-            anchor = template.content.querySelector(`a[data-key="${index}"]`);
-        }
-        if (!anchor) return null;
-        if (pageOwnsCta) {
-            anchor.removeAttribute('class');
-            return anchor.outerHTML;
-        }
-        let markup = anchor.outerHTML;
-        let parent = anchor.parentElement;
-        while (parent?.matches('strong, em')) {
-            const tag = parent.tagName.toLowerCase();
-            markup = `<${tag}>${markup}</${tag}>`;
-            parent = parent.parentElement;
-        }
-        return markup;
+        const altAttribute = alt
+            ? `alt="${escapeAttribute(alt)}"`
+            : 'role="none"';
+        return `<img loading="lazy" ${altAttribute} src="${sanitizeAssetUrl(url)}">`;
     }
 
     #setFragmentIds() {
-        if (!this.aemFragment) return;
-        this.setAttribute('fragment-id', this.aemFragment.data?.id);
-        const fragment = this.aemFragment.data;
-        if (!fragment) return;
-        if (fragment.variationId)
-            this.setAttribute('variation-id', fragment.variationId);
-        if (fragment.maskId) this.setAttribute('mask-id', fragment.maskId);
-        if (fragment.promoProject)
-            this.setAttribute('data-promotion-project', fragment.promoProject);
-        if (fragment.promoVariationProject)
-            this.setAttribute(
-                'data-promotion-variation-project',
-                fragment.promoVariationProject,
-            );
-        this.compatVersion = fragment.fields?.compatVersion;
-        if (fragment.fields?.promoCode)
-            this.setAttribute('data-promotion-code', fragment.fields.promoCode);
+        const { aemFragment } = this;
+        if (!aemFragment) return;
+        const data = aemFragment.data;
+        this.setAttribute('fragment-id', data?.id);
+        if (!data) return;
+        const {
+            variationId,
+            maskId,
+            promoProject,
+            promoVariationProject,
+            fields,
+        } = data;
+        for (const [name, value] of [
+            ['variation-id', variationId],
+            ['mask-id', maskId],
+            ['data-promotion-project', promoProject],
+            ['data-promotion-variation-project', promoVariationProject],
+            ['data-promotion-code', fields?.promoCode],
+        ]) {
+            if (value) this.setAttribute(name, value);
+        }
+        this.compatVersion = fields?.compatVersion;
     }
 
-    async #renderField() {
-        if (!this.#fields || !this.#field) return;
+    async #render() {
+        const fields = this.#fields;
+        if (!fields || !this.#field) return;
         this.hidden = false;
-        const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
-        // FEDS wrappers own presentation even without emphasis; Milo can hoist emphasis inside mas-field.
-        const pageOwnsCta =
-            fieldName === 'ctas' &&
-            index !== null &&
-            !!(
-                this.closest('strong, em, .feds-cta-wrapper') ||
-                this.querySelector(':scope > strong, :scope > em')
+        const { name, index } = parseField(this.#field);
+        const indexed = index !== null;
+        const isCtas = name === 'ctas';
+        const stripTrials = isCtas && this.settings?.hideTrialCTAs;
+
+        const labels =
+            typeof index === 'string'
+                ? fields[`${name.replace(/s$/, '')}Labels`]
+                : undefined;
+        if (labels !== undefined) {
+            let html = normalizeFieldValue(
+                toList(fields[name])[toList(labels).indexOf(index)],
             );
-
-        if (index !== null && isNaN(index)) {
-            const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
-            const labelsRaw = this.#fields[labelsFieldName];
-            if (labelsRaw !== undefined) {
-                const labels = Array.isArray(labelsRaw)
-                    ? labelsRaw
-                    : [labelsRaw];
-                const labelIndex = labels.indexOf(index);
-                if (labelIndex === -1) {
-                    this.hidden = true;
-                    return;
-                }
-                const valuesRaw = this.#fields[fieldName];
-                const values = Array.isArray(valuesRaw)
-                    ? valuesRaw
-                    : valuesRaw
-                      ? [valuesRaw]
-                      : [];
-                let html = this.#normalizeFieldValue(values[labelIndex]);
-                if (!html) {
-                    this.hidden = true;
-                    return;
-                }
-                if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                    const template = document.createElement('template');
-                    template.innerHTML = html;
-                    html = await stripTrialCtas(template, true, this);
-                    if (!html.trim()) {
-                        this.hidden = true;
-                        return;
-                    }
-                }
-                this.#setFragmentIds();
-                const content = this.#ensureContentElement(true);
-                content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
-                this.#upgradeCheckoutLinks(content);
-                this.#decorateTooltips(content);
-                this.#stampContext(content);
-                return;
+            if (!html) return this.#hide();
+            this.#setFragmentIds();
+            if (stripTrials) {
+                html = await stripTrialCtas(parseTemplate(html), true, this);
+                if (!html.trim()) return this.#hide();
             }
+            const content = this.#contentSpan();
+            content.innerHTML = unwrapSingleParagraph(html);
+            return this.#decorate(content);
         }
 
-        const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
-        if (fieldValue === undefined) {
-            this.hidden = true;
-            return;
-        }
+        const value = normalizeFieldValue(fields[name]);
+        if (value === undefined) return this.#hide();
         this.#setFragmentIds();
 
-        if (
-            index === null &&
-            (fieldName === 'image' ||
-                fieldName === 'backgroundImage' ||
-                fieldName === 'backgrounds')
-        ) {
-            const value = this.#unwrapSingleParagraph(fieldValue);
-            if (typeof value === 'string' && value) {
-                const inner =
-                    fieldName === 'image' || fieldName === 'backgrounds'
-                        ? value
-                        : this.#backgroundImageMarkup(value);
-                this.#renderPictureContent(renderImageMarkup(inner));
-            } else {
-                this.#clearContent();
-                this.hidden = true;
-            }
-            return;
-        }
-
-        if (fieldName === 'backgrounds' && index !== null) {
-            const url = this.#unwrapSingleParagraph(
-                extractBackgroundUrl(fieldValue, index),
+        if (!indexed && IMAGE_FIELDS.includes(name)) {
+            const image = unwrapSingleParagraph(value);
+            return this.#renderPicture(
+                image && name === 'backgroundImage'
+                    ? this.#backgroundImageMarkup(image)
+                    : image,
             );
-            const pictureInner =
-                typeof url === 'string' && url
-                    ? buildPictureInnerMarkup(url)
-                    : '';
-            if (pictureInner) {
-                this.#renderPictureContent(renderImageMarkup(pictureInner));
-            } else {
-                this.#clearContent();
-                this.hidden = true;
-            }
-            return;
+        }
+        if (name === 'backgrounds') {
+            const url = unwrapSingleParagraph(
+                extractBackgroundUrl(value, index),
+            );
+            return this.#renderPicture(url && buildPictureInnerMarkup(url));
         }
 
-        const content = this.#ensureContentElement(true);
-        let html;
-        if (index !== null) {
-            html = this.#extractIndexedAnchor(fieldValue, index, pageOwnsCta);
-            if (html === null) {
-                this.hidden = true;
-                return;
-            }
+        // FEDS wrappers own presentation even without emphasis; Milo can hoist emphasis inside mas-field.
+        const pageOwnsCta =
+            isCtas &&
+            indexed &&
+            Boolean(
+                this.closest('strong, em, .feds-cta-wrapper') ||
+                    this.querySelector(':scope > strong, :scope > em'),
+            );
+        const content = this.#contentSpan();
+        let template;
+        if (indexed) {
+            template =
+                typeof value === 'string' &&
+                extractIndexedAnchor(parseTemplate(value), index, pageOwnsCta);
+            if (!template) return this.#hide();
         } else {
-            html = this.#unwrapSingleParagraph(fieldValue);
-        }
-        if (typeof html === 'string') {
-            if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                const template = document.createElement('template');
-                template.innerHTML = html;
-                html = await stripTrialCtas(template, index !== null, this);
-                if (!html.trim()) {
-                    this.hidden = true;
-                    return;
-                }
+            const html = unwrapSingleParagraph(value);
+            if (html == null) return this.#hide();
+            if (typeof html !== 'string') {
+                content.textContent = html;
+                return undefined;
             }
-            if (fieldName === 'ctas' && !pageOwnsCta) {
-                const ctaEl = this.#renderCtaField(html, index !== null);
-                if (ctaEl) {
-                    this.#applyCtaPresentation(ctaEl);
-                    content.replaceChildren(ctaEl);
-                    this.#stampContext(content);
-                    return;
-                }
-            }
-            content.innerHTML = html;
-            this.#upgradeCheckoutLinks(content);
-            this.#decorateTooltips(content);
-            this.#stampContext(content);
-            return;
+            template = parseTemplate(html);
         }
-        if (html == null) {
-            this.hidden = true;
-            return;
+        if (stripTrials) {
+            const html = await stripTrialCtas(template, indexed, this);
+            if (!html.trim()) return this.#hide();
         }
-        content.textContent = String(html);
+        const links =
+            isCtas && !pageOwnsCta && template.content.querySelectorAll('a');
+        if (links?.length) {
+            const cta = indexed
+                ? hydrateHeadlessCta(links[0])
+                : this.#ctaFooter(links);
+            this.#applyCtaPresentation(cta);
+            content.replaceChildren(cta);
+            return this.#stampContext(content);
+        }
+        content.replaceChildren(template.content);
+        return this.#decorate(content);
     }
 
-    /**
-     * Creates a checkout-link element via the real service-backed factory when
-     * available, falling back to a manually upgraded anchor (still a genuine
-     * customized built-in, just without service-resolved checkout options)
-     * when the checkout service hasn't registered yet.
-     */
-    #createCheckoutLinkElement(dataset, innerHTML) {
-        const CheckoutLink = customElements.get('checkout-link');
-        return (
-            CheckoutLink?.createCheckoutLink(dataset, innerHTML) ??
-            (() => {
-                const el = document.createElement('a', {
-                    is: 'checkout-link',
-                });
-                el.setAttribute('is', 'checkout-link');
-                el.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
-                return el;
-            })()
-        );
+    /** Groups the CTAs of a whole ctas field like a card footer. */
+    #ctaFooter(links) {
+        const footer = document.createElement('div');
+        footer.slot = 'footer';
+        footer.className = 'action-area';
+        footer.append(...Array.from(links, hydrateHeadlessCta));
+        return footer;
     }
 
-    /**
-     * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
-     * assignment into real checkout-link elements. Needed because customized
-     * built-ins only get constructed when `is=` is present at parse time, and
-     * stored fragment HTML for non-ctas fields never carries that attribute.
-     */
-    #upgradeCheckoutLinks(container) {
-        for (const link of container.querySelectorAll(
-            'a[data-wcs-osi]:not([is])',
-        )) {
-            const button = this.#createCheckoutLinkElement(
-                link.dataset,
-                link.innerHTML,
-            );
-            for (const { name, value } of link.attributes) {
-                if (['is', 'href'].includes(name)) continue;
-                button.setAttribute(name, value);
-            }
-            link.replaceWith(button);
-        }
-    }
-
-    /**
-     * Wires any RTE tooltip nodes (.icon-button[data-tooltip]) rendered into the
-     * field so they behave like Milo's tooltips: a11y attributes, an initial
-     * placement class, and hover/focus listeners that reposition (#positionTooltip)
-     * to whichever side fits the viewport. Idempotent per icon.
-     */
-    #decorateTooltips(root) {
-        const icons = root.querySelectorAll('.icon-button[data-tooltip]');
-        for (const icon of icons) {
-            if (icon.dataset.tooltipWired) continue;
-            icon.dataset.tooltipWired = '1';
-            if (!icon.querySelector('svg')) {
-                icon.insertAdjacentHTML(
-                    'afterbegin',
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" height="18" width="18" class="icon-milo icon-milo-info" aria-hidden="true"><path fill="currentcolor" d="M10.075,6A1.075,1.075,0,1,1,9,4.925H9A1.075,1.075,0,0,1,10.075,6Zm.09173,6H10V8.2A.20005.20005,0,0,0,9.8,8H7.83324S7.25,8.01612,7.25,8.5c0,.48365.58325.5.58325.5H8v3H7.83325s-.58325.01612-.58325.5c0,.48365.58325.5.58325.5h2.3335s.58325-.01635.58325-.5C10.75,12.01612,10.16673,12,10.16673,12ZM9,.5A8.5,8.5,0,1,0,17.5,9,8.5,8.5,0,0,0,9,.5ZM9,15.6748A6.67481,6.67481,0,1,1,15.67484,9,6.67481,6.67481,0,0,1,9,15.6748Z"></path></svg>',
-                );
-            }
-            if (!icon.hasAttribute('tabindex'))
-                icon.setAttribute('tabindex', '0');
-            if (!icon.hasAttribute('role')) icon.setAttribute('role', 'button');
-            if (!icon.hasAttribute('aria-label'))
-                icon.setAttribute('aria-label', icon.dataset.tooltip);
-            const placements = ['top', 'bottom', 'left', 'right'];
-            const authored = [...icon.classList].find((c) =>
-                placements.includes(c),
-            );
-            const original = authored || 'top';
-            if (!authored) icon.classList.add(original);
-            icon.dataset.originalPosition = original;
-            icon.classList.add('hide-tooltip');
-            const show = () => {
-                icon.classList.remove('hide-tooltip');
-                this.#positionTooltip(icon);
-            };
-            const hide = () => icon.classList.add('hide-tooltip');
-            icon.addEventListener('mouseenter', show);
-            icon.addEventListener('focus', show);
-            icon.addEventListener('mouseleave', hide);
-            icon.addEventListener('blur', hide);
-            icon.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') hide();
-            });
-        }
-    }
-
-    /**
-     * Flips a tooltip to whichever side (top/bottom/left/right) keeps its popover
-     * inside the viewport. Ported from Milo's scripts/tooltip.js setTooltipPosition
-     * so headless mas-field tooltips edge-flip the same way as authored Milo ones.
-     */
-    #positionTooltip(tooltip) {
-        const placements = ['top', 'bottom', 'right', 'left'];
-        const viewportWidth = window.innerWidth;
-        const margin = 12;
-        const headerHeight =
-            document.querySelector('header')?.getBoundingClientRect().height ||
-            0;
-        const before = window.getComputedStyle(tooltip, '::before');
-        const px = (v) => parseFloat(v) || 0;
-        const width =
-            px(before.width) + px(before.paddingLeft) + px(before.paddingRight);
-        const height =
-            px(before.height) +
-            px(before.paddingTop) +
-            px(before.paddingBottom);
-        const rect = tooltip.getBoundingClientRect();
-        const original = tooltip.dataset.originalPosition || 'top';
-        const current = placements.find((c) => tooltip.classList.contains(c));
-        const isVertical = original === 'top' || original === 'bottom';
-        const effectiveMaxWidth = isVertical ? width / 2 : width;
-        const topMargin = original === 'top' ? margin : 0;
-        const effectiveHeight =
-            original === 'top' ? height + topMargin : height / 2;
-        const willCutoffTop = rect.top - effectiveHeight < headerHeight;
-        const willCutoffBottom =
-            rect.bottom + (original === 'bottom' ? height + margin : 0) >
-            window.innerHeight;
-        const willOverflowRight =
-            rect.right + effectiveMaxWidth + margin > viewportWidth;
-        const willOverflowLeft = rect.left - effectiveMaxWidth - margin < 0;
-        const willOverflowRightAtBottom =
-            rect.left + width / 2 + margin > viewportWidth;
-        const willOverflowLeftAtBottom = rect.left - width / 2 - margin < 0;
-        const hasOverflow =
-            willOverflowRight ||
-            willOverflowLeft ||
-            willCutoffTop ||
-            willCutoffBottom ||
-            willOverflowRightAtBottom ||
-            willOverflowLeftAtBottom;
-        if (original !== current && !hasOverflow) {
-            tooltip.classList.remove(...placements);
-            tooltip.classList.add(original);
-            return;
-        }
-        let updated = original;
-        if (willOverflowRight && willOverflowRightAtBottom) {
-            updated = 'left';
-        } else if (willOverflowLeft && willOverflowLeftAtBottom) {
-            updated = 'right';
-        } else if (
-            (willOverflowRight && willCutoffTop) ||
-            (willOverflowLeft && willCutoffTop)
-        ) {
-            updated =
-                (willOverflowRightAtBottom && 'left') ||
-                (willOverflowLeftAtBottom && 'right') ||
-                'bottom';
-        } else if (
-            willOverflowRight !== willOverflowLeft &&
-            !willCutoffBottom
-        ) {
-            updated = willOverflowRight ? 'left' : 'right';
-        } else if (
-            willCutoffTop &&
-            ['top', 'left', 'right'].includes(original)
-        ) {
-            updated = 'bottom';
-        } else if (
-            willCutoffBottom &&
-            ['bottom', 'left', 'right'].includes(original)
-        ) {
-            updated = 'top';
-        }
-        if (current !== updated) {
-            tooltip.classList.remove(...placements);
-            tooltip.classList.add(updated);
-        }
+    /** Upgrades checkout links, wires tooltips and stamps context on rendered fragment HTML. */
+    #decorate(content) {
+        upgradeCheckoutLinks(content);
+        decorateTooltips(content);
+        this.#stampContext(content);
     }
 
     /**
@@ -994,22 +862,25 @@ class MasField extends HTMLElement {
      * move. Never overwrites an element's own authored value.
      */
     #stampContext(content) {
-        const targets = content.querySelectorAll(
-            'a[data-wcs-osi],button[is="checkout-button"],span[is="inline-price"]',
-        );
+        const targets = content.querySelectorAll(COMMERCE_SELECTOR);
         if (!targets.length) return;
-        const stamp = (name, value) => {
-            if (value == null) return;
-            for (const el of targets)
-                if (!el.hasAttribute(name)) el.setAttribute(name, value);
-        };
-        for (const name of CONTEXT_ATTRIBUTES)
-            stamp(name, this.getAttribute(name));
-        stamp('data-promotion-code', resolveContextPromotionCode(this));
+        const context = [
+            ...CONTEXT_ATTRIBUTES.map((name) => [
+                name,
+                this.getAttribute(name),
+            ]),
+            ['data-promotion-code', resolveContextPromotionCode(this)],
+        ].filter(([, value]) => value != null);
+        for (const target of targets) {
+            for (const [name, value] of context) {
+                if (!target.hasAttribute(name))
+                    target.setAttribute(name, value);
+            }
+        }
     }
 
-    #applyCtaPresentation(content) {
-        // Studio-owned CTAs bypass Milo's inline CTA decorator and inherit block presentation here.
+    /** Studio-owned CTAs bypass Milo's inline CTA decorator and inherit block presentation here. */
+    #applyCtaPresentation(cta) {
         const section = this.closest('.section');
         if (!section) return;
         let wrapper = this.parentElement;
@@ -1023,24 +894,19 @@ class MasField extends HTMLElement {
             wrapper = this.parentElement;
         }
         let block = this;
-        while (block.parentElement !== section) {
-            block = block.parentElement;
-        }
-        const sizePattern = /^button-(s|m|l|xl|xxl)$/;
+        while (block.parentElement !== section) block = block.parentElement;
+        const sizeOf = (element) =>
+            [...element.classList].find((value) => BUTTON_SIZE.test(value));
         const sibling = [...block.querySelectorAll('.con-button')].find(
-            (button) =>
-                !this.contains(button) &&
-                [...button.classList].some((value) => sizePattern.test(value)),
+            (button) => !this.contains(button) && sizeOf(button),
         );
         let size;
         let utilities = [];
         if (sibling) {
-            size = [...sibling.classList].find((value) =>
-                sizePattern.test(value),
-            );
+            size = sizeOf(sibling);
             utilities = [...sibling.classList].filter(
                 (value) =>
-                    value.startsWith('button-') && !sizePattern.test(value),
+                    value.startsWith('button-') && !BUTTON_SIZE.test(value),
             );
         } else {
             const authoredSize = [...block.classList].find((value) =>
@@ -1057,21 +923,16 @@ class MasField extends HTMLElement {
                     : 'button-l';
             }
         }
-        for (const match of this.merchLink?.matchAll(
+        for (const [, utility] of this.merchLink?.matchAll(
             /(?:&|#)_button-([a-zA-Z-]+)/g,
         ) ?? []) {
-            utilities.push(match[1]);
+            utilities.push(utility);
         }
-        const buttons = content.matches('.con-button')
-            ? [content]
-            : content.querySelectorAll('.con-button');
+        const buttons = cta.matches('.con-button')
+            ? [cta]
+            : cta.querySelectorAll('.con-button');
         for (const button of buttons) {
-            if (
-                size &&
-                ![...button.classList].some((value) => sizePattern.test(value))
-            ) {
-                button.classList.add(size);
-            }
+            if (size && !sizeOf(button)) button.classList.add(size);
             button.classList.add(...utilities);
         }
         const paragraph = this.closest('p');
@@ -1087,34 +948,6 @@ class MasField extends HTMLElement {
         ) {
             paragraph.classList.add('action-area');
         }
-    }
-
-    /**
-     * Parses the raw CTA field HTML, converts each anchor to a hydrated
-     * checkout link, and returns a group or indexed CTA ready to render.
-     * Returns null if there are no anchor elements in the field value.
-     */
-    #renderCtaField(html, indexed = false) {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const links = [...doc.body.querySelectorAll('a')];
-        if (!links.length) return null;
-        if (indexed) return hydrateHeadlessCta(links[0]);
-        const footer = document.createElement('div');
-        footer.setAttribute('slot', 'footer');
-        footer.classList.add('action-area');
-        footer.append(...links.map((link) => hydrateHeadlessCta(link)));
-        return footer;
-    }
-
-    /** Strips <p> wrapper from single-paragraph AEM rich text so it renders inline. */
-    #unwrapSingleParagraph(html) {
-        if (typeof html !== 'string') return html;
-        const trimmed = html.trim();
-        const hasWrapper =
-            trimmed.startsWith('<p>') && trimmed.endsWith('</p>');
-        if (!hasWrapper) return html;
-        const inner = trimmed.slice('<p>'.length, -'</p>'.length);
-        return inner.includes('<p>') ? html : inner;
     }
 }
 

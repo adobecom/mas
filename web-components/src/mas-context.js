@@ -1,6 +1,9 @@
-import { shouldHideStPriceLabels } from './utils.js';
+import { injectStyle, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
-import { planTypeTextOptionsProvider } from './plan-type-text.js';
+import {
+    PLAN_TYPE_TEXT_STYLES,
+    planTypeTextOptionsProvider,
+} from './plan-type-text.js';
 
 /**
  * Shared MAS context helpers consumed by both merch-card.js and mas-field.js,
@@ -30,13 +33,16 @@ export function resolveContextPromotionCode(host) {
 }
 
 /**
- * Assigns options.promotionCode from the host's gated context code, unless a
- * more specific promotionCode has already been resolved by an earlier provider.
+ * Assigns options.promotionCode from the host's gated context code (or from
+ * `code` when the caller resolved it), unless a more specific promotionCode has
+ * already been resolved by an earlier provider.
  */
-export function applyContextPromotionCode(host, options) {
-    if (options.promotionCode) return;
-    const code = resolveContextPromotionCode(host);
-    if (code) options.promotionCode = code;
+export function applyContextPromotionCode(
+    host,
+    options,
+    code = resolveContextPromotionCode(host),
+) {
+    if (code && !options.promotionCode) options.promotionCode = code;
 }
 
 /**
@@ -47,8 +53,7 @@ export function applyContextPromotionCode(host, options) {
  */
 export function mergePriceLiterals(literals, options) {
     if (!literals) return;
-    options.literals ??= {};
-    Object.assign(options.literals, literals);
+    options.literals = Object.assign(options.literals ?? {}, literals);
 }
 
 /** Suppresses per-unit/tax price labels for settings that request it. */
@@ -59,34 +64,32 @@ export function applyHideStPriceLabels(element, options) {
 }
 
 /**
- * Defaults options.displayAnnual from the host's fragment settings, unless a
- * more specific value has already been resolved. `host` may be null/undefined
- * (e.g. a mas-field-owned element unwrapped from its host).
+ * Defaults options.displayAnnual from the host's fragment settings (and marks
+ * an annualized host), unless a more specific value has already been resolved.
+ * `host` is null for a mas-field-owned element unwrapped from its host.
  */
 export function applyDisplayAnnualDefault(host, options) {
-    if (
-        options.displayAnnual === undefined &&
-        typeof host?.settings?.displayAnnual === 'boolean'
-    ) {
-        options.displayAnnual = host.settings.displayAnnual;
-        if (host.settings.displayAnnual) host.setAttribute('annualized', '');
-    }
+    const displayAnnual = host?.settings?.displayAnnual;
+    if (displayAnnual == null || options.displayAnnual !== undefined) return;
+    options.displayAnnual = displayAnnual;
+    if (displayAnnual) host.setAttribute('annualized', '');
 }
 
 /**
  * Registers `priceProvider`/`checkoutProvider` (plus the shared
- * planTypeTextOptionsProvider) on `service`, guarding against double
- * registration the same way merch-card and mas-field each did before.
+ * planTypeTextOptionsProvider and its styles) on `service` once. The service
+ * may be missing or not active yet, e.g. for a mas-field connected before it.
  */
 export function registerContextOptionsProviders(
     service,
     priceProvider,
     checkoutProvider,
 ) {
-    if (!service?.providers || service.providers.has(priceProvider)) return;
-    service.providers.price(priceProvider);
-    service.providers.checkout(checkoutProvider);
-    if (!service.providers.has(planTypeTextOptionsProvider)) {
-        service.providers.price(planTypeTextOptionsProvider);
-    }
+    const providers = service?.providers;
+    if (!providers || providers.has(priceProvider)) return;
+    providers.price(priceProvider);
+    providers.checkout(checkoutProvider);
+    if (providers.has(planTypeTextOptionsProvider)) return;
+    providers.price(planTypeTextOptionsProvider);
+    injectStyle('plan-type-text', PLAN_TYPE_TEXT_STYLES);
 }

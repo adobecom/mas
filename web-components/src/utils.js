@@ -21,20 +21,44 @@ export const getSlotText = (element, name) =>
  * @returns {HTMLElement}
  */
 export function createTag(tag, attributes = {}, content = null, is = null) {
-    const element = is
-        ? document.createElement(tag, { is })
-        : document.createElement(tag);
-    if (content instanceof HTMLElement) {
-        element.appendChild(content);
-    } else {
-        element.innerHTML = content;
-    }
-
-    // Set attributes
+    const element = document.createElement(tag, is ? { is } : undefined);
+    if (content instanceof HTMLElement) element.append(content);
+    else element.innerHTML = content;
     for (const [key, value] of Object.entries(attributes)) {
         element.setAttribute(key, value);
     }
     return element;
+}
+
+/** Adds `<style data-{name}>` with `text` to the document head once. */
+export function injectStyle(name, text) {
+    if (document.querySelector(`style[data-${name}]`)) return;
+    const style = document.createElement('style');
+    style.setAttribute(`data-${name}`, '');
+    style.textContent = text;
+    document.head.append(style);
+}
+
+/**
+ * Creates the checkout-link replacing the stored `link`, keeping its attributes
+ * (but `is` and `href`). Uses the service-backed factory, or upgrades a plain
+ * anchor when the checkout-link element is not registered or not ready yet.
+ * @param {HTMLAnchorElement} link anchor with a data-wcs-osi
+ * @param {string} label inner markup of the checkout-link
+ */
+export function toCheckoutLink(link, label = link.innerHTML) {
+    let button = customElements
+        .get('checkout-link')
+        ?.createCheckoutLink(link.dataset, label);
+    if (!button) {
+        button = document.createElement('a', { is: 'checkout-link' });
+        button.setAttribute('is', 'checkout-link');
+        button.innerHTML = `<span style="pointer-events: none;">${label}</span>`;
+    }
+    for (const { name, value } of link.attributes) {
+        if (name !== 'is' && name !== 'href') button.setAttribute(name, value);
+    }
+    return button;
 }
 
 /** Resolves persisted CTA metadata before considering PR #1197's legacy wrapper-only encoding. */
@@ -43,21 +67,22 @@ export function getHeadlessCtaVariant(link) {
         CTA_VARIANT_PATTERN.test(value),
     );
     if (variant) return variant;
-    const wrapper = link.closest('strong, em');
-    if (wrapper?.tagName === 'STRONG') return 'primary';
-    if (wrapper?.tagName === 'EM') return 'secondary';
+    const wrapper = link.closest('strong, em')?.tagName;
+    if (wrapper === 'STRONG') return 'primary';
+    if (wrapper === 'EM') return 'secondary';
     return 'secondary-link';
 }
 
 /**
  * Hydrates fragment-consumed CTAs without requiring Milo to decorate their markup.
- * Legacy wrapper-only CTAs retain their variant; explicit classes take precedence.
+ * Legacy wrapper-only CTAs retain their variant; explicit classes take precedence
+ * and move the strong/em wrapping the link into its label.
  * Kept independent of card hydration so standalone mas-field stays lightweight.
  */
 export function hydrateHeadlessCta(link) {
     const variant = getHeadlessCtaVariant(link);
     const source = link.cloneNode(true);
-    if ([...link.classList].some((value) => CTA_VARIANT_PATTERN.test(value))) {
+    if (link.classList.contains(variant)) {
         let parent = link.parentElement;
         while (parent?.matches('strong, em')) {
             const label = source.firstElementChild;
@@ -65,41 +90,27 @@ export function hydrateHeadlessCta(link) {
                 label?.tagName !== parent.tagName ||
                 source.innerHTML.trim() !== label.outerHTML
             ) {
-                source.replaceChildren(
-                    createTag(
-                        parent.tagName.toLowerCase(),
-                        {},
-                        source.innerHTML,
-                    ),
+                const wrapper = source.ownerDocument.createElement(
+                    parent.localName,
                 );
+                wrapper.append(...source.childNodes);
+                source.append(wrapper);
             }
             parent = parent.parentElement;
         }
     }
-    let button = source;
-    if (link.dataset.wcsOsi) {
-        const CheckoutLink = customElements.get('checkout-link');
-        button = CheckoutLink?.createCheckoutLink(
-            link.dataset,
-            source.innerHTML,
-        );
-        if (!button) {
-            button = document.createElement('a', { is: 'checkout-link' });
-            button.setAttribute('is', 'checkout-link');
-            button.innerHTML = `<span style="pointer-events: none;">${source.innerHTML}</span>`;
-        }
-        for (const { name, value } of link.attributes) {
-            if (['is', 'href'].includes(name)) continue;
-            button.setAttribute(name, value);
-        }
-    }
-    for (const className of [...button.classList]) {
-        if (CTA_VARIANT_PATTERN.test(className))
-            button.classList.remove(className);
-    }
+    const button = link.dataset.wcsOsi
+        ? toCheckoutLink(link, source.innerHTML)
+        : source;
+    button.classList.remove(
+        ...[...button.classList].filter((value) =>
+            CTA_VARIANT_PATTERN.test(value),
+        ),
+    );
     if (!variant.endsWith('-link')) {
-        button.classList.add('button', 'con-button');
         button.classList.add(
+            'button',
+            'con-button',
             variant === 'accent' || variant === 'primary' ? 'blue' : 'outline',
         );
     }

@@ -249,6 +249,22 @@ runTests(async () => {
                     expect(cache.get('default-id')).to.equal(first);
                 });
 
+                it('keeps pending waiters across clear()', async () => {
+                    const waiter = cache
+                        .getAsPromise('pending-id')
+                        .then(() => 'resolved');
+                    cache.clear();
+                    cache.add({ id: 'pending-id' });
+                    const outcome = await Promise.race([
+                        waiter,
+                        delay(200).then(() => 'timeout'),
+                    ]);
+                    expect(outcome).to.equal('resolved');
+                    expect([...cache.entries()]).to.deep.equal([
+                        ['pending-id', { id: 'pending-id' }],
+                    ]);
+                });
+
                 it('terminates on reference cycles', () => {
                     const a = { id: 'a', references: {} };
                     const b = { id: 'b', references: {} };
@@ -586,6 +602,48 @@ runTests(async () => {
                 });
             });
 
+            it('loads a loading="cache" element added again after cache.clear()', async () => {
+                const fragment = addFragment('fragment-cc-all-apps', 'cache');
+                const loaded = oneEvent(fragment, EVENT_AEM_LOAD).then(
+                    () => 'loaded',
+                );
+                cache.clear();
+                cache.add({
+                    ...cc,
+                    fields: {
+                        ...cc.fields,
+                        originalId: 'fragment-cc-all-apps',
+                    },
+                });
+                const outcome = await Promise.race([
+                    loaded,
+                    delay(1000).then(() => 'timeout'),
+                ]);
+                expect(outcome).to.equal('loaded');
+                expect(aemMock.count).to.equal(0);
+                fragment.remove();
+            });
+
+            it('keeps the fetch info of a masked fragment apart from the unmasked one', async () => {
+                const plain = addFragment('fragment-cc-all-apps');
+                const masked = document.createElement('aem-fragment');
+                masked.setAttribute('fragment', 'fragment-cc-all-apps');
+                masked.setAttribute('mask', 'story');
+                document.body.appendChild(masked);
+                await Promise.all([
+                    oneEvent(plain, EVENT_AEM_LOAD),
+                    oneEvent(masked, EVENT_AEM_LOAD),
+                ]);
+                expect(plain.fetchInfo['aem-fragment:url']).to.not.include(
+                    'mask=',
+                );
+                expect(masked.fetchInfo['aem-fragment:url']).to.include(
+                    '&mask=story',
+                );
+                plain.remove();
+                masked.remove();
+            });
+
             it('supports hydrating from a collection fragment', async () => {
                 const topCollection = addFragment('collection');
                 const card = addFragment(
@@ -605,6 +663,7 @@ runTests(async () => {
                 expect(detail.message).to.equal(
                     'Failed to fetch fragment: Unexpected fragment response',
                 );
+                expect(detail.status).to.equal(404);
                 expect(aemFragment.fetchInfo).to.include({
                     'aem-fragment:status': 404,
                     'aem-fragment:url':

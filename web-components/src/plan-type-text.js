@@ -2,24 +2,15 @@ import { PLACEHOLDER_PLAN_TYPE_TEXT } from './constants.js';
 
 const SENTENCE_TERMINATORS = ['.', '!', '?'];
 
-// Injected in both hosts (merch-card and mas-field import this module): keep the
-// marker inline within its copy, and keep it visible over the consumer's
-// `span[is='inline-price'] { visibility: hidden }` guard. Higher specificity
-// wins regardless of stylesheet order. Kept inline and minified rather than in a
-// .css file: io/www imports this module in Node, which can't import CSS.
-const PLAN_TYPE_TEXT_STYLES =
+// Injected by registerContextOptionsProviders with the provider (merch-card and
+// mas-field register it): keep the marker inline within its copy, and keep it
+// visible over the consumer's `span[is='inline-price'] { visibility: hidden }`
+// guard. Higher specificity wins regardless of stylesheet order. Kept inline and
+// minified rather than in a .css file: io/www imports this module in Node, which
+// can't import CSS, so the module must not touch the DOM either.
+export const PLAN_TYPE_TEXT_STYLES =
     "merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text']{display:inline}" +
     "span[is='inline-price'][data-placeholder='plan-type-text']{visibility:visible}";
-
-if (
-    typeof document !== 'undefined' &&
-    !document.querySelector('style[data-plan-type-text]')
-) {
-    const style = document.createElement('style');
-    style.setAttribute('data-plan-type-text', '');
-    style.textContent = PLAN_TYPE_TEXT_STYLES;
-    document.head.append(style);
-}
 
 const BLOCK_ANCESTOR =
     'p, div, li, td, th, h1, h2, h3, h4, h5, h6, section, article, blockquote';

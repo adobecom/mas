@@ -6,7 +6,6 @@ import '../src/checkout-link.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
-    renderImageMarkup,
     stripTrialCtas,
 } from '../src/mas-field.js';
 import { FF_DEFAULTS, MERCH_CARD_LOAD_TIMEOUT } from '../src/constants.js';
@@ -37,6 +36,21 @@ function makeField(fieldName, fieldValue, variant = 'headless') {
     );
     return el;
 }
+
+describe('mas-field – styles', () => {
+    it('injects its styles once a mas-field connects', () => {
+        expect(document.querySelector('style[data-mas-field]')).to.be.null;
+        expect(document.querySelector('style[data-mas-annual-price]')).to.exist;
+        const el = document.createElement('mas-field');
+        document.body.append(el);
+        el.remove();
+        document.body.append(document.createElement('mas-field'));
+        expect(
+            document.querySelectorAll('style[data-mas-field]'),
+        ).to.have.lengthOf(1);
+        document.querySelector('mas-field').remove();
+    });
+});
 
 describe('mas-field – ctas rendering', () => {
     let sandbox;
@@ -1718,12 +1732,6 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options[FF_DEFAULTS]).to.be.undefined;
     });
 
-    it('safely no-ops when element is null', () => {
-        const options = {};
-        expect(() => priceOptionsProvider(null, options)).to.not.throw();
-        expect(options[FF_DEFAULTS]).to.be.undefined;
-    });
-
     it('sets options.promotionCode when compatVersion opts into global promo codes', () => {
         const masField = document.createElement('mas-field');
         masField.setAttribute('data-promotion-code', 'PROMO123');
@@ -1879,7 +1887,6 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         checkoutOptionsProvider(link, options);
         expect(options.promotionCode).to.be.undefined;
-        expect(() => checkoutOptionsProvider(null, options)).to.not.throw();
     });
 
     function makeLegalField(displayPlanType) {
@@ -2599,54 +2606,6 @@ const IMAGE_INNER =
     '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
     '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=webply&optimize=medium">' +
     '<img loading="lazy" alt="" src="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=png&optimize=medium">';
-
-describe('renderImageMarkup', () => {
-    const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
-
-    it('wraps inner markup in a <picture>, preserving all sources', () => {
-        const doc = parse(
-            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
-        );
-        const picture = doc.querySelector('picture');
-        expect(picture).to.exist;
-        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
-        expect(picture.querySelector('img')).to.exist;
-    });
-
-    it('leaves *.aem.page URLs untouched off prod', () => {
-        const doc = parse(
-            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
-        );
-        expect(doc.querySelector('img').getAttribute('src')).to.contain(
-            'main--mas-test--adobecom.aem.page',
-        );
-    });
-
-    it('rewrites *.aem.page origins to the prod origin on adobe.com', () => {
-        const doc = parse(
-            renderImageMarkup(IMAGE_INNER, {
-                hostname: 'www.adobe.com',
-                origin: 'https://www.adobe.com',
-            }),
-        );
-        const img = doc.querySelector('img');
-        expect(img.getAttribute('src')).to.equal(
-            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png&optimize=medium',
-        );
-        doc.querySelectorAll('source').forEach((s) => {
-            expect(s.getAttribute('srcset')).to.contain(
-                'https://www.adobe.com/test-fragments/media_1.png',
-            );
-            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
-        });
-    });
-
-    it('returns empty string for empty input', () => {
-        expect(renderImageMarkup('', { hostname: 'www.adobe.com' })).to.equal(
-            '',
-        );
-    });
-});
 
 describe('mas-field – image rendering', () => {
     afterEach(() => {

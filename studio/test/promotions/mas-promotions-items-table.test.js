@@ -367,10 +367,7 @@ describe('MasPromotionsItemsTable', () => {
             el.type = TABLE_TYPE.CARDS;
             sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
             document.body.appendChild(el);
-            await waitUntil(
-                () =>
-                    el.viewOnlyFragments.length === 25 && el.viewOnlyFragments[0].path === paths.at(-1) && !el.viewOnlyLoading,
-            );
+            await waitUntil(() => el.viewOnlyFragments.length === 25 && !el.viewOnlyLoading);
             return { el, paths, getFragmentByPath };
         }
 
@@ -393,6 +390,7 @@ describe('MasPromotionsItemsTable', () => {
             });
             const el = createItemsTable();
             el.type = TABLE_TYPE.CARDS;
+            el.cardsSortDirection = 'asc';
             sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
             document.body.appendChild(el);
             await waitUntil(() => el.viewOnlyFragments.length === 25);
@@ -436,12 +434,13 @@ describe('MasPromotionsItemsTable', () => {
             );
         }
 
-        it('sorts cards by offer ascending on open', async () => {
-            const { el, paths } = await mountSortableCards(30);
-            expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(5).reverse());
+        it('opens cards in stored order without fetching beyond the first window', async () => {
+            const { el, paths, getFragmentByPath } = await mountSortableCards(30);
+            await new Promise((r) => setTimeout(r, 50));
+            expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(0, 25));
+            expect(getFragmentByPath.callCount).to.equal(25);
             const table = el.shadowRoot.querySelector('mas-select-items-table');
-            expect(table.sortBy).to.equal('offer');
-            expect(table.sortDirection).to.equal('asc');
+            expect(table.sortBy).to.equal('');
             el.remove();
         });
 

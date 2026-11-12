@@ -163,7 +163,8 @@ class MasPromotionsItemsTable extends LitElement {
         this.fragmentHasEmptyGeosVariation = false;
         this.relatedPagesDialogOpen = false;
         this.offersSortDirection = 'asc';
-        this.cardsSortDirection = 'asc';
+        // Cards open in stored order; sorting by offer fetches every selected card, so it waits for the header click.
+        this.cardsSortDirection = '';
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -1224,7 +1225,7 @@ class MasPromotionsItemsTable extends LitElement {
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
             .viewOnlyHasMore=${hasMore}
-            .sortBy=${'offer'}
+            .sortBy=${this.cardsSortDirection ? 'offer' : ''}
             .sortDirection=${this.cardsSortDirection}
             @view-only-load-more=${() => this.#loadMore()}
             @view-only-sort=${(e) => this.#onViewOnlySort(e)}

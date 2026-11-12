@@ -1,30 +1,12 @@
-import { getService } from './utils.js';
+import { Log } from './log.js';
 import { MasElement } from './mas-element.js';
-
-/**
- * Builds the Universal Promo Terms page URL for an offer. Shared by UptLink.render and the
- * server-side agent action, so both point "See terms" at the same page.
- * @param {{ env: string, language: string, country: string, offerId: string, promotionCode?: string }} options
- * @returns {string}
- */
-export function getPromoTermsUrl({
-    env,
-    language,
-    country,
-    offerId,
-    promotionCode,
-}) {
-    const host = env === 'PRODUCTION' ? 'www.adobe.com' : 'www.stage.adobe.com';
-    let params = `locale=${language}_${country}&country=${country}&offer_id=${offerId}`;
-    if (promotionCode)
-        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
-    return `https://${host}/offers/promo-terms.html?${params}`;
-}
+import { getPromoTermsUrl } from './promo-terms.js';
+import { getService } from './utilities.js';
 
 /**
  * Universal Promo Terms Link
  */
-export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
+export class UptLink extends HTMLAnchorElement {
     static is = 'upt-link';
     static tag = 'a';
     static observedAttributes = [
@@ -32,9 +14,11 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
         'data-promotion-code',
         'data-ims-country',
     ];
+
     masElement = new MasElement(this);
 
-    #service;
+    // set by render, the IMS country does not change the promo terms URL
+    #imsCountry;
 
     get isUptLink() {
         return true;
@@ -56,20 +40,16 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
     }
 
     attributeChangedCallback(name, oldValue, value) {
+        if (name === 'data-ims-country' && value === this.#imsCountry) return;
         this.masElement.attributeChangedCallback(name, oldValue, value);
     }
 
     connectedCallback() {
         this.masElement.connectedCallback();
-        this.#service = getService();
-        if (this.#service) {
-            this.log = this.#service.log.module('upt-link');
-        }
     }
 
     disconnectedCallback() {
         this.masElement.disconnectedCallback();
-        this.#service = undefined;
     }
 
     requestUpdate(force = false) {
@@ -82,25 +62,26 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
 
     async render() {
         const service = getService();
-        if (!service) return false;
-
-        if (!this.dataset.imsCountry) {
-            service.imsCountryPromise.then((countryCode) => {
-                if (countryCode) this.dataset.imsCountry = countryCode;
+        const { dataset, masElement } = this;
+        if (!dataset.imsCountry) {
+            service.imsCountryPromise.then((country) => {
+                if (!country) return;
+                this.#imsCountry = country;
+                dataset.imsCountry = country;
             });
         }
-
         const options = service.collectCheckoutOptions({}, this);
-        if (!options.wcsOsi) {
-            this.log.error(`Missing 'data-wcs-osi' attribute on upt-link.`);
+        if (!options.wcsOsi.length) {
+            Log.module('upt-link').error(
+                `Missing 'data-wcs-osi' attribute on upt-link.`,
+            );
             return false;
         }
-
-        const version = this.masElement.togglePending(options);
-        const promises = service.resolveOfferSelectors(options);
-
+        const version = masElement.togglePending(options);
         try {
-            const [[offer]] = await Promise.all(promises);
+            const [[offer]] = await Promise.all(
+                service.resolveOfferSelectors(options),
+            );
             const { country, language, env } = options;
             this.href = getPromoTermsUrl({
                 env,
@@ -109,14 +90,16 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
                 offerId: offer.offerId,
                 promotionCode: this.getAttribute('data-promotion-code'),
             });
-            this.masElement.toggleResolved(version, offer, options);
+            masElement.toggleResolved(version, offer, options);
         } catch (error) {
-            const masError = new Error(
-                `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
-                error.message,
+            masElement.toggleFailed(
+                version,
+                new Error(
+                    `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
+                    { cause: error },
+                ),
+                options,
             );
-            this.masElement.toggleFailed(version, masError, options);
-            return false;
         }
     }
 
@@ -125,17 +108,14 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
      */
     static createFrom(element) {
         const uptLink = new UptLink();
-        for (const attribute of element.attributes) {
-            if (attribute.name === 'is') continue;
-            if (
-                attribute.name === 'class' &&
-                attribute.value.includes('upt-link')
-            )
+        for (const { name, value } of element.attributes) {
+            if (name === 'is') continue;
+            if (name === 'class' && value.includes('upt-link'))
                 uptLink.setAttribute(
                     'class',
-                    attribute.value.replace('upt-link', '').trim(),
+                    value.replace('upt-link', '').trim(),
                 );
-            else uptLink.setAttribute(attribute.name, attribute.value);
+            else uptLink.setAttribute(name, value);
         }
         uptLink.innerHTML = element.innerHTML;
         uptLink.setAttribute('tabindex', 0);
@@ -143,9 +123,6 @@ export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
     }
 }
 
-// Define custom DOM element
-if (globalThis.customElements && !globalThis.customElements.get(UptLink.is)) {
-    globalThis.customElements.define(UptLink.is, UptLink, {
-        extends: UptLink.tag,
-    });
+if (!customElements.get(UptLink.is)) {
+    customElements.define(UptLink.is, UptLink, { extends: UptLink.tag });
 }

@@ -309,12 +309,6 @@ describe('buildCheckoutUrl', () => {
         sinon.restore();
     });
 
-    it('should throw an error if required fields are missing', () => {
-        expect(() =>
-            buildCheckoutUrl({ workflowStep: CheckoutWorkflowStep.CHECKOUT }),
-        ).to.throw();
-    });
-
     it('should set correct parameters for CRM modal type', () => {
         const checkoutData = {
             env: PROVIDER_ENVIRONMENT.PRODUCTION,

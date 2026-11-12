@@ -86,6 +86,16 @@ export {
     sanitizePictureMarkup,
 } from './image-markup.js';
 export { hostOsi } from './plan-type-text.js';
+
+// The aup-checkout.js satellite imports these from ./commerce.js.
+export { STATE_RESOLVED } from './constants.js';
+export {
+    CHECKOUT_PARAMS,
+    getAddonProductArrangementCode,
+    preselectSegments,
+    toCheckoutLanguage,
+} from './buildCheckoutUrl.js';
+export { getAupClientId, isAupCheckoutSupported } from './checkout-mixin.js';
 export {
     applyContextPromotionCode,
     applyDisplayAnnualDefault,

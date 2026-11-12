@@ -1,20 +1,17 @@
 import {
-    Landscape,
     CheckoutWorkflowStep,
-    PROVIDER_ENVIRONMENT,
+    Landscape,
     MODAL_TYPE_3_IN_1,
+    PROVIDER_ENVIRONMENT,
 } from './constants.js';
 
 const AF_DRAFT_LANDSCAPE = 'p_draft_landscape';
-const UCV3_PREFIX = '/store/';
+// Checkout names of the option names that differ.
 const PARAMETERS = new Map([
     ['countrySpecific', 'cs'],
     ['customerSegment', 'cs'],
     ['quantity', 'q'],
-    ['authCode', 'code'],
     ['checkoutPromoCode', 'apc'],
-    ['rurl', 'rUrl'],
-    ['curl', 'cUrl'],
     ['ctxrturl', 'ctxRtUrl'],
     ['country', 'co'],
     ['language', 'lang'],
@@ -25,110 +22,70 @@ const PARAMETERS = new Map([
     ['offerType', 'ot'],
     ['marketSegment', 'ms'],
 ]);
-/*?*
- * List of the keys that can be used to construct Checkout URL.
- * Allow-listing is required because some consumers of the library don't use Typescript so they can pass any object as
- * 'checkoutData'. The library will ignore any unknown key in 'checkoutData'.
+
+/**
+ * Checkout parameters a CTA can set in its extra options, forwarded to the
+ * checkout URL and to AUP checkout.
  */
-const ALLOWED_KEYS = new Set([
+export const CHECKOUT_PARAMS = [
     'af',
     'ai',
     'ao',
     'apc',
     'appctxid',
-    'cli',
-    'co',
-    'cs',
+    'context.guid',
     'csm',
     'ctx',
-    'ctxRtUrl',
     'DCWATC',
-    'dp', // Enable digital payments for iframe context
-    'fr', // represents the commerce app redirecting to UC
     'gsp',
     'ijt',
-    'lang',
     'lo',
     'mal',
-    'ms',
     'mv',
     'mv2',
     'nglwfdata',
-    'ot',
     'otac',
-    'pa',
     'pcid', // Unified Paywall configuration ID for analytics
     'promoid',
-    'q',
     'rf',
     'sc',
-    'scl',
     'sdid',
-    'sid', // x-adobe-clientsession
-    'spint',
-    'svar',
-    'th',
-    'thm',
-    'trackingid',
-    'usid',
-    'workflowid',
-    'context.guid',
     'so.ca',
     'so.su',
     'so.tr',
     'so.va',
-]);
-const REQUIRED_KEYS = ['env', 'workflowStep', 'clientId', 'country'];
-
-/** Paths under Taiwan or HK traditional-Chinese locales → checkout `lang=zh-Hant`. */
-const ZH_HANT_PRODUCTS_PATH = ['/tw/', '/hk_zh/'];
-
-export function pathnameRequiresZhHantLang(pathname) {
-    const pathnameOrEmpty = pathname ?? '';
-    return ZH_HANT_PRODUCTS_PATH.some((prefix) =>
-        pathnameOrEmpty.startsWith(prefix),
-    );
-}
-
-function shouldApplyZhHantCheckoutLang() {
-    if (typeof window === 'undefined') return false;
-    const paths = [window.location.pathname];
-    try {
-        if (window.parent !== window)
-            paths.push(window.parent.location.pathname);
-    } catch {
-        /* cross-origin parent */
-    }
-    return paths.some(pathnameRequiresZhHantLang);
-}
+    'spint',
+    'th',
+    'trackingid',
+    'usid',
+];
 
 /**
- * Adjusts checkout URL query params (e.g. `lang`, per-item `lang`) from the current page context.
- * Add more locale rules here as needed.
- * @param {URL|string} url
- * @returns {string}
+ * Parameters of a checkout URL. Consumers without types can pass any object
+ * as checkout data, the unknown keys are ignored.
  */
-export function applyPageLocaleToCheckoutUrl(url) {
-    if (!shouldApplyZhHantCheckoutLang()) {
-        return url instanceof URL ? url.toString() : String(url);
-    }
-    let checkoutUrl;
-    try {
-        checkoutUrl = url instanceof URL ? url : new URL(url);
-    } catch {
-        return String(url);
-    }
-    checkoutUrl.searchParams.set('lang', 'zh-Hant');
-    for (const paramName of [...checkoutUrl.searchParams.keys()]) {
-        if (/^items\[\d+]\[lang]$/.test(paramName)) {
-            checkoutUrl.searchParams.set(paramName, 'zh-Hant');
-        }
-    }
-    return checkoutUrl.toString();
-}
+const ALLOWED_KEYS = new Set([
+    ...CHECKOUT_PARAMS,
+    'cli',
+    'co',
+    'cs',
+    'ctxRtUrl',
+    'dp', // Enable digital payments for iframe context
+    'fr', // represents the commerce app redirecting to UC
+    'lang',
+    'ms',
+    'ot',
+    'pa',
+    'q',
+    'scl',
+    'sid', // x-adobe-clientsession
+    'svar',
+    'thm',
+    'workflowid',
+]);
 
-// Parameters that are allowed to be passed to the checkout URL from the window.location.search of the current page
-const ALLOWED_URL_PARAMS = new Set([
+// Parameters of the page URL forwarded to the checkout URL.
+const ALLOWED_URL_PARAMS = [
     'gid',
     'gtoken',
     'notifauditid',
@@ -142,204 +99,207 @@ const ALLOWED_URL_PARAMS = new Set([
     'gcpagetype',
     'mv',
     'mv2',
-]);
+];
+
+/** Paths under Taiwan or HK traditional-Chinese locales → checkout `lang=zh-Hant`. */
+const ZH_HANT_PATHS = ['/tw/', '/hk_zh/'];
+
+const MODALS_3_IN_1 = Object.values(MODAL_TYPE_3_IN_1);
+
+export const pathnameRequiresZhHantLang = (pathname) =>
+    ZH_HANT_PATHS.some((prefix) => pathname?.startsWith(prefix));
+
+function isZhHantPage() {
+    if (pathnameRequiresZhHantLang(window.location.pathname)) return true;
+    try {
+        return (
+            window.parent !== window &&
+            pathnameRequiresZhHantLang(window.parent.location.pathname)
+        );
+    } catch {
+        return false; // cross-origin parent
+    }
+}
+
+/** The checkout language of the page: `zh-Hant` on traditional-Chinese pages. */
+export const toCheckoutLanguage = (language) =>
+    isZhHantPage() ? 'zh-Hant' : language;
 
 /**
- * Maps human-readable parameter name to the name expected by Checkout Page.
- * Map contains values for UC versions, UCv2, UCv3 etc.
+ * Adjusts checkout URL query params (e.g. `lang`, per-item `lang`) from the current page context.
+ * Add more locale rules here as needed.
+ * @param {URL|string} url
+ * @returns {string}
  */
+export function applyPageLocaleToCheckoutUrl(url) {
+    if (!isZhHantPage()) return String(url);
+    let checkoutUrl;
+    try {
+        checkoutUrl = new URL(url);
+    } catch {
+        return String(url);
+    }
+    const { searchParams } = checkoutUrl;
+    searchParams.set('lang', 'zh-Hant');
+    for (const name of [...searchParams.keys()]) {
+        if (/^items\[\d+]\[lang]$/.test(name)) {
+            searchParams.set(name, 'zh-Hant');
+        }
+    }
+    return checkoutUrl.toString();
+}
+
+export const is3in1Modal = (modal) => MODALS_3_IN_1.includes(modal);
+
+/** A 3-in-1 modal, unless `<meta name="mas-ff-3in1" content="off">` disables them. */
+export const isOpen3in1Modal = (modal) =>
+    is3in1Modal(modal) &&
+    document.querySelector('meta[name=mas-ff-3in1]')?.content !== 'off';
+
+/** The checkout client of a 3-in-1 modal: doc_cloud stays, CRM opens creative, the others mini_plans. */
+export const get3in1ClientId = (clientId, modal) => {
+    if (clientId === 'doc_cloud') return clientId;
+    return modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
+};
+
+/**
+ * Applies the plan that MEP preselects on catalog pages (`preselect-plan`).
+ * @returns {[string, string]} market and customer segments
+ */
+export function preselectSegments(
+    preselectPlan,
+    marketSegment,
+    customerSegment,
+) {
+    const plan = preselectPlan?.toLowerCase();
+    return [
+        plan === 'edu' ? 'EDU' : marketSegment,
+        plan === 'team' ? 'TEAM' : customerSegment,
+    ];
+}
+
+/**
+ * The first item is the primary offer, the item with another product
+ * arrangement is the addon (Stock).
+ */
+export const getAddonProductArrangementCode = (items, productArrangementCode) =>
+    (productArrangementCode
+        ? items?.find(
+              (item) => item.productArrangementCode !== productArrangementCode,
+          )
+        : items?.[1]
+    )?.productArrangementCode;
+
+/** Maps an option name to its checkout parameter name. */
 export const mapParameterName = (field) => PARAMETERS.get(field) ?? field;
 
-/**
- * For each of the given inputParameters checks if a parameter is allow-listed and adds it to the result with a correct
- * Checkout name (calling mapping in mapParameterName).
- */
+/** Sets the allowed parameters of `inputParameters`, under their checkout names. */
 export function addParameters(inputParameters, resultParameters, allowedKeys) {
     for (const [key, value] of Object.entries(inputParameters)) {
-        const mappedKey = mapParameterName(key);
-        if (value != null && allowedKeys.has(mappedKey)) {
-            resultParameters.set(mappedKey, value);
+        const name = mapParameterName(key);
+        if (value != null && allowedKeys.has(name)) {
+            resultParameters.set(name, value);
         }
     }
 }
 
-export function getHostName(env) {
-    switch (env) {
-        case PROVIDER_ENVIRONMENT.PRODUCTION:
-            return 'https://commerce.adobe.com';
-        default:
-            return 'https://commerce-stg.adobe.com';
-    }
-}
+export const getHostName = (env) =>
+    env === PROVIDER_ENVIRONMENT.PRODUCTION
+        ? 'https://commerce.adobe.com'
+        : 'https://commerce-stg.adobe.com';
 
-/**
- * For each Item object iterate over the fields and add as a parameter of Checkout Url.
- * Some fields need a mapping from human-readable name, e.g. countrySpecific -> cs, for this mapParameterName is called.
- * @param items array of offers with their metadata
- * @param parameters result array of Checkout URL parameters
- */
+/** Sets the fields of each item as `items[index][name]` parameters. */
 export function setItemsParameter(items, parameters) {
-    for (const idx in items) {
-        const item = items[idx];
+    for (const [index, item] of items.entries()) {
         for (const [key, value] of Object.entries(item)) {
-            if (value == null) continue;
-            const parameterName = mapParameterName(key);
-            parameters.set(`items[${idx}][${parameterName}]`, value);
+            if (value != null) {
+                parameters.set(
+                    `items[${index}][${mapParameterName(key)}]`,
+                    value,
+                );
+            }
         }
     }
 }
 
 /**
- * Adds 3-in-1 parameters to the URL.
- * @param {URL} url - The URL object to add parameters to
- * @param {string} modal - The type of modal: 'crm', 'twp', or 'd2p'
- * @param {boolean} is3in1 - Whether 3-in-1 is enabled
- * @returns URL object
+ * Forwards the allowed parameters of the page URL, cut at a stray `?`.
+ * @param {URL} url
  */
-export function add3in1Parameters({ url, modal, is3in1 }) {
-    if (!is3in1 || !url?.searchParams) return url;
-    url.searchParams.set('rtc', 't');
-    url.searchParams.set('lo', 'sl');
-    const existingAf = url.searchParams.get('af');
-    url.searchParams.set(
-        'af',
-        [existingAf, 'uc_new_user_iframe', 'uc_new_system_close']
-            .filter(Boolean)
-            .join(','),
-    );
-    if (url.searchParams.get('cli') !== 'doc_cloud') {
-        url.searchParams.set(
-            'cli',
-            modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans',
-        );
-    }
-    return url;
-}
-
-/**
- * Adds parameters from the page URL to the checkout URL.
- * Only parameters that are allowed to be passed to the checkout URL from the page URL are added.
- * @param {URL} url - The URL object to add parameters to
- */
-function sanitizePageUrlParamValue(value) {
-    const qIndex = value.indexOf('?');
-    return qIndex === -1 ? value : value.slice(0, qIndex);
-}
-
-export function addParamsFromPageUrl(url) {
-    const pageSearchParams = new URLSearchParams(window.location.search);
-    const nonCommerceParameters = {};
-    ALLOWED_URL_PARAMS.forEach((param) => {
-        const value = pageSearchParams.get(param);
-        if (value !== null) {
-            nonCommerceParameters[param] = sanitizePageUrlParamValue(value);
-        }
-    });
-    if (Object.keys(nonCommerceParameters).length > 0) {
-        addParameters(
-            nonCommerceParameters,
-            url.searchParams,
-            ALLOWED_URL_PARAMS,
-        );
+export function addParamsFromPageUrl({ searchParams }) {
+    const pageParams = new URLSearchParams(window.location.search);
+    for (const param of ALLOWED_URL_PARAMS) {
+        const value = pageParams.get(param);
+        if (value !== null) searchParams.set(param, value.split('?')[0]);
     }
 }
 
 /**
  * Builds a UCv3 Checkout URL out of given parameters.
  */
-export function buildCheckoutUrl(checkoutData) {
-    validateCheckoutData(checkoutData);
-    const {
-        env,
-        items,
-        workflowStep,
-        marketSegment,
-        customerSegment,
-        offerType,
-        productArrangementCode,
-        landscape,
-        modal,
-        is3in1,
-        preselectPlan,
-        ...rest
-    } = checkoutData;
-
-    let url = new URL(getHostName(env));
-    url.pathname = `${UCV3_PREFIX}${workflowStep}`;
+export function buildCheckoutUrl({
+    env,
+    items,
+    workflowStep,
+    marketSegment,
+    customerSegment,
+    offerType,
+    productArrangementCode,
+    landscape,
+    modal,
+    is3in1,
+    ...rest
+}) {
+    const url = new URL(getHostName(env));
+    url.pathname = `/store/${workflowStep}`;
+    const { searchParams } = url;
+    const isSegmentation = workflowStep === CheckoutWorkflowStep.SEGMENTATION;
     if (
-        workflowStep !== CheckoutWorkflowStep.SEGMENTATION &&
+        !isSegmentation &&
         workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS
     ) {
-        setItemsParameter(items, url.searchParams);
+        setItemsParameter(items, searchParams);
     }
-    addParameters({ ...rest }, url.searchParams, ALLOWED_KEYS);
-
+    addParameters(rest, searchParams, ALLOWED_KEYS);
     addParamsFromPageUrl(url);
-
     if (landscape === Landscape.DRAFT) {
+        searchParams.set('af', AF_DRAFT_LANDSCAPE);
+    }
+    if (isSegmentation) {
         addParameters(
-            { af: AF_DRAFT_LANDSCAPE },
-            url.searchParams,
+            {
+                marketSegment,
+                offerType,
+                customerSegment,
+                productArrangementCode,
+                quantity: items?.[0]?.quantity,
+                addonProductArrangementCode: getAddonProductArrangementCode(
+                    items,
+                    productArrangementCode,
+                ),
+            },
+            searchParams,
             ALLOWED_KEYS,
         );
-    }
-    if (workflowStep === CheckoutWorkflowStep.SEGMENTATION) {
-        // first item is always primary offer, second - addon offer
-        const segmentationParameters = {
-            marketSegment,
-            offerType,
-            customerSegment,
-            productArrangementCode,
-            quantity: items?.[0]?.quantity,
-            addonProductArrangementCode: productArrangementCode
-                ? items?.find(
-                      (item) =>
-                          item.productArrangementCode !==
-                          productArrangementCode,
-                  )?.productArrangementCode
-                : items?.[1]?.productArrangementCode,
-        };
-        //used on catalog page by MEP to preselect plan
-        if (preselectPlan?.toLowerCase() === 'edu') {
-            url.searchParams.set('ms', 'EDU');
-        } else if (preselectPlan?.toLowerCase() === 'team') {
-            url.searchParams.set('cs', 'TEAM');
-        }
-        addParameters(segmentationParameters, url.searchParams, ALLOWED_KEYS);
-        if (url.searchParams.get('ot') === 'PROMOTION')
-            url.searchParams.delete('ot');
-        url = add3in1Parameters({
-            url,
-            modal,
-            is3in1,
-        });
-    }
-    return applyPageLocaleToCheckoutUrl(url);
-}
-
-/**
- * Validates 'checkoutData' input in runtime. This is needed to ensure non-typescript consumers won't get false positive
- * checkout URL returned.
- * Iterates over the list of required fields (REQUIRED_KEYS) and checks that each of them is present in 'checkoutData'.
- * If any of required fields is missing - throws and Error with a specified message.
- * For CheckoutWorkflowStep.SEGMENTATION and for CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS 'items' property is not required, for rest of WorkflowStep it is.
- * @param checkoutData object holding the data required to build the checkout URL
- */
-function validateCheckoutData(checkoutData) {
-    for (const key of REQUIRED_KEYS) {
-        if (!checkoutData[key]) {
-            throw new Error(
-                `Argument "checkoutData" is not valid, missing: ${key}`,
+        if (searchParams.get('ot') === 'PROMOTION') searchParams.delete('ot');
+        if (is3in1) {
+            searchParams.set('rtc', 't');
+            searchParams.set('lo', 'sl');
+            searchParams.set(
+                'af',
+                [
+                    searchParams.get('af'),
+                    'uc_new_user_iframe',
+                    'uc_new_system_close',
+                ]
+                    .filter(Boolean)
+                    .join(','),
+            );
+            searchParams.set(
+                'cli',
+                get3in1ClientId(searchParams.get('cli'), modal),
             );
         }
     }
-    if (
-        checkoutData.workflowStep !== CheckoutWorkflowStep.SEGMENTATION &&
-        checkoutData.workflowStep !==
-            CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS &&
-        !checkoutData.items
-    ) {
-        throw new Error('Argument "checkoutData" is not valid, missing: items');
-    }
-    return true;
+    return applyPageLocaleToCheckoutUrl(url);
 }

@@ -809,9 +809,9 @@ describe('aup-select checkout routing', () => {
                     if (bypass === 'missing-sdk') delete window.aupsdk;
                     const event = click(other);
                     expect(legacy.calledOnceWithExactly(event)).to.be.true;
-                    expect(sdk.getOrchestratorContext.calledOnce).to.be.true;
                     context.resolve({ launchWorkflowInModal: launch });
                     await first.aupCheckoutPromise;
+                    expect(sdk.getOrchestratorContext.calledOnce).to.be.true;
                 });
             }
 
@@ -980,6 +980,23 @@ describe('aup-select checkout routing', () => {
         expect(event.defaultPrevented).to.be.true;
         expect(legacy.called).to.be.false;
         expect(sdk.getOrchestratorContext.called).to.be.false;
+    });
+
+    it('prefetches the AUP checkout on hover and focus without launching it', async () => {
+        const element = await create();
+        const other = await create(CheckoutLink, {
+            wcsOsi: 'perpetual',
+            perpetual: true,
+        });
+        for (const target of [element, other]) {
+            target.dispatchEvent(new PointerEvent('pointerenter'));
+            target.dispatchEvent(new FocusEvent('focusin'));
+        }
+        await import('../src/aup-checkout.js');
+        expect(sdk.getOrchestratorContext.called).to.be.false;
+        expect(lifecycle.called).to.be.false;
+        expect(element.getAttribute('href')).to.equal('#');
+        expect(other.getAttribute('href')).to.equal(other.checkoutUrl);
     });
 
     it('ignores Command-click even before the host SDK is ready', async () => {

@@ -307,4 +307,81 @@ describe('commerce.js public contract', () => {
             expect(await service.buildCheckoutAction([{}], {})).to.be.null;
         });
     });
+
+    describe('checkout elements', () => {
+        it('are created by their factories only with a service', () => {
+            const CheckoutLink = customElements.get('checkout-link');
+            const CheckoutButton = customElements.get('checkout-button');
+            expect(CheckoutLink.createCheckoutLink({ wcsOsi: 'abm' })).to.be
+                .null;
+            expect(CheckoutButton.createCheckoutButton({ wcsOsi: 'abm' })).to.be
+                .null;
+            initMasCommerceService();
+            const link = CheckoutLink.createCheckoutLink(
+                {
+                    wcsOsi: 'abm',
+                    promotionCode: 'cancel-context',
+                    analyticsId: 'buy-now',
+                },
+                'Buy',
+            );
+            expect(link.dataset).to.include({
+                wcsOsi: 'abm',
+                promotionCode: 'cancel-context',
+                analyticsId: 'buy-now',
+            });
+            expect(link.isCheckoutLink).to.be.true;
+            const button = CheckoutButton.createCheckoutButton({
+                wcsOsi: 'abm',
+            });
+            expect(button.isCheckoutButton).to.be.true;
+            for (const element of [link, button]) {
+                for (const method of [
+                    'onceSettled',
+                    'renderOffers',
+                    'requestUpdate',
+                    'updateOptions',
+                ]) {
+                    expect(element[method], method).to.be.a('function');
+                }
+            }
+        });
+
+        it('renders checkout URLs into href and data-href', async () => {
+            initMasCommerceService();
+            const link = commerce.getService().createCheckoutLink({
+                wcsOsi: 'abm',
+            });
+            const button = customElements
+                .get('checkout-button')
+                .createCheckoutButton({ wcsOsi: 'abm' });
+            document.body.append(link, button);
+            await Promise.all([link.onceSettled(), button.onceSettled()]);
+            const url =
+                'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=632B3ADD940A7FBB7864AA5AD19B8D28&cli=adobe_com&ctx=fp&co=US&lang=en';
+            expect(link.getAttribute('href')).to.equal(url);
+            expect(button.getAttribute('data-href')).to.equal(url);
+            expect(link.checkoutUrl).to.equal(url);
+            expect(link.value[0].offerId).to.equal(
+                '632B3ADD940A7FBB7864AA5AD19B8D28',
+            );
+            expect(link.marketSegment).to.equal('COM');
+            expect(link.customerSegment).to.equal('INDIVIDUAL');
+            link.remove();
+            button.remove();
+        });
+
+        it('creates promo terms links from placeholders', () => {
+            const placeholder = document.createElement('a');
+            placeholder.className = 'upt-link secondary-link';
+            placeholder.innerHTML = 'See terms';
+            const uptLink = customElements
+                .get('upt-link')
+                .createFrom(placeholder);
+            expect(uptLink.getAttribute('is')).to.equal('upt-link');
+            expect(uptLink.className).to.equal('secondary-link');
+            expect(uptLink.isUptLink).to.be.true;
+            expect(uptLink.initializeWcsData).to.be.a('function');
+        });
+    });
 });

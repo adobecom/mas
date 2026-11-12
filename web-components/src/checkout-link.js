@@ -1,5 +1,4 @@
-import { createCheckoutElement } from './checkout-mixin.js';
-import { CheckoutMixin } from './checkout-mixin.js';
+import { CheckoutMixin, createCheckoutElement } from './checkout-mixin.js';
 
 export class CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
     static is = 'checkout-link';
@@ -12,19 +11,10 @@ export class CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
     get isCheckoutLink() {
         return true;
     }
-
-    clickHandler(e) {
-        if (this.handleAupCheckout(e)) return;
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(e);
-            return;
-        }
-    }
 }
 
-// Define custom DOM element
-if (!window.customElements.get(CheckoutLink.is)) {
-    window.customElements.define(CheckoutLink.is, CheckoutLink, {
+if (!customElements.get(CheckoutLink.is)) {
+    customElements.define(CheckoutLink.is, CheckoutLink, {
         extends: CheckoutLink.tag,
     });
 }

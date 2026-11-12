@@ -307,6 +307,40 @@
                         expect(priceLegals.length).to.equal(1);
                     });
 
+                    it('should add 4px below the heading-xs title', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        container.append(masCommerceService, photoshop);
+                        await photoshop.checkReady();
+
+                        const title = photoshop.querySelector(
+                            '[slot="heading-xs"]',
+                        );
+                        expect(getComputedStyle(title).marginBottom).to.equal(
+                            '4px',
+                        );
+                    });
+
+                    it('should not add 4px below plans-education titles', async () => {
+                        const [masCommerceService, education] =
+                            getTemplateContent(
+                                'plans-education-with-body-prices',
+                            );
+                        container.append(masCommerceService, education);
+                        await education.checkReady();
+
+                        const headingS =
+                            education.querySelector('[slot="heading-s"]');
+                        const headingXs =
+                            education.querySelector('span.heading-xs');
+                        expect(
+                            getComputedStyle(headingS).marginBottom,
+                        ).to.equal('0px');
+                        expect(
+                            getComputedStyle(headingXs).marginBottom,
+                        ).to.equal('0px');
+                    });
+
                     it('should set heading-xs CSS var on card via syncHeights', async () => {
                         const [masCommerceService, photoshop] =
                             getTemplateContent('photoshop');

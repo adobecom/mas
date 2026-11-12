@@ -1489,6 +1489,140 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('item selection dialog', () => {
+        it('reuses successfully loaded baselines when reopening Add Items', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('close'));
+
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+
+            expect(defaultMockRepository.searchFragmentList.calledOnce).to.be.true;
+        });
+
+        it('reloads baselines when the search surface changes', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('close'));
+            Store.search.set({ path: SURFACES.NALA.name });
+
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+
+            expect(defaultMockRepository.searchFragmentList.secondCall.args[0].path).to.equal(
+                `/content/dam/mas/${SURFACES.NALA.name}/en_US/baselines`,
+            );
+        });
+
+        for (const event of ['cancel', 'confirm', 'close']) {
+            it(`aborts pending baseline loads on ${event} and retries on reopen`, async () => {
+                let resolveFirstLoad;
+                defaultMockRepository.searchFragmentList.onFirstCall().returns(
+                    new Promise((resolve) => {
+                        resolveFirstLoad = resolve;
+                    }),
+                );
+                const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+                const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+                overlay.dispatchEvent(new CustomEvent('sp-opened'));
+                const controller = defaultMockRepository.searchFragmentList.firstCall.args[2];
+
+                el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent(event));
+
+                expect(controller.signal.aborted).to.be.true;
+                expect(Store.translationProjects.baselinesList.loading.get()).to.be.false;
+                resolveFirstLoad([createMockFragment({ id: 'stale-baseline', path: '/stale/baseline' })]);
+                await el.updateComplete;
+                expect(Store.translationProjects.baselinesList.data.get()).to.deep.equal([]);
+
+                el.shadowRoot.querySelector('#add-items-overlay').dispatchEvent(new CustomEvent('sp-opened'));
+                await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+                expect(defaultMockRepository.searchFragmentList.calledTwice).to.be.true;
+            });
+        }
+
+        it('retries failed baseline loads when reopening Add Items', async () => {
+            defaultMockRepository.processError = sandbox.stub();
+            defaultMockRepository.searchFragmentList.onFirstCall().rejects(new Error('Baseline search failed'));
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+            expect(defaultMockRepository.processError.calledOnce).to.be.true;
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('close'));
+
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+
+            expect(defaultMockRepository.searchFragmentList.calledTwice).to.be.true;
+        });
+
+        it('preserves the original snapshot across duplicate trigger opened events and resets it on reopen', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            Store.translationProjects.selectedCards.set(['card-original']);
+            Store.translationProjects.selectedCollections.set(['collection-original']);
+            Store.translationProjects.selectedPlaceholders.set(['placeholder-original']);
+            const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+            const trigger = overlay.querySelector('[slot="trigger"]');
+            overlay.dispatchEvent(new CustomEvent('sp-opened'));
+            Store.translationProjects.selectedCards.set(['card-edited']);
+            Store.translationProjects.selectedCollections.set(['collection-edited']);
+            Store.translationProjects.selectedPlaceholders.set(['placeholder-edited']);
+
+            trigger.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('cancel'));
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-original']);
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal(['collection-original']);
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal(['placeholder-original']);
+
+            Store.translationProjects.selectedCards.set(['card-next']);
+            const reopenedOverlay = el.shadowRoot.querySelector('#add-items-overlay');
+            reopenedOverlay.querySelector('[slot="trigger"]').click();
+            Store.translationProjects.selectedCards.set(['card-unconfirmed']);
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('cancel'));
+
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-next']);
+        });
+
+        for (const empty of [true, false]) {
+            it(`restores selection on Cancel after clicking the actual ${empty ? 'Add Items' : 'Edit'} trigger`, async () => {
+                const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+                const originalCards = empty ? [] : ['card-original'];
+                const originalCollections = empty ? [] : ['collection-original'];
+                const originalPlaceholders = empty ? [] : ['placeholder-original'];
+                Store.translationProjects.selectedCards.set(originalCards);
+                Store.translationProjects.selectedCollections.set(originalCollections);
+                Store.translationProjects.selectedPlaceholders.set(originalPlaceholders);
+                el.showSelectedEmptyState = empty;
+                await el.updateComplete;
+                const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+                await waitUntil(() => overlay.targetContent.length > 0);
+                await overlay.updateComplete;
+                let opened = false;
+                overlay.addEventListener('sp-opened', () => (opened = true), { once: true });
+
+                overlay.querySelector('[slot="trigger"]').click();
+                await waitUntil(() => opened, 'The actual trigger should emit sp-opened');
+                Store.translationProjects.selectedCards.set(['card-edited']);
+                Store.translationProjects.selectedCollections.set(['collection-edited']);
+                Store.translationProjects.selectedPlaceholders.set(['placeholder-edited']);
+                const dialog = el.shadowRoot.querySelector('.add-items-dialog');
+                await waitUntil(() => dialog.shadowRoot.querySelector('[slot="button"][variant="secondary"]'));
+                dialog.shadowRoot.querySelector('[slot="button"][variant="secondary"]').click();
+                await el.updateComplete;
+
+                expect(Store.translationProjects.selectedCards.get()).to.deep.equal(originalCards);
+                expect(Store.translationProjects.selectedCollections.get()).to.deep.equal(originalCollections);
+                expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal(originalPlaceholders);
+            });
+        }
+
         it('loads baselines when Add Items is opened through its actual trigger', async () => {
             const path = '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline';
             defaultMockRepository.searchFragmentList.resolves([

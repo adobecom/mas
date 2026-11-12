@@ -7,6 +7,7 @@ import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
+import { SELECTION_ENABLED_FILTERS } from '../common/components/mas-search-and-filters.js';
 import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
 import '../common/components/mas-region-picker.js';
@@ -701,6 +702,7 @@ class MasTranslationEditor extends LitElement {
                     .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
+                    .enabledFilters=${SELECTION_ENABLED_FILTERS}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

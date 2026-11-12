@@ -15,6 +15,7 @@ import {
 } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
+import { SELECTION_ENABLED_FILTERS } from '../../src/common/components/mas-search-and-filters.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
@@ -153,6 +154,22 @@ describe('MasItemsSelector', () => {
             Store.translationProjects.selectedPlaceholders.set(['/path/placeholder1']);
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             expect(el.selectedCount).to.equal(4);
+        });
+    });
+
+    describe('enabledFilters', () => {
+        const filterTypes = (el) => el.shadowRoot.querySelector('mas-search-and-filters').enabledFilters;
+
+        it('passes the default filters to the cards search by default', async () => {
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            expect(filterTypes(el)).to.not.include('createdBy');
+        });
+
+        it('forwards enabledFilters to the cards search', async () => {
+            const el = await fixture(
+                html`<mas-items-selector .enabledFilters=${SELECTION_ENABLED_FILTERS}></mas-items-selector>`,
+            );
+            expect(filterTypes(el)).to.include('createdBy');
         });
     });
 

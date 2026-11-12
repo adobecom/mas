@@ -315,7 +315,7 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
                 this.loadPreviewPlaceholders();
-                void this.loadPromotions();
+                void promotionsRepository.getPromotionProjectsForProbe(() => this.loadPromotions());
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -826,12 +826,9 @@ export class MasRepository extends LitElement {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(displayFragment, fragmentSurface);
-                    displayFragment = await promotionsRepository.mergePromoReferencesIntoFragmentData(
-                        this.aem,
-                        displayFragment,
-                        () => this.loadPromotions(),
-                    );
-                    if (this.#abortControllers.search !== searchController) return;
+                    // No promo-variation merge here: it crawls whole promotion folders (~9s on acom-cc)
+                    // and blocked the card from rendering. The row is auto-expanded via expandedId,
+                    // and mas-fragment#refreshReferences runs the merge behind its own loading state.
                     const fragment = await this.#addToCache(displayFragment);
                     if (this.#abortControllers.search !== searchController) return;
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });

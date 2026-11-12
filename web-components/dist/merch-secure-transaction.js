@@ -1,12 +1,12 @@
-var p=Object.defineProperty;var c=(e,t,o)=>t in e?p(e,t,{enumerable:!0,configurable:!0,writable:!0,value:o}):e[t]=o;var l=(e,t,o)=>c(e,typeof t!="symbol"?t+"":t,o);import{LitElement as d,html as a,unsafeCSS as b}from"./lit-all.min.js";var r='#label{cursor:pointer;align-items:center;gap:var(--consonant-merch-spacing-xxxs);white-space:nowrap;font-size:12px;line-height:15px;display:inline-flex}#label.icon:before{background-position:50%;background-size:contain;background:var(--secure-icon) no-repeat;content:"";width:1em;height:1em;display:inline-block}';var g="merch-secure-transaction",i=class extends d{constructor(){super(),this.labelText="",this.showIcon=!0,this.tooltipText=""}render(){let{labelText:t,showIcon:o,tooltipText:s}=this,n=a`
-            <div class="${o?"icon":""}" id="label" slot="trigger">
-                ${t}
+import{LitElement as r,html as n,unsafeCSS as a}from"./lit-all.min.js";var i='#label{cursor:pointer;align-items:center;gap:var(--consonant-merch-spacing-xxxs);white-space:nowrap;font-size:12px;line-height:15px;display:inline-flex}#label.icon:before{background-position:50%;background-size:contain;background:var(--secure-icon) no-repeat;content:"";width:1em;height:1em;display:inline-block}';var c="merch-secure-transaction",t=class extends r{static properties={labelText:{attribute:"label",type:String},showIcon:{attribute:"icon",type:Boolean},tooltipText:{attribute:"tooltip",type:String}};static styles=[a(i)];constructor(){super(),this.labelText="",this.showIcon=!0,this.tooltipText=""}render(){let{labelText:s,showIcon:l,tooltipText:e}=this,o=n`
+            <div class="${l?"icon":""}" id="label" slot="trigger">
+                ${s}
             </div>
-        `;return s?a`
+        `;return e?n`
             <overlay-trigger placement="top-start" offset="4">
-                ${n}
+                ${o}
                 <sp-tooltip id="tooltip" slot="hover-content" delayed
-                    >${s}</sp-tooltip
+                    >${e}</sp-tooltip
                 >
             </overlay-trigger>
-        `:n}};l(i,"properties",{labelText:{attribute:"label",type:String},showIcon:{attribute:"icon",type:Boolean},tooltipText:{attribute:"tooltip",type:String}}),l(i,"styles",[b(r)]);window.customElements.define(g,i);export{i as default};
+        `:o}};window.customElements.define(c,t);export{t as default};

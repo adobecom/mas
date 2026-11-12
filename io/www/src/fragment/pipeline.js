@@ -253,7 +253,8 @@ async function mainProcess(context) {
     if (storedBody) return storedResponse(storedBody, 'hit');
     // Concurrent requests for the same key in this container get the previous stored response when it is less than
     // STALE_MAX_AGE old, or wait for the rebuild already in progress otherwise.
-    let rebuild = rebuilds.get(requestKey);
+    // `instant` (time travelling) requests neither register nor join rebuilds: theirs is for another date.
+    let rebuild = context.instant ? undefined : rebuilds.get(requestKey);
     const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
     if (staleBody) return storedResponse(staleBody, 'stale', ', rebuild in progress');
     const cache = rebuild ? 'joined' : 'miss';

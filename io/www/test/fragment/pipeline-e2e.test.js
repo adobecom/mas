@@ -148,6 +148,36 @@ describe('pipeline end to end', () => {
         );
     });
 
+    it('should not make an instant request join a rebuild in progress', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .callsFake(
+                () => new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)),
+            );
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        try {
+            // the instant request starts once the normal rebuild is in progress
+            const delayed = new Promise((resolve) => setTimeout(resolve, 10)).then(() =>
+                getFragment({ ...request, instant: '2050-01-01T00:00:00Z' }),
+            );
+            await Promise.all([getFragment(request), delayed]);
+        } finally {
+            output.restore();
+        }
+        const fragmentFetches = fetchStub
+            .getCalls()
+            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        expect(fragmentFetches).to.have.lengthOf(2);
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache joined'))).to.be.empty;
+    });
+
     for (const { title, refreshedAt, detail } of [
         { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
         { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000 },

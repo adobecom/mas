@@ -12,7 +12,7 @@ import {
 
 // Brotli (q11) byte budgets. Lower them whenever a change shrinks a bundle.
 const BUDGETS = {
-    'commerce.js': 39_600,
+    'commerce.js': 36_900,
 };
 
 const brotli = (bytes) =>

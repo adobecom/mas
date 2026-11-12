@@ -1,14 +1,15 @@
 import { Defaults } from './defaults.js';
 import { buildPriceHTML as renderPrice } from '../../price/src/index.js';
 
+import { createLog } from './log.js';
+import { InlinePrice } from './inline-price.js';
 import {
     omitProperties,
     toBoolean,
-} from '@dexter/tacocat-core/src/utilities.js';
-import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
-import { createLog } from './log.js';
-import { InlinePrice } from './inline-price.js';
-import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
+    toEffectivePromoCode,
+    toWcsOsiAndPromotionCodes,
+    toQuantity,
+} from './utilities.js';
 
 const log = createLog('ConsonantTemplates/price');
 
@@ -44,9 +45,7 @@ export function Price({ literals, providers, settings }) {
 
         const { wcsOsi: alignedWcsOsi, promotionCodes: alignedPromotionCodes } =
             toWcsOsiAndPromotionCodes(wcsOsi, promotionCode);
-        const promotionCodes = alignedPromotionCodes.map(
-            (code) => computePromoStatus(code).effectivePromoCode,
-        );
+        const promotionCodes = alignedPromotionCodes.map(toEffectivePromoCode);
 
         options = omitProperties(
             Object.assign({

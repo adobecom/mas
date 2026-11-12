@@ -92,6 +92,7 @@ describe('masFetch', () => {
 
         // Start the async operation but don't await it yet
         const fetchPromise = masFetch('https://example.com/api', {}, 2);
+        const settled = fetchPromise.catch((error) => error);
 
         // Verify initial call was made
         expect(fetchStub.callCount).to.equal(1);
@@ -103,13 +104,23 @@ describe('masFetch', () => {
         await clock.tickAsync(400);
         expect(fetchStub.callCount).to.equal(3);
 
-        // Now await the promise (which should reject)
-        try {
-            await fetchPromise;
-            expect.fail('Should have thrown an error');
-        } catch (error) {
-            expect(error).to.equal(networkError);
-        }
+        expect(await settled).to.equal(networkError);
+    });
+
+    it('rejects right after the last attempt, without another delay', async () => {
+        const networkError = new Error('Network error');
+        fetchStub.rejects(networkError);
+        let error;
+        masFetch('https://example.com/api', {}, 1, 100).catch((e) => {
+            error = e;
+        });
+
+        await clock.tickAsync(100);
+        await clock.tickAsync(0);
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(error).to.equal(networkError);
+        expect(error.retryCount).to.equal(1);
     });
 
     it('should not retry on a timeout and rethrow it', async () => {

@@ -1,15 +1,16 @@
 import { CheckoutLink } from './checkout-link.js';
-import {
-    omitProperties,
-    toBoolean,
-    toEnumeration,
-    computePromoStatus,
-} from '@dexter/tacocat-core';
 import { CheckoutWorkflowStep } from './constants.js';
 
 import { buildCheckoutUrl } from './buildCheckoutUrl.js';
 import { Defaults } from './defaults.js';
-import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
+import {
+    omitProperties,
+    toBoolean,
+    toEffectivePromoCode,
+    toEnumeration,
+    toWcsOsiAndPromotionCodes,
+    toQuantity,
+} from './utilities.js';
 import { MODAL_TYPE_3_IN_1 } from './constants.js';
 
 /**
@@ -68,9 +69,7 @@ export function Checkout({ settings, providers }) {
 
         const { wcsOsi: alignedWcsOsi, promotionCodes: alignedPromotionCodes } =
             toWcsOsiAndPromotionCodes(wcsOsi, promotionCode);
-        const promotionCodes = alignedPromotionCodes.map(
-            (code) => computePromoStatus(code).effectivePromoCode,
-        );
+        const promotionCodes = alignedPromotionCodes.map(toEffectivePromoCode);
 
         options = omitProperties({
             ...rest,

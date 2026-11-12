@@ -8,11 +8,7 @@ import {
 } from '../src/constants.js';
 import { Defaults } from '../src/defaults.js';
 import { Env } from '../src/constants.js';
-import {
-    getLocaleSettings,
-    getPreviewSurface,
-    getSettings,
-} from '../src/settings.js';
+import { getLocaleSettings, getSettings } from '../src/settings.js';
 
 import { expect } from './utilities.js';
 
@@ -397,93 +393,5 @@ describe('getLocaleSettings', () => {
             country: 'US',
             hasExplicitCountry: true,
         });
-    });
-});
-
-describe('getPreviewSurface', () => {
-    it('returns "acom" for wcms-commerce-ims-ro pattern match', () => {
-        const result = getPreviewSurface('wcms-commerce-ims-ro-user-milo');
-        expect(result).to.equal('acom');
-    });
-
-    it('returns "acom" for another wcms-commerce-ims-ro pattern match', () => {
-        const result = getPreviewSurface('wcms-commerce-ims-ro-api-key-123');
-        expect(result).to.equal('acom');
-    });
-
-    it('returns "ccd" for CreativeCloud pattern match', () => {
-        const result = getPreviewSurface('CreativeCloud_Enterprise');
-        expect(result).to.equal('ccd');
-    });
-
-    it('returns "ccd" for another CreativeCloud pattern match', () => {
-        const result = getPreviewSurface('CreativeCloud_Personal');
-        expect(result).to.equal('ccd');
-    });
-
-    it('returns "adobe-home" for CCHome pattern match', () => {
-        const result = getPreviewSurface('CCHome_default');
-        expect(result).to.equal('adobe-home');
-    });
-
-    it('returns "adobe-home" for another CCHome pattern match', () => {
-        const result = getPreviewSurface('CCHome_v2');
-        expect(result).to.equal('adobe-home');
-    });
-
-    it('returns wcsApiKey when no pattern matches and no previewParam', () => {
-        const apiKey = 'custom-api-key-123';
-        const result = getPreviewSurface(apiKey);
-        expect(result).to.equal(apiKey);
-    });
-
-    it('returns wcsApiKey when no pattern matches and previewParam is undefined', () => {
-        const apiKey = 'another-custom-key';
-        const result = getPreviewSurface(apiKey, undefined);
-        expect(result).to.equal(apiKey);
-    });
-
-    it('returns wcsApiKey when no pattern matches and previewParam is null', () => {
-        const apiKey = 'test-api-key';
-        const result = getPreviewSurface(apiKey, null);
-        expect(result).to.equal(apiKey);
-    });
-
-    it('returns previewParam when no pattern matches and previewParam is provided', () => {
-        const apiKey = 'unmatched-key';
-        const previewParam = 'custom-surface';
-        const result = getPreviewSurface(apiKey, previewParam);
-        expect(result).to.equal(previewParam);
-    });
-
-    it('returns empty string when no pattern matches and previewParam is empty string', () => {
-        const apiKey = 'test-key';
-        const result = getPreviewSurface(apiKey, '');
-        expect(result).to.equal('');
-    });
-
-    it('returns previewParam when no pattern matches and previewParam is 0', () => {
-        const apiKey = 'test-key';
-        const result = getPreviewSurface(apiKey, 0);
-        expect(result).to.equal(0);
-    });
-
-    it('returns previewParam when no pattern matches and previewParam is false', () => {
-        const apiKey = 'test-key';
-        const result = getPreviewSurface(apiKey, false);
-        expect(result).to.equal(false);
-    });
-
-    it('prioritizes pattern match over previewParam', () => {
-        const result = getPreviewSurface(
-            'wcms-commerce-ims-ro-test',
-            'should-be-ignored',
-        );
-        expect(result).to.equal('acom');
-    });
-
-    it('handles pattern match with special characters', () => {
-        const result = getPreviewSurface('CreativeCloud_!@#$%');
-        expect(result).to.equal('ccd');
     });
 });

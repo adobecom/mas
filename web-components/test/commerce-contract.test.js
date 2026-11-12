@@ -176,6 +176,29 @@ describe('commerce.js public contract', () => {
             expect(service.imsCountryPromise).to.be.instanceOf(Promise);
         });
 
+        it('does not expose the constants module', () => {
+            const service = initMasCommerceService();
+            for (const name of [
+                'EVENT_TYPE_READY',
+                'SELECTOR_MAS_ELEMENT',
+                'TAG_NAME_SERVICE',
+                'Env',
+                'Landscape',
+                'WCS_PROD_URL',
+            ]) {
+                expect(service[name], name).to.be.undefined;
+            }
+        });
+
+        it('keeps the IMS promises stable and replaceable', () => {
+            const service = initMasCommerceService();
+            const signedIn = service.imsSignedInPromise;
+            expect(service.imsSignedInPromise).to.equal(signedIn);
+            const country = Promise.resolve('CH');
+            service.imsCountryPromise = country;
+            expect(service.imsCountryPromise).to.equal(country);
+        });
+
         it('keeps settings writable', () => {
             const service = initMasCommerceService();
             service.settings.landscape = 'DRAFT';

@@ -1,37 +1,31 @@
 /**
- * A fetch wrapper that retries failed requests up to a specified number of times.
- * Only retries on network errors, not server errors (HTTP status codes) or timeouts.
+ * A fetch wrapper that retries network errors. HTTP error statuses are
+ * returned as is and timeouts are not retried. The number of retries made is
+ * stored as `retryCount` on the returned response or the thrown error.
  * @param {string|Request} resource - The resource to fetch
  * @param {Object} [options] - The options for the fetch request
- * @param {number} [retries=3] - Maximum number of retry attempts
- * @param {number} [baseDelay=100] - Base delay between retries in milliseconds, increases linearly with each attempt (baseDelay * (attempt + 1))
+ * @param {number} [retries=2] - Maximum number of retries
+ * @param {number} [baseDelay=100] - Delay before the first retry in milliseconds, growing linearly (baseDelay * retry)
  * @returns {Promise<Response>} - The fetch response
  */
-async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
-    let lastError;
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
+export async function masFetch(
+    resource,
+    options = {},
+    retries = 2,
+    baseDelay = 100,
+) {
+    for (let attempt = 0; ; attempt++) {
         try {
             const response = await fetch(resource, options);
-            // Don't retry on server errors (HTTP status codes)
             response.retryCount = attempt;
             return response;
         } catch (error) {
-            // Only retry on network errors
-            lastError = error;
-            lastError.retryCount = attempt;
-
-            // A timeout won't resolve by retrying — fail fast.
-            if (error.name === 'TimeoutError' || attempt > retries) break;
-
-            // Wait before retrying
+            error.retryCount = attempt;
+            if (error.name === 'TimeoutError' || attempt >= retries)
+                throw error;
             await new Promise((resolve) =>
                 setTimeout(resolve, baseDelay * (attempt + 1)),
             );
         }
     }
-
-    throw lastError;
 }
-
-export { masFetch };

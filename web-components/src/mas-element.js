@@ -28,7 +28,7 @@ export class MasElement {
     changes = new Map();
     connected = false;
     error = undefined;
-    log = undefined;
+    log = Log.module('mas-element');
     options = undefined;
     promises = [];
     state = STATE_PENDING;
@@ -39,41 +39,38 @@ export class MasElement {
 
     constructor(wrapperElement) {
         this.wrapperElement = wrapperElement;
-        this.log = Log.module('mas-element');
     }
 
     update() {
-        [STATE_FAILED, STATE_PENDING, STATE_RESOLVED].forEach((state) => {
+        for (const [state, className] of Object.entries(StateClassName)) {
             this.wrapperElement.classList.toggle(
-                StateClassName[state],
+                className,
                 state === this.state,
             );
-        });
+        }
     }
 
+    /**
+     * Settles the `onceSettled` promises of a resolved or failed placeholder
+     * and dispatches the event of its state.
+     */
     notify() {
-        if (this.state === STATE_RESOLVED || this.state === STATE_FAILED) {
-            if (this.state === STATE_RESOLVED) {
-                this.promises.forEach(({ resolve }) =>
-                    resolve(this.wrapperElement),
-                );
-            } else if (this.state === STATE_FAILED) {
-                this.promises.forEach(({ reject }) => reject(this.error));
+        const { error, state, wrapperElement } = this;
+        if (state === STATE_RESOLVED || state === STATE_FAILED) {
+            for (const { resolve, reject } of this.promises) {
+                if (state === STATE_RESOLVED) resolve(wrapperElement);
+                else reject(error);
             }
             this.promises = [];
         }
-        let detail = this.error;
-        if (this.error instanceof MasError) {
-            detail = {
-                message: this.error.message,
-                ...this.error.context,
-            };
-        }
-        this.wrapperElement.dispatchEvent(
-            new CustomEvent(StateEventType[this.state], {
+        wrapperElement.dispatchEvent(
+            new CustomEvent(StateEventType[state], {
                 bubbles: true,
                 composed: true,
-                detail,
+                detail:
+                    error instanceof MasError
+                        ? { message: error.message, ...error.context }
+                        : error,
             }),
         );
     }
@@ -88,24 +85,17 @@ export class MasElement {
         this.requestUpdate();
     }
 
-    /**
-     * Triggers when this component is connected to DOM.
-     * Subscribes to the `ready` event of the commerce service,
-     * requests placeholder update.
-     */
+    /** Requests a forced update of the placeholder. */
     connectedCallback() {
         this.#service = getService();
         this.requestUpdate(true);
     }
 
-    /**
-     * Triggers when this component is disconnected from DOM.
-     * Runs and then erases all disposers.
-     */
+    /** Logs the disconnection of a connected placeholder. */
     disconnectedCallback() {
         if (this.connected) {
             this.connected = false;
-            this.log?.debug('Disconnected:', { element: this.wrapperElement });
+            this.log.debug('Disconnected:', { element: this.wrapperElement });
         }
     }
 
@@ -136,7 +126,7 @@ export class MasElement {
         this.state = STATE_RESOLVED;
         this.value = value;
         this.update();
-        this.log?.debug('Resolved:', { element: this.wrapperElement, value });
+        this.log.debug('Resolved:', { element: this.wrapperElement, value });
         // Allow calling code to perform sync updates of this element
         // before notifying observers about state change
         setImmediate(() => this.notify());
@@ -155,7 +145,7 @@ export class MasElement {
         this.state = STATE_FAILED;
         this.update();
         const wcName = this.wrapperElement.getAttribute('is');
-        this.log?.error(`${wcName}: Failed to render: ${error.message}`, {
+        this.log.error(`${wcName}: Failed to render: ${error.message}`, {
             element: this.wrapperElement,
             ...error.context,
             ...this.#service?.duration,
@@ -173,8 +163,8 @@ export class MasElement {
         if (options) this.options = options;
         this.state = STATE_PENDING;
         this.update();
-        this.log?.debug('Pending:', {
-            osi: this.wrapperElement?.options?.wcsOsi,
+        this.log.debug('Pending:', {
+            osi: this.wrapperElement.options?.wcsOsi,
         });
         return this.version;
     }
@@ -186,7 +176,6 @@ export class MasElement {
      * Restores previous state of the component if the `render` method returned `false`.
      */
     requestUpdate(force = false) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         if (!this.wrapperElement.isConnected || !getService()) return;
         // Batch consecutive updates
         if (this.timer) return;
@@ -199,23 +188,14 @@ export class MasElement {
             let changes = null;
             // Gather list of changes triggered the update
             if (this.changes.size) {
-                changes = Object.fromEntries(this.changes.entries());
+                changes = Object.fromEntries(this.changes);
                 this.changes.clear();
             }
-            // Trottle connected-disconnected series of events
-            // when placeholder is actively manipulated by a higher component
-            if (this.connected) {
-                this.log?.debug('Updated:', {
-                    element: this.wrapperElement,
-                    changes,
-                });
-            } else {
-                this.connected = true;
-                this.log?.debug('Connected:', {
-                    element: this.wrapperElement,
-                    changes,
-                });
-            }
+            this.log.debug(this.connected ? 'Updated:' : 'Connected:', {
+                element: this.wrapperElement,
+                changes,
+            });
+            this.connected = true;
             if (changes || force) {
                 try {
                     const result = await this.wrapperElement.render?.();
@@ -241,23 +221,19 @@ export class MasElement {
 }
 
 /**
- * Deletes properties of `dataset` object that coerce to common defaults in a DOM dataset:
- *  - null, undefined;
- *  - empty strings and arrays;
+ * Deletes the null, undefined and empty (string or array) values of `dataset`.
  * Returns `dataset` object.
  */
 function cleanupDataset(dataset = {}) {
-    Object.entries(dataset).forEach(([key, value]) => {
-        const remove = value == null || value === '' || value?.length === 0;
-        if (remove) delete dataset[key];
-    });
+    for (const [key, value] of Object.entries(dataset)) {
+        if (value == null || value.length === 0) delete dataset[key];
+    }
     return dataset;
 }
 
 /**
  * Returns custom HTML element constructed by the `Class` argument.
- * Populates element dataset from `dataset` object,
- * omits empty values (false, '', null, undefined).
+ * Populates element dataset from `dataset` object, omitting empty values.
  */
 export function createMasElement(Class, dataset = {}) {
     const { tag, is } = Class;
@@ -269,8 +245,7 @@ export function createMasElement(Class, dataset = {}) {
 }
 
 /**
- * Updates element dataset from `dataset` object,
- * omits empty values (false, '', null, undefined).
+ * Updates element dataset from `dataset` object, omitting empty values.
  * @param {HTMLElement} element
  * @param {Record<string, any>} dataset
  */

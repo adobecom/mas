@@ -1,4 +1,3 @@
-import { getParameter } from '@dexter/tacocat-core';
 import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
@@ -8,7 +7,7 @@ import {
 } from './constants.js';
 import { MasError } from './mas-error.js';
 import { getImsCountryCookie } from './ims.js';
-import { getLogHeaders } from './utilities.js';
+import { getLogHeaders, getParameter } from './utilities.js';
 import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
 import { normalizeExplicitEmptyInFields } from '../../io/www/src/fragment/utils/explicit-empty.js';

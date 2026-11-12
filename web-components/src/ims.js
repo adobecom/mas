@@ -1,18 +1,15 @@
 import { Log } from './log.js';
 
-const IMS_COUNTRY_COOKIE = 'ims_country_code';
+const IMS_COUNTRY_COOKIE = /(?:^|;\s*)ims_country_code=([^;]*)/;
 
 export function getImsCountryCookie() {
-    /* c8 ignore next */
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)${IMS_COUNTRY_COOKIE}=([^;]*)`),
-    );
+    const match = document.cookie.match(IMS_COUNTRY_COOKIE);
     if (!match) return null;
     let country;
     try {
         country = decodeURIComponent(match[1]);
     } catch {
+        // malformed cookie value
         return null;
     }
     return country.trim().toUpperCase() || null;
@@ -46,16 +43,38 @@ export function imsSignedIn(imsReadyPromise) {
 
 export function imsCountry() {
     const country = getImsCountryCookie();
-    if (country)
+    if (country) {
         Log.module('ims').debug('Got user country from cookie:', country);
+    }
     return Promise.resolve(country);
 }
 
+/**
+ * IMS promises of a service. Each one is created on first read, so pages that
+ * never check the user do not poll for adobeIMS, and can be replaced.
+ */
 export function Ims() {
-    const imsReadyPromise = imsReady();
+    let ready;
+    let signedIn;
+    let country;
     return {
-        imsReadyPromise,
-        imsSignedInPromise: imsSignedIn(imsReadyPromise),
-        imsCountryPromise: imsCountry(),
+        get imsReadyPromise() {
+            return (ready ??= imsReady());
+        },
+        set imsReadyPromise(promise) {
+            ready = promise;
+        },
+        get imsSignedInPromise() {
+            return (signedIn ??= imsSignedIn(this.imsReadyPromise));
+        },
+        set imsSignedInPromise(promise) {
+            signedIn = promise;
+        },
+        get imsCountryPromise() {
+            return (country ??= imsCountry());
+        },
+        set imsCountryPromise(promise) {
+            country = promise;
+        },
     };
 }

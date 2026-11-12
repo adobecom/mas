@@ -1,15 +1,12 @@
-import { EVENT_TYPE_READY } from './constants.js';
+export { getService } from './utilities.js';
 
-const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
 const CTA_VARIANT_PATTERN = /^(accent|primary|secondary)(-(outline|link))?$/;
 
 export function debounce(func, delay) {
-    let debounceTimer;
-    return function () {
-        const context = this;
-        const args = arguments;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => func.apply(this, args), delay);
     };
 }
 
@@ -176,32 +173,6 @@ export function clearForegroundTimeout(id) {
     if (!dispose) return;
     dispose();
     foregroundTimers.delete(id);
-}
-
-/**
- * Calls given `getConfig` every time new instance of the commerce service is activated,
- * passing new instance as the only argument.
- * @param {(commerce: Commerce.Instance) => void} getConfig
- * @param {{ once?: boolean; }} options
- * @returns {() => void}
- * A function, stopping notifications when called.
- */
-export function discoverService(getConfig, { once = false } = {}) {
-    let latest = null;
-    function discover() {
-        /** @type { Commerce.Instance } */
-        const current = document.querySelector(MAS_COMMERCE_SERVICE);
-        if (current === latest) return;
-        latest = current;
-        if (current) getConfig(current);
-    }
-    document.addEventListener(EVENT_TYPE_READY, discover, { once });
-    setTimeout(discover, 0);
-    return () => document.removeEventListener(EVENT_TYPE_READY, discover);
-}
-
-export function getService() {
-    return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
 }
 
 /**

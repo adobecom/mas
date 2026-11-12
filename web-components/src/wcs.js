@@ -1,22 +1,21 @@
 import {
+    Commitment,
     ERROR_MESSAGE_BAD_REQUEST,
     ERROR_MESSAGE_OFFER_NOT_FOUND,
+    Env,
     MARK_DURATION_SUFFIX,
     MARK_START_SUFFIX,
-    Env,
-    Commitment,
-    Term,
+    PlanType,
     SUPPORTED_COUNTRIES,
+    Term,
 } from './constants.js';
-
-import { PlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 import { applyPlanType } from '../../price/src/index.js';
+import { Defaults } from './defaults.js';
 import { Log } from './log.js';
 import { MasError } from './mas-error.js';
-import { masFetch } from './utils/mas-fetch.js';
 import { getLogHeaders, getService } from './utilities.js';
 import { printMeasure } from './utils.js';
-import { Defaults } from './defaults.js';
+import { masFetch } from './utils/mas-fetch.js';
 
 const NAMESPACE = 'wcs';
 
@@ -42,120 +41,65 @@ const NAMESPACE = 'wcs';
  * @property {string} env - The environment (e.g. 'STAGE', 'PROD')
  * @property {string} wcsApiKey - The WCS API key
  * @property {string} wcsURL - The WCS API URL
- * @property {string} landscape - The landscape setting
+ * @property {string} landscape - The landscape setting, read on every request
  */
 
 /**
- * @typedef {Object} Client
- * @property {Commitment} Commitment - Commitment constants
- * @property {PlanType} PlanType - Plan type constants
- * @property {Term} Term - Term constants
- * @property {Function} resolveOfferSelectors - Function to resolve offer selectors
- * @property {Function} flushWcsCacheInternal - Function to flush WCS cache
- */
-
-/**
- * @typedef {Map<string, {
- *  resolve: (offers: Offer[]) => void,
- *  reject: (reason: Error) => void
- * }>} WcsPromises
- */
-
-/**
- * @typedef {Object} Options
- * @property {string} country - The country code
- * @property {string} language - The language code
- * @property {string} [locale] - The locale code (e.g. 'en_US')
- * @property {string[]} [offerSelectorIds] - Array of offer selector IDs
- * @property {string[]} [wcsOsi=[]] - Array of offer selector IDs (alias for offerSelectorIds)
- * @property {boolean} [perpetual=false] - Whether to use perpetual offers
- * @property {string} [promotionCode=''] - The promotion code
- * @property {string} [currency] - The currency code
- */
-
-/**
- * Creates a new WCS client instance
- * @param {Object} params - The parameters for creating the WCS client
+ * Creates a WCS client. Each OSI is requested on its own and its promise is
+ * cached; a flushed cache stays available as a fallback for failed requests.
+ * @param {Object} params
  * @param {Settings} params.settings - The settings for the WCS client
  * @param {number} [params.fetchTimeout] - Optional fetch timeout in milliseconds
- * @returns {Client} A new WCS client instance
  */
 export function Wcs({ settings, fetchTimeout }) {
     const log = Log.module(NAMESPACE);
-    const { env, wcsApiKey: apiKey } = settings;
-    /**
-     * Cache of promises resolving to arrays of Wcs offers grouped by osi-based keys.
-     * @type {Map<string, Promise<Offer[]>>}
-     */
-    const cache = new Map();
-    /**
-     * Queue of pending requests to Wcs grouped by locale and promo.
-     * @type {Map<string, { options: Options, promises: WcsPromises }>}
-     */
-    const queue = new Map();
-    let timer;
-    /**
-     * Stale cache to keep items in for fallback
-     * @type {Map<string, Promise<Offer[]>>}
-     */
+    const { env, wcsApiKey } = settings;
+    /** @type {Map<string, Promise<Offer[]>>} */
+    let cache = new Map();
+    /** @type {Map<string, Promise<Offer[]>>} */
     let staleCache = new Map();
 
     /**
-     * Accepts list of OSIs having same locale and map of pending promises, grouped by OSI.
-     * Sends one or more requests to WCS endpoint to provide required offers.
-     * Resolves each pending promise with array of provided offers.
-     * @param {Options} options - The options for resolving offers
-     * @param {WcsPromises} promises - Map of promises to resolve
-     * @param {boolean} [reject=true] - Whether to reject promises for missing offers
-     * @returns {Promise<void>}
-     * @throws {MasError} When WCS does not provide an offer for a particular OSI (if reject=true)
-     * @throws {MasError} In case of any WCS/Network error (if reject=true)
+     * Requests the offers of one OSI.
+     * @param {string} osi
+     * @param {{ country: string, locale: string, language?: string, promotionCode?: string }} options
+     * @returns {Promise<Offer[]>}
+     * @throws {MasError} When WCS fails or provides no offer for the OSI
      */
-    async function resolveWcsOffers(options, promises, reject = true) {
+    async function fetchOffers(osi, options) {
         const service = getService();
-        let message = ERROR_MESSAGE_OFFER_NOT_FOUND;
         log.debug('Fetching:', options);
-        let url = '';
-        let response;
-        if (options.offerSelectorIds.length > 1)
-            throw new Error('Multiple OSIs are not supported anymore');
-
-        // Create a map of unresolved promises to track which ones need fallback
-        const unresolvedPromises = new Map(promises);
-
-        const [osi] = options.offerSelectorIds;
         const uniqueId =
             Date.now() + Math.random().toString(36).substring(2, 7);
         const startMark = `${NAMESPACE}:${osi}:${uniqueId}${MARK_START_SUFFIX}`;
         const measureName = `${NAMESPACE}:${osi}:${uniqueId}${MARK_DURATION_SUFFIX}`;
+        let message = ERROR_MESSAGE_OFFER_NOT_FOUND;
+        let response;
         let measure;
         try {
             performance.mark(startMark);
-            url = new URL(settings.wcsURL);
-            url.searchParams.set('offer_selector_ids', osi);
-            url.searchParams.set('country', options.country);
-            url.searchParams.set('locale', options.locale);
-            url.searchParams.set(
+            const url = new URL(settings.wcsURL);
+            const { searchParams } = url;
+            searchParams.set('offer_selector_ids', osi);
+            searchParams.set('country', options.country);
+            searchParams.set('locale', options.locale);
+            searchParams.set(
                 'landscape',
                 env === Env.STAGE ? 'ALL' : settings.landscape,
             );
-            url.searchParams.set('api_key', apiKey);
-            // language can be undefined if its a UK offer
+            searchParams.set('api_key', wcsApiKey);
+            // language is undefined for GB and perpetual offers
             if (options.language) {
-                url.searchParams.set('language', options.language);
+                searchParams.set('language', options.language);
             }
             if (options.promotionCode) {
-                url.searchParams.set('promotion_code', options.promotionCode);
-            }
-            /* c8 ignore next 3 */
-            if (options.currency) {
-                url.searchParams.set('currency', options.currency);
+                searchParams.set('promotion_code', options.promotionCode);
             }
             response = await masFetch(url.toString(), {
                 credentials: 'omit',
-                ...(fetchTimeout
-                    ? { signal: AbortSignal.timeout(fetchTimeout) }
-                    : {}),
+                ...(fetchTimeout && {
+                    signal: AbortSignal.timeout(fetchTimeout),
+                }),
             });
             if (response.ok) {
                 let offers = [];
@@ -169,22 +113,12 @@ export function Wcs({ settings, fetchTimeout }) {
                         ...service?.duration,
                     });
                 }
-                offers = offers.map(applyPlanType);
-                // resolve all promises that have offers
-                promises.forEach(({ resolve }, offerSelectorId) => {
-                    // select offers with current OSI
-                    const resolved = offers
-                        .filter(({ offerSelectorIds }) =>
-                            offerSelectorIds.includes(offerSelectorId),
-                        )
-                        .flat();
-                    // resolve current promise if at least 1 offer is present
-                    if (resolved.length) {
-                        unresolvedPromises.delete(offerSelectorId);
-                        promises.delete(offerSelectorId);
-                        resolve(resolved);
-                    }
-                });
+                const resolved = offers
+                    .filter(({ offerSelectorIds }) =>
+                        offerSelectorIds.includes(osi),
+                    )
+                    .map(applyPlanType);
+                if (resolved.length) return resolved;
             } else {
                 message = ERROR_MESSAGE_BAD_REQUEST;
             }
@@ -193,82 +127,50 @@ export function Wcs({ settings, fetchTimeout }) {
             message = `Network error: ${e.message}`;
         } finally {
             measure = performance.measure(measureName, startMark);
-            // Clean up marks
             performance.clearMarks(startMark);
             performance.clearMeasures(measureName);
         }
-
-        if (reject && promises.size) {
-            // reject pending promises, their offers weren't provided by WCS
-            log.debug('Missing:', { offerSelectorIds: [...promises.keys()] });
-
-            const headers = getLogHeaders(response);
-
-            promises.forEach((promise) => {
-                promise.reject(
-                    new MasError(message, {
-                        ...options,
-                        ...headers,
-                        response,
-                        measure: printMeasure(measure),
-                        ...service?.duration,
-                    }),
-                );
-            });
-        }
+        log.debug('Missing:', { offerSelectorIds: [osi] });
+        throw new MasError(message, {
+            ...options,
+            ...getLogHeaders(response),
+            response,
+            measure: printMeasure(measure),
+            ...service?.duration,
+        });
     }
 
     /**
-     * Trigger resolution of all accumulated promises by requesting their associated OSIs.
-     * Clears the timer and processes all pending requests in the queue.
-     * @returns {void}
+     * Fills the cache with offers keyed like `${osi}-${country}-${language}[-${promotionCode}]`.
+     * @param {{ prod?: Record<string, Offer[]>, stage?: Record<string, Offer[]> }} preloadedCache
      */
-    function flushQueue() {
-        clearTimeout(timer);
-        const pending = [...queue.values()];
-        queue.clear();
-        pending.forEach(({ options, promises }) =>
-            resolveWcsOffers(options, promises),
-        );
-    }
-
     function prefillWcsCache(preloadedCache) {
-        if (!preloadedCache || typeof preloadedCache !== 'object') {
-            throw new TypeError('Cache must be a Map or similar object');
-        }
-        const envKey = env === Env.STAGE ? 'stage' : 'prod';
-        const envCache = preloadedCache[envKey];
-        if (!envCache || typeof envCache !== 'object') {
+        const envCache = preloadedCache[env === Env.STAGE ? 'stage' : 'prod'];
+        if (!envCache) {
             log.warn(`No cache found for environment: ${env}`);
             return;
         }
-        // Fill cache with provided entries
-        for (const [key, value] of Object.entries(envCache)) {
-            cache.set(key, Promise.resolve(value.map(applyPlanType)));
+        const entries = Object.entries(envCache);
+        for (const [key, offers] of entries) {
+            cache.set(key, Promise.resolve(offers.map(applyPlanType)));
         }
-        log.debug(`Prefilled WCS cache with ${envCache.size} entries`);
+        log.debug(`Prefilled WCS cache with ${entries.length} entries`);
     }
 
-    /**
-     * Flushes cache but keeps items in stale cache for fallback
-     * Used for cache invalidation while maintaining fallback capability
-     * @returns {void}
-     */
+    /** Flushes the cache, keeping its entries as fallback for failed requests. */
     function flushWcsCacheInternal() {
-        const size = cache.size;
-        // Store current cache as stale cache instead of clearing it
-        staleCache = new Map(cache);
-        cache.clear();
-        log.debug(`Moved ${size} cache entries to stale cache`);
+        log.debug(`Moved ${cache.size} cache entries to stale cache`);
+        staleCache = cache;
+        cache = new Map();
     }
 
     /**
-     * Validates that country is supported and determines language and locale.
-     *
+     * Falls back to the default country for unsupported countries and to the
+     * multi-language offers (MULT) unless the country is GB or perpetual offers are requested.
      * @param {string} country - The country code
      * @param {string} language - The language code
      * @param {boolean} perpetual - Whether to use perpetual offers
-     * @returns { validCountry: string, validLanguage: string, locale: string } Returns either valid or default country, language, and locale
+     * @returns {{ validCountry: string, validLanguage: string, locale: string }}
      */
     function normalizeCountryLanguageAndLocale(country, language, perpetual) {
         const validLanguage = country !== 'GB' && !perpetual ? 'MULT' : 'en';
@@ -283,20 +185,15 @@ export function Wcs({ settings, fetchTimeout }) {
     }
 
     /**
-     * Resolves requested list of "Offer Selector Ids" (`osis`) from WCS or local cache.
-     * Returns one promise per OSI, the promise resolves to array of product offers
-     * associated with this OSI.
-     *
-     * @param {Options} params - The parameters for resolving offer selectors
+     * Resolves "Offer Selector Ids" from WCS or the cache, one promise per OSI.
+     * @param {Object} params
      * @param {string} params.country - The country code
      * @param {string} params.language - The language code
      * @param {boolean} [params.perpetual=false] - Whether to use perpetual offers
      * @param {string} [params.promotionCode=''] - The promotion code
      * @param {string[]} [params.promotionCodes] - Per-OSI promotion codes, positionally aligned to `wcsOsi`
      * @param {string[]} [params.wcsOsi=[]] - Array of offer selector IDs
-     * @returns {Promise<Offer[]>[]} Array of promises resolving to arrays of offers
-     * @throws {MasError} When WCS does not provide an offer for a particular OSI
-     * @throws {MasError} In case of any WCS/Network error
+     * @returns {Promise<Offer[]>[]} Promises rejecting with a MasError when WCS fails or has no offer
      */
     function resolveOfferSelectors({
         country,
@@ -312,52 +209,28 @@ export function Wcs({ settings, fetchTimeout }) {
             Array.isArray(promotionCodes) && promotionCodes.length
                 ? promotionCodes
                 : [promotionCode];
-
         return wcsOsi.map((osi, index) => {
             // A single code broadcasts to every OSI (backward compatible);
             // 2+ codes zip positionally, missing positions default to ''.
-            const osiPromotionCode =
-                codes.length === 1 ? codes[0] : (codes[index] ?? '');
-            const groupKey = [validCountry, validLanguage, osiPromotionCode]
-                .filter((val) => val)
+            const code = codes.length === 1 ? codes[0] : (codes[index] ?? '');
+            const groupKey = [validCountry, validLanguage, code]
+                .filter(Boolean)
                 .join('-')
                 .toLowerCase();
             const cacheKey = `${osi}-${groupKey}`;
-            if (cache.has(cacheKey)) {
-                return cache.get(cacheKey);
-            }
-            const promiseWithFallback = new Promise((resolve, reject) => {
-                let group = queue.get(groupKey);
-                if (!group) {
-                    const options = {
-                        country: validCountry,
-                        locale,
-                        ...(validLanguage === 'MULT' && {
-                            language: validLanguage,
-                        }),
-                        offerSelectorIds: [],
-                    };
-                    const promises = new Map();
-                    group = { options, promises };
-                    queue.set(groupKey, group);
-                }
-                if (osiPromotionCode) {
-                    group.options.promotionCode = osiPromotionCode;
-                }
-                group.options.offerSelectorIds.push(osi);
-                group.promises.set(osi, {
-                    resolve,
-                    reject,
-                });
-                flushQueue();
+            if (cache.has(cacheKey)) return cache.get(cacheKey);
+            const promise = fetchOffers(osi, {
+                country: validCountry,
+                locale,
+                ...(validLanguage === 'MULT' && { language: validLanguage }),
+                offerSelectorIds: [osi],
+                ...(code && { promotionCode: code }),
             }).catch((error) => {
-                if (staleCache.has(cacheKey)) {
-                    return staleCache.get(cacheKey);
-                }
+                if (staleCache.has(cacheKey)) return staleCache.get(cacheKey);
                 throw error;
             });
-            cache.set(cacheKey, promiseWithFallback);
-            return promiseWithFallback;
+            cache.set(cacheKey, promise);
+            return promise;
         });
     }
 

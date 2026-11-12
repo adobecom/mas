@@ -142,6 +142,17 @@ export const CheckoutWorkflowStep = Object.freeze({
 
 export const CheckoutWorkflow = 'UCv3';
 
+export const PlanType = Object.freeze({
+    ABM: 'ABM',
+    PUF: 'PUF',
+    M2M: 'M2M',
+    PERPETUAL: 'PERPETUAL',
+    P3Y: 'P3Y',
+});
+
+/** Promotion code that cancels the promotion set by the page context. */
+export const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
+
 export const Env = Object.freeze({
     STAGE: 'STAGE',
     PRODUCTION: 'PRODUCTION',

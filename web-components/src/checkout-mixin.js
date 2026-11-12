@@ -11,9 +11,9 @@ import { isPromotionActive } from '../../price/src/price/utilities.js';
 import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     MODAL_TYPE_3_IN_1,
+    PROMO_CONTEXT_CANCEL_VALUE,
     STATE_RESOLVED,
 } from '../src/constants.js';
-import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
 
 export const CLASS_NAME_DOWNLOAD = 'download';
 export const CLASS_NAME_UPGRADE = 'upgrade';

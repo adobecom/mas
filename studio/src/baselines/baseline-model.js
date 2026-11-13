@@ -9,7 +9,7 @@ import {
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
 import Store from '../store.js';
-import { Fragment } from '../aem/fragment.js';
+import { Fragment, ICON_FIELDS } from '../aem/fragment.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
@@ -35,8 +35,6 @@ const BASELINE_LAYERS = [
 ];
 
 const CARD_OWN_FIELDS = new Set([...NON_INHERITED_FIELDS, 'variant']);
-
-const OFFER_ICON_FIELDS = new Set(['mnemonicIcon', 'mnemonicAlt']);
 
 export const buildBaselineFolderPath = ({ surface, locale, template, productArrangementCode, marketSegment }) => {
     const folder = `${getBaselinesPath({ surface, locale })}/${template}/${productArrangementCode}`;
@@ -206,8 +204,9 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
 /**
  * Merges a card's baselines into one parent fragment, with the same layering as `applyBaselines` in the `customize`
  * transformer: offer < template < segment, field by field; empty values inherit, the explicit_empty sentinel clears; the
- * offer icon & its alt text are dropped when a higher baseline or the card has its own icon. Card identity & system
- * fields never come from a baseline. Arrays listed in the `MERGE_CONFIG` of the effective variant (card, else highest
+ * icon & its alt text only come from the highest layer setting an icon (or a higher one), so an icon never gets the alt
+ * text of a lower layer. Card identity & system fields never come from a baseline. Arrays listed in the `MERGE_CONFIG`
+ * of the effective variant (card, else highest
  * baseline) are concatenated across baselines, as `deepMerge` does; their source is the highest contributing baseline.
  * `variant` is that effective variant, for the card to merge its own arrays with. `null` when no baseline provides any
  * field.
@@ -215,19 +214,18 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
  */
 export function buildBaselineParent(baselines, card) {
     const fieldValues = (layer, fieldName) => layer?.fields.find(({ name }) => name === fieldName)?.values;
-    const hasOwnIcon = [baselines.fragmentBaseline, baselines.fragmentSegmentBaseline, card].some((layer) =>
-        hasContent(fieldValues(layer, 'mnemonicIcon')),
-    );
+    const layers = [...BASELINE_LAYERS.map(([key]) => baselines[key]), card];
+    const iconLayer = layers.findLastIndex((layer) => hasContent(fieldValues(layer, 'mnemonicIcon')));
     const variant = [card, baselines.fragmentSegmentBaseline, baselines.fragmentBaseline, baselines.offerBaseline]
         .map((layer) => fieldValues(layer, 'variant')?.[0])
         .find(Boolean);
     const arraysToMerge = MERGE_CONFIG[variant]?.arraysToMerge ?? [];
     const fields = new Map();
     const sources = {};
-    for (const [key, source] of BASELINE_LAYERS) {
+    for (const [index, [key, source]] of BASELINE_LAYERS.entries()) {
         for (const field of baselines[key]?.fields ?? []) {
             if (CARD_OWN_FIELDS.has(field.name) || !hasContent(field.values)) continue;
-            if (source === 'offer' && hasOwnIcon && OFFER_ICON_FIELDS.has(field.name)) continue;
+            if (index < iconLayer && ICON_FIELDS.has(field.name)) continue;
             const lower = arraysToMerge.includes(field.name) && fields.get(field.name);
             fields.set(field.name, lower ? { ...field, values: [...lower.values, ...field.values] } : field);
             sources[field.name] = source;

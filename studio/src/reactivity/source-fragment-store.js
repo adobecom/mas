@@ -1,9 +1,9 @@
-import { Fragment } from '../aem/fragment.js';
+import { Fragment, ICON_FIELDS } from '../aem/fragment.js';
 import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
-import { cachedInheritanceParent, mergeParentFields, variationFieldShouldInheritParent } from '../aem/variation-utils.js';
+import { cachedInheritanceParent, mergeParentFields } from '../aem/variation-utils.js';
 import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 export class SourceFragmentStore extends FragmentStore {
@@ -65,29 +65,35 @@ export class SourceFragmentStore extends FragmentStore {
 
     /** Array fields the card template appends to the baseline values instead of overriding them (delivery `deepMerge`). */
     get #arraysToMerge() {
-        return MERGE_CONFIG[this.value.getFieldValue('variant') || this.baselineVariant]?.arraysToMerge ?? [];
+        const variant =
+            this.value.getFieldValue('variant') || this.parentFragment?.getFieldValue('variant') || this.baselineVariant;
+        return MERGE_CONFIG[variant]?.arraysToMerge ?? [];
     }
 
-    /** Values of a field for the preview: the baseline values when the field inherits them, or the card values after them. */
-    #previewValues(name, values) {
-        const baselineValues = this.baselineParent?.getFieldValues(name) ?? [];
-        const isMultiple = this.value.getField(name)?.multiple === true;
-        if (!baselineValues.length) return values;
-        if (variationFieldShouldInheritParent(values, isMultiple)) return [...baselineValues];
-        return this.#arraysToMerge.includes(name) ? [...baselineValues, ...values] : values;
+    #previewFieldsData(names) {
+        const pick = ({ fields }) => ({ fields: fields.filter((field) => names.includes(field.name)) });
+        const previewData = structuredClone(pick(this.value));
+        if (this.parentFragment) mergeParentFields(previewData, pick(this.parentFragment));
+        if (this.baselineParent) mergeParentFields(previewData, pick(this.baselineParent), this.#arraysToMerge);
+        return previewData;
     }
 
-    /** Values a field contributes to the preview once reset: the variation parent values, none otherwise. */
-    #resetValues(name) {
-        return this.parentFragment?.getFieldValues(name) ?? [];
+    #updatePreviewFields(name) {
+        const names = ICON_FIELDS.has(name) ? [...ICON_FIELDS] : [name];
+        const previewData = INHERITED_SETTINGS_FIELDS.has(name)
+            ? this.#previewData(this.value)
+            : this.#previewFieldsData(names);
+        for (const fieldName of names) {
+            const values = previewData.fields.find((field) => field.name === fieldName)?.values ?? [];
+            this.previewStore.updateField(fieldName, values);
+        }
     }
 
     updateField(name, value) {
         const result = this.value.updateField(name, value, this.inheritanceParent);
         if (result) {
             this.notify();
-            const values = result === 'reset' ? this.#resetValues(name) : this.value.getFieldValues(name);
-            this.previewStore.updateField(name, this.#previewValues(name, values));
+            this.#updatePreviewFields(name);
         }
         return result;
     }
@@ -114,11 +120,7 @@ export class SourceFragmentStore extends FragmentStore {
         const success = this.value.resetFieldToParent(fieldName);
         if (success) {
             this.notify();
-            if (this.parentFragment) {
-                this.previewStore.updateField(fieldName, this.#previewValues(fieldName, this.#resetValues(fieldName)));
-            } else {
-                this.previewStore.refreshFrom(this.#previewData(this.value));
-            }
+            this.previewStore.refreshFrom(this.#previewData(this.value));
         }
         return success;
     }

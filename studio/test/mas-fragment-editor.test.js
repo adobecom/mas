@@ -2763,6 +2763,42 @@ describe('MasFragmentEditor', () => {
             expect(container).to.not.equal(nothing);
         });
 
+        describe('derived from links', () => {
+            let container;
+
+            beforeEach(() => {
+                el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/s/en_US/f', title: 'Parent' };
+                container = document.createElement('div');
+                container.addEventListener('click', (event) => event.preventDefault());
+                render(el.derivedFromContainer, container, { host: el });
+            });
+
+            const click = (init = {}) =>
+                container
+                    .querySelector('.derived-from-link')
+                    .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
+
+            it('link to the editor of the locale default fragment, so it can open in a new tab', () => {
+                const fragmentIds = [...container.querySelectorAll('.derived-from-container a')].map((link) =>
+                    new URLSearchParams(link.getAttribute('href').slice(1)).get('fragmentId'),
+                );
+                expect(fragmentIds).to.deep.equal(['parent-id', 'parent-id']);
+            });
+
+            it('open the locale default fragment in place on a plain click', () => {
+                const navigate = sandbox.stub(el, 'navigateToLocaleDefaultFragment');
+                click();
+                expect(navigate.calledOnce).to.be.true;
+            });
+
+            it('leave modified clicks to the browser', () => {
+                const navigate = sandbox.stub(el, 'navigateToLocaleDefaultFragment');
+                click({ metaKey: true });
+                click({ ctrlKey: true });
+                expect(navigate.called).to.be.false;
+            });
+        });
+
         it('renders preview skeleton', () => {
             const skeleton = el.previewSkeleton;
             expect(skeleton).to.not.equal(nothing);

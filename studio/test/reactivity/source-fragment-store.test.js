@@ -45,6 +45,139 @@ describe('mergeParentFields', () => {
         expect(data.fields.find(({ name }) => name === 'badge').values).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
         expect(data.fields.find(({ name }) => name === 'features').values).to.deep.equal(['']);
     });
+
+    describe('icons', () => {
+        const iconParent = {
+            fields: [
+                { name: 'mnemonicIcon', multiple: true, values: ['parent.svg'] },
+                { name: 'mnemonicAlt', multiple: true, values: ['Parent'] },
+            ],
+        };
+        const valuesOf = (data, fieldName) => data.fields.find(({ name }) => name === fieldName)?.values;
+
+        it('inherits the parent icon with its alt text', () => {
+            const data = mergeParentFields({ fields: [] }, iconParent);
+
+            expect(valuesOf(data, 'mnemonicIcon')).to.deep.equal(['parent.svg']);
+            expect(valuesOf(data, 'mnemonicAlt')).to.deep.equal(['Parent']);
+        });
+
+        it('never gives its own icon the parent alt text', () => {
+            const data = mergeParentFields(
+                { fields: [{ name: 'mnemonicIcon', multiple: true, values: ['own.svg'] }] },
+                iconParent,
+            );
+
+            expect(valuesOf(data, 'mnemonicAlt')).to.be.undefined;
+        });
+
+        it('inherits no icon nor alt text once its icons are cleared', () => {
+            const data = mergeParentFields({ fields: [{ name: 'mnemonicIcon', multiple: true, values: [''] }] }, iconParent);
+
+            expect(valuesOf(data, 'mnemonicIcon')).to.deep.equal(['']);
+            expect(valuesOf(data, 'mnemonicAlt')).to.be.undefined;
+        });
+
+        it('overrides the alt text of the parent icon', () => {
+            const data = mergeParentFields({ fields: [{ name: 'mnemonicAlt', multiple: true, values: ['Own'] }] }, iconParent);
+
+            expect(valuesOf(data, 'mnemonicIcon')).to.deep.equal(['parent.svg']);
+            expect(valuesOf(data, 'mnemonicAlt')).to.deep.equal(['Own']);
+        });
+    });
+});
+
+describe('SourceFragmentStore of a variation with baselines', () => {
+    const VARIATION_PATH = '/content/dam/mas/sandbox/en_AU/card';
+    const baselineParent = new Fragment({
+        fields: [
+            { name: 'subtitle', values: ['Baseline subtitle'] },
+            { name: 'promoText', values: ['Baseline promo'] },
+            { name: 'mnemonicIcon', multiple: true, values: ['baseline.svg'] },
+            { name: 'mnemonicAlt', multiple: true, values: ['Baseline'] },
+        ],
+    });
+    let store;
+
+    const createStore = (variationFields, defaultFields = []) => {
+        store = generateFragmentStore(createCard(variationFields, VARIATION_PATH), createCard(defaultFields), { lazy: true });
+        sinon.stub(store.previewStore, 'resolveFragment');
+        store.setBaselineParent(baselineParent);
+        return store;
+    };
+    const previewValues = (fieldName) => store.previewStore.value.getFieldValues(fieldName);
+
+    afterEach(() => {
+        store.previewStore.dispose();
+        sinon.restore();
+    });
+
+    it('inherits the baseline values its locale default card leaves empty', () => {
+        createStore([]);
+
+        expect(store.inheritanceParent.getFieldValues('subtitle')).to.deep.equal(['Baseline subtitle']);
+        expect(previewValues('subtitle')).to.deep.equal(['Baseline subtitle']);
+    });
+
+    it('inherits the values of its locale default card over the baselines', () => {
+        createStore([], [{ name: 'subtitle', values: ['Default subtitle'] }]);
+
+        expect(store.inheritanceParent.getFieldValues('subtitle')).to.deep.equal(['Default subtitle']);
+        expect(previewValues('subtitle')).to.deep.equal(['Default subtitle']);
+        expect(previewValues('promoText')).to.deep.equal(['Baseline promo']);
+    });
+
+    it('clears an inherited baseline value, in the source and the preview', () => {
+        createStore([]);
+
+        store.updateField('subtitle', ['']);
+
+        expect(store.get().getFieldValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+        expect(previewValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+    });
+
+    it('previews the values of its locale default card over the baselines when a field gets inherited again', () => {
+        createStore([{ name: 'subtitle', values: ['Own subtitle'] }], [{ name: 'subtitle', values: ['Default subtitle'] }]);
+
+        store.updateField('subtitle', ['Default subtitle']);
+
+        expect(previewValues('subtitle')).to.deep.equal(['Default subtitle']);
+    });
+
+    it('restores the baseline value its locale default card leaves empty', () => {
+        createStore([{ name: 'subtitle', values: ['Own subtitle'] }]);
+
+        store.resetFieldToParent('subtitle');
+
+        expect(previewValues('subtitle')).to.deep.equal(['Baseline subtitle']);
+    });
+
+    it('previews its own icon without the alt text of a lower layer', () => {
+        createStore([], [{ name: 'mnemonicAlt', multiple: true, values: ['Default'] }]);
+
+        store.updateField('mnemonicIcon', ['own.svg']);
+
+        expect(previewValues('mnemonicIcon')).to.deep.equal(['own.svg']);
+        expect(previewValues('mnemonicAlt')).to.deep.equal([]);
+    });
+
+    it('previews the inherited icon with its alt text once its own icon is reset', () => {
+        createStore([{ name: 'mnemonicIcon', multiple: true, values: ['own.svg'] }]);
+
+        store.resetFieldToParent('mnemonicIcon');
+
+        expect(previewValues('mnemonicIcon')).to.deep.equal(['baseline.svg']);
+        expect(previewValues('mnemonicAlt')).to.deep.equal(['Baseline']);
+    });
+
+    it('overrides the alt text of the inherited icon', () => {
+        createStore([]);
+
+        store.updateField('mnemonicAlt', ['Own']);
+
+        expect(previewValues('mnemonicIcon')).to.deep.equal(['baseline.svg']);
+        expect(previewValues('mnemonicAlt')).to.deep.equal(['Own']);
+    });
 });
 
 describe('SourceFragmentStore.setBaselineParent', () => {
@@ -266,6 +399,21 @@ describe('SourceFragmentStore compare-chart-column features with baselines', () 
         store.setBaselineParent(baselineParent, 'compare-chart-column');
 
         expect(previewFeatures()).to.deep.equal(['template', 'segment', 'own']);
+    });
+
+    it('appends the variation features with the variant of its locale default card when it has none', () => {
+        const variation = createCard(
+            [{ name: 'features', multiple: true, values: ['own'] }],
+            '/content/dam/mas/sandbox/en_AU/card',
+        );
+        const localeDefault = createCard([{ name: 'variant', values: ['compare-chart-column'] }]);
+        store = generateFragmentStore(variation, localeDefault, { lazy: true });
+        sinon.stub(store.previewStore, 'resolveFragment');
+        store.setBaselineParent(baselineParent);
+
+        store.updateField('features', ['own', 'added']);
+
+        expect(previewFeatures()).to.deep.equal(['template', 'segment', 'own', 'added']);
     });
 
     it('overrides the baseline features with the card features for other templates', () => {

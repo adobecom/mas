@@ -570,7 +570,7 @@ describe('Fragment', () => {
                 });
             });
 
-            it('stores "" and inherits when clearing a required field on a variation of a card inheriting from baselines', () => {
+            it('keeps a required field cleared on a variation of a card inheriting from baselines empty', () => {
                 const parent = new Fragment(
                     createFragmentConfig({
                         fields: [
@@ -586,8 +586,8 @@ describe('Fragment', () => {
 
                 variation.updateField('cardTitle', [''], parent);
 
-                expect(variation.getFieldValues('cardTitle')).to.deep.equal(['']);
-                expect(variation.getEffectiveFieldValue('cardTitle', parent, true)).to.equal('Default locale title');
+                expect(variation.getFieldValues('cardTitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+                expect(variation.getEffectiveFieldValue('cardTitle', parent, true)).to.equal('');
             });
 
             it('reads a stored EXPLICIT_EMPTY_SENTINEL on a required field as inherited', () => {
@@ -920,6 +920,54 @@ describe('Fragment', () => {
             const prepared = variation.prepareVariationForSave(parent);
             expect(prepared).to.not.equal(variation);
             expect(variation.getFieldValues('title')).to.deep.equal(['Title']);
+        });
+    });
+
+    describe('icon alt text', () => {
+        const parent = new Fragment(
+            createFragmentConfig({
+                fields: [
+                    { name: 'mnemonicIcon', values: ['parent.svg'], multiple: true },
+                    { name: 'mnemonicAlt', values: ['Parent'], multiple: true },
+                ],
+            }),
+        );
+        const createVariation = (fields) => new Fragment(createFragmentConfig({ fields }));
+        const ownIcon = { name: 'mnemonicIcon', values: ['own.svg'], multiple: true };
+
+        it('inherits the alt text of the inherited icon', () => {
+            const variation = createVariation([]);
+
+            expect(variation.getEffectiveFieldValues('mnemonicAlt', parent, true)).to.deep.equal(['Parent']);
+            expect(variation.getEffectiveFieldValue('mnemonicAlt', parent, true)).to.equal('Parent');
+        });
+
+        it('never gives its own icon the parent alt text', () => {
+            const variation = createVariation([ownIcon]);
+
+            expect(variation.getEffectiveFieldValues('mnemonicAlt', parent, true)).to.deep.equal([]);
+            expect(variation.getEffectiveFieldValue('mnemonicAlt', parent, true)).to.be.undefined;
+        });
+
+        it('never gives cleared icons the parent alt text', () => {
+            const variation = createVariation([{ name: 'mnemonicIcon', values: [''], multiple: true }]);
+
+            expect(variation.getEffectiveFieldValues('mnemonicAlt', parent, true)).to.deep.equal([]);
+        });
+
+        it('overrides the alt text of the inherited icon', () => {
+            const variation = createVariation([{ name: 'mnemonicAlt', values: ['Own'], multiple: true }]);
+
+            expect(variation.getEffectiveFieldValues('mnemonicIcon', parent, true)).to.deep.equal(['parent.svg']);
+            expect(variation.getEffectiveFieldValues('mnemonicAlt', parent, true)).to.deep.equal(['Own']);
+        });
+
+        it('keeps the alt text of its own icon when it matches the parent one', () => {
+            const variation = createVariation([ownIcon]);
+
+            expect(variation.updateField('mnemonicAlt', ['Parent'], parent)).to.be.true;
+            expect(variation.getEffectiveFieldValues('mnemonicAlt', parent, true)).to.deep.equal(['Parent']);
+            expect(variation.prepareVariationForSave(parent).getFieldValues('mnemonicAlt')).to.deep.equal(['Parent']);
         });
     });
 

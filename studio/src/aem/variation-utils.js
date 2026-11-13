@@ -1,5 +1,5 @@
 import { fieldValuesArePersistedExplicitEmpty } from '../../../io/www/src/fragment/utils/explicit-empty.js';
-import { Fragment } from './fragment.js';
+import { Fragment, ICON_FIELDS } from './fragment.js';
 
 /**
  * Whether a variation field should inherit parent values in preview merge.
@@ -22,15 +22,19 @@ export function variationFieldShouldInheritParent(sourceValues, isMultiple = fal
 
 /**
  * Fills the empty fields of preview data with the parent values (in place). Fields listed in `arraysToMerge` keep their
- * own values after the parent ones, as `deepMerge` of the `customize` transformer does.
+ * own values after the parent ones, as `deepMerge` of the `customize` transformer does. Preview data setting its own
+ * icons (clearing them included) keeps its own alt text: the parent one describes another icon.
  * @param {{ fields: Array }} previewData
  * @param {{ fields?: Array }} parentFragment
  * @param {string[]} [arraysToMerge]
  * @returns {{ fields: Array }} previewData
  */
 export function mergeParentFields(previewData, parentFragment, arraysToMerge = []) {
+    const iconField = previewData.fields?.find((field) => field.name === 'mnemonicIcon');
+    const setsOwnIcon = !variationFieldShouldInheritParent(iconField?.values, iconField?.multiple === true);
     for (const parentField of parentFragment.fields ?? []) {
         if (!parentField.values?.length) continue;
+        if (setsOwnIcon && ICON_FIELDS.has(parentField.name)) continue;
         const sourceField = previewData.fields.find((field) => field.name === parentField.name);
         if (!variationFieldShouldInheritParent(sourceField?.values, sourceField?.multiple === true)) {
             if (arraysToMerge.includes(parentField.name)) sourceField.values = [...parentField.values, ...sourceField.values];

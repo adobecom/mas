@@ -39,7 +39,7 @@ import {
 import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
-import '../common/components/mas-search-and-filters.js';
+import { SELECTION_ENABLED_FILTERS } from '../common/components/mas-search-and-filters.js';
 import '../common/components/mas-grouped-selector.js';
 import '../common/components/mas-region-picker.js';
 import {
@@ -1508,6 +1508,7 @@ class MasPromotionsEditor extends LitElement {
                 .type=${tab.value}
                 .searchQuery=${tab.value === host.selectedTab ? host.searchQuery : ''}
                 .searchOnly=${false}
+                .enabledFilters=${SELECTION_ENABLED_FILTERS}
                 .promotionSurfaceOptions=${promotionSurfaceOptions}
                 .promotionSurface=${surfacePickerValue ?? ''}
                 .externalProductFilter=${true}

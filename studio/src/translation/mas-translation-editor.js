@@ -7,13 +7,21 @@ import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
+import { SELECTION_ENABLED_FILTERS } from '../common/components/mas-search-and-filters.js';
 import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
 import '../common/components/mas-region-picker.js';
 import { getLocalePickerItems } from '../locales.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
+import {
+    BASELINE_SOURCE_LOCALE,
+    PAGE_NAMES,
+    TRANSLATION_PROJECT_MODEL_ID,
+    QUICK_ACTION,
+    TABLE_TYPE,
+    VARIATION_TAB_NAME,
+} from '../constants.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     renderFragmentStatusCell,
@@ -25,6 +33,7 @@ import {
 import './mas-collapsible-table-row.js';
 import './mas-translation-duplicate-dialog.js';
 import { untrackPendingProject } from '../common/utils/project-list-utils.js';
+import { getBaselinesPath, loadBaselines } from '../baselines/baseline-model.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -50,8 +59,11 @@ class MasTranslationEditor extends LitElement {
     #targetLocalesSnapshot = [];
     #itemsSelectionStoreToken = null;
     #itemsConfirmed = false;
+    #isAddItemsOpen = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
+    #baselinesAbortController = null;
+    #loadedBaselinesPath = null;
 
     constructor() {
         super();
@@ -93,7 +105,7 @@ class MasTranslationEditor extends LitElement {
 
         // reset locale to default
         Store.search.set((prev) => ({ ...prev, region: null }));
-        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+        Store.filters.set((prev) => ({ ...prev, locale: BASELINE_SOURCE_LOCALE }));
 
         // Check for pre-fill data from store (e.g., from missing-variation-panel)
         const prefill = Store.translationProjects.prefill.get();
@@ -127,6 +139,7 @@ class MasTranslationEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#baselinesAbortController?.abort();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
     }
@@ -605,8 +618,11 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
-    #openAddItemsOverlay(e) {
-        if (e && e.target !== e.currentTarget) return;
+    async #openAddItemsOverlay(e) {
+        if (e && e.target !== e.currentTarget && e.target !== e.currentTarget.querySelector(':scope > [slot="trigger"]'))
+            return;
+        if (this.#isAddItemsOpen) return;
+        this.#isAddItemsOpen = true;
         this.#itemsConfirmed = false;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
@@ -627,6 +643,19 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
+        const context = {
+            surface: Store.surface(),
+            locale: BASELINE_SOURCE_LOCALE,
+            list: Store.translationProjects.baselinesList,
+        };
+        const path = getBaselinesPath(context);
+        if (this.#loadedBaselinesPath === path && context.list.data.getMeta('loadedPath') === path) return;
+        this.#loadedBaselinesPath = null;
+        this.#baselinesAbortController?.abort();
+        this.#baselinesAbortController = new AbortController();
+        if (await loadBaselines(this.repository, context, this.#baselinesAbortController)) {
+            this.#loadedBaselinesPath = path;
+        }
     }
 
     #openLangSelection = () => {
@@ -668,10 +697,12 @@ class MasTranslationEditor extends LitElement {
                 @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector
+                    .includeBaselines=${true}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
+                    .enabledFilters=${SELECTION_ENABLED_FILTERS}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
@@ -680,6 +711,9 @@ class MasTranslationEditor extends LitElement {
     // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
     // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
     #restoreItemsSnapshot = () => {
+        this.#isAddItemsOpen = false;
+        this.#baselinesAbortController?.abort();
+        Store.translationProjects.baselinesList.loading.set(false);
         if (this.#itemsConfirmed) return;
         Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
@@ -878,6 +912,7 @@ class MasTranslationEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-items-selector
                                         .viewOnly=${true}
+                                        .includeBaselines=${true}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-items-selector>`
                                   : nothing}

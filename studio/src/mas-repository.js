@@ -1516,7 +1516,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, options = {}) {
-        const { withToast = true, refetchEtag = true, errorMessage = 'Failed to save fragment.' } = options;
+        const { withToast = true, refetchEtag = true, expectedEtag, errorMessage = 'Failed to save fragment.' } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1551,7 +1551,10 @@ export class MasRepository extends LitElement {
                     () => this.loadPromotions(),
                 );
             }
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
+            const savedFragment = await this.aem.sites.cf.fragments.save(
+                expectedEtag ? { ...fragmentToSave, etag: expectedEtag } : fragmentToSave,
+                { refetchEtag: expectedEtag ? false : refetchEtag },
+            );
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -1947,7 +1950,7 @@ export class MasRepository extends LitElement {
             paths,
             async (path) => {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path });
+                    await promotionsRepository.forceDeletePromoVariation(this, path);
                 } catch (error) {
                     console.error(`Failed to delete promo variation ${path}:`, error);
                     failedVariations.push(path);
@@ -1988,7 +1991,7 @@ export class MasRepository extends LitElement {
 
             for (const variationPath of variations) {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                    await promotionsRepository.forceDeletePromoVariation(this, variationPath);
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);

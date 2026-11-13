@@ -587,6 +587,34 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads baselines of the surface and locale on BASELINES page, aborting the previous load', async () => {
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({ ...originalSearch, path: 'sandbox' });
+            Store.filters.set({ ...originalFilters, locale: 'fr_FR' });
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.BASELINES };
+            repository.searchFragmentList = sandbox.stub().returns(new Promise(() => {}));
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                MasRepository.prototype.handleSearch.call(repository);
+                const [firstQuery, , firstController] = repository.searchFragmentList.firstCall.args;
+                expect(firstQuery.path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+                expect(firstController.signal.aborted).to.be.true;
+                expect(repository.searchFragmentList.secondCall.args[2].signal.aborted).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                Store.baselines.list.data.removeMeta('loadedPath');
+                Store.baselines.list.data.set([]);
+                Store.baselines.list.loading.set(false);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {
@@ -5220,6 +5248,34 @@ describe('MasRepository dictionary helpers', () => {
             Store.promotions.list.data.removeMeta('listFetched');
         });
 
+        it('passes an explicitly expected revision to AEM without changing the edited fragment', async () => {
+            const repository = createFullRepository();
+            const fragment = new Fragment({
+                id: 'card',
+                path: '/content/dam/mas/sandbox/en_US/card',
+                etag: '"editor"',
+                model: { path: '/conf/mas/settings/dam/cfm/models/other' },
+                fields: [],
+            });
+            const store = new FragmentStore(fragment);
+            repository.aem = createAemMock({
+                fragments: { save: sandbox.stub().rejects(new Error('Revision conflict')) },
+            });
+            sandbox.stub(repository, 'processError');
+
+            expect(
+                await repository.saveFragment(store, {
+                    withToast: false,
+                    refetchEtag: false,
+                    expectedEtag: '"prepared"',
+                }),
+            ).to.be.false;
+
+            expect(repository.aem.sites.cf.fragments.save.firstCall.args[0].etag).to.equal('"prepared"');
+            expect(repository.aem.sites.cf.fragments.save.firstCall.args[1]).to.deep.equal({ refetchEtag: false });
+            expect(store.get().etag).to.equal('"editor"');
+        });
+
         it('blocks the save and reports the conflict when the promo variation geo tags overlap a sibling', async () => {
             const repository = createFullRepository();
             const fragment = new Fragment({
@@ -5284,6 +5340,8 @@ describe('MasRepository dictionary helpers', () => {
             const savedFragment = { id: 'var-1', path: variationPath, fields: fragment.fields };
             repository.aem = createAemMock({
                 fragments: {
+                    createVersion: sandbox.stub().resolves('before-save'),
+                    getVersions: sandbox.stub().resolves({ items: [] }),
                     getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
                     getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
                     search,

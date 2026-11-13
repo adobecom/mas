@@ -161,6 +161,14 @@ export const SORT_ORDER = {
     authored: 'authored',
 };
 
+export const TRIAL_TO_BUY_CTA_ANALYTICS_IDS = [
+    'buy-now',
+    'select',
+    'save-now',
+    'get-offer',
+    'save-today',
+];
+
 export const SUPPORTED_COUNTRIES = [
     'AE',
     'AM',

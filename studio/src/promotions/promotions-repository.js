@@ -4,11 +4,58 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
+import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard, showToast } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { savePromotionVersion, withPromotionVersion } from './promotion-version.js';
+import { canEditPromotions } from '../groups.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
+
+/** Creates promotion content and records its initial version after the repository finishes. */
+export async function createPromotionFragment(repository, fragmentData, withToast = true) {
+    return withPromotionVersion(repository, fragmentData, () => repository.createFragment(fragmentData, withToast));
+}
+
+/** Captures promotion content before saving; ordinary fragments use the repository without versioning. */
+export async function savePromotionFragment(repository, fragmentStore, options = {}) {
+    return withPromotionVersion(repository, fragmentStore.get(), (precondition) =>
+        repository.saveFragment(fragmentStore, { ...options, ...precondition }),
+    );
+}
+
+export async function deletePromotionFragment(repository, fragment, remove) {
+    let result;
+    await withPromotionVersion(
+        repository,
+        fragment,
+        async () => {
+            result = await remove();
+            return result.deleted ?? result.success;
+        },
+        { action: 'delete' },
+    );
+    return result;
+}
+
+/** Records promo variation deletion when a cascade identifies the fragment by path. */
+export async function forceDeletePromoVariation(repository, path) {
+    const remove = async () => {
+        await repository.aem.sites.cf.fragments.forceDelete({ path });
+        return true;
+    };
+    if (!isPromoVariationPath(path) || !canEditPromotions()) return remove();
+    let fragment;
+    try {
+        fragment = await repository.aem.sites.cf.fragments.getByPath(path);
+    } catch (error) {
+        console.error('Promotion history fragment lookup failed:', error);
+        const deleted = await remove();
+        showToast('Your change was completed, but it will be missing from the promotion history.', 'warning');
+        return deleted;
+    }
+    return withPromotionVersion(repository, fragment, remove, { action: 'delete' });
+}
 
 /**
  * @returns {Array<Object>}
@@ -199,6 +246,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         geoTags,
         attachedFragmentPaths,
     );
+    await savePromotionVersion({ loadPromotions }, createdFragment);
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }
@@ -282,12 +330,14 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
  * Runs sequentially since createPromoVariation resolves sibling-index/geo collisions against current AEM state per source fragment.
  * Failed variations are skipped, not thrown.
  * The project already exists in AEM by this point and throwing would block retry (title already taken).
- * @param {import('../aem/aem.js').AEM} aem
+ * @param {{ aem: import('../aem/aem.js').AEM, loadPromotions: Function }} repository
  * @param {Object} sourcePromotion
  * @param {string} newPromoTagId
+ * @param {string} projectId
  * @returns {Promise<Array<{ path: string, error: Error }>>}
  */
-async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTagId) {
+async function duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId, projectId) {
+    const { aem } = repository;
     const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
     const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
     const failedVariations = [];
@@ -303,7 +353,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
             if (!sourceFragment) {
                 throw new Error(`Could not resolve the default fragment for promo variation ${variation.path}`);
             }
-            await promotionVariations.createPromoVariation(
+            const created = await promotionVariations.createPromoVariation(
                 aem,
                 sourceFragment.id,
                 newPromoTagId,
@@ -311,6 +361,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
                 attachedFragmentPaths,
                 sourceFragment,
             );
+            await savePromotionVersion(repository, created, { projectId });
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });
@@ -341,7 +392,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     };
     let newPromotion;
     try {
-        newPromotion = await repository.createFragment(payload, false);
+        newPromotion = await createPromotionFragment(repository, payload, false);
         if (!newPromotion) throw new Error('Failed to duplicate project.');
     } catch (error) {
         if (tag) await repository.aem.tags.delete(tag.tagPath).catch(() => {});
@@ -351,7 +402,12 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     let failedVariations = [];
     if (duplicateVariations && newPromoTagId) {
         try {
-            failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+            failedVariations = await duplicateAttachedPromoVariations(
+                repository,
+                sourcePromotion,
+                newPromoTagId,
+                newPromotion.id,
+            );
         } catch (error) {
             console.error('Error cloning attached promo variations:', error);
             failedVariations = [{ path: 'attached promo variations', error }];

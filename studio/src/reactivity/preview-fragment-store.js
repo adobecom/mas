@@ -18,10 +18,10 @@ import { getPromotionProjectsForProbe } from '../promotions/promotions-repositor
 
 const COUNTDOWN_CACHE_TTL = 30000;
 
-/** Reads the promotion projects through the shared promotions list. */
+/** Reads the promotion projects through the shared promotions list, revalidated when stale since countdowns are cached. */
 async function readCountdownProjects() {
     const repository = document.querySelector('mas-repository');
-    const projects = await getPromotionProjectsForProbe(() => repository.loadPromotions({ rethrow: true }));
+    const projects = await getPromotionProjectsForProbe(() => repository.loadPromotions({ rethrow: true }), { fresh: true });
     return projects.map(toCountdownProject);
 }
 

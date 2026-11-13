@@ -250,7 +250,7 @@ export class MasRepository extends LitElement {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
-        promotionsRepository.hydratePromotionsList(this.promotionsListScope);
+        Store.profile.subscribe(this.#hydratePromotionsList);
 
         Store.filters.subscribe(this.#onFiltersChange);
         Store.search.subscribe(this.#onSearchChange);
@@ -266,6 +266,7 @@ export class MasRepository extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.profile.unsubscribe(this.#hydratePromotionsList);
         Store.filters.unsubscribe(this.#onFiltersChange);
         Store.search.unsubscribe(this.#onSearchChange);
         Store.operation.unsubscribe(clearPromoVariationProbeCache);
@@ -275,6 +276,9 @@ export class MasRepository extends LitElement {
     }
 
     #stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
+
+    // The persisted list is per user, so it can only be seeded once the IMS profile is known.
+    #hydratePromotionsList = () => promotionsRepository.hydratePromotionsList(this.promotionsListScope);
 
     #onFiltersChange = () => {
         clearDictionaryCache();
@@ -1255,17 +1259,18 @@ export class MasRepository extends LitElement {
 
             if (!Store.promotions.list.data.hasMeta('listFetched')) Store.promotions.list.loading.set(true);
 
+            promotionsRepository.beginPromotionsListRefresh();
             const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
-            const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
             const signal = abortController.signal;
-            const expiredPublished = promotions.filter((store) => {
+            promotionsRepository.applyPromotionsListRefresh(
+                fragments.map((fragment) => new FragmentStore(new Promotion(fragment))),
+                this.promotionsListScope,
+            );
+            const expiredPublished = Store.promotions.list.data.get().filter((store) => {
                 const p = store.get();
                 return p?.promotionStatus === 'expired' && p.isPromotionPublished;
             });
-
-            Store.promotions.list.data.set(promotions);
-            promotionsRepository.markPromotionsListFetched(this.promotionsListScope);
 
             if (unpublishExpired && expiredPublished.length && canManagePromotions()) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
@@ -1309,9 +1314,15 @@ export class MasRepository extends LitElement {
         if (fragmentData?.path?.startsWith(`${this.getPromotionsPath()}/`)) this.updatePromotionInList(fragmentData);
     }
 
-    /** Keys the persisted promotions list by AEM environment. */
+    /**
+     * Keys the persisted promotions list by AEM environment and IMS user. Null (no persistence) until the
+     * profile is known, and behind the local proxy, whose localhost URL hides which environment it targets.
+     */
     get promotionsListScope() {
-        return this.baseUrl || this.bucket;
+        const userId = Store.profile.value?.userId;
+        const environment = this.baseUrl || this.bucket;
+        if (!userId || environment.startsWith('http://localhost')) return null;
+        return `${environment}:${userId}`;
     }
 
     /** Mockable seam for components; the implementation lives in placeholders/mas-placeholders-repository.js. */

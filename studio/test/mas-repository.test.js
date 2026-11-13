@@ -80,6 +80,19 @@ describe('MasRepository dictionary helpers', () => {
         ...overrides,
     });
 
+    describe('promotionsListScope', () => {
+        afterEach(() => Store.profile.set(null));
+
+        it('keys the persisted promotions list by environment and user, and disables it locally', () => {
+            const repo = createFullRepository();
+            expect(repo.promotionsListScope).to.be.null;
+            Store.profile.set({ userId: 'user-a@AdobeID' });
+            expect(repo.promotionsListScope).to.equal('https://test.example.com:user-a@AdobeID');
+            repo.baseUrl = 'http://localhost:8080';
+            expect(repo.promotionsListScope).to.be.null;
+        });
+    });
+
     describe('loadFolders', () => {
         it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();

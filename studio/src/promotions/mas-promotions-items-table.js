@@ -373,7 +373,7 @@ class MasPromotionsItemsTable extends LitElement {
         this.#sortAbortController = sortController;
         const firstWindow = new Set(paths.slice(0, SELECTED_ITEMS_WINDOW));
         const prefetch = this.#prefetchSelected(
-            paths.filter((path) => !firstWindow.has(path) && !this.#offerNameByPath.has(path)),
+            paths.filter((path) => !firstWindow.has(path)),
             sortController.signal,
         );
         await this.#loadNextSelectedWindow();
@@ -405,24 +405,22 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #prefetchSelected(paths, signal) {
         if (!paths.length) return;
-        const fetched = [];
         await processConcurrently(
-            paths,
+            paths.filter((path) => !this.#offerNameByPath.has(path)),
             async (path) => {
                 if (signal.aborted) return;
                 const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path, { signal })).catch(
                     () => null,
                 );
                 if (signal.aborted) return;
-                if (fragment) {
-                    this.#prefetchedByPath.set(path, fragment);
-                    fetched.push(fragment);
-                }
+                if (fragment) this.#prefetchedByPath.set(path, fragment);
                 this.#offerNameByPath.set(path, getOfferName(fragment));
             },
             SORT_PREFETCH_CONCURRENCY,
         );
         if (signal.aborted) return;
+        // Replays results cached by an interrupted earlier prefetch too, which never got to publish them.
+        const fetched = paths.map((path) => this.#prefetchedByPath.get(path)).filter(Boolean);
         this.#cacheSelectedFragments(fetched);
         this.#reportCollections(fetched);
     }
@@ -446,9 +444,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     /**
      * @param {string[]} paths
+     * @param {() => boolean} isCurrent whether the removal that requested the metadata still applies
      * @returns {Promise<boolean>} false when some metadata could not be loaded
      */
-    async #loadSelectedMetadata(paths) {
+    async #loadSelectedMetadata(paths, isCurrent) {
         const store = this.itemsSelection.value;
         const cards = [];
         const collections = [];
@@ -465,6 +464,8 @@ class MasPromotionsItemsTable extends LitElement {
             },
             SORT_PREFETCH_CONCURRENCY,
         );
+        // The selection stores are shared: after a promotion switch they belong to another promotion.
+        if (!isCurrent()) return false;
         const merge = (previous, items) => new Map([...previous, ...items.map((item) => [item.path, item])]);
         if (cards.length) store.cardsByPaths.set((previous) => merge(previous, cards));
         if (collections.length) store.collectionsByPaths.set((previous) => merge(previous, collections));
@@ -886,9 +887,19 @@ class MasPromotionsItemsTable extends LitElement {
             if (this.offerRemovalDialogOpen) return;
             const selectorId = item.path || item.id;
             const missing = this.#getSelectedPathsMissingMetadata(selectorId);
-            if (missing.length && !(await this.#loadSelectedMetadata(missing))) {
-                this.#showToast('Could not load every selected item, so the offer was not removed. Please retry.', 'negative');
-                return;
+            if (missing.length) {
+                const promotion = Store.promotions.inEdit.get();
+                const isCurrent = () =>
+                    Store.promotions.inEdit.get() === promotion && store.selectedOffers.value.includes(selectorId);
+                const loaded = await this.#loadSelectedMetadata(missing, isCurrent);
+                if (!isCurrent()) return;
+                if (!loaded) {
+                    this.#showToast(
+                        'Could not load every selected item, so the offer was not removed. Please retry.',
+                        'negative',
+                    );
+                    return;
+                }
             }
             const { removed } = this.#getOfferRemovalContext(selectorId);
             const fragmentCount = removed.removedCards.length;

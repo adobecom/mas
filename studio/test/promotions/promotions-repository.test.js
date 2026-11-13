@@ -4,8 +4,11 @@ import Store from '../../src/store.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import {
+    applyPromotionsListRefresh,
     assertPromoVariationGeoTagsValid,
+    beginPromotionsListRefresh,
     buildPromoVariationParentRefreshCallback,
+    clearPersistedPromotionsLists,
     createPromoVariation,
     duplicatePromotionProject,
     getProjectGeosForTag,
@@ -232,6 +235,34 @@ describe('promotions-repository', () => {
             removePromotionFromList('p1', scope);
             const persisted = JSON.parse(localStorage.getItem(storageKey));
             expect(persisted.fragments.map(({ id }) => id)).to.deep.equal(['p2']);
+        });
+
+        it('replays writes made during a refresh over its older response', () => {
+            Store.promotions.list.data.set([new FragmentStore(new Promotion(project('p1')))]);
+            markPromotionsListFetched(scope);
+
+            beginPromotionsListRefresh();
+            removePromotionFromList('p1', scope);
+            upsertPromotionInList(project('p2', 'saved'), scope);
+            applyPromotionsListRefresh(
+                [new FragmentStore(new Promotion(project('p1'))), new FragmentStore(new Promotion(project('p2', 'old')))],
+                scope,
+            );
+
+            const titles = Store.promotions.list.data.get().map((store) => [store.get().id, store.get().title]);
+            expect(titles).to.deep.equal([['p2', 'saved']]);
+            const persisted = JSON.parse(localStorage.getItem(storageKey));
+            expect(persisted.fragments.map(({ id, title }) => [id, title])).to.deep.equal([['p2', 'saved']]);
+        });
+
+        it('neither persists nor hydrates without a scope, and clears persisted lists on sign-out', () => {
+            Store.promotions.list.data.set([new FragmentStore(new Promotion(project('p1')))]);
+            markPromotionsListFetched(null);
+            expect(Object.keys(localStorage).some((key) => key.startsWith('mas-promotions-list:'))).to.be.false;
+
+            markPromotionsListFetched(scope);
+            clearPersistedPromotionsLists();
+            expect(localStorage.getItem(storageKey)).to.be.null;
         });
     });
 

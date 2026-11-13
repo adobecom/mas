@@ -47,6 +47,23 @@ mas-studio {
     height: calc(100vh - var(--mas-nav-height));
 }
 
+body:has(mas-masa-dashboard, .masa-dashboard-denied) > main {
+    min-width: 0;
+}
+
+mas-studio:has(mas-masa-dashboard, .masa-dashboard-denied) .studio-content {
+    grid-template-columns: 75px minmax(0, 1fr);
+}
+
+mas-studio:has(mas-masa-dashboard, .masa-dashboard-denied) mas-top-nav {
+    min-width: 0;
+    overflow-x: auto;
+}
+
+mas-studio:has(mas-masa-dashboard, .masa-dashboard-denied) mas-top-nav nav {
+    min-width: max-content;
+}
+
 mas-side-nav {
     grid-column: 1 / 2;
     grid-row: 1 / 2;

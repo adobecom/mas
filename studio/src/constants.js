@@ -136,6 +136,7 @@ export const PAGE_NAMES = {
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
     AI_ASSISTANT: 'ai-assistant',
+    MASA_DASHBOARD: 'masa-dashboard',
     PRODUCT_CATALOG: 'product-catalog',
     PRODUCT_DETAIL: 'product-detail',
     BULK_PUBLISH: 'bulkPublish',

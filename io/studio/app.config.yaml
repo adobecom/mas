@@ -13,6 +13,23 @@ application:
                     translationJobPayloadTtl: $TRANSLATION_JOB_PAYLOAD_TTL
                     translationProjectSummaryTtl: $TRANSLATION_PROJECT_SUMMARY_TTL
                 actions:
+                    masa-dashboard-ingest:
+                        function: src/masa-dashboard/ingest.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            MAS_AGENT_DASHBOARD_PUSH_SECRET: $MAS_AGENT_DASHBOARD_PUSH_SECRET
+                        annotations:
+                            require-adobe-auth: false
+                            raw-http: true
+                            final: true
+                    masa-dashboard:
+                        function: src/masa-dashboard/read.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     ost-products-write:
                         function: src/ost-products/write.js
                         web: 'yes'

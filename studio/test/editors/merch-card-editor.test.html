@@ -2485,40 +2485,6 @@
                                     ).to.equal('');
                                 });
 
-                                it('keeps What is included inherited when the card changes only the divider color', () => {
-                                    const editor = withBaseline(
-                                        makeBaselineCard([
-                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
-                                        ]),
-                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
-                                    );
-                                    expect(dividerIndicator(editor)).to.include('Click to restore');
-                                    expect(
-                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
-                                    ).to.equal('From baseline');
-                                });
-
-                                it('restores What is included content from the baseline and keeps the card divider color', () => {
-                                    const editor = withBaseline(
-                                        makeBaselineCard([
-                                            {
-                                                name: 'whatsIncluded',
-                                                values: [
-                                                    '<merch-whats-included whats-included-divider-color="spectrum-red-300"><div slot="heading">Own</div></merch-whats-included>',
-                                                ],
-                                            },
-                                        ]),
-                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
-                                    );
-                                    templateText(editor.renderWhatsIncludedStatusIndicator())
-                                        .querySelector('.field-status-restore-link')
-                                        .click();
-                                    expect(editor.fragment.getFieldValue('whatsIncluded', 0)).to.equal(
-                                        whatsIncluded('spectrum-red-300'),
-                                    );
-                                    editor.fragmentStore.previewStore.dispose();
-                                });
-
                                 it('marks an addon background the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },
@@ -2796,6 +2762,150 @@
                                 });
                             });
 
+                            describe("what's included", () => {
+                                const BULLET = { icon: 'sp-icon-checkmark', alt: 'Baseline bullet', link: '' };
+                                const OWN_BULLET = { icon: 'sp-icon-checkmark', alt: 'Own bullet', link: '' };
+                                const withBaselineWhatsIncluded = (editor, label, bullets) => {
+                                    const html = editor.createIncludedElement(label, [], bullets, '').outerHTML;
+                                    const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    return editor;
+                                };
+                                const ownWhatsIncluded = (editor, label, bullets) =>
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement(label, [], bullets, '').outerHTML,
+                                    ]);
+                                const templateContainer = (template) => {
+                                    const container = document.createElement('div');
+                                    render(template, container);
+                                    return container;
+                                };
+                                const itemStates = (editor) =>
+                                    editor.whatsIncludedItems.bullets.map(({ fieldState }) => fieldState);
+
+                                it('marks each bullet inherited from the baseline, not the whole section', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator()).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a bullet that differs from the baseline as overridden', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['overridden']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('inherited');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('restores the baseline label and inherits the field again', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    ownWhatsIncluded(editor, 'Own label', [BULLET]);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    templateContainer(editor.renderWhatsIncludedLabelStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps items and the section inherited when the card changes only the divider color', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement('Included', [], [BULLET], 'spectrum-red-700-plans')
+                                            .outerHTML,
+                                    ]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('inherited');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('offers a section restore when a baseline bullet was removed', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    ownWhatsIncluded(editor, 'Included', [BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent,
+                                    ).to.include('Click to restore');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the remaining bullets inherited and restores every bullet when one was removed', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.whatsIncluded.bullets.map(({ alt }) => alt)).to.deep.equal([
+                                        'Baseline bullet',
+                                        'Own bullet',
+                                    ]);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks only the edited bullet overridden when another was removed', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    const EDITED = { ...BULLET, alt: 'Edited bullet' };
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET, EDITED]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline', 'overridden']);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('offers the section restore instead of the label restore when every pro section was removed', async () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.fragment.getField('variant').values = ['pro'];
+                                    const baseline = new Fragment({
+                                        fields: [
+                                            {
+                                                name: 'whatsIncluded',
+                                                values: [
+                                                    '<p class="whats-included-label">Included</p><div class="section"><h4>PDF</h4></div>',
+                                                ],
+                                            },
+                                        ],
+                                    });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    expect(editor.whatsIncluded.bullets).to.have.length(1);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+                            });
+
                             describe('visuals', () => {
                                 const baselineVisuals = () =>
                                     new Fragment({
@@ -2857,6 +2967,16 @@
                                     expect(editor.getMnemonicsFieldState()).to.equal('overridden');
                                     expect(itemStates(editor)).to.deep.equal([['own.svg', 'overridden']]);
                                     expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('keeps the remaining visuals inherited and offers the section restore when one was removed', () => {
+                                    const editor = makeBaselineCard(ownVisuals(['second.svg'], ['Second']));
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: ownVisuals(['baseline.svg', 'second.svg'], ['Baseline', 'Second']),
+                                    });
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    expect(itemStates(editor)).to.deep.equal([['second.svg', 'baseline']]);
+                                    expect(mnemonicsIndicatorText(editor)).to.include('Click to restore');
                                 });
 
                                 it('marks a visual added while the modal keeps focus as overridden', async () => {

@@ -13,7 +13,8 @@ import {
 } from '../../src/promotions/countdown-preview.js';
 
 const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' };
-const READY = { ...DATES, countdownStatus: 'ready' };
+// The preview reads the authored dates as local time, like the live pipeline serves them.
+const READY = { cdtStart: '2026-02-01T00:00:00', cdtEnd: '2026-02-10T00:00:00', countdownStatus: 'ready' };
 const NO_PROJECT = { countdownStatus: 'no-project' };
 const MISSING_DATES = { countdownStatus: 'missing-dates' };
 
@@ -140,13 +141,14 @@ describe('countdown-preview', () => {
     });
 
     describe('countdownPreviewState', () => {
+        // Zone-less like READY's dates, so the outcome is the same in any test time zone.
         for (const [name, instant, expected] of [
-            ['before start', '2026-01-31T23:59:59Z', 'scheduled'],
-            ['at start', DATES.cdtStart, null],
-            ['while active', '2026-02-05T00:00:00Z', null],
-            ['just before expiry', '2026-02-09T23:59:59Z', null],
-            ['at expiry', DATES.cdtEnd, 'expired'],
-            ['after expiry', '2026-02-11T00:00:00Z', 'expired'],
+            ['before start', '2026-01-31T23:59:59', 'scheduled'],
+            ['at start', READY.cdtStart, null],
+            ['while active', '2026-02-05T00:00:00', null],
+            ['just before expiry', '2026-02-09T23:59:59', null],
+            ['at expiry', READY.cdtEnd, 'expired'],
+            ['after expiry', '2026-02-11T00:00:00', 'expired'],
         ]) {
             it(`reports the state ${name} using the supplied preview time`, () => {
                 expect(countdownPreviewState(READY, Date.parse(instant))).to.equal(expected);
@@ -186,7 +188,7 @@ describe('countdown notice', () => {
     it('names the start date while scheduled', () => {
         const { state, text } = countdownNotice(preview, before, 'en_US');
         expect(state).to.equal('scheduled');
-        expect(text).to.include('1 Jan 2030, 00:00 UTC');
+        expect(text).to.include('1 Jan 2030, 00:00 local time');
     });
 
     it('reports the locale and preview time when nothing matches', () => {

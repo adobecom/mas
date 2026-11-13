@@ -72,8 +72,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
 };
 
 export class ProductPricing extends VariantLayout {
-    #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => this.requestReflowCheck();
     lastSyncKey = null;
 
     getGlobalCSS() {
@@ -169,14 +168,12 @@ export class ProductPricing extends VariantLayout {
 
     // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
     resyncOnReflow() {
-        const width = this.card.getBoundingClientRect().width;
+        const width = this.boxOf(this.card).width;
         if (width <= 2) return;
         const key = [
             Math.round(width),
             ...SYNCED_ROWS.map(({ getElement }) =>
-                Math.round(
-                    getElement(this.card)?.getBoundingClientRect().height || 0,
-                ),
+                this.heightOf(getElement(this.card)),
             ),
         ].join(':');
         if (key === this.lastSyncKey) return;
@@ -186,13 +183,11 @@ export class ProductPricing extends VariantLayout {
 
     connectedCallbackHook() {
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
-        if (typeof ResizeObserver === 'undefined') return;
-        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-        this.#sizeObserver.observe(this.card);
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        if (desc) this.#sizeObserver.observe(desc);
-        const shortDesc = this.card.querySelector('[slot="short-description"]');
-        if (shortDesc) this.#sizeObserver.observe(shortDesc);
+        this.observeReflow(
+            this.card,
+            this.card.querySelector('[slot="body-xs"]'),
+            this.card.querySelector('[slot="short-description"]'),
+        );
     }
 
     disconnectedCallbackHook() {
@@ -200,8 +195,7 @@ export class ProductPricing extends VariantLayout {
             EVENT_TYPE_RESOLVED,
             this.#onPriceResolved,
         );
-        this.#sizeObserver?.disconnect();
-        this.#sizeObserver = null;
+        this.disconnectReflow();
     }
 
     renderLayout() {

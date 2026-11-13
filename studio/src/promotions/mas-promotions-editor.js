@@ -1880,7 +1880,7 @@ class MasPromotionsEditor extends LitElement {
         const error = countdownDateError(this.fragment?.getFieldValue('cdtStart'), this.fragment?.getFieldValue('cdtEnd'));
         return {
             'missing-dates': 'Set both countdown timer start and end dates, or leave both empty.',
-            'invalid-dates': 'Set valid UTC dates for countdown timer start and end.',
+            'invalid-dates': 'Set valid dates for countdown timer start and end.',
             'invalid-range': COUNTDOWN_RANGE_MESSAGE,
         }[error];
     }
@@ -1984,7 +1984,7 @@ class MasPromotionsEditor extends LitElement {
                                 @change=${this.#handleStagedToggle}
                                 >Staged</sp-switch
                             >
-                            <sp-field-label for="cdtStart">Countdown Timer Start (UTC)</sp-field-label>
+                            <sp-field-label for="cdtStart">Countdown Timer Start (local time)</sp-field-label>
                             <input
                                 type="datetime-local"
                                 id="cdtStart"
@@ -1995,7 +1995,7 @@ class MasPromotionsEditor extends LitElement {
                                 ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
-                            <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
+                            <sp-field-label for="cdtEnd">Countdown Timer End (local time)</sp-field-label>
                             <input
                                 type="datetime-local"
                                 id="cdtEnd"

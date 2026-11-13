@@ -2025,6 +2025,95 @@ describe('customize promo variation', function () {
         expect(result.body.fields.title).to.equal('Legacy Title');
     });
 
+    for (const pzn of ['', 'pzn-smb', 'edu']) {
+        it(`should retain the untagged promo fallback instead of a PZN-only EDU sibling for pzn=${JSON.stringify(pzn)}`, async function () {
+            const project = {
+                ...ACTIVE_PROJECT,
+                defaultVariations: {
+                    'my-card': {
+                        id: 'edu-promo-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                        fields: { title: 'EDU Promo Title', pznTags: ['mas:pzn/pzn-edu'] },
+                    },
+                    'my-card-2': {
+                        ...PROMO_VARIATION,
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                    },
+                },
+            };
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                project,
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('promo-var-id');
+            expect(result.body.fields.title).to.equal('Promo Title');
+        });
+    }
+
+    for (const { pznTags, pzn, variations } of [
+        { pznTags: ['mas:pzn/pzn-edu'], pzn: 'PZN-EDU', variations: 'defaultVariations' },
+        { pznTags: ['mas:audiences/pzn/EDU'], pzn: ' smb, edu ', variations: 'defaultVariations' },
+        { pznTags: ['/content/cq:tags/mas/pzn/pzn-edu'], pzn: 'pzn-edu', variations: 'regionVariations' },
+        { pznTags: ['mas:pzn/country/US', 'mas:pzn/locale/en_US'], pzn: '', variations: 'defaultVariations' },
+    ]) {
+        it(`should select the eligible scoped promo with ${JSON.stringify(pznTags)} for pzn=${JSON.stringify(pzn)} from ${variations}`, async function () {
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                {
+                    ...ACTIVE_PROJECT,
+                    defaultVariations: {},
+                    [variations]: {
+                        'my-card': {
+                            id: 'scoped-promo-id',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                            fields: { title: 'Scoped Promo Title', pznTags },
+                        },
+                        'my-card-2': {
+                            ...PROMO_VARIATION,
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                        },
+                    },
+                },
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('scoped-promo-id');
+            expect(result.body.fields.title).to.equal('Scoped Promo Title');
+        });
+    }
+
     it('should prefer a region-locale match over a country-only match among geo-scoped siblings', async function () {
         const countryOnlyVariation = {
             id: 'country-only-id',
@@ -2456,6 +2545,120 @@ describe('customize PZN-only promotion rules', function () {
             );
         });
     }
+});
+
+describe('customize country-scoped PZN variations', function () {
+    function buildContext(country, pzn = 'pzn-smb', countries = ['US', 'MX']) {
+        const variations = countries.map((geo) => ({
+            id: `${geo.toLowerCase()}-smb`,
+            path: `/content/dam/mas/sandbox/en_US/geo-audience-card/pzn/${geo.toLowerCase()}-smb`,
+            fields: { cardTitle: `${geo} SMB`, pznTags: [`mas:pzn/country/${geo}`, 'mas:pzn/pzn-smb'] },
+        }));
+        return {
+            ...FAKE_CONTEXT,
+            fragmentPath: 'geo-audience-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            country,
+            pzn,
+            body: {
+                id: 'geo-audience-card',
+                path: '/content/dam/mas/sandbox/en_US/geo-audience-card',
+                fields: { cardTitle: 'Default', variations: variations.map(({ id }) => id) },
+                references: Object.fromEntries(
+                    variations.map((variation) => [variation.id, { type: 'content-fragment', value: variation }]),
+                ),
+                referencesTree: [],
+            },
+        };
+    }
+
+    function buildPromoProject(context) {
+        const grouped = Object.values(context.body.references).map(({ value }) => value);
+        const groupedPaths = grouped.map(({ id }) => `geo-audience-card/pzn/${id}`);
+        const fragmentPaths = ['geo-audience-card', ...groupedPaths];
+        return [
+            {
+                project: {
+                    id: 'geo-audience-promo',
+                    fragmentPaths,
+                    defaultVariations: {
+                        'geo-audience-card': {
+                            id: 'ordinary-promo',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/bf/geo-audience-card',
+                            fields: { cardTitle: 'Ordinary promo' },
+                        },
+                        ...Object.fromEntries(
+                            grouped.map((variation, index) => [
+                                groupedPaths[index],
+                                {
+                                    id: `${variation.id}-promo`,
+                                    path: `/content/dam/mas/sandbox/en_US/promotions/bf/${groupedPaths[index]}`,
+                                    fields: {
+                                        cardTitle: `${variation.fields.cardTitle} promo`,
+                                        pznTags: [...variation.fields.pznTags],
+                                    },
+                                },
+                            ]),
+                        ),
+                    },
+                    regionVariations: {},
+                },
+                fragmentPaths: new Set(fragmentPaths),
+                groupedVariationPaths: new Set(groupedPaths),
+                groupedVariationReferences: new Map(grouped.map((variation, index) => [groupedPaths[index], variation])),
+                promoMap: { '*': 'BF' },
+            },
+        ];
+    }
+
+    for (const [country, variationId] of [
+        ['US', 'us-smb'],
+        ['MX', 'mx-smb'],
+    ]) {
+        it(`selects the ${country} SMB grouped variation when both country and audience match`, async function () {
+            const result = await process(buildContext(country));
+            expect(result.body.variationId).to.equal(variationId);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB`);
+        });
+
+        it(`selects the ${country} SMB promo from its enrolled grouped variation`, async function () {
+            const context = buildContext(country);
+            const result = await processWithPromoProjects(context, buildPromoProject(context));
+            expect(result.body.variationId).to.equal(`${variationId}-promo`);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB promo`);
+            expect(result.body.promoVariationProject).to.equal('geo-audience-promo');
+        });
+    }
+
+    for (const { country, pzn, countries = ['US', 'MX'] } of [
+        { country: 'CA', pzn: 'pzn-smb' },
+        { country: 'US', pzn: '' },
+        { country: 'MX', pzn: '' },
+        { country: 'US', pzn: 'pzn-edu' },
+        { country: 'US', pzn: 'pzn-smb', countries: ['MX'] },
+        { country: 'MX', pzn: 'pzn-smb', countries: ['US'] },
+    ]) {
+        it(`retains default content for ${country}/${JSON.stringify(pzn)} outside ${countries.join(',')} SMB scope`, async function () {
+            const result = await process(buildContext(country, pzn, countries));
+            expect(result.body.variationId).to.be.undefined;
+            expect(result.body.fields.cardTitle).to.equal('Default');
+        });
+    }
+
+    it('does not let an out-of-country SMB group suppress the ordinary promo', async function () {
+        const context = buildContext('CA');
+        const result = await processWithPromoProjects(context, buildPromoProject(context));
+        expect(result.body.variationId).to.equal('ordinary-promo');
+        expect(result.body.fields.cardTitle).to.equal('Ordinary promo');
+    });
+
+    it('allows either intended country on a multi-country SMB grouped variation', async function () {
+        const context = buildContext('BR', 'pzn-smb', ['MX']);
+        context.body.references['mx-smb'].value.fields.pznTags.push('mas:pzn/country/BR');
+        const result = await process(context);
+        expect(result.body.variationId).to.equal('mx-smb');
+    });
 });
 
 describe('customize grouped variation scoped to a promo project (no promo variation present)', function () {
@@ -4334,6 +4537,9 @@ describe('countdown timer dates', function () {
 
     const CDT_START = '2026-11-20T00:00:00Z';
     const CDT_END = '2026-11-30T23:59:59Z';
+    // Served without a zone so each browser reads them in its own time zone.
+    const CDT_START_LOCAL = '2026-11-20T00:00:00';
+    const CDT_END_LOCAL = '2026-11-30T23:59:59';
     const CDT_LINK = '<p>Ends in <a href="https://www.adobe.com/promo">countdown-timer</a></p>';
 
     function makeProject(overrides = {}) {
@@ -4371,8 +4577,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores fragments without a countdown-timer link', async function () {
@@ -4500,8 +4706,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('stops at the first card carrying the link, even when it has no promo project', async function () {
@@ -4590,12 +4796,12 @@ describe('countdown timer dates', function () {
         const { body } = result;
         expect(result.status).to.equal(200);
         // root keeps the first timed card's dates
-        expect(body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00');
         const dates = (id) => [body.references[id].value.cdtStart, body.references[id].value.cdtEnd];
-        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z']);
-        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00Z', '2026-02-10T00:00:00Z']);
-        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00Z', '2026-03-10T00:00:00Z']);
+        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00', '2026-01-10T00:00:00']);
+        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00', '2026-02-10T00:00:00']);
+        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00', '2026-03-10T00:00:00']);
         // no usable project dates, no sentinel, or a container without a sentinel: nothing stamped
         expect(dates('card-4')).to.deep.equal([undefined, undefined]);
         expect(dates('card-plain')).to.deep.equal([undefined, undefined]);
@@ -4623,8 +4829,8 @@ describe('countdown timer dates', function () {
             },
             [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-1']) }],
         );
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START_LOCAL);
         expect(result.body.references['card-2'].value.cdtStart).to.be.undefined;
         expect(result.body.references['card-2'].value.cdtEnd).to.be.undefined;
     });
@@ -4658,8 +4864,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00');
     });
 
     it('detects a countdown-timer link whose text is formatted', async function () {
@@ -4685,8 +4891,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores a link whose text merely contains countdown-timer', async function () {
@@ -4730,7 +4936,7 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 });

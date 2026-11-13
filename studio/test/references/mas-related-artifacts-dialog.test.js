@@ -1,4 +1,4 @@
-import { fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
+import { aTimeout, fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
 // Registers the real sp-* components: against unregistered stubs the underlay and scroll contracts
 // below silently pass no matter what the dialog binds.
 import { sendKeys } from '@web/test-runner-commands';
@@ -38,7 +38,9 @@ const closeFixture = async () => {
     if (!overlay?.open) return;
     const closed = oneEvent(overlay, 'sp-closed');
     overlay.open = false;
-    await closed;
+    // sp-closed waits on animation frames, which a starved CI runner can withhold past the hook
+    // timeout. The fixture teardown that follows disconnects the overlay either way.
+    await Promise.race([closed, aTimeout(1000)]);
 };
 
 describe('mas-related-artifacts-dialog', () => {

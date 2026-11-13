@@ -2642,6 +2642,63 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
         expect(trialEl).to.not.exist; // CTA removed, buy now is next to it
     });
+
+    describe('when Milo has not yet replaced a neighbouring Studio field link', () => {
+        const STUDIO_CTA_LINK =
+            'https://mas.adobe.com/studio.html#content-type=merch-card&path=acom-dc&query=b4147d7b&field=ctas%5B1%5D';
+        let paragraph;
+        let trial;
+        let template;
+
+        beforeEach(() => {
+            paragraph = document.createElement('p');
+            paragraph.innerHTML = `<em></em> <strong><a href="${STUDIO_CTA_LINK}">Buy now</a></strong>`;
+            document.body.append(paragraph);
+            trial = makeIndexedField(2, CTA_TRIAL_HTML, false);
+            paragraph.querySelector('em').append(trial);
+            template = document.createElement('template');
+            template.innerHTML = CTA_TRIAL_HTML;
+        });
+
+        afterEach(() => paragraph.remove());
+
+        it('stripTrialCtas waits for the link to become a buy-now mas-field and removes the trial CTA', async () => {
+            const resultPromise = stripTrialCtas(template, true, trial);
+
+            await delay(10);
+            const buyNow = makeIndexedField(1, CTA_HTML, false);
+            paragraph.querySelector('strong a').replaceWith(buyNow);
+            buyNow.aemFragment.dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: { fields: { ctas: CTA_HTML } },
+                }),
+            );
+
+            expect(await resultPromise).to.not.include('my-trial-cta');
+        });
+
+        it('stripTrialCtas leaves the trial CTA unchanged when the link is never replaced', async () => {
+            clock = sinon.useFakeTimers();
+            let settled = false;
+            const resultPromise = stripTrialCtas(template, true, trial).then(
+                (resultHtml) => {
+                    settled = true;
+                    return resultHtml;
+                },
+            );
+
+            await clock.tickAsync(MERCH_CARD_LOAD_TIMEOUT - 1);
+            expect(settled).to.be.false;
+            await clock.tickAsync(1);
+            const doc = new DOMParser().parseFromString(
+                await resultPromise,
+                'text/html',
+            );
+            const trialCta = doc.querySelector('[data-test-id="my-trial-cta"]');
+            expect(trialCta.dataset.analyticsId).to.equal('free-trial');
+        });
+    });
 });
 
 describe('mas-field osi getter', () => {

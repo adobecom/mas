@@ -180,6 +180,12 @@ runTests(async () => {
                 options[4].dispatchEvent(new MouseEvent('mouseenter'));
                 await delay();
                 expect(quantitySelect.highlightedIndex).to.equal(4);
+                expect(getComputedStyle(options[4]).backgroundColor).to.equal(
+                    'rgb(148, 148, 148)',
+                );
+                expect(
+                    getComputedStyle(options[0]).backgroundColor,
+                ).to.not.equal('rgb(148, 148, 148)');
             });
 
             it('handle click outside', async () => {

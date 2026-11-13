@@ -234,6 +234,34 @@
                             expect(addonPicker.value).to.equal('test-value');
                         });
 
+                        it('shows a warning when override templates are not selected in the default setting', async () => {
+                            const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
+                            table.dispatchEvent(
+                                new CustomEvent('setting-edit', {
+                                    detail: { id: 'setting-show-addon', isOverride: false },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+
+                            const editor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
+                            const warning = editor.querySelector('.override-conflict');
+                            expect(warning).to.exist;
+                            expect(warning.getBoundingClientRect().height).to.be.greaterThan(0);
+                            expect(warning.querySelector('.override-conflict-title').textContent.trim()).to.equal('Warning');
+                            expect(warning.querySelector(':scope > span').textContent).to.equal(
+                                'There are overrides with templates selected "plans", which will be ignored if not selected in default settings',
+                            );
+
+                            const templatePicker = editor.querySelector('tree-picker-field');
+                            templatePicker.value = ['catalog', 'plans'];
+                            templatePicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(editor.querySelector('.override-conflict')).to.equal(null);
+                        });
+
                         it('creates setting with expected payload', async () => {
                             const { settingsPage } = await setupPage();
                             const capturedPayloads = [];

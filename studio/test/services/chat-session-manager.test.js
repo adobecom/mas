@@ -330,6 +330,16 @@ describe('ChatSessionManager', () => {
             clock.tick(500);
             expect(manager.debounceTimers.has(session.id)).to.be.false;
         });
+
+        it('writes a pending update at once when flushed, so a direct update is not overwritten', () => {
+            const session = manager.createSession('Test');
+            manager.updateSessionDebounced(session.id, { name: 'Pending' });
+            manager.flushSession(session.id);
+            expect(manager.getSession(session.id).name).to.equal('Pending');
+            manager.updateSession(session.id, { name: 'Direct' });
+            clock.tick(500);
+            expect(manager.getSession(session.id).name).to.equal('Direct');
+        });
     });
 
     describe('generateSessionName', () => {

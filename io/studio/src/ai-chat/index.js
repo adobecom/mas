@@ -26,16 +26,18 @@ import { handleOperation, withResolvedArrangementCode } from './operations-handl
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
 import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
-import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
+import { ALL_KNOWLEDGE_CHUNKS, MASA_KNOWLEDGE_REVISION } from './knowledge-chunks.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
-import { getFlowForIntent } from './intent-registry.js';
+import { getFlowForIntent, getIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
 import { validateEnvelope, collectObservedIds, collectObservedSelectors } from './envelope-validator.js';
+
+console.log(JSON.stringify({ phase: 'knowledge', revision: MASA_KNOWLEDGE_REVISION, chunks: ALL_KNOWLEDGE_CHUNKS.length }));
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -243,17 +245,18 @@ function extractSurfaceFromPath(path) {
 }
 
 /**
- * Detect release/NPI intent in user message
- * @param {string} message - User message
- * @returns {boolean} - True if message contains release/NPI intent
- */
-/**
+ * Detect release/NPI intent in user message.
+ *
  * Note on the `[MCS product data retrieved ...]` marker: it is deliberately not
  * a release signal. The client emits it only from continueWithOperationResult, which
  * runs only when the active flow is NOT release — the release flow renders its
  * product selection locally. Treating it as a release loaded the guided release
  * prompt and tools onto a turn needing neither, pushing it past the budget.
- * A release still wins here when the history says so.
+ * An earlier user turn that mentioned a release does not count: a release in progress is
+ * carried by the Step 1 question below, the active flow and the flow recorded in the history.
+ * @param {string} message - User message
+ * @param {Array} conversationHistory - Earlier turns; only the last assistant turn is read
+ * @returns {boolean} - True if message contains release/NPI intent
  */
 export function isReleaseIntent(message, conversationHistory = []) {
     const releaseKeywords = [
@@ -268,13 +271,6 @@ export function isReleaseIntent(message, conversationHistory = []) {
     ];
     const lowerMessage = message.toLowerCase();
     if (releaseKeywords.some((keyword) => lowerMessage.includes(keyword))) return true;
-    if (
-        conversationHistory.some(
-            (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),
-        )
-    ) {
-        return true;
-    }
     // Mid-flow fallback: if the previous assistant turn asked which product this
     // release is for (the guided Step 1 prompt), subsequent user turns are part
     // of the release flow even though they don't carry keywords.
@@ -332,10 +328,13 @@ async function authorize(headers) {
     return false;
 }
 
+let knowledgeRetriever = null;
+
 /**
  * Knowledge retrieval runs in-process over the bundled corpus — zero
  * external infrastructure, so it is on by default. RAG_ENABLED=false is
- * the opt-out.
+ * the opt-out. The retriever tokenizes the corpus once and is shared by
+ * every request the action container serves.
  * @param {Object} params - Action parameters
  * @returns {LocalKnowledgeRetriever|null}
  */
@@ -343,7 +342,8 @@ function createKnowledgeClient(params) {
     if (params.RAG_ENABLED === 'false') {
         return null;
     }
-    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
+    if (!knowledgeRetriever) knowledgeRetriever = new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS);
+    return knowledgeRetriever;
 }
 
 /**
@@ -507,6 +507,8 @@ async function main(params) {
     }
 
     const { conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+    // Only a literal true offers ASK_MASA; anything else keeps today's behavior.
+    const masa = params.masa === true;
     // Pasted Studio card links carry the fragment UUID in their hash; the
     // UUID is what every downstream identifier path understands.
     const message = replaceStudioLinksWithFragmentIds(params.message);
@@ -548,7 +550,7 @@ async function main(params) {
     // code bug or an active flow where the shortcut is illegal — the normal
     // LLM path is the safe degradation, never a malformed envelope.
     const bypassEnvelopeValid = (envelope) => {
-        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, ...provenance });
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, masa, ...provenance });
         if (!validation.ok) {
             console.log(
                 JSON.stringify({
@@ -595,7 +597,9 @@ async function main(params) {
         // The guided prompt must stand alone: basePrompt carries the envelope
         // output contract, and combining the two makes the model emit
         // envelope JSON that the guided flow cannot execute.
-        const releaseIntent = isReleaseIntent(message, conversationHistory);
+        // A flow chosen by the hint or recorded in the history (isCardCreation) is a
+        // release in progress even when the current message has no keyword.
+        const releaseIntent = isReleaseIntent(message, conversationHistory) || isCardCreation;
         const effectivePrompt = releaseIntent ? GUIDED_CARD_CREATION_PROMPT : basePrompt;
 
         // Native envelope routing applies only to the free-routing surface.
@@ -611,7 +615,7 @@ async function main(params) {
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
         let toolOptions = nativeEnvelopeEligible
-            ? { thinking, tools: [buildEnvelopeTool(), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
+            ? { thinking, tools: [buildEnvelopeTool({ masa }), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
             : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare
@@ -652,57 +656,6 @@ async function main(params) {
         }
 
         const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
-
-        // Abstain from the deterministic title-search bypass when the message starts with a
-        // mutation verb. Otherwise the colon-or-quote fallback regex on the next branch matches
-        // possessive apostrophes ("the card's description to say: …") and captures the wrong
-        // span — routing a mutation request to a title search using gibberish as the query.
-        const mutationVerb =
-            /\b(?:edit|change|update|modify|set|replace|rename|delete|remove|publish|unpublish|create|add|copy|duplicate|tag|link)\b/i.test(
-                message,
-            );
-
-        // Deterministic title search: detect "fragment title" or "title" followed by a quoted or
-        // colon-containing title string. Bypass the LLM entirely.
-        if (searchIntent && !mutationVerb) {
-            const titleMatch =
-                message.match(
-                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+(?:all\s+locales?|\w+))?$/i,
-                ) || message.match(/[""']([^""']+:[^""']+)[""']/);
-            if (titleMatch) {
-                const titleQuery = titleMatch[1].trim();
-                const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
-                console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
-                const titleSearchBody = {
-                    type: 'studio_operation',
-                    operationName: 'search_cards',
-                    operationParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
-                    message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
-                    confirmationRequired: false,
-                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                };
-                titleSearchBody.envelope = {
-                    intent: 'search_cards',
-                    slots: {
-                        query: titleQuery,
-                        surface: enrichedContext?.surface ?? null,
-                        titleSearch: true,
-                        locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
-                    },
-                    confidence: 'high',
-                    missing_slots: [],
-                    clarification_question: null,
-                    user_message: null,
-                };
-                if (bypassEnvelopeValid(titleSearchBody.envelope)) {
-                    return {
-                        statusCode: 200,
-                        headers: { ...getResponseHeaders() },
-                        body: titleSearchBody,
-                    };
-                }
-            }
-        }
 
         if (releaseIntent || searchIntent) {
             const trimmed = (message || '').trim();
@@ -807,7 +760,9 @@ async function main(params) {
         // publishing work?" contains 'publish'): the native envelope path
         // classifies the real intent, but retrieval runs before the model
         // and ungrounded feature answers contradict the docs.
-        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
+        // A turn that can hand off to ASK_MASA gets its knowledge from MASA.
+        const retriever = masa && nativeEnvelopeEligible ? null : knowledgeClient;
+        const { ragContext } = await retrieveRAGContext(message, retriever, {
             isDocumentation: isDocumentation || isQuestionShaped(message),
         });
         if (ragContext) {
@@ -821,7 +776,7 @@ async function main(params) {
 
         let registryPrompt = null;
         try {
-            registryPrompt = buildPrompt();
+            registryPrompt = buildPrompt({ masa });
             console.log(
                 JSON.stringify({
                     phase: 'shadow-prompt',
@@ -887,7 +842,7 @@ async function main(params) {
         if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
             const flow = params.context?.flow ?? null;
             let usage = response.usage;
-            let validation = validateEnvelope(extractToolEnvelope(response), { flow, ...provenance });
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow, masa, ...provenance });
             let retried = false;
             let rejectedRaw = null;
 
@@ -912,7 +867,7 @@ async function main(params) {
                 logUsageMetric(retryResponse, params, foundryClient.modelId);
                 if (retryResponse.success) {
                     usage = retryResponse.usage;
-                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, ...provenance });
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, masa, ...provenance });
                     if (retryValidation.ok) {
                         validation = retryValidation;
                     } else {
@@ -928,7 +883,22 @@ async function main(params) {
                 });
             }
 
-            const finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
+            let finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
+            if (
+                masa &&
+                isMasaWriteUp(message) &&
+                getIntent(finalEnvelope?.intent)?.category === 'read-only' &&
+                !getFlowForIntent(finalEnvelope.intent)
+            ) {
+                console.log(
+                    JSON.stringify({
+                        phase: 'masa-write-up-guard',
+                        req: requestId,
+                        intent: finalEnvelope.intent,
+                    }),
+                );
+                finalEnvelope = buildDeterministicEnvelope('ASK_MASA', {});
+            }
             console.log(
                 JSON.stringify({
                     phase: 'envelope-validation',
@@ -1003,7 +973,6 @@ async function main(params) {
                     body: {
                         envelope: finalEnvelope,
                         ...envelopeBody,
-                        sources: ragSources,
                         usage,
                         conversationHistory: [
                             ...conversationHistory,
@@ -1359,7 +1328,6 @@ async function main(params) {
                 ...(parsedResponse.parseError ? { requestId } : {}),
                 type: 'message',
                 message: parsedResponse.message,
-                sources: ragSources,
                 usage: totalUsage,
                 conversationHistory: [
                     ...conversationHistory,
@@ -1381,6 +1349,21 @@ async function main(params) {
             },
         };
     }
+}
+
+const WRITE_UP_SENTENCE_RE = /[.!?]\s+\S/;
+const WRITE_UP_MAX_WORDS = 30;
+const LOOKUP_VERB_RE = /^\s*(find|show|search|list|get|open)\b/i;
+
+/**
+ * A multi-sentence or long message is a problem report, not a lookup, so a
+ * model-chosen read-only operation must not run on it. Mirrors the client
+ * router's isConversational thresholds; a leading lookup verb is an explicit
+ * command and keeps the model's read-only intent.
+ */
+function isMasaWriteUp(message) {
+    if (typeof message !== 'string' || LOOKUP_VERB_RE.test(message)) return false;
+    return WRITE_UP_SENTENCE_RE.test(message) || message.trim().split(/\s+/).length > WRITE_UP_MAX_WORDS;
 }
 
 /**
@@ -1471,7 +1454,11 @@ function logShadowValidation(foundryResponse, params, provenance) {
         const message = foundryResponse?.message;
         if (typeof message !== 'string') return null;
         const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
-        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null, ...provenance });
+        const validation = validateEnvelope(maybeEnvelope, {
+            flow: params?.context?.flow ?? null,
+            masa: params?.masa === true,
+            ...provenance,
+        });
         console.log(
             JSON.stringify({
                 phase: 'shadow-validation',
@@ -1584,7 +1571,7 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
  */
 function determineSystemPromptWithMeta(intentHint, conversationHistory, message, context) {
     if (intentHint === 'documentation') {
-        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
+        return { prompt: buildDocumentationPrompt(), isDocumentation: true, isCardCreation: false };
     }
 
     if (intentHint === 'release') {
@@ -1685,7 +1672,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
 
     // No operation or guided-flow match: fall through to documentation.
     return {
-        prompt: buildDocumentationPrompt(message),
+        prompt: buildDocumentationPrompt(),
         isDocumentation: true,
         isCardCreation: false,
     };
@@ -1711,7 +1698,7 @@ function promptFromClassifierLabel(label, message, context) {
             };
         case 'documentation':
             return {
-                prompt: buildDocumentationPrompt(message),
+                prompt: buildDocumentationPrompt(),
                 isDocumentation: true,
                 isCardCreation: false,
             };

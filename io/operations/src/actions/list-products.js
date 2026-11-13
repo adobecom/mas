@@ -2,6 +2,9 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { ProductCatalog } from '../services/product-catalog.js';
 import { requireIMSAuth } from '../lib/ims-validator.js';
 
+// Runtime drops any action result over 1 MB; the full MCS catalog is larger, about 1.4 MB.
+const MAX_PRODUCTS = 50;
+
 async function main(params) {
     const { searchText, customerSegment, marketSegment, limit, __ow_headers } = params;
 
@@ -19,12 +22,9 @@ async function main(params) {
         const productsEndpoint = params.PRODUCTS_ENDPOINT;
         const productCatalog = new ProductCatalog(authManager, productsEndpoint, params.PRODUCTS_CACHE_TTL_MS);
 
-        const products = await productCatalog.searchProducts({
-            searchText,
-            customerSegment,
-            marketSegment,
-            limit,
-        });
+        const matches = await productCatalog.searchProducts({ searchText, customerSegment, marketSegment });
+        const requested = Number(limit) > 0 ? Number(limit) : MAX_PRODUCTS;
+        const products = matches.slice(0, Math.min(requested, MAX_PRODUCTS));
 
         return {
             statusCode: 200,
@@ -33,6 +33,7 @@ async function main(params) {
                 operation: 'list_products',
                 products,
                 count: products.length,
+                total: matches.length,
             },
         };
     } catch (error) {

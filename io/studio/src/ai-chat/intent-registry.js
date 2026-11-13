@@ -411,7 +411,12 @@ export const SLOT_VALIDATORS = {
 };
 
 /** Meta intents that exist outside any flow and may fire at any time. */
-export const META_INTENTS = ['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR'];
+export const META_INTENTS = ['ASK_USER', 'ASK_MASA', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR'];
+
+/** Meta intents offered for a request; ASK_MASA exists only when the caller says MASA is reachable. */
+export function getMetaIntents({ masa = false } = {}) {
+    return masa ? META_INTENTS : META_INTENTS.filter((name) => name !== 'ASK_MASA');
+}
 
 export function getIntent(name) {
     return INTENTS.find((i) => i.name === name) || null;

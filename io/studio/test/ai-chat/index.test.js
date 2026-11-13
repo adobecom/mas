@@ -8,6 +8,7 @@ let isGuidedToolMiss;
 let guidedToolMissFallback;
 let FoundryClient;
 let Ims;
+let LocalKnowledgeRetriever;
 
 function makeParams(overrides = {}) {
     return {
@@ -45,6 +46,7 @@ describe('ai-chat/index main handler', () => {
         ({ main, isGuidedToolMiss, guidedToolMissFallback } = await import('../../src/ai-chat/index.js'));
         ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
         ({ Ims } = await import('@adobe/aio-lib-ims'));
+        ({ LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js'));
     });
 
     beforeEach(() => {
@@ -93,22 +95,15 @@ describe('ai-chat/index main handler', () => {
             expect(sendStub.called).to.equal(false);
         });
 
-        it('routes a quoted title search straight to search_cards with titleSearch', async () => {
-            const result = await main(makeParams({ message: 'show cards titled "Photoshop Pro plan"' }));
-            expect(result.statusCode).to.equal(200);
-            expect(result.body.operationName).to.equal('search_cards');
-            expect(result.body.operationParams.query).to.equal('Photoshop Pro plan');
-            expect(result.body.operationParams.titleSearch).to.equal(true);
-            expect(result.body.envelope.intent).to.equal('search_cards');
-            expect(sendStub.called).to.equal(false);
-        });
-
         it('routes a bare 32-hex offer id to get_offer_by_id inside a release turn', async () => {
             const offerId = '0123456789abcdef0123456789ABCDEF';
             const result = await main(
                 makeParams({
                     message: offerId,
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -122,7 +117,10 @@ describe('ai-chat/index main handler', () => {
             const result = await main(
                 makeParams({
                     message: 'phsp_direct_individual',
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -154,7 +152,10 @@ describe('ai-chat/index main handler', () => {
             const result = await main(
                 makeParams({
                     message: osi,
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -282,6 +283,17 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.type).to.equal('message');
             expect(result.body.message).to.equal('Happy to help with your cards.');
             expect(sendStub.callCount).to.equal(1);
+        });
+
+        it('answers a problem report in prose on the documentation hint MASA fallback sends', async () => {
+            sendStub.resolves(textResponse('A placeholder inside a paragraph keeps its paragraph tag.'));
+            const report =
+                'I created this placeholder with a key inside it. The paragraph tag around it breaks the sentence. See https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0';
+            const result = await main(makeParams({ message: report, intentHint: 'documentation', masa: false }));
+            expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.equal('A placeholder inside a paragraph keeps its paragraph tag.');
+            expect(sendStub.firstCall.args[2]).to.include('NEVER include JSON in documentation responses');
+            expect(sendStub.firstCall.args[5].tools).to.equal(undefined);
         });
 
         it('retries a card config once through the corrective prompt when validation fails', async () => {
@@ -513,7 +525,13 @@ describe('ai-chat/index main handler', () => {
 
         it('recovers through the parse retry when the model calls an unknown tool', async () => {
             sendStub.onCall(0).resolves(guidedToolResponse('emit_envelope', { intent: 'get_card', slots: {} }));
-            sendStub.onCall(1).resolves(textResponse('```json\n{"type": "guided_step", "message": "Select one:"}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "guided_step", "message": "Select one:", "productCards": [{"label": "Creative Cloud Pro", "value": "PA-1636"}]}\n```',
+                    ),
+                );
             const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
             expect(result.statusCode).to.equal(200);
             expect(result.body.type).to.equal('guided_step');
@@ -683,5 +701,341 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.operationParams.query).to.equal(undefined);
             expect(result.body.operationParams.tags).to.equal(undefined);
         });
+    });
+
+    describe('ASK_MASA hand-off', () => {
+        const askMasa = () => toolResponse({ intent: 'ASK_MASA', slots: {}, confidence: 'high' });
+        const REPORTED_ID = 'a1fa2428-341b-4f19-af8a-012068726fb0';
+        const modelPicks = (intent, slots) => toolResponse({ intent, slots, confidence: 'high', user_message: null });
+        const writeUp =
+            'I created this placeholder with a key inside it. The key is an RTE placeholder with a link. The paragraph tag around it breaks the sentence. As can be seen in this fragment: https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0';
+
+        it('never hands card search to MASA', async () => {
+            sendStub.resolves({
+                success: true,
+                message: null,
+                toolUse: { name: 'emit_search', input: { query: 'photoshop', surface: 'acom' } },
+                usage: { inputTokens: 1, outputTokens: 1 },
+            });
+            const messages = [
+                'find photoshop cards in acom',
+                'show me plans cards for en_US',
+                '0123456789abcdef0123456789ABCDEF',
+                'F2F0A049-4B13-4592-9A1C-A0E6C962E21B',
+                'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE',
+            ];
+            for (const message of messages) {
+                const result = await main(makeParams({ message, masa: true }));
+                expect(result.body.envelope?.intent, message).to.not.equal('ASK_MASA');
+            }
+        });
+
+        it('returns ASK_MASA without an answer when the model hands off', async () => {
+            sendStub.resolves(askMasa());
+            const result = await main(makeParams({ message: 'why is my price wrong in Milo?', masa: true }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            expect(result.body.message || '').to.equal('');
+        });
+
+        it('offers ASK_MASA to the model only when the request carries masa', async () => {
+            sendStub.resolves(askMasa());
+            await main(makeParams({ message: 'why is my price wrong in Milo?', masa: true }));
+            const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
+            expect(offered).to.include('ASK_MASA');
+        });
+
+        it('does not turn a troubleshooting question into a title search', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message =
+                'I created a group variation for FR so that the merch card has a green "recommended" banner. The mas fragment has returned from loc and I have published the Fr English and the Fr French mas fragments. I can see the changes on preview ( https://main--da-cc--adobecom.aem.page/fr/creativecloud/photography ) but not on live (using the same browser just another tab) https://www.adobe.com/fr/creativecloud/photography.html . Here is the FR fragment https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=acom-cc&query=e2b050a0-d726-4961-8956-0c73f849cbe4 fragment id 6c830ea6-9996-4743-8d44-87b197835b4f Please let me know what I\'m missing so that the offer appears on France';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(sendStub.called).to.equal(true);
+            expect(result.body.operationName).to.equal(undefined);
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
+            expect(offered).to.include('ASK_MASA');
+        });
+
+        it('hands a write-up to MASA when the model picks get_card', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            expect(result.body.operationName).to.equal(undefined);
+        });
+
+        it('records ASK_MASA in the returned envelope for a guarded write-up', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope).to.deep.include({ intent: 'ASK_MASA', slots: {}, user_message: null });
+            const recorded = result.body.conversationHistory.at(-1);
+            expect(recorded.role).to.equal('assistant');
+            expect(JSON.parse(recorded.content).intent).to.equal('ASK_MASA');
+        });
+
+        it('hands a write-up to MASA when the model calls emit_search', async () => {
+            sendStub.resolves({
+                success: true,
+                message: null,
+                toolUse: { name: 'emit_search', input: { query: 'placeholder', surface: 'acom' } },
+                usage: { inputTokens: 1, outputTokens: 1 },
+            });
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+        });
+
+        it('hands a long single-sentence report to MASA', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message = `${'the card shows the wrong thing '.repeat(7)}${REPORTED_ID}`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+        });
+
+        it('logs the write-up guard', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            await main(makeParams({ message: writeUp, masa: true }));
+            const logged = console.log.getCalls().some((call) => String(call.args[0]).includes('masa-write-up-guard'));
+            expect(logged).to.equal(true);
+        });
+
+        it('keeps a guided flow step and its hand-off for a write-up', async () => {
+            sendStub.onCall(0).resolves(modelPicks('release_create.list_offers', {}));
+            sendStub.onCall(1).resolves(textResponse('Which offers should the cards use?'));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
+            expect(result.body.message).to.include('Which offers should the cards use?');
+            expect(sendStub.secondCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
+        });
+
+        it('keeps the model get_card for a write-up when the request did not offer MASA', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp }));
+            expect(result.body.envelope.intent).to.equal('get_card');
+            expect(result.body.operationName).to.equal('get_card');
+        });
+
+        it('keeps a short pasted-link lookup on get_card', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message = `show me this card https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=acom&query=${REPORTED_ID}`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('get_card');
+        });
+
+        it('keeps a short question-shaped search on search_cards', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
+            const result = await main(makeParams({ message: 'Can you find Photoshop cards in acom?', masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
+        });
+
+        it('leaves a state-changing intent in a multi-sentence message unchanged', async () => {
+            sendStub.resolves(modelPicks('update_card', { id: REPORTED_ID, fields: { title: 'New' } }));
+            const message = `Please update card ${REPORTED_ID}. Set the title to New.`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('update_card');
+            expect(result.body.confirmationRequired).to.equal(true);
+        });
+
+        it('keeps search_cards for a multi-sentence message that starts with a lookup verb', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
+            const message = 'Show me plans cards in acom. Only the grouped ones.';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
+        });
+
+        it('treats a leading lookup verb case-insensitively', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
+            const message = 'FIND plans cards in acom. Only the grouped ones.';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
+        });
+
+        it('leaves quoted text with a colon to the model', async () => {
+            sendStub.resolves(textResponse('Searching.'));
+            const result = await main(makeParams({ message: 'find cards with "Plans: Individual"', masa: true }));
+            expect(sendStub.called).to.equal(true);
+            expect(result.body.operationName).to.equal(undefined);
+        });
+
+        it('drops a model ASK_MASA when the request did not offer MASA', async () => {
+            sendStub.resolves(askMasa());
+            const result = await main(makeParams({ message: 'why is my price wrong in Milo?' }));
+            expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
+            expect(sendStub.callCount).to.equal(2);
+        });
+    });
+
+    describe('knowledge retrieval', () => {
+        const question = 'why is my price wrong in Milo?';
+        const withRetrieval = (overrides) => makeParams({ message: question, RAG_ENABLED: undefined, ...overrides });
+        let queryStub;
+
+        beforeEach(() => {
+            queryStub = sinon
+                .stub(LocalKnowledgeRetriever.prototype, 'queryWithSources')
+                .resolves({ context: 'Prices come from the offer.', sources: [] });
+            sendStub.resolves(textResponse('Here is the answer.'));
+        });
+
+        it('sends no knowledge with a question MASA can take', async () => {
+            await main(withRetrieval({ masa: true }));
+            expect(sendStub.firstCall.args[3]).to.not.have.property('ragContext');
+        });
+
+        it('sends knowledge with the same question when MASA is not offered', async () => {
+            await main(withRetrieval({ masa: false }));
+            expect(sendStub.firstCall.args[3].ragContext).to.include('Prices come from the offer.');
+        });
+
+        it('sends knowledge with a guided Help question, which never reaches MASA', async () => {
+            await main(withRetrieval({ masa: true, intentHint: 'guided_help' }));
+            expect(sendStub.firstCall.args[3].ragContext).to.include('Prices come from the offer.');
+        });
+
+        it('reuses one retriever across requests', async () => {
+            await main(withRetrieval({ masa: false }));
+            await main(withRetrieval({ masa: false }));
+            expect(queryStub.callCount).to.equal(2);
+            expect(queryStub.thisValues[1]).to.equal(queryStub.thisValues[0]);
+        });
+    });
+});
+
+/**
+ * One earlier "release" mention used to put every later turn of the conversation on the
+ * release prompt, which kept it off the native envelope path where ASK_MASA is offered.
+ * A release is now recognised from the current message, the guided Step 1 question,
+ * the active flow or the flow recorded in the history, never from an old user turn.
+ */
+describe('ai-chat/index release intent routing', () => {
+    let sendStub;
+
+    const offeredIntents = () =>
+        sendStub.firstCall.args[5].tools?.find((tool) => tool.name === 'emit_envelope')?.input_schema.properties.intent.enum;
+    const finishedFlow = [
+        { role: 'user', content: 'create cards for photoshop' },
+        {
+            role: 'assistant',
+            content: '```json\n{"type": "release_cards", "cardConfigs": [{"title": "Photoshop"}]}\n```',
+        },
+    ];
+
+    before(async () => {
+        ({ main } = await import('../../src/ai-chat/index.js'));
+        ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
+        ({ Ims } = await import('@adobe/aio-lib-ims'));
+    });
+
+    beforeEach(() => {
+        sinon.stub(Ims.prototype, 'validateTokenAllowList').resolves({ valid: true });
+        sendStub = sinon.stub(FoundryClient.prototype, 'sendWithContext').resolves(textResponse('Okay.'));
+        sinon.stub(console, 'log');
+        sinon.stub(console, 'error');
+        sinon.stub(console, 'warn');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('offers ASK_MASA on a troubleshooting turn after a finished release flow', async () => {
+        await main(
+            makeParams({
+                message:
+                    'The generative-credits placeholder is RTE, so its p tag breaks the sentence of the placeholder around it',
+                conversationHistory: finishedFlow,
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.include('ASK_MASA');
+        expect(sendStub.firstCall.args[2]).to.not.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('offers ASK_MASA when an earlier turn merely mentioned a release', async () => {
+        await main(
+            makeParams({
+                message: 'find photoshop cards',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    { role: 'assistant', content: 'A release is a set of cards for a new product.' },
+                ],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.include('ASK_MASA');
+        expect(sendStub.firstCall.args[2]).to.not.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('keeps the turn after the Step 1 question on the release flow', async () => {
+        const result = await main(
+            makeParams({
+                message: 'PA-1375',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    { role: 'assistant', content: 'Which product is this release for?' },
+                ],
+                masa: true,
+            }),
+        );
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('keeps a turn of the active flow on the guided path', async () => {
+        await main(
+            makeParams({
+                message: 'monthly',
+                context: { flow: { active: 'release_create', step: 'offering' } },
+                conversationHistory: [{ role: 'user', content: 'create cards for photoshop' }],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.equal(undefined);
+    });
+
+    it('keeps a mid-flow turn recorded in the history on the release prompt', async () => {
+        await main(
+            makeParams({
+                message: 'monthly',
+                conversationHistory: [
+                    { role: 'user', content: 'create cards for photoshop' },
+                    {
+                        role: 'assistant',
+                        content: '```json\n{"type": "guided_step", "flowId": "release", "message": "Offering type?"}\n```',
+                    },
+                ],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.equal(undefined);
+        expect(sendStub.firstCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('keeps the bare-identifier shortcut on a later step recorded only in the history', async () => {
+        const result = await main(
+            makeParams({
+                message: 'PA-1375',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    {
+                        role: 'assistant',
+                        content: '```json\n{"type": "guided_step", "flowId": "release", "message": "Offering type?"}\n```',
+                    },
+                ],
+            }),
+        );
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('keeps the bare-identifier shortcut when the client sends the release intent hint', async () => {
+        const result = await main(makeParams({ message: 'PA-1375', intentHint: 'release' }));
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('selects the release path when the current message carries a keyword', async () => {
+        await main(makeParams({ message: 'create cards for photoshop', masa: true }));
+        expect(offeredIntents()).to.equal(undefined);
+        expect(sendStub.firstCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
     });
 });

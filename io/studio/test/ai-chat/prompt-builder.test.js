@@ -20,6 +20,46 @@ describe('prompt-builder', () => {
         expect(prompt).to.include('ASK_USER');
     });
 
+    it('routes knowledge questions to ASK_MASA when MASA is available', () => {
+        expect(buildPrompt({ masa: true })).to.include(
+            'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA.',
+        );
+        expect(buildPrompt()).to.not.include('ASK_MASA');
+    });
+
+    it('does not tell the model to answer MAS questions itself when MASA is available', () => {
+        const prompt = buildPrompt({ masa: true });
+        expect(prompt).to.not.include('answer helpfully in user_message via ASK_USER or SHOW_HELP');
+        expect(prompt).to.not.include('Answer as practical how-to guidance');
+        expect(prompt).to.include(
+            'For questions about how MAS itself works, how to do something in Studio, or why something behaves as it does, emit ASK_MASA; never answer them in user_message.',
+        );
+    });
+
+    it('treats a problem report as a troubleshooting question when MASA is available', () => {
+        const sentence =
+            'A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
+        expect(buildPrompt({ masa: true })).to.include(sentence);
+        expect(buildPrompt()).to.not.include(sentence);
+    });
+
+    it('describes ASK_MASA among the meta intents when MASA is available', () => {
+        expect(buildPrompt({ masa: true })).to.include(
+            '- ASK_MASA — hand a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.',
+        );
+    });
+
+    it('keeps answering MAS questions itself when MASA is not offered', () => {
+        const prompt = buildPrompt();
+        expect(prompt).to.include(
+            'For questions about how MAS itself works, answer helpfully in user_message via ASK_USER or SHOW_HELP.',
+        );
+        expect(prompt).to.include(
+            'FEATURE QUESTIONS:\nAnswer as practical how-to guidance for using MAS Studio (which page, which steps, what to expect), not internal architecture.',
+        );
+        expect(buildPrompt({ masa: false })).to.equal(prompt);
+    });
+
     it('states an empty required-slot list rather than omitting it', () => {
         const prompt = buildPrompt({});
         // The long "no required slots" filler is gone, but the fact itself is

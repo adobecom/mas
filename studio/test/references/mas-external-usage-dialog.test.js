@@ -71,7 +71,11 @@ const requestCounts = (element) =>
     [...element.shadowRoot.querySelectorAll('.page-requests')].map((node) => node.textContent.trim());
 const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
-describe('mas-external-usage-dialog', () => {
+describe('mas-external-usage-dialog', function () {
+    // A test chains up to three modal waits (focus in, close, focus back), each allowed
+    // modalTransition. Mocha's 5 s default would cut it off before a stalled wait can name its step.
+    this.timeout(3 * modalTransition.timeout);
+
     let sandbox;
 
     beforeEach(() => {

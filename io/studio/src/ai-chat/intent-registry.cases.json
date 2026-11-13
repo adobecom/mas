@@ -405,6 +405,195 @@
                 }
             },
             "note": "A product name cannot be passed to search_offers, so asking for offers by name must resolve the product first rather than stalling on the arrangement code."
+        },
+        {
+            "id": "masa-troubleshoot-price-mismatch",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Why does the Photoshop card show a different price on the FR page than in Studio?",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "With masa: true a troubleshooting question hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
+        },
+        {
+            "id": "masa-troubleshoot-stale-live",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "I published the card yesterday but adobe.com still shows the old CTA. What am I missing?",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "With masa: true a troubleshooting question hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
+        },
+        {
+            "id": "masa-troubleshoot-placeholder-rte-links",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "I created this Placeholder https://mas.adobe.com/studio.html#content-type=merch-card&page=placeholders&path=acom&locale=en_US&search=5d1c7a52-8f0e-4b3a-9c61-2e7f4b9d0a13 that contains another placeholder key: {{generative-credits}}. The \"generative-credits\" placeholder is an RTE placeholder, as it has a URL link added. The problem with adding a PH key that is RTE into another Placeholder, is the RTE placeholder has a <p> tag around it, which breaks the sentence. As can be seen in this fragment: https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "A long problem report with pasted links hands off to MASA instead of fetching the linked card; links are evidence, not a lookup request."
+        },
+        {
+            "id": "masa-troubleshoot-missing-badge",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Why is the badge on my plans card not showing on the live page?",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "With masa: true a troubleshooting question hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
+        },
+        {
+            "id": "masa-howto-promo-variation",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "How do I make a promo variation show only in Germany?",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "With masa: true a how-to question hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
+        },
+        {
+            "id": "masa-recent-change",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "What changed in the catalog card template this week?",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "With masa: true a question about recent changes hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
+        },
+        {
+            "id": "masa-search-can-you-find",
+            "intent_under_test": "search_cards",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Can you find Photoshop cards in acom?",
+            "expect": {
+                "intent": "search_cards"
+            },
+            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+        },
+        {
+            "id": "masa-search-which-cards-quoted",
+            "intent_under_test": "search_cards",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Which cards have 'Premium tier' in them?",
+            "expect": {
+                "intent": "search_cards"
+            },
+            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+        },
+        {
+            "id": "masa-search-could-you-show",
+            "intent_under_test": "search_cards",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Could you show me the plans cards for express?",
+            "expect": {
+                "intent": "search_cards"
+            },
+            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+        },
+        {
+            "id": "masa-search-any-grouped",
+            "intent_under_test": "search_cards",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "Are there any catalog cards with grouped variations?",
+            "expect": {
+                "intent": "search_cards"
+            },
+            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+        },
+        {
+            "id": "masa-search-what-cards-template",
+            "intent_under_test": "search_cards",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "What cards use the fries template?",
+            "expect": {
+                "intent": "search_cards"
+            },
+            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+        },
+        {
+            "id": "masa-off-after-hand-off",
+            "intent_under_test": "ASK_USER",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [
+                {
+                    "role": "user",
+                    "content": "Why does the Photoshop card show a different price on the FR page?"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Handed this question to MASA."
+                }
+            ],
+            "user_message": "How do I publish a card?",
+            "expect": {
+                "intent_one_of": ["ASK_USER", "SHOW_HELP"]
+            },
+            "note": "MASA is not offered (no masa flag) and Studio has turned the earlier ASK_MASA envelope into a plain note, so the model answers itself instead of copying ASK_MASA."
         }
     ]
 }

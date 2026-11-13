@@ -8,34 +8,46 @@ const POPUP = readFileSync(resolve(__dirname, '../../popup/popup.js'), 'utf8');
 const ADOBE_TAB = { id: 1, url: 'https://www.stage.adobe.com/' };
 
 function fakeElement() {
+    const listeners = {};
     return {
         value: '',
         textContent: '',
         hidden: false,
         checked: false,
         style: {},
-        addEventListener: () => {},
+        addEventListener: (type, listener) => {
+            listeners[type] = listener;
+        },
+        dispatch: (type, event) => listeners[type](event),
         querySelectorAll: () => [],
     };
 }
 
 // Runs popup.js against a fake popup DOM; reply decides what the tab's content script answers.
-async function openPopup({ tab = ADOBE_TAB, reply, stored = {} }) {
+async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {} }) {
     const elements = new Map();
+    const messages = [];
     const element = (key) => {
         if (!elements.has(key)) elements.set(key, fakeElement());
         return elements.get(key);
     };
     const chrome = {
         runtime: { lastError: undefined },
-        storage: { local: { get: (keys, callback) => callback(stored) } },
+        storage: {
+            local: {
+                get: (keys, callback) => callback(stored),
+                set: async (value) => Object.assign(stored, value),
+            },
+        },
         tabs: {
-            query: async () => [tab],
+            query: async (query) => (query.active ? [tab] : tabs),
             sendMessage: (tabId, message, callback) => {
+                messages.push({ tabId, message });
                 const { lastError, response } = reply(message);
                 chrome.runtime.lastError = lastError;
                 callback?.(response);
                 chrome.runtime.lastError = undefined;
+                return Promise.resolve(response);
             },
         },
     };
@@ -60,6 +72,8 @@ async function openPopup({ tab = ADOBE_TAB, reply, stored = {} }) {
         hint: element('#noCards .hint').textContent,
         noCards: element('noCards').style.display,
         legend: element('sourcesLegend'),
+        sourcesToggle: element('sourcesToggle'),
+        messages,
     };
 }
 
@@ -92,3 +106,23 @@ test('the color key shows, open, while Show sources is on', async () => {
     const { legend } = await openPopup({ reply: () => NO_CARDS, stored: { masShowSources: true } });
     assert.deepEqual([legend.hidden, legend.innerHTML.startsWith('<details class="mas-ext-legend" open>')], [false, true]);
 });
+
+for (const enabled of [false, true]) {
+    test(`toggling the global Show sources preference ${enabled ? 'on' : 'off'} updates every open tab`, async () => {
+        const stored = { masShowSources: !enabled };
+        const popup = await openPopup({ tabs: [ADOBE_TAB, { id: 2 }], reply: () => NO_CARDS, stored });
+
+        popup.sourcesToggle.dispatch('change', { target: { checked: enabled } });
+        for (let tick = 0; tick < 10; tick++) await new Promise(setImmediate);
+
+        assert.deepEqual(
+            JSON.parse(JSON.stringify(popup.messages.filter(({ message }) => message.type === 'SET_SOURCE_OUTLINES'))),
+            [
+                { tabId: 1, message: { type: 'SET_SOURCE_OUTLINES', enabled } },
+                { tabId: 2, message: { type: 'SET_SOURCE_OUTLINES', enabled } },
+            ],
+        );
+        assert.equal(stored.masShowSources, enabled);
+        assert.equal(popup.legend.hidden, !enabled);
+    });
+}

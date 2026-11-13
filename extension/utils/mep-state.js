@@ -25,6 +25,7 @@
             field: typeof swap.field === 'string' ? swap.field : '',
             replacementId: swap.replacementId,
             manifestId,
+            ...(swap.pzn ? { pzn: swap.pzn, excludedFields: Object.keys(swap.excludedFields ?? {}) } : {}),
         };
     }
 
@@ -50,9 +51,18 @@
     function findSwap(state, { requestedId, field, resolvedId } = {}) {
         const replacementId = requestedId ?? resolvedId;
         const wanted = normalizeField(field);
-        const swap = state?.swaps.find(
+        let swap = state?.swaps.find(
             (entry) => entry.replacementId === replacementId && normalizeField(entry.field) === wanted,
         );
+        if (!swap && wanted) {
+            swap = state?.swaps.find(
+                (entry) =>
+                    entry.replacementId === replacementId &&
+                    entry.field === '' &&
+                    entry.pzn &&
+                    !entry.excludedFields?.some((excluded) => normalizeField(excluded) === wanted),
+            );
+        }
         return swap ? { authoredId: swap.authoredId, manifestId: swap.manifestId } : null;
     }
 

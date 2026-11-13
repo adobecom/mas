@@ -36,6 +36,16 @@
                     field,
                     replacementId: String(command.content),
                     manifestId: typeof command.manifestId === 'string' ? command.manifestId : null,
+                    ...(command.pzn ? { pzn: command.pzn } : {}),
+                    ...(!field && command.pzn
+                        ? {
+                              excludedFields: Object.fromEntries(
+                                  Object.keys(fields)
+                                      .filter(Boolean)
+                                      .map((name) => [name, true]),
+                              ),
+                          }
+                        : {}),
                 });
             }
         }

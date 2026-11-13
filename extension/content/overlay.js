@@ -403,6 +403,7 @@ class CardOverlay {
         const overlayData = this.overlays.get(fragmentId);
         if (!overlayData?.panel) return;
         const { panel } = overlayData;
+        panel.querySelector('.mas-ext-section-basic .mas-ext-notice')?.remove();
         this.updateBasicInfoPath(fragmentId, null);
         this.clearVariationLoading(overlayData);
         const html = `<div class="mas-ext-notice">${this.escapeHtml(message)}</div>`;
@@ -415,6 +416,7 @@ class CardOverlay {
         const overlayData = this.overlays.get(fragmentId);
         if (!overlayData || !overlayData.panel) return;
 
+        overlayData.panel.querySelector('.mas-ext-section-basic .mas-ext-notice')?.remove();
         const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
         const parsed = window.MASFragmentParser.parseFragmentData(fragmentData);
         const grouped = window.MASFragmentParser.groupFieldsByCategory(parsed);

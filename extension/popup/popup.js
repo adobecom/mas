@@ -111,9 +111,8 @@ async function toggleShowSources(enabled) {
     showSourcesLegend(enabled);
     await chrome.storage.local.set({ masShowSources: enabled });
 
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (activeTab?.id) {
-        chrome.tabs.sendMessage(activeTab.id, { type: 'SET_SOURCE_OUTLINES', enabled }).catch(() => {});
+    for (const tab of await chrome.tabs.query({})) {
+        chrome.tabs.sendMessage(tab.id, { type: 'SET_SOURCE_OUTLINES', enabled }).catch(() => {});
     }
 }
 

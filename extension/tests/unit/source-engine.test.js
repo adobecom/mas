@@ -145,8 +145,17 @@ test('an MEP-swapped field opens its replacement fragment', () => {
     assert.equal(resolveField(F.stamps.description, F.inputs).supplierId, GROUPED);
 });
 
-test('a field inherited from the default card opens the requested card', () => {
-    assert.equal(resolveField({ ...F.stamps.shortDescription, field: 'description' }, F.inputs).supplierId, AUTHORED);
+test('an inherited localized field opens its resolved supplier while retaining the requested id for tracing', () => {
+    const entry = resolveField({ ...F.stamps.shortDescription, field: 'description' }, F.inputs);
+    assert.deepEqual([entry.supplierId, entry.requestedId], [AUTHORED_RESOLVED, AUTHORED]);
+});
+
+test('a localized MEP replacement opens its resolved supplier', () => {
+    const entry = resolveField(
+        { ...F.stamps.description, failed: false, resolvedId: AUTHORED_RESOLVED },
+        { ...F.inputs, requestedData: F.groupedData },
+    );
+    assert.deepEqual([entry.supplierId, entry.requestedId], [AUTHORED_RESOLVED, GROUPED]);
 });
 
 test('a masked field has no fragment to open', () => {
@@ -334,6 +343,23 @@ test('a card with a variation gets one entry per variation field', () => {
     });
 });
 
+test('a sparse variation keeps inherited and masked card fields in whole-card analysis', () => {
+    const entries = resolveCard(
+        { ...CARD, maskId: MASK_ID },
+        {
+            ...F.inputs,
+            requestedData: { fields: { cardTitle: 'Title', prices: 'Price', description: 'Default', variations: [] } },
+            variationData: { ...F.inputs.variationData, fields: { description: 'Promo' } },
+            maskData: { fields: { cardTitle: 'Masked', tags: [] } },
+        },
+    );
+    assert.deepEqual(plain(entries.map(({ field, source }) => [field, source])), [
+        ['cardTitle', 'mask'],
+        ['prices', 'default'],
+        ['description', 'promo'],
+    ]);
+});
+
 test('a card without a variation lists its own fields as the default card', () => {
     const stamps = { ...CARD, variationId: null, promoProject: null, promoVariationProject: null };
     const requestedData = { fields: { cardTitle: 'CC Pro', description: { mimeType: 'text/html' }, variations: [], tags: [] } };
@@ -402,6 +428,17 @@ test('a field listed in mas-overrides is swapped even when the MEP map has no sw
 test('an unwrapped element that matches no swap for its swapped field is unknown, not default', () => {
     const e = resolveField(BARE_CTA, F.inputs);
     assert.deepEqual([e.source, e.label, e.reason], ['unknown', 'Unknown', 'Could not match this element to an MEP swap']);
+});
+
+test('an unmatched unwrapped field with a possible card-level PZN swap stays unknown', () => {
+    const mepState = {
+        preview: true,
+        swaps: [{ authoredId: AUTHORED, field: '', replacementId: GROUPED, pzn: 'cc-lapsed', manifestId: MANIFEST }],
+    };
+
+    const entry = resolveField(BARE_CTA, { ...F.inputs, mepState });
+
+    assert.equal(entry.source, 'unknown');
 });
 
 test('an element with neither a requested nor a resolved id is not linked to a fragment', () => {

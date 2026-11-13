@@ -67,8 +67,8 @@
     }
 
     function hasFieldSwap(mepState, field) {
-        const { normalizeField } = deps().mep;
-        return Boolean(mepState?.swaps?.some((swap) => normalizeField(swap.field) === normalizeField(field)));
+        const { findSwap } = deps().mep;
+        return Boolean(mepState?.swaps?.some(({ replacementId }) => findSwap(mepState, { requestedId: replacementId, field })));
     }
 
     function hasFields(data) {
@@ -199,11 +199,11 @@
         return withRegionalNote(withMask(contentSource(stamps, inputs, swap), stamps, inputs.maskData), stamps, inputs);
     }
 
-    // The fragment whose content the field shows: the IO-merged variation, else the requested fragment.
+    // The fragment whose content the field shows: the IO-merged variation, else the resolved locale.
     // Studio cannot open a mask by id, so a masked field links nowhere.
     function supplierOf(content, stamps, requestedId) {
         if (content.source === 'mask') return null;
-        return content.ioMerged ? stamps.variationId : requestedId;
+        return content.ioMerged ? stamps.variationId : (stamps.resolvedId ?? requestedId);
     }
 
     // An unwrapped price/CTA keeps no aem-fragment, so its resolved id stands in for the requested one.
@@ -228,15 +228,13 @@
         return resolveWithSwap(stamps, inputs, swapFor(stamps, inputs.mepState, inputs.overrideIds));
     }
 
-    function cardFields(stamps, { variationData = null, requestedData = null }, variant) {
+    function cardFields(stamps, { variationData = null, requestedData = null, maskData = null }) {
         const { mirror } = deps();
-        let fields = [];
-        if (stamps.variationId && hasFields(variationData)) {
-            fields = mirror.attributeFields(variationData.fields, { variant }).map(({ field }) => field);
-        } else if (hasFields(requestedData)) {
-            fields = Object.keys(requestedData.fields).filter((field) => !mirror.INTERNAL_FIELDS.includes(field));
-        }
-        return fields.length ? fields : [''];
+        const fields = [requestedData, stamps.variationId ? variationData : null, stamps.maskId ? maskData : null]
+            .filter(hasFields)
+            .flatMap((data) => Object.keys(data.fields))
+            .filter((field) => !mirror.INTERNAL_FIELDS.includes(field));
+        return fields.length ? [...new Set(fields)] : [''];
     }
 
     // A whole card is requested (and MEP-swapped) once, so the card-level swap applies to every field.
@@ -244,7 +242,7 @@
         const swap = swapFor(stamps, inputs.mepState, inputs.overrideIds);
         if (stamps.failed || stamps.loading) return [resolveWithSwap(stamps, inputs, swap)];
         const cardInputs = { ...inputs, variant };
-        return cardFields(stamps, inputs, variant).map((field) => resolveWithSwap({ ...stamps, field }, cardInputs, swap));
+        return cardFields(stamps, inputs).map((field) => resolveWithSwap({ ...stamps, field }, cardInputs, swap));
     }
 
     function groupKey(stamps, mepState) {

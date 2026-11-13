@@ -39,7 +39,13 @@
         const key = `${id}|${locale ?? ''}|${country ?? ''}`;
         if (!fragmentCache.has(key)) {
             if (!consumeBudget()) return Promise.resolve({});
-            fragmentCache.set(key, requestFragment(id, locale, country));
+            fragmentCache.set(
+                key,
+                requestFragment(id, locale, country).then((response) => {
+                    if (!response.success && !response.miss) fragmentCache.delete(key);
+                    return response;
+                }),
+            );
         }
         return fragmentCache.get(key);
     }
@@ -90,9 +96,13 @@
         if (stamps.failed) return { ...inputs, miss: await fetchMiss(ownId, locale, country) };
         const requestedId = wholeCard || isSwapped(stamps, page) ? ownId : null;
         const load = (id) => fetchFragment(id, locale, country);
-        const [variationData, maskData, requestedData] = await Promise.all(
+        const [variationResponse, maskData, requestedData] = await Promise.all(
             [stamps.variationId, stamps.maskId, requestedId].map(load),
         );
+        const variationData =
+            variationResponse?.id === stamps.variationId
+                ? variationResponse
+                : (variationResponse?.references?.[stamps.variationId]?.value ?? null);
         return { ...inputs, variationData, maskData, requestedData, isRegionLocale: isRegionLocale(locale, variationData) };
     }
 

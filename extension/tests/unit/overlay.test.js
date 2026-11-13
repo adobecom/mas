@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { runInNewContext } = require('node:vm');
+const { FragmentParser } = require('../../utils/fragment-parser.js');
 
 const source = readFileSync(resolve(__dirname, '../../content/overlay.js'), 'utf8');
 const SOURCE_ID = '11111111-1111-1111-1111-111111111111';
@@ -15,7 +16,8 @@ function createFixture() {
     const parent = { id: PARENT_ID, path: '/content/dam/mas/acom/en_US/parent', fields: [] };
     const window = {
         MASEscape: require('../../utils/escape.js'),
-        MASCardDetector: { getServiceConfig: () => ({ apiKey: 'test-api-key' }) },
+        MASFragmentParser: new FragmentParser(),
+        MASCardDetector: { getServiceConfig: () => ({ apiKey: 'test-api-key' }), isMasPreview: () => false },
         MASStudioLinker: {
             openParentInStudio: (variation, id) => opened.push({ variation, id }),
         },
@@ -33,7 +35,7 @@ function createFixture() {
     for (const overlayId of ['field-1', 'price-1', 'cta-1', SOURCE_ID]) {
         overlay.overlays.set(overlayId, { cardData: { sourceFragmentId: SOURCE_ID } });
     }
-    return { overlay, requests, opened, parent };
+    return { overlay, requests, opened, parent, chrome };
 }
 
 for (const overlayId of ['field-1', 'price-1', 'cta-1', SOURCE_ID]) {
@@ -182,4 +184,63 @@ test('a failed fetch shows its reason in the basic info, not only in the collaps
         [nodes['.mas-ext-path-value'].textContent, inserted, nodes['.mas-ext-variation-content'].innerHTML],
         ['N/A', [['beforeend', '<div class="mas-ext-notice">Not published — reason</div>']], ''],
     );
+});
+
+function fragmentPanel(overlay) {
+    const notices = [];
+    const variation = { innerHTML: '', querySelector: () => null, querySelectorAll: () => [] };
+    const nodes = {
+        '.mas-ext-path-value': { textContent: '' },
+        '.mas-ext-variation-content': variation,
+        '.mas-ext-section-variation': { querySelector: () => variation },
+        '[data-section="details"] .mas-ext-section-content': { innerHTML: '', querySelectorAll: () => [] },
+        '.mas-ext-section-basic': {
+            insertAdjacentHTML: (position, html) => {
+                const notice = { html, remove: () => notices.splice(notices.indexOf(notice), 1) };
+                notices.push(notice);
+            },
+        },
+    };
+    overlay.overlays.get('field-1').panel = {
+        querySelector: (selector) =>
+            selector === '.mas-ext-section-basic .mas-ext-notice' ? notices[0] : (nodes[selector] ?? null),
+    };
+    return { notices, path: nodes['.mas-ext-path-value'] };
+}
+
+test('a later fragment failure replaces the prior basic-info notice', () => {
+    const { overlay } = createFixture();
+    const { notices } = fragmentPanel(overlay);
+    overlay.renderFragmentError('field-1', 'First failure');
+
+    overlay.renderFragmentError('field-1', 'Second failure');
+
+    assert.equal(notices.length, 1);
+    assert.equal(notices[0].html.includes('Second failure'), true);
+});
+
+test('a successful Refresh clears the previous fragment error notice', async () => {
+    const { overlay, chrome, parent } = createFixture();
+    const panel = fragmentPanel(overlay);
+    let response = NOT_FOUND;
+    chrome.runtime.sendMessage = (message, callback) => callback(response);
+    await overlay.loadFragmentDetails('field-1');
+    assert.equal(panel.notices.length, 1);
+    response = { success: true, data: parent };
+
+    overlay.refreshFragmentData('field-1');
+
+    assert.equal(panel.path.textContent, parent.path);
+    assert.equal(panel.notices.length, 0);
+});
+
+test('a successful cached load clears the previous fragment error notice', async () => {
+    const { overlay, parent } = createFixture();
+    const { notices } = fragmentPanel(overlay);
+    overlay.renderFragmentError('field-1', 'Old failure');
+    overlay.fragmentDataCache.set(`${SOURCE_ID}|en_US|`, parent);
+
+    await overlay.loadFragmentDetails('field-1');
+
+    assert.equal(notices.length, 0);
 });

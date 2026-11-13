@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { runInNewContext } = require('node:vm');
+const { serializeMepState } = require('../../content/page-bridge.js');
 
 const source = readFileSync(resolve(__dirname, '../../utils/mep-state.js'), 'utf8');
 const ORIGIN = 'https://www.stage.adobe.com';
@@ -119,6 +120,55 @@ test('findSwap returns null when the field differs', () => {
 test('findSwap returns null without a state', () => {
     const { MASMepState } = load();
     assert.equal(MASMepState.findSwap(null, { requestedId: GROUPED, field: 'title' }), null);
+});
+
+function stateFromRows(rows) {
+    const { window, MASMepState } = load();
+    const config = { mep: { inBlock: { mas: { fragments: { [AUTHORED]: rows } } } } };
+    const state = MASMepState.parseMepStateMessage(messageFrom(window, serializeMepState(config)));
+    return { MASMepState, state };
+}
+
+for (const field of ['description', 'shortDescription']) {
+    test(`a serialized card-level PZN row applies to ${field}`, () => {
+        const { MASMepState, state } = stateFromRows({
+            '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed', manifestId: 'card.json' },
+        });
+
+        assert.deepEqual(plain(MASMepState.findSwap(state, { requestedId: GROUPED, field })), {
+            authoredId: AUTHORED,
+            manifestId: 'card.json',
+        });
+    });
+}
+
+test('a card-level row without PZN does not apply to a field', () => {
+    const { MASMepState, state } = stateFromRows({ '': { action: 'replace', content: GROUPED } });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'description' }), null);
+});
+
+test('a field-specific row wins over a card-level PZN row with the same replacement', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed', manifestId: 'card.json' },
+        description: { action: 'replace', content: GROUPED, manifestId: 'field.json' },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'description' }).manifestId, 'field.json');
+});
+
+test('a field-specific row with a different replacement blocks the PZN fallback', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed' },
+        description: { action: 'replace', content: AUTHORED },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'description' }), null);
+});
+
+test('a non-replace field row blocks the card-level PZN fallback', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed' },
+        description: { action: 'remove' },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'description' }), null);
 });
 
 function fakeRoot(ids) {

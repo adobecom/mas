@@ -5,8 +5,9 @@ const { resolve } = require('node:path');
 const { createContext, runInContext } = require('node:vm');
 
 const { CardDetector } = require('../../utils/card-detector.js');
+const { serializeMepState } = require('../../content/page-bridge.js');
 const F = require('./fixtures/homepage-cc-lapsed.js');
-const { AUTHORED, GROUPED, PROMO_VAR, MANIFEST, PROMO_PROJECT } = F;
+const { AUTHORED, AUTHORED_RESOLVED, GROUPED, PROMO_VAR, MANIFEST, PROMO_PROJECT } = F;
 
 const SCRIPTS = [
     'utils/locales.js',
@@ -112,7 +113,7 @@ const swappedCta = () => fakeElement({ attrs: { 'fragment-id': GROUPED }, visibl
 // The bridge posts onLoadState when the page loads, then answers every GET_MEP_STATE with replyState.
 function loadSources(
     { fields = [], detected = [] },
-    { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState, misses = {} } = {},
+    { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState, misses = {}, fragments = FRAGMENTS } = {},
 ) {
     const fetched = [];
     const messages = [];
@@ -138,7 +139,7 @@ function loadSources(
                     messages.push(message);
                     fetched.push(message.fragmentId);
                     const miss = misses[message.fragmentId];
-                    const data = miss ? null : FRAGMENTS[message.fragmentId];
+                    const data = miss ? null : fragments[message.fragmentId];
                     callback(data ? { success: true, data } : { success: false, error: 'fetch_failed', miss });
                 },
             },
@@ -187,6 +188,29 @@ test('each variation is fetched once however many fields share it', async () => 
     const { sources, fetched } = loadSources({ ...page, fields: [...page.fields, features] });
     await sources.getPageGroups();
     assert.equal(fetched.filter((id) => id === PROMO_VAR).length, 1);
+});
+
+test('source analysis retries a transiently failed variation after network recovery', async () => {
+    const fragments = { ...FRAGMENTS };
+    delete fragments[PROMO_VAR];
+    const { sources, fetched } = loadSources(homepage(), { fragments });
+    const first = await sources.getSourcesFor('field-2');
+    assert.equal(first.entries.find((entry) => entry.field === 'shortDescription').source, 'unknown');
+    fragments[PROMO_VAR] = F.inputs.variationData;
+
+    const second = await sources.getSourcesFor('field-2');
+
+    assert.equal(second.entries.find((entry) => entry.field === 'shortDescription').source, 'promo');
+    assert.equal(fetched.filter((id) => id === PROMO_VAR).length, 2);
+});
+
+test('concurrent failed reads share one request before a later retry', async () => {
+    const { sources, fetched } = loadSources({}, { fragments: {} });
+
+    await Promise.all([sources.fetchFragment(PROMO_VAR), sources.fetchFragment(PROMO_VAR)]);
+    await sources.fetchFragment(PROMO_VAR);
+
+    assert.equal(fetched.filter((id) => id === PROMO_VAR).length, 2);
 });
 
 test('an exhausted budget yields unknown entries instead of failing', async () => {
@@ -270,6 +294,42 @@ test('a regional locale notes that a regional promo may also apply', async () =>
     const entry = result.entries.find((e) => e.field === 'shortDescription');
     assert.equal(entry.reason, `IO applied promo ${PROMO_PROJECT}; Regional promo may also apply`);
 });
+
+const REGIONAL_ID = '77777777-7777-4777-8777-777777777777';
+const REGIONAL_DATA = {
+    id: REGIONAL_ID,
+    path: '/content/dam/mas/acom/fr_CA/card',
+    fields: { description: 'Canadian' },
+};
+const REGIONAL_RESPONSE = {
+    id: AUTHORED_RESOLVED,
+    path: '/content/dam/mas/acom/fr_FR/card',
+    fields: { cardTitle: 'French title', description: 'Canadian', variations: [REGIONAL_ID] },
+    references: { [REGIONAL_ID]: { type: 'content-fragment', value: REGIONAL_DATA } },
+};
+
+for (const [field, source, supplierId] of [
+    ['description', 'locale', REGIONAL_ID],
+    ['cardTitle', 'default', AUTHORED_RESOLVED],
+]) {
+    test(`a regional IO response attributes ${field} using the stamped variation record`, async () => {
+        const element = masField({
+            ...F.stamps.shortDescription,
+            field,
+            variationId: REGIONAL_ID,
+            promoProject: null,
+            promoVariationProject: null,
+        });
+        const { sources } = loadSources(
+            { fields: [element], detected: [['regional', badged(element, 'field', { locale: 'fr_CA', country: 'CA' })]] },
+            { fragments: { [REGIONAL_ID]: REGIONAL_RESPONSE } },
+        );
+
+        const result = await sources.getSourcesFor('regional');
+
+        assert.deepEqual([result.entries[0].source, result.entries[0].supplierId], [source, supplierId]);
+    });
+}
 
 test('a badged bare CTA joins its card group, labeled from its fetched replacement', async () => {
     const page = homepage();
@@ -358,6 +418,22 @@ test('after a stale load-time MEP state the page trace shows the MEP swap', asyn
     const [card] = engine.buildPageTrace(groups, mepState.latest()).cards;
     assert.equal(card.groupKey, AUTHORED);
     assert.ok(card.steps.includes(`MEP swaps description, ctas → 369630bd (${MANIFEST})`));
+});
+
+test('a card-level PZN fallback is attributed and included in the page trace', async () => {
+    const rows = { '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed', manifestId: MANIFEST } };
+    const replyState = serializeMepState({ mep: { inBlock: { mas: { fragments: { [AUTHORED]: rows } } } } });
+    const { sources, engine, mepState } = loadSources(homepageLoaded(), { replyState });
+
+    const groups = await sources.getPageGroups();
+
+    const description = groups.flatMap((group) => group.entries).find((entry) => entry.field === 'description');
+    assert.deepEqual([description.swapped, description.authoredId], [true, AUTHORED]);
+    assert.ok(
+        engine
+            .buildPageTrace(groups, mepState.latest())
+            .cards[0].steps.includes(`MEP swaps whole card → 369630bd (${MANIFEST})`),
+    );
 });
 
 test('a field authored with an id in mas-overrides is not swapped once the fresh map lists other swaps', async () => {

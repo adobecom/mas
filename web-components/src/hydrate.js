@@ -3,6 +3,7 @@ import {
     TRIAL_ANALYTICS_IDS,
     HEADLESS_STYLE_CTA_VARIANTS,
     MERCH_CARD_LOAD_TIMEOUT,
+    TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import {
@@ -28,7 +29,7 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export const ANALYTICS_TAG = 'mas:product_code/';
 export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
-const QUALIFYING_CTA_ANALYTICS_IDS = ['buy-now', 'select'];
+
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 
@@ -1007,7 +1008,7 @@ export async function processCTAs(
               )
             : allCtaLinks;
         const qualifyingCtaExists = filteredLinks.some((c) =>
-            QUALIFYING_CTA_ANALYTICS_IDS.includes(c.dataset.analyticsId),
+            TRIAL_TO_BUY_CTA_ANALYTICS_IDS.includes(c.dataset.analyticsId),
         );
         const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
@@ -1125,7 +1126,7 @@ export async function processCTAs(
                 });
                 const buyNowCta = ctas.find((c) => {
                     const checkout = getCtaSource(c);
-                    return QUALIFYING_CTA_ANALYTICS_IDS.includes(
+                    return TRIAL_TO_BUY_CTA_ANALYTICS_IDS.includes(
                         checkout.dataset.analyticsId,
                     );
                 });

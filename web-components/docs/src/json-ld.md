@@ -21,7 +21,7 @@ injectJsonLd(fields, offer, regularOffer, pageUrl)
 | Parameter | Type | Description |
 |---|---|---|
 | `fields` | `object` | Fragment fields object. Must include `cardTitle`. Optionally includes `description.value` (HTML string) and `mnemonicIcon` (array of SVG URLs). |
-| `offer` | `object` | Resolved WCS offer. Must have `priceDetails.price` and `analytics` (JSON string with `currencyCode`). |
+| `offer` | `object` | Resolved WCS offer. Must have `priceDetails.price` and `priceInfo.currencyCode` (ISO 4217 currency code, e.g. `USD`). |
 | `regularOffer` | `object\|null` | Resolved non-promotional offer used to derive `priceWithoutDiscount` when `offer` is a promo offer. Pass `null` if no promo is active. |
 | `pageUrl` | `string` | The current page URL. Query parameters are stripped before use. |
 
@@ -80,7 +80,7 @@ Query parameters are stripped from `pageUrl` before it is used in `@id` and `off
 - `fields` is missing or has no `cardTitle`
 - `offer` is `null` or `undefined`
 - `offer.priceDetails.price` is `null` or `undefined`
-- `offer.analytics` is missing or malformed (no `currencyCode`)
+- `offer.priceInfo.currencyCode` is missing or empty
 - A JSON-LD block for this page URL already exists in `<head>`
 
 A console warning is emitted when the currency code is missing.
@@ -137,7 +137,7 @@ const offer = {
     priceDetails: { price: 22.99 },
     commitment: 'YEAR',
     term: 'MONTHLY',
-    analytics: JSON.stringify({ currencyCode: 'USD' }),
+    priceInfo: { currencyCode: 'USD' },
 };
 
 injectJsonLd(fields, offer, null, window.location.href);

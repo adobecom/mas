@@ -52,7 +52,7 @@
 <tr>
 <td><code>offer</code></td>
 <td><code>object</code></td>
-<td>Resolved WCS offer. Must have <code>priceDetails.price</code> and <code>analytics</code> (JSON string with <code>currencyCode</code>).</td>
+<td>Resolved WCS offer. Must have <code>priceDetails.price</code> and <code>priceInfo.currencyCode</code> (ISO 4217 currency code, e.g. <code>USD</code>).</td>
 </tr>
 <tr>
 <td><code>regularOffer</code></td>
@@ -151,7 +151,7 @@
 <li><code>fields</code> is missing or has no <code>cardTitle</code></li>
 <li><code>offer</code> is <code>null</code> or <code>undefined</code></li>
 <li><code>offer.priceDetails.price</code> is <code>null</code> or <code>undefined</code></li>
-<li><code>offer.analytics</code> is missing or malformed (no <code>currencyCode</code>)</li>
+<li><code>offer.priceInfo.currencyCode</code> is missing or empty</li>
 <li>A JSON-LD block for this page URL already exists in <code>&lt;head&gt;</code></li>
 </ul>
 <p>A console warning is emitted when the currency code is missing.</p>
@@ -201,7 +201,7 @@
     <span class="hljs-attr">priceDetails</span>: { <span class="hljs-attr">price</span>: <span class="hljs-number">22.99</span> },
     <span class="hljs-attr">commitment</span>: <span class="hljs-string">&#x27;YEAR&#x27;</span>,
     <span class="hljs-attr">term</span>: <span class="hljs-string">&#x27;MONTHLY&#x27;</span>,
-    <span class="hljs-attr">analytics</span>: <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>({ <span class="hljs-attr">currencyCode</span>: <span class="hljs-string">&#x27;USD&#x27;</span> }),
+    <span class="hljs-attr">priceInfo</span>: { <span class="hljs-attr">currencyCode</span>: <span class="hljs-string">&#x27;USD&#x27;</span> },
 };
 
 <span class="hljs-title function_">injectJsonLd</span>(fields, offer, <span class="hljs-literal">null</span>, <span class="hljs-variable language_">window</span>.<span class="hljs-property">location</span>.<span class="hljs-property">href</span>);

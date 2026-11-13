@@ -99,15 +99,15 @@ describe('pipeline end to end', () => {
         const [miss, ...others] = summary('cache miss');
         expect(others).to.be.empty;
         expect(miss).to.match(
-            /cache miss req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| timings \(time and duration\) .*main-fetch-fragment t:.* \| memory: /,
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache miss req-some-en-us-fragment-fr_FR \| timings \(time and duration\) .*main-fetch-fragment t:.* \| memory: /,
         );
         const hits = summary('cache hit');
         expect(hits).to.have.lengthOf(2);
         expect(hits[0]).to.match(
-            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: .*, limit [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: /,
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) \| memory: .*, limit [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: /,
         );
         expect(hits[1]).to.match(
-            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 304 in [\d.]+ms \| memory: /,
+            /-> 304 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) \| memory: /,
         );
         expect(hits[1]).not.to.include('timings');
     });
@@ -145,7 +145,7 @@ describe('pipeline end to end', () => {
         const lines = output.getCalls().map(({ args }) => args[0]);
         expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
         expect(lines.find((line) => line.includes('cache joined'))).to.match(
-            /cache joined req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /,
+            /-> 304 in [\d.]+ms \| cache joined req-some-en-us-fragment-fr_FR \| memory: /,
         );
     });
 
@@ -194,7 +194,7 @@ describe('pipeline end to end', () => {
             expect(lines.filter((line) => line.includes('cache stale-error'))).to.have.lengthOf(1);
             expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
             expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
-                /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\) -> 200 in /,
+                /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\) \| /,
             );
         });
     }
@@ -250,7 +250,7 @@ describe('pipeline end to end', () => {
             const hits = lines.filter((line) => line.includes('cache hit'));
             expect(hits).to.have.lengthOf(2);
             expect(hits[0]).to.match(
-                /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\) -> 200 /,
+                /-> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\) \| /,
             );
             // the memory copy was updated by the re-read
             expect(hits[1]).not.to.include('re-read from State');
@@ -368,7 +368,7 @@ describe('pipeline end to end', () => {
             expect(second.headers.ETag).to.equal('old-hash');
             const stale = lines.find((line) => line.includes('cache stale'));
             expect(stale).to.match(
-                /cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\) -> 200 in [\d.]+ms \| memory: /,
+                /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\) \| memory: /,
             );
             expect(stale).to.match(detail);
         });

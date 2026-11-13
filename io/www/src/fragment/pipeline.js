@@ -174,21 +174,17 @@ async function main(params) {
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const { duration } = measureTiming(context, 'pipeline', 'start');
-    const { statusCode } = returnValue;
+    const completed = `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.statusCode} in ${duration}ms`;
+    const outcome = cache ? `cache ${cache} ${requestKey}${cacheDetail ? ` (${cacheDetail})` : ''} | ` : '';
+    // a stored response only reports its cache outcome; a built one also reports the timings of its steps
     if (cache && cache !== 'miss') {
-        const detail = cacheDetail ? ` (${cacheDetail})` : '';
-        log(`cache ${cache} ${requestKey}${detail} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
+        log(`${completed} | ${outcome}${memoryUsage()}`, context);
         return returnValue;
     }
     const measures = context.measures
         .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
         .join('|');
-    const timings = `timings (time and duration) region: ${region}: ${measures} | ${memoryUsage()}`;
-    if (cache === 'miss') {
-        log(`cache miss ${requestKey} -> ${statusCode} in ${duration}ms | ${timings}`, context);
-        return returnValue;
-    }
-    log(`pipeline completed: ${context.id} ${context.locale} -> ${statusCode} in ${duration}ms | ${timings}`, context);
+    log(`${completed} | ${outcome}timings (time and duration) region: ${region}: ${measures} | ${memoryUsage()}`, context);
     return returnValue;
 }
 

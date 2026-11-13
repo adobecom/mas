@@ -17,13 +17,13 @@ describe('request metadata key', () => {
 
     it('keys a request without id by its offer, template & surface', async () => {
         const key = await requestKey({ offer: 'some-osi', template: 'plans', surface: 'acom', locale: 'en_US' });
-        expect(key).to.equal('req-offer-en_US-o_some-osi-t_plans-s_acom');
+        expect(key).to.equal('req-.offer-en_US.o-some-osi.t-plans.s-acom');
     });
 
     it('keeps an offer override of a fragment apart from the fragment itself', async () => {
         const fragment = await requestKey({ id: 'some-id', locale: 'en_US' });
         const overridden = await requestKey({ id: 'some-id', locale: 'en_US', offer: 'some-osi' });
-        expect(overridden).to.equal('req-some-id-en_US-o_some-osi');
+        expect(overridden).to.equal('req-some-id-en_US.o-some-osi');
         expect(overridden).to.not.equal(fragment);
     });
 
@@ -34,6 +34,22 @@ describe('request metadata key', () => {
             requestKey({ offer: 'some-osi', template: 'plans', surface: 'ccd', locale: 'en_US' }),
         ]);
         expect(new Set(keys).size).to.equal(3);
+    });
+
+    it('never collides when a parameter value contains another tagged parameter', async () => {
+        const masked = await requestKey({ id: 'some-id', locale: 'en_US', pzn: 'edu', mask: 'catalog' });
+        const unmasked = await requestKey({ id: 'some-id', locale: 'en_US', pzn: 'edu-m_catalog' });
+        expect(masked).to.equal('req-some-id-en_US.p-edu.m-catalog');
+        expect(unmasked).to.equal('req-some-id-en_US.p-edu-m_catalog');
+    });
+
+    it('escapes the separator and characters not allowed in State keys', async () => {
+        const key = await requestKey({ id: 'some.id', locale: 'en_US', pzn: 'edu,team', mask: 'a.m-b' });
+        expect(key).to.equal('req-some.2Eid-en_US.p-edu.2Cteam.m-a.2Em-b');
+        expect(key).to.match(/^[a-zA-Z0-9_.-]+$/);
+        expect(await requestKey({ id: 'offer', locale: 'en_US', offer: 'o' })).to.not.equal(
+            await requestKey({ locale: 'en_US', offer: 'o' }),
+        );
     });
 });
 

@@ -2,17 +2,21 @@ import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log, logError } from './log.js';
 import { createSwrCache } from './swr-cache.js';
+// Escaped as in URLs, with `.` instead of `%` (State keys only allow letters, digits, `-`, `_` and `.`): in a key, `.`
+// is then either an escape (followed by 2 uppercase hex digits) or the start of a tagged parameter (lowercase tag).
+const escapeKeyValue = (value) =>
+    encodeURIComponent(value)
+        .replace(/[.!~*'()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+        .replaceAll('%', '.');
+
+// e.g. `req-<id>-fr_FR-CA.p-edu.m-catalog`, or `req-.offer-en_US.o-<offer>.t-plans.s-acom` without a fragment id
 const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template, surface }) => {
     const geo = geoCacheKey(locale, country);
-    const suffixes = [
-        geo.country,
-        pzn && `p_${pzn}`,
-        mask && `m_${mask}`,
-        offer && `o_${offer}`,
-        template && `t_${template}`,
-        surface && `s_${surface}`,
-    ];
-    return [`req-${id ?? 'offer'}-${geo.locale}`, ...suffixes].filter(Boolean).join('-');
+    const fragment = [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country].filter(Boolean).join('-');
+    const parameters = Object.entries({ p: pzn, m: mask, o: offer, t: template, s: surface })
+        .filter(([, value]) => value)
+        .map(([tag, value]) => `.${tag}-${escapeKeyValue(value)}`);
+    return [fragment, ...parameters].join('');
 };
 
 // Memory copies of the State values, re-read from State at most every minute or so per container.

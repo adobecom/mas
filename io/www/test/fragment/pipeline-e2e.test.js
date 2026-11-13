@@ -104,7 +104,7 @@ describe('pipeline end to end', () => {
         const hits = summary('cache hit');
         expect(hits).to.have.lengthOf(2);
         expect(hits[0]).to.match(
-            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: .*, limit [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in /,
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: .*, limit [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: /,
         );
         expect(hits[1]).to.match(
             /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 304 in [\d.]+ms \| memory: /,
@@ -514,7 +514,7 @@ describe('pipeline end to end', () => {
             pzn: 'segment-A',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.p-segment-A');
     });
 
     function stubMask(fetchStub) {
@@ -556,7 +556,7 @@ describe('pipeline end to end', () => {
         expect(result.body.id).to.equal('some-fr-fr-fragment');
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.m-black-friday');
     });
 
     it('masks every card of a collection and keys the cache on the mask', async () => {
@@ -614,7 +614,7 @@ describe('pipeline end to end', () => {
             expect(result.body.references[id].value.maskId).to.equal('mask-holiday-id');
             expect(result.body.references[id].value.fields.badge).to.equal('MASKED');
         }
-        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR-m_holiday');
+        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR.m-holiday');
     });
 
     it('should replace fragment placeholders with values from mask variables', async () => {

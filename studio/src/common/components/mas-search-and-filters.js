@@ -234,7 +234,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get #syncsFiltersToStore() {
-        return this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.BASELINES;
+        return this.type === TABLE_TYPE.CARDS || (this.type === TABLE_TYPE.BASELINES && !this.searchOnly);
     }
 
     #isFilterEnabled(filterType) {
@@ -450,7 +450,7 @@ class MasSearchAndFilters extends LitElement {
 
     get #listStore() {
         if (this.type === TABLE_TYPE.PLACEHOLDERS) return Store.placeholders.list;
-        if (this.type === TABLE_TYPE.BASELINES) return Store.baselines.list;
+        if (this.type === TABLE_TYPE.BASELINES) return this.itemsSelection.value.baselinesList ?? Store.baselines.list;
         return Store.fragments.list;
     }
 

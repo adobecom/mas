@@ -1525,7 +1525,7 @@ describe('MasFragmentEditor', () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragmentWithVariations: sandbox.stub().resolves(),
+                deleteFragmentWithVariations: sandbox.stub().resolves({ success: true, failedVariations: [] }),
                 deleteVariationFragment: sandbox.stub().resolves({ deleted: true, failedVariations: [] }),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);

@@ -512,6 +512,36 @@ describe('promotion-publish-utils', () => {
             ).to.be.true;
         });
 
+        it('reports a variation shortfall without republishing the project when a later batch fails', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
+            const variationPaths = ['/v/1', '/v/2', '/v/3'];
+            const publish = sinon.stub().resolves();
+            const getWithEtag = sinon
+                .stub()
+                .callsFake(async (id) => ({ id, path: id === 'promo-1' ? promotionPath : id, etag: id }));
+            const getByPath = sinon.stub().callsFake(async (path) => ({ id: path, path }));
+            const publishFragments = sinon.stub().callsFake(async (fragments) => {
+                const error = new Error('Failed to publish fragments: 412 Precondition Failed');
+                error.publishedFragments = fragments.slice(0, 2);
+                throw error;
+            });
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: { sites: { cf: { fragments: { publish, publishFragments, getWithEtag, getByPath } } } },
+                processError: sinon.stub(),
+                clearStagedTag: sinon.stub().resolves(),
+            };
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+
+            const ok = await publishPromotionProject(repo, { id: 'promo-1', path: promotionPath }, variationPaths);
+
+            expect(ok).to.be.true;
+            expect(publish.called).to.be.false;
+            expect(repo.processError.called).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'warning', content: promotionPublishShortfallMessage(2) }))).to
+                .be.true;
+        });
+
         it('rethrows and reports project failure when the batch publish call fails for a non-conflict reason, without falling back', async () => {
             const promotionPath = '/content/dam/mas/promotions/project';
             const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';

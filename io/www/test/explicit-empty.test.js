@@ -35,8 +35,22 @@ describe('explicit-empty sentinel', () => {
             expect(isExplicitEmptyField('image')).to.be.true;
         });
 
+        it('returns true for optional card text fields', () => {
+            for (const field of ['subtitle', 'promoText', 'callout', 'shortDescription', 'backgroundImage']) {
+                expect(isExplicitEmptyField(field), field).to.be.true;
+            }
+        });
+
+        it('returns false for template-required fields', () => {
+            for (const field of ['cardTitle', 'description', 'prices', 'ctas']) {
+                expect(isExplicitEmptyField(field), field).to.be.false;
+            }
+        });
+
         it('returns false for non-allowed fields', () => {
             expect(isExplicitEmptyField('promoCode')).to.be.false;
+            expect(isExplicitEmptyField('addon')).to.be.false;
+            expect(isExplicitEmptyField('osi')).to.be.false;
             expect(isExplicitEmptyField('')).to.be.false;
         });
     });

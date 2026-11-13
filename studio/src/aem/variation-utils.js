@@ -1,4 +1,5 @@
 import { fieldValuesArePersistedExplicitEmpty } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { Fragment } from './fragment.js';
 
 /**
  * Whether a variation field should inherit parent values in preview merge.
@@ -17,4 +18,55 @@ export function variationFieldShouldInheritParent(sourceValues, isMultiple = fal
         return false;
     }
     return sourceValues.length === 1 && sourceValues[0] === '' && !isMultiple;
+}
+
+/**
+ * Fills the empty fields of preview data with the parent values (in place). Fields listed in `arraysToMerge` keep their
+ * own values after the parent ones, as `deepMerge` of the `customize` transformer does.
+ * @param {{ fields: Array }} previewData
+ * @param {{ fields?: Array }} parentFragment
+ * @param {string[]} [arraysToMerge]
+ * @returns {{ fields: Array }} previewData
+ */
+export function mergeParentFields(previewData, parentFragment, arraysToMerge = []) {
+    for (const parentField of parentFragment.fields ?? []) {
+        if (!parentField.values?.length) continue;
+        const sourceField = previewData.fields.find((field) => field.name === parentField.name);
+        if (!variationFieldShouldInheritParent(sourceField?.values, sourceField?.multiple === true)) {
+            if (arraysToMerge.includes(parentField.name)) sourceField.values = [...parentField.values, ...sourceField.values];
+            continue;
+        }
+        if (sourceField) {
+            sourceField.values = [...parentField.values];
+        } else {
+            previewData.fields.push({ ...parentField });
+        }
+    }
+    return previewData;
+}
+
+/**
+ * The fragment a card inherits its empty fields from: its merged baselines, under its locale default fragment for a
+ * variation (baselines < locale default < card, like the delivery pipeline).
+ * @param {Fragment | null} parentFragment
+ * @param {Fragment | null} baselineParent
+ * @returns {Fragment | null}
+ */
+export function buildInheritanceParent(parentFragment, baselineParent) {
+    if (!parentFragment || !baselineParent) return parentFragment ?? baselineParent;
+    return new Fragment(mergeParentFields(structuredClone({ fields: parentFragment.fields }), baselineParent));
+}
+
+/**
+ * `buildInheritanceParent`, rebuilt only when the parent or the baselines change.
+ * @returns {(parentFragment: Fragment | null, baselineParent: Fragment | null) => Fragment | null}
+ */
+export function cachedInheritanceParent() {
+    let cached = {};
+    return (parentFragment, baselineParent) => {
+        if (cached.parentFragment !== parentFragment || cached.baselineParent !== baselineParent) {
+            cached = { parentFragment, baselineParent, fragment: buildInheritanceParent(parentFragment, baselineParent) };
+        }
+        return cached.fragment;
+    };
 }

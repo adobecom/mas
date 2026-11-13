@@ -1,5 +1,6 @@
 import { parseFragment } from 'parse5';
-import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from '../../../../../price/src/index.js';
+import { applyPlanType, selectOffers, sumOffers } from '../../../../../price/src/offers.js';
+import { buildPriceHTML } from '../../../../../price/src/price.js';
 import { log, logError } from '../utils/log.js';
 
 const REQUIRED_OPTIONS = [

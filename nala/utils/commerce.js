@@ -57,6 +57,8 @@ const DOCS_GALLERY_PATH = {
         AR_ES_co: '/web-components/docs/plans-collection.html?locale=es_ES&country=AR',
         AR_ES: '/web-components/docs/plans-collection.html?locale=es_AR',
     },
+    PRO: '/web-components/docs/pro.html',
+    PRODUCT_PRICING: '/web-components/docs/product-pricing.html',
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',
     PRODUCT: '/web-components/docs/product.html',

@@ -110,7 +110,7 @@ export class OstPlaceholderPanel extends LitElement {
 
     applyDeepLink() {
         if (this.deepLinkApplied) return;
-        const config = this.getRootNode()?.host?.config;
+        const config = this.getRootNode()?.host?.getRootNode()?.host?.config;
         if (config?.initialReferenceOsi) {
             this.deepLinkApplied = true;
             this.referenceOsi = config.initialReferenceOsi;
@@ -122,7 +122,7 @@ export class OstPlaceholderPanel extends LitElement {
     }
 
     renderRow(type, group) {
-        const isDiscount = type.type === 'discount';
+        const isDiscount = type.type === 'discount' || type.type === 'discount-amount';
         const isCheckoutUrl = type.type === 'checkoutUrl';
         const rowReferenceOsi = isDiscount ? this.referenceOsi : '';
         const roleSuffix = group.role === 'trial' || group.role === 'buy' ? `-${group.role}` : '';

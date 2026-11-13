@@ -7,7 +7,7 @@ regeneration:
     max_candidates: 5
 
 # Checked-in build outputs that ship with any src change. dist-sync rebuilds
-# and compares them; the adversary skips them by default.
+# them (CI commits them on the PR); the adversary skips them by default.
 generated:
     - 'web-components/dist/**'
     - 'web-components/docs/**'
@@ -77,14 +77,14 @@ gates:
 
     dist-sync:
         template: command
-        name: Built artifacts in sync (web-components)
+        name: Rebuild web-components artifacts
         # Demo pages load the checked-in dist/mas.js, so a stale bundle hides
-        # src changes from the visual gate. Mirrors CI's web-components-pr check.
+        # src changes from the visual gate. Must run before it. Drift is not a
+        # failure: CI rebuilds and commits dist on the PR.
         cmd: bash .pinata/scripts/check-dist-sync.sh
         timeout_s: 300
         blocking: true
-        # A repair step can't rebuild the bundle (the missing dist files sit
-        # outside its mutation boundary), so the producer redoes the candidate.
+        # Only a failing build lands here; the producer redoes the candidate.
         failure_route: regenerate
 
     visual:

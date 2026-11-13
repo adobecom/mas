@@ -133,6 +133,7 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    PROMOTIONS_HISTORY: 'promotions-history',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
     AI_ASSISTANT: 'ai-assistant',
@@ -177,6 +178,44 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+
+const TITLE_DESCRIPTION_PRICES_CTAS = ['cardTitle', 'description', 'prices', 'ctas'];
+
+/**
+ * Editor fields each card template requires, among the ones it has. On a card inheriting from baselines, a cleared required
+ * field stays empty & blocks saving; elsewhere, it stores `''` and inherits.
+ */
+export const TEMPLATE_REQUIRED_FIELDS = {
+    'plans-v2': TITLE_DESCRIPTION_PRICES_CTAS,
+    pro: TITLE_DESCRIPTION_PRICES_CTAS,
+    product: TITLE_DESCRIPTION_PRICES_CTAS,
+    'brand-concierge-product': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-pricing': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-c2': ['description', 'prices', 'ctas'],
+    segment: TITLE_DESCRIPTION_PRICES_CTAS,
+    image: TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart': TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart-mweb': TITLE_DESCRIPTION_PRICES_CTAS,
+    'full-pricing-express': TITLE_DESCRIPTION_PRICES_CTAS,
+    headless: TITLE_DESCRIPTION_PRICES_CTAS,
+    media: ['cardTitle', 'description', 'ctas'],
+    'compare-chart-column': TITLE_DESCRIPTION_PRICES_CTAS,
+    marquee: TITLE_DESCRIPTION_PRICES_CTAS,
+    faq: ['description', 'prices'],
+    'banner-blade': ['cardTitle', 'description', 'ctas'],
+    plans: ['cardTitle', 'prices', 'ctas'],
+    'plans-students': ['cardTitle', 'prices', 'ctas'],
+    'plans-education': ['cardTitle', 'prices', 'ctas'],
+    fries: ['cardTitle', 'description', 'ctas'],
+    mini: ['cardTitle', 'ctas'],
+    'ccd-slice': ['description', 'ctas'],
+    'ccd-suggested': ['cardTitle', 'ctas'],
+    'special-offers': ['cardTitle', 'prices', 'ctas'],
+    catalog: ['cardTitle', 'description', 'ctas'],
+    'ah-try-buy-widget': ['cardTitle', 'description', 'ctas'],
+    'ah-promoted-plans': ['cardTitle', 'description', 'ctas'],
+    'simplified-pricing-express': ['cardTitle', 'description', 'prices', 'ctas'],
+};
 // Plain model paths for the project types. The *_MODEL_ID constants above are the base64 of these
 // same paths (the form the fragment-model API uses), but the referencedBy endpoint returns
 // model.path as the plain path — so reference classification matches on these, like cards/collections.
@@ -269,6 +308,7 @@ export const VARIATION_TYPES = {
 export const PZN_FOLDER = 'pzn';
 
 export const BASELINES_FOLDER = 'baselines';
+export const MAS_OFFERS_URL = 'https://www.adobe.com/mas/io/offers?api_key=CreativeCloud_v6_9&locale=en_US&id';
 export const BASELINE_SOURCE_LOCALE = 'en_US';
 
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
@@ -308,6 +348,14 @@ export const SURFACES = {
     COMMERCE: {
         label: 'Commerce',
         name: 'commerce',
+    },
+    DALP: {
+        label: 'DALP',
+        name: 'dalp',
+    },
+    ELEMENTS: {
+        label: 'Elements',
+        name: 'elements',
     },
     EXPRESS: {
         label: 'Express',
@@ -358,6 +406,8 @@ export const FILTER_TYPE = {
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',
+    PRODUCT_ARRANGEMENT_CODE: 'productArrangementCode',
+    CREATED_BY: 'createdBy',
 };
 
 export const FRAGMENT_STATUS = {
@@ -381,6 +431,7 @@ export const TABLE_TYPE = {
     CARDS: 'cards',
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
+    BASELINES: 'baselines',
 };
 
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];

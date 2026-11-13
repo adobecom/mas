@@ -1,5 +1,6 @@
 import { mock } from 'node:test';
-import { buildPriceHTML, selectOffers, sumOffers } from '../src/index.js';
+import { buildPriceHTML } from '../src/price.js';
+import { selectOffers, sumOffers } from '../src/offers.js';
 import { parityCases, instant } from './fixtures/cases.js';
 import { selectionCases, summationCases } from './fixtures/offer-cases.js';
 

@@ -2744,6 +2744,42 @@ describe('processImage (marquee)', () => {
     });
 });
 
+describe('hydrate (marquee callout)', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('marquee callout maps into div[slot="callout-content"]', async () => {
+        processDescription(
+            { callout: '<p>Limited-time offer</p>' },
+            merchCard,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+        );
+        const callout = merchCard.querySelector('div[slot="callout-content"]');
+        expect(callout).to.exist;
+        expect(callout.textContent.trim()).to.equal('Limited-time offer');
+        const keys = Object.keys(MARQUEE_AEM_FRAGMENT_MAPPING);
+        expect(keys.indexOf('callout')).to.equal(
+            keys.indexOf('shortDescription') + 1,
+        );
+    });
+
+    it('marquee with empty callout renders no callout-content slot', async () => {
+        processDescription(
+            { callout: '' },
+            merchCard,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="callout-content"]')).to.be.null;
+    });
+});
+
 describe('processBackgrounds (marquee)', () => {
     it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
         const el = document.createElement('div');

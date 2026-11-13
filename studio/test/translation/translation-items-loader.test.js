@@ -24,6 +24,9 @@ describe('translation-items-loader', () => {
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.cardsByPaths.set(new Map());
         Store.translationProjects.displayCards.set([]);
+        Store.translationProjects.baselinesList.data.set([]);
+        Store.translationProjects.allBaselines.set([]);
+        Store.translationProjects.displayBaselines.set([]);
         setCardVariationsByPaths(new Map(), Store.translationProjects);
         Store.translationProjects.allCollections.set([]);
         Store.translationProjects.collectionsByPaths.set(new Map());
@@ -171,6 +174,40 @@ describe('translation-items-loader', () => {
     });
 
     describe('loadAllFragments', () => {
+        it('loads baselines without WCS enrichment and keeps them outside the regular card list', () => {
+            const baseline = new Fragment({
+                path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'osi', values: ['baseline-osi'] }],
+            });
+            const service = document.querySelector('mas-commerce-service');
+            const subscription = loadAllFragments(
+                TABLE_TYPE.BASELINES,
+                null,
+                {},
+                {
+                    getDisplayName: mockGetDisplayName,
+                    store: Store.translationProjects,
+                },
+            );
+            try {
+                Store.translationProjects.baselinesList.data.set([{ value: baseline }]);
+
+                expect(Store.translationProjects.allBaselines.get().map(({ path }) => path)).to.deep.equal([baseline.path]);
+                expect(Store.translationProjects.cardsByPaths.get().get(baseline.path).studioPath).to.equal(
+                    mockGetDisplayName(),
+                );
+                expect(Store.translationProjects.allCards.get()).to.deep.equal([]);
+                expect(service.resolveOfferSelectors.called).to.be.false;
+                subscription.unsubscribe();
+                Store.translationProjects.baselinesList.data.set([]);
+                expect(Store.translationProjects.allBaselines.get()).to.have.lengthOf(1);
+            } finally {
+                subscription.unsubscribe();
+                Store.translationProjects.baselinesList.data.set([]);
+            }
+        });
+
         for (const name of ['promotions', 'translationProjects', 'compareChart', 'collectionCards', 'bulkPublishProjects']) {
             it(`restarts cancelled WCS loading without a partial cache in ${name}`, async () => {
                 const store = Store[name];

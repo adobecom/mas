@@ -31,11 +31,8 @@ import {
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
-import {
-    sumOffers,
-    selectOffers,
-    buildPriceHTML as sharedBuildPriceHTML,
-} from '../../price/src/index.js';
+import { sumOffers, selectOffers } from '../../price/src/offers.js';
+import { buildPriceHTML as sharedBuildPriceHTML } from '../../price/src/price.js';
 import { Log } from '../src/log.js';
 import {
     cases,
@@ -95,39 +92,45 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.options).to.be.not.empty;
     });
 
-    it('re-dispatches click event', async () => {
+    it('does not attach a click listener when not inside a link or CTA', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('puf2', 'puf');
-        let targetIsInlinePrice = false;
-        inlinePrice.addEventListener(
-            'click',
-            (event) => {
-                targetIsInlinePrice = event.target === inlinePrice;
-            },
-            { once: true },
-        );
+        const targets = [];
+        inlinePrice.addEventListener('click', (event) => {
+            targets.push(event.target);
+        });
         await inlinePrice.onceSettled();
-        inlinePrice.firstElementChild.dispatchEvent(
+        const child = inlinePrice.firstElementChild;
+        child.dispatchEvent(
             new MouseEvent('click', {
                 bubbles: true,
                 cancelable: true,
                 view: window,
             }),
         );
-        expect(targetIsInlinePrice).to.be.true;
+        expect(targets).to.deep.equal([child]);
+        inlinePrice.dispatchEvent(
+            new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+            }),
+        );
+        expect(targets).to.deep.equal([child, inlinePrice]);
     });
 
-    it('re-dispatches click event', async () => {
+    it('attaches the click listener when inside a link or CTA and click-dependent behavior still works', async () => {
         await initMasCommerceService();
-        const inlinePrice = mockInlinePrice('puf3', 'puf');
-        let targetIsInlinePrice = false;
-        inlinePrice.addEventListener(
-            'click',
-            (event) => {
-                targetIsInlinePrice = event.target === inlinePrice;
-            },
-            { once: true },
-        );
+        const anchor = document.createElement('a');
+        anchor.href = '#';
+        const inlinePrice = InlinePrice.createInlinePrice({ wcsOsi: 'puf' });
+        anchor.append(inlinePrice);
+        document.body.append(anchor);
+        const targets = [];
+        anchor.addEventListener('click', (event) => {
+            event.preventDefault();
+            targets.push(event.target);
+        });
         await inlinePrice.onceSettled();
         inlinePrice.firstElementChild.dispatchEvent(
             new MouseEvent('click', {
@@ -136,7 +139,8 @@ describe('class "InlinePrice"', () => {
                 view: window,
             }),
         );
-        expect(targetIsInlinePrice).to.be.true;
+        expect(targets).to.deep.equal([inlinePrice]);
+        anchor.remove();
     });
 
     it('renders strikethrough price', async () => {

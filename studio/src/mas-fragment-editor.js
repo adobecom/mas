@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { Fragment } from './aem/fragment.js';
+import { DEFAULT_MARKET_SEGMENT, parseBaselinePath } from './baselines/baseline-model.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
@@ -518,6 +519,56 @@ export default class MasFragmentEditor extends LitElement {
         .locale-variation-header strong {
             font-weight: 700;
             color: var(--spectrum-global-color-gray-900);
+        }
+
+        .baseline-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 16px;
+            border: 1px solid var(--spectrum-purple-400, #dbbbfe);
+            border-left: 4px solid var(--spectrum-purple-700, #ae72f9);
+            border-radius: 8px;
+            background-color: var(--spectrum-purple-100, #f6ebff);
+            color: var(--spectrum-purple-900, #893de7);
+            font-size: 14px;
+            line-height: 20px;
+        }
+
+        .baseline-banner-header {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .baseline-banner-hint {
+            color: var(--spectrum-purple-800, #9d57f4);
+        }
+
+        .baseline-banner-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 24px;
+            margin: 0;
+        }
+
+        .baseline-banner-details div {
+            display: flex;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .baseline-banner-details dt {
+            color: var(--spectrum-purple-800, #9d57f4);
+        }
+
+        .baseline-banner-details dd {
+            margin: 0;
+            font-weight: 700;
+            overflow-wrap: anywhere;
         }
 
         #author-path {
@@ -1650,12 +1701,14 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                const { deleted, failedVariations, parentUpdateFailed } = await promotionsRepository.deletePromotionFragment(
+                    this.repository,
                     this.fragment,
-                    {
-                        localeDefaultFragment,
-                        promoVariationPaths: this.variationsToDelete,
-                    },
+                    () =>
+                        this.repository.deleteVariationFragment(this.fragment, {
+                            localeDefaultFragment,
+                            promoVariationPaths: this.variationsToDelete,
+                        }),
                 );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
@@ -1671,7 +1724,9 @@ export default class MasFragmentEditor extends LitElement {
                     showToast('Fragment successfully deleted.', 'positive');
                 }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
+                await promotionsRepository.deletePromotionFragment(this.repository, this.fragment, () =>
+                    this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete),
+                );
             }
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
@@ -1777,19 +1832,20 @@ export default class MasFragmentEditor extends LitElement {
                 showToast('You do not have permission to update promo variations.', 'negative');
                 return;
             }
+            if (this.#rejectEmptyRequiredFields()) return;
             if (this.fragment?.model?.path === CARD_MODEL_PATH) {
                 migrateLegacyVariant(this.fragmentStore);
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
-                const savedCard = await this.repository.saveFragment(cardFragmentStore, {
+                const savedCard = await promotionsRepository.savePromotionFragment(this.repository, cardFragmentStore, {
                     withToast: false,
                     refetchEtag: false,
                 });
                 if (!savedCard) return;
             }
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
-            const savedFragment = await this.repository.saveFragment(this.fragmentStore, {
+            const savedFragment = await promotionsRepository.savePromotionFragment(this.repository, this.fragmentStore, {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
@@ -1804,6 +1860,14 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    /** Shows an error when template-required fields are empty, as the card cannot be saved then. */
+    #rejectEmptyRequiredFields() {
+        const emptyRequiredFields = this.querySelector('merch-card-editor')?.emptyRequiredFields ?? [];
+        if (!emptyRequiredFields.length) return false;
+        showToast(`Fill in the required fields: ${emptyRequiredFields.join(', ')}.`, 'negative');
+        return true;
+    }
+
     get canPublishFragment() {
         if (this.isPromotionProject) {
             return canManagePromotions();
@@ -1816,6 +1880,8 @@ export default class MasFragmentEditor extends LitElement {
             showToast('You do not have permission to publish this content.', 'negative');
             return;
         }
+        // Publishing a staged card saves its pending changes (clearStagedTag), so it needs the save validation.
+        if (this.fragment?.isStaged && this.#rejectEmptyRequiredFields()) return;
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
             let publishOptions;
@@ -2117,8 +2183,38 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    displayBaselineInfo(clazz) {
+        const { template, productArrangementCode, marketSegment } = parseBaselinePath(this.fragment.path) ?? {};
+        const templateLabel = VARIANTS.find(({ value }) => value === template)?.label ?? template;
+        return html`<div class="${clazz}">
+            <section class="baseline-banner" aria-label="Baseline">
+                <div class="baseline-banner-header">
+                    <sp-badge size="s" variant="purple">Baseline</sp-badge>
+                    <span class="baseline-banner-hint">Cards with this offer and template inherit its values (if enabled)</span>
+                </div>
+                <dl class="baseline-banner-details">
+                    <div>
+                        <dt>Template</dt>
+                        <dd>${templateLabel}</dd>
+                    </div>
+                    <div>
+                        <dt>PA code</dt>
+                        <dd>${productArrangementCode}</dd>
+                    </div>
+                    <div>
+                        <dt>Market segment</dt>
+                        <dd>${(marketSegment ?? DEFAULT_MARKET_SEGMENT).toUpperCase()}</dd>
+                    </div>
+                </dl>
+            </section>
+        </div>`;
+    }
+
     variationTypeHeader(clazz) {
         if (!this.fragment) return nothing;
+        if (Fragment.isBaselinePath(this.fragment.path)) {
+            return this.displayBaselineInfo(clazz);
+        }
         if (this.isPromoVariationFragment()) {
             return this.displayPromoVariationInfo(clazz);
         }
@@ -2130,6 +2226,7 @@ export default class MasFragmentEditor extends LitElement {
 
     showsPreviewVariationTypeHeader() {
         if (!this.fragment) return false;
+        if (Fragment.isBaselinePath(this.fragment.path)) return true;
         if (this.isPromoVariationFragment()) return true;
         return this.editorContextStore.isVariation(this.fragment.id);
     }
@@ -2144,6 +2241,9 @@ export default class MasFragmentEditor extends LitElement {
     get localeVariationHeader() {
         if (!this.fragment) {
             return nothing;
+        }
+        if (Fragment.isBaselinePath(this.fragment.path)) {
+            return this.displayBaselineInfo('locale-variation-header');
         }
         if (this.isPromoVariationFragment()) {
             return this.promoVariationGeosTemplate;

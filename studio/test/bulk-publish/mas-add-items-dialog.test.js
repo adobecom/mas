@@ -78,5 +78,6 @@ describe('mas-add-items-dialog store reset', () => {
         const search = el.shadowRoot.querySelector('mas-search-and-filters:not([search-only])');
         expect(search).to.exist;
         expect(search.hasAttribute('hidden')).to.equal(false);
+        expect(search.enabledFilters).to.include('createdBy');
     });
 });

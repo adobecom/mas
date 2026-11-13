@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plan } from './run-affected-tests.mjs';
+import { diffBase, plan } from './run-affected-tests.mjs';
 
 const studioTests = {
     'studio/test/constants/icon-library.test.js': "import '../../src/constants/icon-library.js'",
@@ -40,3 +40,16 @@ test('studio libs run the whole studio suite', () =>
 
 test('whole studio suite runs from the studio directory', () =>
     assert.equal(plan(['studio/libs/swc.js'], studioTests)[1].cwd, 'studio'));
+
+test('io/www installs its own deps and runs its suite', () =>
+    assert.deepEqual(
+        plan(['io/www/src/fragment/transformers/replace.js'], studioTests).map(({ argv, cwd }) => `${cwd}: ${argv.join(' ')}`),
+        ['io/www: npm ci', 'io/www: npm run test:ci'],
+    ));
+
+test('diffs against main when it is there, else the parent commit Pinata adds', () => {
+    const has = (refs) => (ref) => refs.includes(ref);
+    assert.equal(diffBase(has(['origin/main', 'HEAD~1'])), 'origin/main');
+    assert.equal(diffBase(has(['HEAD~1'])), 'HEAD~1');
+    assert.equal(diffBase(has([])), 'HEAD');
+});

@@ -52,6 +52,7 @@ import {
 } from './promotions/promotion-model.js';
 import { VARIATION_FILTER } from './fragments/variation-filter.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { loadBaselines } from './baselines/baseline-model.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 
 async function confirmReferenceDiagnosis(aem, roots) {
@@ -171,6 +172,7 @@ export class MasRepository extends LitElement {
             collections: null,
             bulkPublish: null,
             bulkEdit: null,
+            baselines: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -346,6 +348,15 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.bulkEdit = new AbortController();
                 loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
                 break;
+            case PAGE_NAMES.BASELINES:
+                this.#abortControllers.baselines?.abort();
+                this.#abortControllers.baselines = new AbortController();
+                loadBaselines(
+                    this,
+                    { surface: this.search.value.path, locale: this.filters.value.locale },
+                    this.#abortControllers.baselines,
+                );
+                break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
             case PAGE_NAMES.PROMOTIONS_EDITOR:
@@ -490,7 +501,6 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const lowerQuery = query?.toLowerCase() || '';
-        const createdByLc = createdBy.map((value) => value.toLowerCase());
         return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
@@ -499,10 +509,7 @@ export class MasRepository extends LitElement {
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (status.length && !status.includes(item.status)) return false;
-            if (createdByLc.length) {
-                const itemCreatedBy = (item.created?.by || '').toLowerCase();
-                if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
-            }
+            if (createdBy.length && !Fragment.isCreatedByAny(item, createdBy)) return false;
             if (this.#skipQuery(lowerQuery, item)) return false;
             return true;
         });
@@ -1509,7 +1516,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, options = {}) {
-        const { withToast = true, refetchEtag = true, errorMessage = 'Failed to save fragment.' } = options;
+        const { withToast = true, refetchEtag = true, expectedEtag, errorMessage = 'Failed to save fragment.' } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1544,7 +1551,10 @@ export class MasRepository extends LitElement {
                     () => this.loadPromotions(),
                 );
             }
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
+            const savedFragment = await this.aem.sites.cf.fragments.save(
+                expectedEtag ? { ...fragmentToSave, etag: expectedEtag } : fragmentToSave,
+                { refetchEtag: expectedEtag ? false : refetchEtag },
+            );
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -1660,13 +1670,15 @@ export class MasRepository extends LitElement {
 
     /**
      * @param {Fragment} fragment Fragment to publish
+     * @param {Object} [options={}] Publication options
+     * @param {boolean} [options.replicate=false] Activate only this fragment, ignoring selectedRefIds and allSelected
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
-        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false, replicate = false } = options;
         try {
             const roots = [
                 fragment,
@@ -1676,7 +1688,9 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
-            if (allSelected) {
+            if (replicate) {
+                await this.aem.replicateFragment(fragment);
+            } else if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);
@@ -1799,6 +1813,7 @@ export class MasRepository extends LitElement {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
 
+        const fragments = [];
         try {
             const listStores = Store.fragments.list.data.get();
             const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
@@ -1806,7 +1821,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
                 if (!fragment?.etag) {
@@ -1842,7 +1856,20 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            this.processError(error, 'Failed to publish fragments.');
+            const published = error.publishedFragments ?? [];
+            if (!published.length) {
+                this.processError(error, 'Failed to publish fragments.');
+                return false;
+            }
+            console.error('Failed to publish fragments', error);
+            const listStores = Store.fragments.list.data.get();
+            await Promise.all(
+                published.map(({ id }) => {
+                    const store = findFragmentStoreById(id, listStores);
+                    return store ? this.refreshFragment(store) : Promise.resolve();
+                }),
+            );
+            showToast(`Published ${published.length} of ${fragments.length} fragment(s); the rest failed.`, 'negative');
             return false;
         } finally {
             this.operation.set(null);
@@ -1923,7 +1950,7 @@ export class MasRepository extends LitElement {
             paths,
             async (path) => {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path });
+                    await promotionsRepository.forceDeletePromoVariation(this, path);
                 } catch (error) {
                     console.error(`Failed to delete promo variation ${path}:`, error);
                     failedVariations.push(path);
@@ -1964,7 +1991,7 @@ export class MasRepository extends LitElement {
 
             for (const variationPath of variations) {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                    await promotionsRepository.forceDeletePromoVariation(this, variationPath);
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);
@@ -2273,7 +2300,9 @@ export class MasRepository extends LitElement {
                 const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
                     references: 'direct-hydrated',
                 });
-                if (fragment) return fragment;
+                if (!fragment) continue;
+                if (!Fragment.isGroupedVariationPath(fragment.path)) return fragment;
+                return await this.resolveHydratedParentFragment(fragment.path);
             }
             return null;
         }

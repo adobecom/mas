@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { escapeHtmlText, escapeHtmlAttr } = require('../../utils/escape.js');
+const { escapeHtmlText, escapeHtmlAttr, plainText } = require('../../utils/escape.js');
 
 test('escapeHtmlText escapes <, >, &', () => {
     assert.equal(escapeHtmlText('<script>'), '&lt;script&gt;');
@@ -43,4 +43,19 @@ test('escapeHtmlAttr ordering: & escaped before < to avoid double-encoding', () 
 
 test('escapeHtmlAttr handles surrogate pairs without splitting', () => {
     assert.equal(escapeHtmlAttr('🎉'), '🎉');
+});
+
+test('plainText drops the markup of a rich-text title', () => {
+    assert.equal(plainText('<strong>Create at the highest level.</strong>'), 'Create at the highest level.');
+});
+
+test('plainText decodes the entities rich text uses', () => {
+    assert.equal(
+        plainText('Save&nbsp;55% &amp; more &lt;now&gt; &quot;CC&quot; &#39;Pro&#39;'),
+        'Save 55% & more <now> "CC" \'Pro\'',
+    );
+});
+
+test('plainText handles empty and null safely', () => {
+    assert.deepEqual([plainText(''), plainText(null), plainText(undefined)], ['', '', '']);
 });

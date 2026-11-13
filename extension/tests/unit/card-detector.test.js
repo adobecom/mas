@@ -3,6 +3,34 @@ const assert = require('node:assert/strict');
 
 global.window = { MASLocales: require('../../utils/locales.js'), MASPromo: require('../../utils/promo.js') };
 global.document = { documentElement: { clientHeight: 800, clientWidth: 800 } };
+// ResizeObserver stand-in: notifyResize(target) plays the callback for every observer watching target.
+const resizeObservers = [];
+global.ResizeObserver = class {
+    constructor(callback) {
+        this.callback = callback;
+        this.targets = new Set();
+        resizeObservers.push(this);
+    }
+    observe(target) {
+        this.targets.add(target);
+    }
+    unobserve(target) {
+        this.targets.delete(target);
+    }
+};
+global.getComputedStyle = (element) => ({ display: element.display ?? 'block' });
+const watched = () => resizeObservers.reduce((count, observer) => count + observer.targets.size, 0);
+// Processing runs in an idle callback; the stand-in runs it at once.
+function notifyResize(target) {
+    global.requestIdleCallback = (callback) => callback({ timeRemaining: () => 50 });
+    try {
+        resizeObservers
+            .filter((observer) => observer.targets.has(target))
+            .forEach((observer) => observer.callback([{ target }]));
+    } finally {
+        delete global.requestIdleCallback;
+    }
+}
 const { CardDetector, DETECTABLE_TAGS, waitForDetectableElement } = require('../../utils/card-detector.js');
 
 const detector = new CardDetector();
@@ -414,6 +442,15 @@ test('processMasField anchors positioning on the rendered content span', () => {
     assert.equal(data.element, el);
 });
 
+test('fieldAnchor prefers the content span, then the commerce child, then the field itself', () => {
+    const contentSpan = {};
+    const commerceChild = {};
+    const bare = fakeMasField({ contentSpan: null });
+    assert.equal(detector.fieldAnchor(fakeMasField({ contentSpan, commerceChild })), contentSpan);
+    assert.equal(detector.fieldAnchor(fakeMasField({ contentSpan: null, commerceChild })), commerceChild);
+    assert.equal(detector.fieldAnchor(bare), bare);
+});
+
 test('processMasField skips a field that renders no visible content', () => {
     // A field whose content span and commerce child have no box is a hidden responsive variant;
     // badging it would pin an invisible badge, so it is not detected.
@@ -526,3 +563,174 @@ test('highlightCard does nothing when no ancestor renders a box', () => {
     assert.doesNotThrow(() => d.highlightCard('x'));
     assert.equal(anchor.scrolled, false);
 });
+
+function commerceService(attrs) {
+    return { getAttribute: (name) => attrs[name] ?? null };
+}
+
+// Starts a detector the way content.js does, on a page whose mas-commerce-service is whatever service() returns.
+function startedDetector(service) {
+    const saved = { document: global.document, MutationObserver: global.MutationObserver, location: window.location };
+    global.document = {
+        ...global.document,
+        body: {},
+        documentElement: { ...global.document.documentElement, lang: 'en' },
+        querySelector: (selector) => (selector === 'mas-commerce-service' ? service() : null),
+    };
+    global.MutationObserver = class {
+        observe() {}
+    };
+    window.location = { pathname: '/' };
+    const log = console.log;
+    console.log = () => {};
+    const d = new CardDetector();
+    d.initialize();
+    console.log = log;
+    const restore = () => {
+        global.document = saved.document;
+        global.MutationObserver = saved.MutationObserver;
+        window.location = saved.location;
+    };
+    return { d, restore };
+}
+
+test('a detector started before Milo adds mas-commerce-service takes the locale Milo gives it later', () => {
+    let service = null;
+    const { d, restore } = startedDetector(() => service);
+    try {
+        service = commerceService({ locale: 'en_GB', country: 'IN', language: 'en' });
+        assert.deepEqual(d.currentLocale(), { locale: 'en_GB', country: 'IN' });
+    } finally {
+        restore();
+    }
+});
+
+test('without mas-commerce-service the locale falls back to en_US', () => {
+    const { d, restore } = startedDetector(() => null);
+    try {
+        assert.deepEqual(d.currentLocale(), { locale: 'en_US', country: 'US' });
+    } finally {
+        restore();
+    }
+});
+
+function toggledBox() {
+    const state = { shown: false };
+    state.getBoundingClientRect = () => (state.shown ? VISIBLE_BOX : HIDDEN_BOX);
+    return state;
+}
+
+test('a field checked while hidden is detected once it gets a box', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const span = toggledBox();
+    d.processMasField(fakeMasField({ fragmentId: 'frag-shown', contentSpan: span }));
+    span.shown = true;
+    notifyResize(span);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('a price checked while hidden is detected once it gets a box', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const price = fakeBareElement({ is: 'inline-price', osi: 'osi-shown', visible: false });
+    const box = toggledBox();
+    price.getBoundingClientRect = box.getBoundingClientRect;
+    d.processBareElement(price);
+    box.shown = true;
+    notifyResize(price);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('a card checked while hidden is detected once it gets a box', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const card = fakeCard({ fragmentId: 'frag-card-shown', visible: false });
+    const box = toggledBox();
+    card.getBoundingClientRect = box.getBoundingClientRect;
+    await d.processCard(card);
+    box.shown = true;
+    notifyResize(card);
+    await new Promise(setImmediate);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('an empty element inside a laid-out box is left to its next content mutation', () => {
+    const d = new CardDetector();
+    const block = { getBoundingClientRect: () => VISIBLE_BOX, parentElement: null };
+    const span = { display: 'inline', getBoundingClientRect: () => HIDDEN_BOX, parentElement: block };
+    const before = watched();
+    d.processMasField(fakeMasField({ fragmentId: 'frag-empty', contentSpan: span }));
+    assert.equal(watched(), before);
+});
+
+test('a hidden inline element is watched through its nearest laid-out ancestor', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const slide = toggledBox();
+    const span = { display: 'inline', getBoundingClientRect: () => slide.getBoundingClientRect(), parentElement: slide };
+    slide.parentElement = null;
+    d.processMasField(fakeMasField({ fragmentId: 'frag-slide', contentSpan: span }));
+    slide.shown = true;
+    notifyResize(slide);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('mutations inside one field queue it once, so they cannot crowd out later elements', () => {
+    const saved = {
+        MutationObserver: global.MutationObserver,
+        Node: global.Node,
+        requestIdleCallback: global.requestIdleCallback,
+    };
+    let onMutations;
+    global.MutationObserver = class {
+        constructor(callback) {
+            onMutations = callback;
+        }
+        observe() {}
+    };
+    global.Node = { ELEMENT_NODE: 1 };
+    // Holds processing back so the queue can be inspected.
+    global.requestIdleCallback = () => 1;
+    try {
+        const d = new CardDetector();
+        const busyField = fakeMasField({ fragmentId: 'frag-busy' });
+        d.startObserving();
+        onMutations(Array.from({ length: 250 }, () => ({ addedNodes: [], target: { closest: () => busyField } })));
+        const later = { ...fakeMasField({ fragmentId: 'frag-later' }), nodeType: 1, matches: () => true };
+        onMutations([{ addedNodes: [later], target: {} }]);
+        assert.deepEqual([d.pendingCards.length, d.pendingCards.includes(later)], [2, true]);
+    } finally {
+        Object.assign(global, saved);
+    }
+});
+
+function previewPage({ search = '', previewAttr = null } = {}) {
+    const saved = { document: global.document, location: window.location };
+    const service = previewAttr === null ? null : commerceService({ preview: previewAttr });
+    global.document = {
+        ...global.document,
+        querySelector: (selector) => (selector === 'mas-commerce-service' ? service : null),
+    };
+    window.location = { pathname: '/', search };
+    return () => {
+        global.document = saved.document;
+        window.location = saved.location;
+    };
+}
+
+for (const [name, page, expected] of [
+    ['a service with preview on is in MAS preview', { previewAttr: 'on' }, true],
+    ['mas.preview=off in the URL overrides the service attribute', { previewAttr: 'on', search: '?mas.preview=off' }, false],
+    ['mas.preview=on in the URL turns preview on', { search: '?mas.preview=on' }, true],
+    ['a page without a service or parameter is not in preview', {}, false],
+]) {
+    test(name, () => {
+        const restore = previewPage(page);
+        try {
+            assert.equal(new CardDetector().isMasPreview(), expected);
+        } finally {
+            restore();
+        }
+    });
+}

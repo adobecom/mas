@@ -136,12 +136,21 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
+            - name: Record deploy time for the info action
+              run: echo "DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
             - name: Deploy core Studio actions
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
                   BATCH_SIZE: ${{ inputs.batch_size }}
                   RPS_LIMIT: ${{ inputs.rps_limit }}
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
+                  # Read by the info action. A PR deploy runs GitHub's test merge of the PR, so it reports the PR head instead.
+                  DEPLOY_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+                  DEPLOY_BRANCH: ${{ github.event.pull_request.merged && github.event.pull_request.base.ref || github.event.pull_request.head.ref }}
+                  DEPLOY_COMMIT: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
+                  DEPLOY_PR: ${{ github.event.pull_request.number }}
+                  DEPLOY_RUN_ID: ${{ github.run_id }}
               run: node scripts/deploy-actions.mjs core
 
             - name: Fetch optional AI secrets from Vault

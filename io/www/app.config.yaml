@@ -40,6 +40,20 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    info:
+                        function: src/info/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            DEPLOY_REPO_URL: $DEPLOY_REPO_URL
+                            DEPLOY_BRANCH: $DEPLOY_BRANCH
+                            DEPLOY_COMMIT: $DEPLOY_COMMIT
+                            DEPLOY_PR: $DEPLOY_PR
+                            DEPLOY_RUN_ID: $DEPLOY_RUN_ID
+                            DEPLOY_TIME: $DEPLOY_TIME
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     agent:
                         function: src/agent/handler.js
                         web: 'yes'

@@ -96,6 +96,65 @@ describe('Multifield', () => {
         expect(field.getAttribute('variant')).to.equal('pro');
     });
 
+    const savedRowsFixture = () =>
+        fixture(
+            html`
+                <mas-multifield
+                    .value="${[{ value: 'a', saved: true }, { value: 'b', saved: true }, { value: 'c' }, { value: 'd' }]}"
+                >
+                    <template>
+                        <sp-textfield class="field"></sp-textfield>
+                    </template>
+                </mas-multifield>
+                ${styles}
+            `,
+            { parentNode: spTheme() },
+        );
+
+    const dropOn = (el, from, to) => {
+        el.draggingIndex = from;
+        const event = new Event('drop', { bubbles: true, cancelable: true });
+        el.shadowRoot.querySelectorAll('.field-wrapper')[to].dispatchEvent(event);
+    };
+
+    it('keeps saved rows out of dragging', async () => {
+        const el = await savedRowsFixture();
+        const draggable = [...el.shadowRoot.querySelectorAll('.field-wrapper')].map((wrapper) => wrapper.draggable);
+        expect(draggable).to.deep.equal([false, false, true, true]);
+    });
+
+    it('ignores a drop onto a saved row', async () => {
+        const el = await savedRowsFixture();
+        dropOn(el, 3, 0);
+        expect(el.value.map((item) => item.value)).to.deep.equal(['a', 'b', 'c', 'd']);
+    });
+
+    it('still reorders unsaved rows after the saved ones', async () => {
+        const el = await savedRowsFixture();
+        dropOn(el, 3, 2);
+        expect(el.value.map((item) => item.value)).to.deep.equal(['a', 'b', 'd', 'c']);
+    });
+
+    it('hides the add button when addAllowed is false', async () => {
+        const el = await fixture(
+            html`
+                <mas-multifield .value="${[{ value: 'a' }]}" .addAllowed="${false}">
+                    <template>
+                        <sp-textfield class="field"></sp-textfield>
+                    </template>
+                </mas-multifield>
+                ${styles}
+            `,
+            { parentNode: spTheme() },
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.be.null;
+
+        el.addAllowed = true;
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.exist;
+    });
+
     it('should support mas-mnemonic-field', async () => {
         const value = [
             {

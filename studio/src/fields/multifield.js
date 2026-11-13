@@ -13,6 +13,7 @@ class MasMultifield extends LitElement {
             variant: { type: String, reflect: true },
             osi: { type: String, attribute: 'osi' },
             dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
+            addAllowed: { type: Boolean },
         };
     }
 
@@ -65,6 +66,7 @@ class MasMultifield extends LitElement {
         this.draggingIndex = -1;
         this.min = 0;
         this.buttonLabel = 'Add';
+        this.addAllowed = true;
         this.#boundHandlers = {
             deleteField: this.#handleDeleteField.bind(this),
         };
@@ -285,6 +287,12 @@ class MasMultifield extends LitElement {
     // Handle drop
     drop(e, index) {
         e.preventDefault();
+        e.target.classList.remove('dragover');
+        const [first, last] = [Math.min(this.draggingIndex, index), Math.max(this.draggingIndex, index)];
+        if (this.value.slice(first, last + 1).some((field) => field.saved)) {
+            this.draggingIndex = -1;
+            return;
+        }
         const draggingField = this.value[this.draggingIndex];
 
         // Remove the dragging field from its original position
@@ -335,7 +343,7 @@ class MasMultifield extends LitElement {
         return html`
             <div
                 class="field-wrapper"
-                draggable="true"
+                draggable=${field.saved ? 'false' : 'true'}
                 @dragstart=${(e) => this.dragStart(e, index)}
                 @dragover=${(e) => this.dragOver(e, index)}
                 @dragleave=${this.dragLeave}
@@ -347,16 +355,22 @@ class MasMultifield extends LitElement {
         `;
     }
 
+    get addButton() {
+        if (!this.addAllowed) return nothing;
+        return html`
+            <div class="add-button-wrapper">
+                <sp-action-button @click=${this.addField}>
+                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
+                </sp-action-button>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.#template || !this.value) return nothing;
         return html`
             <div @change="${this.handleChange}" @input="${this.handleInput}">
-                ${this.value.map((field, index) => this.renderField(field, index))}
-                <div class="add-button-wrapper">
-                    <sp-action-button @click=${this.addField}>
-                        <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
-                    </sp-action-button>
-                </div>
+                ${this.value.map((field, index) => this.renderField(field, index))} ${this.addButton}
             </div>
         `;
     }

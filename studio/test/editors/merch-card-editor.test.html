@@ -79,7 +79,7 @@
             import '../../src/rte/rte-field.js';
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/mas-fragment-editor.js';
-            import '../../src/editors/merch-card-editor.js';
+            import { parseWhatsIncludedDivider } from '../../src/editors/merch-card-editor.js';
             import '../../src/mas-repository.js';
             import '../../src/mas-side-nav.js';
             // Import aem-fragment, mas-commerce-service, and merch-card from web-components
@@ -1681,6 +1681,54 @@
                         });
                     });
 
+                    describe('parseWhatsIncludedDivider', () => {
+                        it('returns an empty divider when there is no What is included markup', () => {
+                            expect(parseWhatsIncludedDivider('')).to.deep.equal({ divider: '' });
+                            expect(parseWhatsIncludedDivider('<p>text</p>')).to.deep.equal({ divider: '' });
+                        });
+
+                        it('returns an empty divider when the attribute is missing', () => {
+                            expect(parseWhatsIncludedDivider('<merch-whats-included></merch-whats-included>')).to.deep.equal({
+                                divider: '',
+                            });
+                        });
+
+                        it('treats "default" as no divider color', () => {
+                            for (const value of ['default', ' Default ', 'DEFAULT']) {
+                                expect(
+                                    parseWhatsIncludedDivider(
+                                        `<merch-whats-included whats-included-divider-color="${value}"></merch-whats-included>`,
+                                    ),
+                                ).to.deep.equal({ divider: '' });
+                            }
+                        });
+
+                        it('returns the trimmed divider color token', () => {
+                            expect(
+                                parseWhatsIncludedDivider(
+                                    '<merch-whats-included whats-included-divider-color=" spectrum-gray-300 "></merch-whats-included>',
+                                ),
+                            ).to.deep.equal({ divider: 'spectrum-gray-300' });
+                        });
+                    });
+
+                    describe('whats included divider color picker', () => {
+                        it('is disabled with help text until the card has What is included markup', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['mini-compare-chart'] },
+                                'divider-picker',
+                            );
+                            const group = () => editor.querySelector('sp-field-group#whats-included-divider-color');
+                            expect(group().querySelector('sp-picker').disabled).to.be.true;
+                            expect(group().querySelector('sp-help-text').textContent).to.include("Add What's included content");
+
+                            store.updateField('whatsIncluded', ['<merch-whats-included></merch-whats-included>']);
+                            await editor.updateComplete;
+                            expect(group().querySelector('sp-picker').disabled).to.be.false;
+                            expect(group().querySelector('sp-help-text')).to.be.null;
+                        });
+                    });
+
                     describe('#updateWhatsIncluded pro routing', () => {
                         const PRO_SEED =
                             '<p class="whats-included-label">Voir :</p>' +
@@ -2355,6 +2403,193 @@
                                     const editor = makeBaselineCard([{ name: 'badge', values: ['Own badge'] }]);
                                     expect(editor.getBadgeComponentState('badge', 'text')).to.equal('no-parent');
                                     expect(editor.getBadgeFromBaseline('badge').text).to.be.false;
+                                });
+                            });
+
+                            describe('parts of HTML fields', () => {
+                                const withBaseline = (editor, fields) => {
+                                    editor.baselinesController.parent = new Fragment({ fields });
+                                    return editor;
+                                };
+                                const templateText = (template) => {
+                                    const container = document.createElement('div');
+                                    render(template, container);
+                                    return container;
+                                };
+                                const whatsIncluded = (divider) =>
+                                    `<merch-whats-included whats-included-divider-color="${divider}"><div slot="heading">Included</div></merch-whats-included>`;
+                                const dividerIndicator = (editor) =>
+                                    templateText(editor.renderWhatsIncludedDividerStatusIndicator())
+                                        .textContent.replace(/\s+/g, ' ')
+                                        .trim();
+                                const BASELINE_DESKTOP = 'https://main--mas-test--adobecom.aem.page/baseline_desktop.png';
+                                const OWN_DESKTOP = 'https://main--mas-test--adobecom.aem.page/own_desktop.png';
+                                const DIMENSIONS = { width: 100, height: 50 };
+                                const backgrounds = (desktop) => buildBackgroundsHtml({ desktop }, { desktop: DIMENSIONS });
+
+                                it('marks a divider color the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] },
+                                    ]);
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.equal('inherited');
+                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                });
+
+                                it('does not mark a "default" divider color as overridden when the baseline has none', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'whatsIncluded', values: [whatsIncluded('default')] }]),
+                                        [
+                                            {
+                                                name: 'whatsIncluded',
+                                                values: [
+                                                    '<merch-whats-included><div slot="heading">Included</div></merch-whats-included>',
+                                                ],
+                                            },
+                                        ],
+                                    );
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.not.equal('overridden');
+                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                });
+
+                                it('marks a default divider color inherited from a default baseline as from baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('default')] },
+                                    ]);
+                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                });
+
+                                it('marks a divider color that differs from the baseline as overridden', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(dividerIndicator(editor)).to.include('Click to restore');
+                                });
+
+                                it('hides the divider restore link when the card cleared its What is included markup', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.equal('overridden');
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedDividerStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('keeps What is included inherited when the card changes only the divider color', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(dividerIndicator(editor)).to.include('Click to restore');
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                });
+
+                                it('restores What is included content from the baseline and keeps the card divider color', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'whatsIncluded',
+                                                values: [
+                                                    '<merch-whats-included whats-included-divider-color="spectrum-red-300"><div slot="heading">Own</div></merch-whats-included>',
+                                                ],
+                                            },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    templateText(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.fragment.getFieldValue('whatsIncluded', 0)).to.equal(
+                                        whatsIncluded('spectrum-red-300'),
+                                    );
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks an addon background the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },
+                                    ]);
+                                    expect(editor.isAddonBgOverridden()).to.be.false;
+                                    expect(
+                                        templateText(editor.renderAddonBgFieldStatusIndicator()).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                });
+
+                                it('restores the baseline addon background of an overridden addon', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'addon', values: ['<merch-addon>addon1</merch-addon>'] }]),
+                                        [{ name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] }],
+                                    );
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                        '<merch-addon background="#dadada">addon1</merch-addon>',
+                                    );
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a background breakpoint the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] },
+                                    ]);
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('mobile')).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not mark a background the card sets to the baseline URL as from baseline', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('restores the baseline background of an overridden breakpoint', async () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: [backgrounds(OWN_DESKTOP)] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    const link = templateText(editor.renderBackgroundStatusIndicator('desktop')).querySelector(
+                                        '.field-status-restore-link',
+                                    );
+                                    link.click();
+                                    await delay(0);
+                                    expect(
+                                        parseBackgroundsUrls(editor.fragment.getFieldValue('backgrounds', 0)).desktop,
+                                    ).to.equal(BASELINE_DESKTOP);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a cleared baseline background as overridden', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: ['<explicit_empty/>'] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent,
+                                    ).to.include('Click to restore');
                                 });
                             });
 

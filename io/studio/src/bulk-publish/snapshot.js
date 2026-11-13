@@ -1,5 +1,6 @@
 const { Core } = require('@adobe/aio-sdk');
 const { fetchOdin, processBatchWithConcurrency } = require('../common.js');
+const { createVersion, restoreVersion, fetchVersionHistory } = require('../common/aem-version.js');
 
 const logger = Core.Logger('bulk-snapshot', { level: 'info' });
 const FRAGMENT_CONCURRENCY = 5;
@@ -22,22 +23,6 @@ async function getFragmentById(odinEndpoint, fragmentId, authToken) {
     if (response.status === 404) throw new Error(`404 Not Found: fragment ${fragmentId}`);
     if (!response.ok) throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
     return response.json();
-}
-
-async function createVersion(odinEndpoint, fragmentId, label, comment, authToken) {
-    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}/versions`, authToken, {
-        method: 'POST',
-        contentType: 'application/json',
-        body: JSON.stringify({ label, comment }),
-    });
-    const location = response.headers.get('Location') ?? '';
-    return location.split('/').pop();
-}
-
-async function restoreVersion(odinEndpoint, fragmentId, versionId, authToken) {
-    await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}/versions/restore/${versionId}`, authToken, {
-        method: 'POST',
-    });
 }
 
 async function unpublishFragment(odinEndpoint, fragmentPath, authToken) {
@@ -68,17 +53,8 @@ function isTranslationVersion(version) {
     return version.createdBy === 'odin-cf-versioning-user' || (version.comment ?? '').startsWith('Pre-rollout snapshot');
 }
 
-async function fetchVersionHistory(odinEndpoint, fragmentId, authToken) {
-    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}/versions`, authToken, {
-        ignoreErrors: [404],
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data?.items ?? [];
-}
-
 async function findNonTranslationVersion(odinEndpoint, fragmentId, authToken) {
-    const versions = await fetchVersionHistory(odinEndpoint, fragmentId, authToken);
+    const versions = await fetchVersionHistory(odinEndpoint, fragmentId, authToken, { request: fetchOdin });
     // Odin returns /versions newest-first; .find picks the most recent non-translation version.
     const found = versions.find((v) => !isTranslationVersion(v));
     return found?.id ?? null;
@@ -136,6 +112,7 @@ async function createSnapshot({
                 `Pre-bulk-publish - ${projectTitle}`,
                 snapshotId,
                 authToken,
+                { request: fetchOdin },
             );
             if (!versionId) {
                 if (required) return { path, error: `Failed to create version for fragment: ${path}` };
@@ -206,7 +183,7 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
             // there is nothing to restore and nothing to unpublish, so skip rather than silently succeed.
             if (!entry.versionId && entry.wasPublished) return { skipped: fragmentId };
             if (entry.versionId) {
-                await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken);
+                await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken, { request: fetchOdin });
             }
             if (!entry.wasPublished) {
                 await unpublishFragment(odinEndpoint, fragment.path, authToken);

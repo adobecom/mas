@@ -1650,12 +1650,14 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                const { deleted, failedVariations, parentUpdateFailed } = await promotionsRepository.deletePromotionFragment(
+                    this.repository,
                     this.fragment,
-                    {
-                        localeDefaultFragment,
-                        promoVariationPaths: this.variationsToDelete,
-                    },
+                    () =>
+                        this.repository.deleteVariationFragment(this.fragment, {
+                            localeDefaultFragment,
+                            promoVariationPaths: this.variationsToDelete,
+                        }),
                 );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
@@ -1671,7 +1673,9 @@ export default class MasFragmentEditor extends LitElement {
                     showToast('Fragment successfully deleted.', 'positive');
                 }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
+                await promotionsRepository.deletePromotionFragment(this.repository, this.fragment, () =>
+                    this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete),
+                );
             }
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
@@ -1782,14 +1786,14 @@ export default class MasFragmentEditor extends LitElement {
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
-                const savedCard = await this.repository.saveFragment(cardFragmentStore, {
+                const savedCard = await promotionsRepository.savePromotionFragment(this.repository, cardFragmentStore, {
                     withToast: false,
                     refetchEtag: false,
                 });
                 if (!savedCard) return;
             }
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
-            const savedFragment = await this.repository.saveFragment(this.fragmentStore, {
+            const savedFragment = await promotionsRepository.savePromotionFragment(this.repository, this.fragmentStore, {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });

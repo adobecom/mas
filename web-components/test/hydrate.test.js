@@ -2367,6 +2367,60 @@ describe('processBadge', () => {
         sinon.restore();
     });
 
+    // pro defines no `badge` entry in its fragment mapping, so it takes the legacy branch
+    const PRO_AEM_FRAGMENT_MAPPING = {};
+
+    it('sets border-color to black on a pro card with borderColor black and a leftover badge', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            borderColor: 'black',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal('black');
+        expect(merchCard.getAttribute('badge-text')).to.equal('Leftover');
+        expect(merchCard.getAttribute('badge-color')).to.equal('#000000');
+        expect(merchCard.getAttribute('badge-background-color')).to.equal(
+            '#F8D904',
+        );
+    });
+
+    it('keeps badge-driven border-color on a pro card with a badge and no borderColor', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+
+        const defaultCard = mockMerchCard();
+        processBadge(
+            { variant: 'pro', badge: 'Leftover' },
+            defaultCard,
+            PRO_AEM_FRAGMENT_MAPPING,
+        );
+        expect(defaultCard.getAttribute('border-color')).to.equal('#F8D904');
+        expect(defaultCard.getAttribute('badge-text')).to.equal('Leftover');
+    });
+
+    it('keeps badge-driven border-color on a badge-displaying legacy variant with no borderColor', () => {
+        const mapping = { badge: { tag: 'div' } };
+        expect(mapping.badge?.slot).to.not.be.ok;
+        const fields = {
+            variant: 'catalog',
+            badge: 'New',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+        expect(merchCard.getAttribute('badge-text')).to.equal('New');
+    });
+
     it('should not append a badge when text is empty on full-pricing-express', () => {
         const fields = { badge: '', variant: 'full-pricing-express' };
         processBadge(

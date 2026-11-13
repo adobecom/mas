@@ -1,0 +1,56 @@
+name: Auto-merge Ready to Merge PRs
+
+# Same triggers as milo's merge-to-stage: merge as soon as the label is added, and sweep on a schedule for PRs whose
+# checks or approvals finished later.
+on:
+    pull_request_target:
+        types: [labeled]
+    schedule:
+        - cron: '*/30 * * * 1-5'
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: 'Only report what would be merged. Runs are always dry until the repo variable AUTO_MERGE_LIVE is true'
+                required: false
+                type: boolean
+                default: false
+
+permissions:
+    contents: write
+    pull-requests: write
+    actions: write
+
+jobs:
+    merge:
+        # pull_request_target runs this workflow from main, never the PR's code. The PR is only compared with git.
+        if: >-
+            github.repository_owner == 'adobecom' && (github.event_name != 'pull_request_target' ||
+            (github.event.pull_request.base.ref == 'main' && github.event.label.name == 'Ready to Merge'))
+        # Runs must not overlap: a merge makes every other PR BEHIND. Job-level, so runs skipped for other labels
+        # never displace a pending run.
+        concurrency:
+            group: auto-merge-ready
+            cancel-in-progress: false
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            GH_TOKEN: ${{ github.token }}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  # Full history, without file contents, to compare approved commits with the head.
+                  fetch-depth: 0
+                  filter: blob:none
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+
+            - name: Merge the oldest eligible PR
+              run: node .github/scripts/auto-merge-ready.mjs
+              env:
+                  # Scheduled runs only report until the repo variable AUTO_MERGE_LIVE is 'true'.
+                  DRY_RUN: ${{ inputs.dry_run == true || vars.AUTO_MERGE_LIVE != 'true' }}
+                  AUTO_MERGE_MAX_FILES: ${{ vars.AUTO_MERGE_MAX_FILES }}

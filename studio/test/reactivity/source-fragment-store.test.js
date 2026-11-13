@@ -4,6 +4,7 @@ import generateFragmentStore from '../../src/reactivity/source-fragment-store.js
 import { Fragment } from '../../src/aem/fragment.js';
 import { buildInheritanceParent, cachedInheritanceParent, mergeParentFields } from '../../src/aem/variation-utils.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import Store from '../../src/store.js';
 
 const CARD_MODEL = { path: '/conf/mas/settings/dam/cfm/models/card' };
 
@@ -177,6 +178,56 @@ describe('SourceFragmentStore of a variation with baselines', () => {
 
         expect(previewValues('mnemonicIcon')).to.deep.equal(['baseline.svg']);
         expect(previewValues('mnemonicAlt')).to.deep.equal(['Own']);
+    });
+});
+
+describe('SourceFragmentStore of a variation with settings baselines', () => {
+    const GLOBAL_QTY = '<merch-quantity-select title="Global"></merch-quantity-select>';
+    const BASELINE_QTY = '<merch-quantity-select title="Baseline"></merch-quantity-select>';
+    const baselineParent = new Fragment({ fields: [{ name: 'quantitySelect', values: [BASELINE_QTY] }] });
+    let store;
+
+    const createStore = (variationFields) => {
+        sinon.stub(Store.settings.rows, 'get').returns([
+            {
+                value: {
+                    name: 'quantitySelect',
+                    templateIds: ['plans'],
+                    value: GLOBAL_QTY,
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                    tags: [],
+                    locales: [],
+                    overrides: [],
+                },
+            },
+        ]);
+        const localeDefault = createCard([{ name: 'variant', values: ['plans'] }]);
+        store = generateFragmentStore(createCard(variationFields, '/content/dam/mas/sandbox/en_CA/card'), localeDefault, {
+            lazy: true,
+        });
+        sinon.stub(store.previewStore, 'resolveFragment');
+        store.setBaselineParent(baselineParent);
+    };
+    const previewQty = () => store.previewStore.value.getFieldValues('quantitySelect');
+
+    afterEach(() => {
+        store.previewStore.dispose();
+        sinon.restore();
+    });
+
+    it('previews the baseline setting over the global default', () => {
+        createStore([]);
+
+        expect(previewQty()).to.deep.equal([BASELINE_QTY]);
+    });
+
+    it('previews the baseline setting over the global default once the setting is restored', () => {
+        createStore([{ name: 'quantitySelect', values: ['<merch-quantity-select title="Own"></merch-quantity-select>'] }]);
+
+        store.resetFieldToParent('quantitySelect');
+
+        expect(previewQty()).to.deep.equal([BASELINE_QTY]);
     });
 });
 

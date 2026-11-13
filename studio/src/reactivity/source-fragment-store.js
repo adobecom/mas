@@ -56,11 +56,10 @@ export class SourceFragmentStore extends FragmentStore {
      */
     #previewData(value) {
         if (!this.parentFragment && !this.baselineParent) return value;
-        const previewData = this.parentFragment
-            ? createPreviewDataWithParent(value, this.parentFragment)
-            : structuredClone(value);
-        if (this.baselineParent) mergeParentFields(previewData, this.baselineParent, this.#arraysToMerge);
-        return previewData;
+        if (this.parentFragment) {
+            return createPreviewDataWithParent(value, this.parentFragment, this.baselineParent, this.#arraysToMerge);
+        }
+        return mergeParentFields(structuredClone(value), this.baselineParent, this.#arraysToMerge);
     }
 
     /** Array fields the card template appends to the baseline values instead of overriding them (delivery `deepMerge`). */
@@ -175,12 +174,15 @@ export default function generateFragmentStore(fragment, parentFragment = null, o
 }
 
 /**
- * Creates preview data by merging parent values into empty variation fields
+ * Creates preview data by merging parent values, then baseline values, into empty variation fields.
+ * Global settings defaults only fill the settings both leave empty.
  * @param {Fragment | object} sourceFragment
  * @param {Fragment} parentFragment
+ * @param {Fragment | null} [baselineParent]
+ * @param {string[]} [arraysToMerge] baseline array fields the variation values are appended to
  * @returns {object}
  */
-export function createPreviewDataWithParent(sourceFragment, parentFragment) {
+export function createPreviewDataWithParent(sourceFragment, parentFragment, baselineParent = null, arraysToMerge = []) {
     const previewData = structuredClone(sourceFragment);
     const tags = sourceFragment.fields?.find((f) => f.name === 'tags');
     if (tags) {
@@ -190,6 +192,7 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     }
 
     mergeParentFields(previewData, parentFragment);
+    if (baselineParent) mergeParentFields(previewData, baselineParent, arraysToMerge);
 
     const settingsRows = Store.settings.rows.get?.();
     if (parentFragment && Array.isArray(settingsRows) && settingsRows.length > 0) {

@@ -5,6 +5,17 @@ const metrics = { cacheHits: 0, upstreamRequests: 0 };
 const MAX_ENTRIES = 256;
 const MAX_BODY_BYTES = 256 * 1024;
 export const VARY_HEADERS = ['accept', 'accept-language', 'origin', 'user-agent', 'accept-encoding'];
+// Studio UI preferences that never change what the server returns for public assets.
+export const UI_COOKIES = ['mas-render-mode'];
+
+/**
+ * True when a request carries an Authorization header or any cookie other than a UI preference.
+ * @param {Record<string, string>} headers lowercase header names
+ */
+export function carriesCredentials({ authorization, cookie = '' }) {
+    const names = cookie.split(';').map((pair) => pair.split('=')[0].trim());
+    return Boolean(authorization) || names.some((name) => name && !UI_COOKIES.includes(name));
+}
 
 export function isPublicStaticResponse(status, headers) {
     return (
@@ -37,7 +48,7 @@ export async function isStaticResource(request) {
         /\.(js|css|woff2?|ttf|otf|png|jpe?g|gif|webp|svg|avif)$/.test(url.pathname);
     if (!eligible) return false;
     const headers = await request.allHeaders();
-    return !headers.authorization && !headers.cookie;
+    return !carriesCredentials(headers);
 }
 
 /**

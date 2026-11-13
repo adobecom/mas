@@ -1514,7 +1514,7 @@ export class MasChat extends LitElement {
             title,
             name: uniqueName,
             parentPath,
-            tags: buildReleaseTags(this.selectedReleaseProduct),
+            tags: buildReleaseTags(this.selectedReleaseProduct, this.selectedReleaseOffer),
         });
 
         const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);

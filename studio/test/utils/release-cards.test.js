@@ -90,6 +90,18 @@ describe('release-cards buildReleaseFragmentData', () => {
         expect(fieldValue(data, 'cardTitle')).to.include('Adobe Acrobat');
     });
 
+    it('adds exactly one plan_type tag for the selected base offer', async () => {
+        const baseOffer = { commitment: 'YEAR', term: 'MONTHLY' };
+        const data = await buildReleaseFragmentData({ product, variant: 'plans', baseOsi, baseOffer, parentPath });
+        expect(data.tags.filter((t) => t.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
+        expect(data.tags).to.include('mas:product_code/ANTR');
+    });
+
+    it('adds no plan_type tag without a base offer', async () => {
+        const data = await buildReleaseFragmentData({ product, variant: 'plans', baseOsi, parentPath });
+        expect(data.tags.some((t) => t.startsWith('mas:plan_type/'))).to.equal(false);
+    });
+
     it('sets the AEM fragment title to "<name> - <Variant>" and the parent path', async () => {
         const data = await buildReleaseFragmentData({ product, variant: 'plans', baseOsi, parentPath });
         expect(data.title).to.equal('Adobe Acrobat - Plans');
@@ -110,6 +122,16 @@ describe('release-cards createReleaseCard', () => {
         expect(create.calledOnce).to.equal(true);
         expect(create.firstCall.args[0].parentPath).to.equal(parentPath);
         expect(result).to.equal(newFragment);
+    });
+
+    it('still creates the fragment when the offer maps to no plan type', async () => {
+        const create = sinon.stub().resolves({ id: 'frag-2' });
+        const repository = { aem: { sites: { cf: { fragments: { create } } } } };
+        const baseOffer = { commitment: 'TERM_LICENSE', term: 'P3Y' };
+        const result = await createReleaseCard({ product, variant: 'plans', baseOsi, baseOffer, parentPath, repository });
+        expect(create.calledOnce).to.equal(true);
+        expect(create.firstCall.args[0].tags.some((t) => t.startsWith('mas:plan_type/'))).to.equal(false);
+        expect(result).to.deep.equal({ id: 'frag-2' });
     });
 
     it('throws when no repository is available', async () => {

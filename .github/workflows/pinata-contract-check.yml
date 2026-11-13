@@ -33,8 +33,10 @@ jobs:
     # The accessibility target check's browser paths (a state reached by a click, the page served from the
     # checkout, axe's verdict, the deadline) need this repository's own Playwright and axe and a Chromium for
     # them. A11Y_TARGET_BROWSER_TESTS=required makes a class that cannot run fail here instead of skipping.
+    # A named image, not ubuntu-latest: `playwright install` only knows the images its own version supports,
+    # so the job has to stay on one this repository's Playwright can install a Chromium for.
     target-check:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 15
         steps:
             - uses: actions/checkout@v4

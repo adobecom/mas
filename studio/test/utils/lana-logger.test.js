@@ -26,6 +26,28 @@ describe('logToLana', () => {
         expect(window.lana.log.firstCall.args[0]).to.equal('Something happened¶page=¶path=¶facts={}');
     });
 
+    it('keeps an encoded delimiter in the page inside a single telemetry field', () => {
+        window.location.hash = 'page=content%C2%B6path%3Dforged&path=sandbox';
+        logToLana('Something happened', {}, 100);
+        expect(window.lana.log.firstCall.args[0].split('¶')).to.deep.equal([
+            'Something happened',
+            'page=content%C2%B6path%3Dforged',
+            'path=sandbox',
+            'facts={}',
+        ]);
+    });
+
+    it('keeps an encoded delimiter in the path inside a single telemetry field', () => {
+        window.location.hash = 'page=content&path=sandbox%C2%B6page%3Dforged';
+        logToLana('Something happened', {}, 100);
+        expect(window.lana.log.firstCall.args[0].split('¶')).to.deep.equal([
+            'Something happened',
+            'page=content',
+            'path=sandbox%C2%B6page%3Dforged',
+            'facts={}',
+        ]);
+    });
+
     it('uses the Studio client with the given sample rate', () => {
         logToLana('Something happened', {}, 100);
         expect(window.lana.log.firstCall.args[1]).to.deep.equal({

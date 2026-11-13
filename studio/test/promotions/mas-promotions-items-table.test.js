@@ -434,13 +434,37 @@ describe('MasPromotionsItemsTable', () => {
             );
         }
 
-        it('opens cards in stored order without fetching beyond the first window', async () => {
+        it('opens cards in stored order, then loads the rest of the selection in the background', async () => {
             const { el, paths, getFragmentByPath } = await mountSortableCards(30);
-            await new Promise((r) => setTimeout(r, 50));
+            await waitUntil(() => Store.promotions.cardsByPaths.value.size === 30);
             expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(0, 25));
-            expect(getFragmentByPath.callCount).to.equal(25);
+            expect(getFragmentByPath.callCount).to.equal(30);
             const table = el.shadowRoot.querySelector('mas-select-items-table');
             expect(table.sortBy).to.equal('');
+            el.remove();
+        });
+
+        it('flags collections beyond the first window without sorting', async () => {
+            const paths = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+            const collectionPath = paths[29];
+            Store.promotions.selectedCards.set(paths);
+            const getFragmentByPath = sandbox.stub().callsFake(async (path) => ({
+                path,
+                id: path,
+                title: path,
+                model: { path: path === collectionPath ? COLLECTION_MODEL_PATH : CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            }));
+            const el = createItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            const detected = oneEvent(el, 'promotion-collections-detected');
+            document.body.appendChild(el);
+            const { detail } = await detected;
+            expect(detail.paths).to.deep.equal([collectionPath]);
+            await waitUntil(() => el.viewOnlyFragments.length === 25);
+            expect(el.viewOnlyFragments.map(({ path }) => path)).to.deep.equal(paths.slice(0, 25));
             el.remove();
         });
 
@@ -1013,6 +1037,73 @@ describe('MasPromotionsItemsTable', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(Store.promotions.selectedOffers.value).to.deep.equal(['phsp-osi']);
         expect(Store.promotions.selectedCards.value).to.deep.equal([phspCard]);
+    });
+
+    it('loads uncached selected cards before deciding which ones an offer removal drops', async () => {
+        const ffsaCard = '/content/dam/mas/ffsa-card';
+        const phspCard = '/content/dam/mas/phsp-card';
+        const uncachedPhspCard = '/content/dam/mas/phsp-card-2';
+        Store.promotions.selectedOffers.set(['ffsa-osi', 'phsp-osi']);
+        Store.promotions.selectedCards.set([ffsaCard, phspCard, uncachedPhspCard]);
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'phsp-osi',
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+        );
+        Store.promotions.cardsByPaths.set(
+            new Map([
+                [ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }],
+                [phspCard, { path: phspCard, tags: [{ id: 'mas:product_code/phsp', title: 'PHSP' }] }],
+            ]),
+        );
+        const getFragmentByPath = sandbox.stub().callsFake(async (path) => ({
+            path,
+            model: { path: CARD_MODEL_PATH },
+            tags: [{ id: 'mas:product_code/phsp', title: 'PHSP' }],
+        }));
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+        await el.updateComplete;
+        const removeItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+            item.textContent.trim().includes('Remove from list'),
+        );
+        removeItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        await waitUntil(() => el.confirmDialogConfig);
+        expect(getFragmentByPath.calledOnceWith(uncachedPhspCard)).to.be.true;
+        expect(el.confirmDialogConfig.message).to.include('1 fragment was selected');
+        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+        await waitUntil(() => Store.promotions.selectedOffers.value.length === 1);
+        expect(Store.promotions.selectedCards.value).to.deep.equal([phspCard, uncachedPhspCard]);
+    });
+
+    it('keeps the offer when uncached selected items cannot be loaded', async () => {
+        const uncachedCard = '/content/dam/mas/unknown-card';
+        Store.promotions.selectedOffers.set(['ffsa-osi', 'phsp-osi']);
+        Store.promotions.selectedCards.set([uncachedCard]);
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        Store.promotions.offerRecordsCache.set(
+            'phsp-osi',
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+        );
+        const getFragmentByPath = sandbox.stub().rejects(new Error('network'));
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+        await el.updateComplete;
+        const removeItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+            item.textContent.trim().includes('Remove from list'),
+        );
+        removeItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        await waitUntil(() => getFragmentByPath.called);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(el.confirmDialogConfig).to.not.exist;
+        expect(Store.promotions.selectedOffers.value).to.deep.equal(['ffsa-osi', 'phsp-osi']);
+        expect(Store.promotions.selectedCards.value).to.deep.equal([uncachedCard]);
     });
 
     it('does not remove offer when confirmation is cancelled', async () => {

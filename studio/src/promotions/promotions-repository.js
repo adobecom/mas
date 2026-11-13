@@ -135,12 +135,14 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
  * Shared entry point to the promotion projects: awaits the first load, then serves the loaded
  * (or persisted) list right away and revalidates it in the background once it is older than
  * PROMOTIONS_LIST_MAX_AGE. Concurrent callers share a single load.
+ * With `fresh`, a stale list is revalidated before returning, for callers whose result is cached as authoritative.
  * @param {() => Promise<void>} loadPromotions
+ * @param {{ fresh?: boolean }} [options]
  * @returns {Promise<Array<Object>>}
  */
 export const getPromotionProjectsForProbe = (() => {
     let promotionProjectsLoad;
-    return async (loadPromotions) => {
+    return async (loadPromotions, { fresh = false } = {}) => {
         const list = Store.promotions.list.data;
         const fetched = list.hasMeta(PROMOTIONS_LIST_FETCHED_META) || readPromotionProjectsFromStore().length > 0;
         const stale =
@@ -151,7 +153,12 @@ export const getPromotionProjectsForProbe = (() => {
                 promotionProjectsLoad = null;
             });
         }
-        if (!fetched) await promotionProjectsLoad;
+        if (!fetched || (stale && fresh)) {
+            await promotionProjectsLoad;
+        } else if (stale) {
+            // Nobody awaits a background refresh, so its failure must not surface as an unhandled rejection.
+            promotionProjectsLoad.catch((error) => console.warn('Background promotions refresh failed:', error?.message));
+        }
         return readPromotionProjectsFromStore();
     };
 })();
@@ -168,7 +175,8 @@ export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, lo
     const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
-        await getPromotionProjectsForProbe(loadPromotions),
+        // The merge is flagged promoVariationProbeNotNeeded and never redone, so it must not use a stale list.
+        await getPromotionProjectsForProbe(loadPromotions, { fresh: true }),
         options,
     );
     return { ...merged, promoVariationProbeNotNeeded: true };

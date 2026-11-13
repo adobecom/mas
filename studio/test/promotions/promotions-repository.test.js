@@ -142,6 +142,39 @@ describe('promotions-repository', () => {
             await loadPromotions.firstCall.returnValue;
             Store.promotions.list.data.removeMeta('fetchedAt');
         });
+
+        it('handles a failed background refresh instead of leaving it unhandled', async () => {
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            Store.promotions.list.data.set([{ get: () => project }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            const warn = sandbox.stub(console, 'warn');
+            const unhandled = sandbox.spy();
+            window.addEventListener('unhandledrejection', unhandled);
+            const loadPromotions = sandbox.stub().rejects(new Error('network'));
+
+            expect(await getPromotionProjectsForProbe(loadPromotions)).to.deep.equal([project]);
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            window.removeEventListener('unhandledrejection', unhandled);
+            Store.promotions.list.data.removeMeta('fetchedAt');
+            expect(unhandled.called).to.be.false;
+            expect(warn.calledWithMatch('Background promotions refresh failed')).to.be.true;
+        });
+
+        it('waits for the revalidation of a stale list when fresh projects are required', async () => {
+            const stale = { id: 'promo-1', tags: [] };
+            const fresh = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            Store.promotions.list.data.set([{ get: () => stale }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([{ get: () => fresh }]);
+                Store.promotions.list.data.setMeta('fetchedAt', Date.now());
+            });
+
+            expect(await getPromotionProjectsForProbe(loadPromotions, { fresh: true })).to.deep.equal([fresh]);
+            Store.promotions.list.data.removeMeta('fetchedAt');
+        });
     });
 
     describe('persisted promotions list', () => {

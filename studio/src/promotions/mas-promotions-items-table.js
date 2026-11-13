@@ -359,33 +359,27 @@ class MasPromotionsItemsTable extends LitElement {
         void this.#loadSelectedInOrder();
     }
 
-    // The first window paints in stored order while the remaining offer names load; the table then
-    // re-renders sorted, so first paint never waits on fetching the whole selection.
+    // The first window paints in stored order while the rest of the selection loads in the background:
+    // classifying collections and sorting by offer both need every selected card, not just the visible window.
     async #loadSelectedInOrder() {
         this.#sortAbortController?.abort();
         this.#visibleCount = 0;
-        if (this.type !== TABLE_TYPE.CARDS || !this.cardsSortDirection) {
+        if (this.type !== TABLE_TYPE.CARDS) {
             await this.#loadNextSelectedWindow();
             return;
         }
         const paths = this.#allSelectedPaths;
-        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
-        if (unnamed.length) {
-            const sortController = new AbortController();
-            this.#sortAbortController = sortController;
-            const firstWindow = new Set(paths.slice(0, SELECTED_ITEMS_WINDOW));
-            await Promise.all([
-                this.#loadNextSelectedWindow(),
-                this.#prefetchOfferNames(
-                    unnamed.filter((path) => !firstWindow.has(path)),
-                    sortController.signal,
-                ),
-            ]);
-            if (sortController.signal.aborted) return;
-            const prefetched = [...this.#prefetchedByPath.values()];
-            this.#cacheSelectedFragments(prefetched);
-            this.#reportCollections(prefetched);
-        }
+        const sortController = new AbortController();
+        this.#sortAbortController = sortController;
+        const firstWindow = new Set(paths.slice(0, SELECTED_ITEMS_WINDOW));
+        const prefetch = this.#prefetchSelected(
+            paths.filter((path) => !firstWindow.has(path) && !this.#offerNameByPath.has(path)),
+            sortController.signal,
+        );
+        await this.#loadNextSelectedWindow();
+        if (!this.cardsSortDirection) return;
+        await prefetch;
+        if (sortController.signal.aborted) return;
         this.#allSelectedPaths = this.#sortByOfferName(paths);
         this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
@@ -409,7 +403,9 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    async #prefetchOfferNames(paths, signal) {
+    async #prefetchSelected(paths, signal) {
+        if (!paths.length) return;
+        const fetched = [];
         await processConcurrently(
             paths,
             async (path) => {
@@ -418,11 +414,61 @@ class MasPromotionsItemsTable extends LitElement {
                     () => null,
                 );
                 if (signal.aborted) return;
-                if (fragment) this.#prefetchedByPath.set(path, fragment);
+                if (fragment) {
+                    this.#prefetchedByPath.set(path, fragment);
+                    fetched.push(fragment);
+                }
                 this.#offerNameByPath.set(path, getOfferName(fragment));
             },
             SORT_PREFETCH_CONCURRENCY,
         );
+        if (signal.aborted) return;
+        this.#cacheSelectedFragments(fetched);
+        this.#reportCollections(fetched);
+    }
+
+    /**
+     * Offer removal decides which items to drop from their product tags, so every selected item needs
+     * its metadata — not only the windows the tables have rendered so far.
+     * @param {string} selectorId offer being removed
+     * @returns {string[]} selected paths without cached metadata
+     */
+    #getSelectedPathsMissingMetadata(selectorId) {
+        const store = this.itemsSelection.value;
+        // Removing the last offer clears every item, so their metadata is irrelevant.
+        if (!store.selectedOffers.value.some((id) => id !== selectorId)) return [];
+        const isKnown = (path) =>
+            store.cardsByPaths.value.has(path) ||
+            store.collectionsByPaths.value.has(path) ||
+            store.groupedVariationsData.value.has(path);
+        return [...store.selectedCards.value, ...store.selectedCollections.value].filter((path) => !isKnown(path));
+    }
+
+    /**
+     * @param {string[]} paths
+     * @returns {Promise<boolean>} false when some metadata could not be loaded
+     */
+    async #loadSelectedMetadata(paths) {
+        const store = this.itemsSelection.value;
+        const cards = [];
+        const collections = [];
+        let failed = false;
+        await processConcurrently(
+            paths,
+            async (path) => {
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (!fragment) {
+                    failed = true;
+                    return;
+                }
+                (fragment.model?.path === COLLECTION_MODEL_PATH ? collections : cards).push(fragment);
+            },
+            SORT_PREFETCH_CONCURRENCY,
+        );
+        const merge = (previous, items) => new Map([...previous, ...items.map((item) => [item.path, item])]);
+        if (cards.length) store.cardsByPaths.set((previous) => merge(previous, cards));
+        if (collections.length) store.collectionsByPaths.set((previous) => merge(previous, collections));
+        return !failed;
     }
 
     #sortByOfferName(paths) {
@@ -839,6 +885,11 @@ class MasPromotionsItemsTable extends LitElement {
         if (this.type === TABLE_TYPE.OFFERS) {
             if (this.offerRemovalDialogOpen) return;
             const selectorId = item.path || item.id;
+            const missing = this.#getSelectedPathsMissingMetadata(selectorId);
+            if (missing.length && !(await this.#loadSelectedMetadata(missing))) {
+                this.#showToast('Could not load every selected item, so the offer was not removed. Please retry.', 'negative');
+                return;
+            }
             const { removed } = this.#getOfferRemovalContext(selectorId);
             const fragmentCount = removed.removedCards.length;
             const collectionCount = removed.removedCollections.length;

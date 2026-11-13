@@ -39,6 +39,18 @@ function deepMerge(...objects) {
     return _deepMerge(true, ...objects);
 }
 
+/**
+ * Merges a layer (variation, mask) over a fragment. An icon's alt text describes it: a layer setting its own icons,
+ * cleared ones (['']) included, never keeps the fragment alt text, while a layer without icons ([] or unset) inherits
+ * them along with their alt text, and can override the alt text alone.
+ */
+function mergeLayer(fragment, layer) {
+    const icons = layer.fields?.mnemonicIcon;
+    if (icons === undefined || (Array.isArray(icons) && !icons.length)) return deepMerge(fragment, layer);
+    const { mnemonicAlt, ...fields } = fragment.fields;
+    return deepMerge({ ...fragment, fields }, layer);
+}
+
 function _deepMerge(topLevel, ...objects) {
     const result = {};
     if (topLevel) {
@@ -282,7 +294,7 @@ function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, cou
         country,
         pzn,
     });
-    return defaultVar && regionVar ? deepMerge(defaultVar, regionVar) : defaultVar || regionVar;
+    return defaultVar && regionVar ? mergeLayer(defaultVar, regionVar) : defaultVar || regionVar;
 }
 
 // A matching audience PZN uses its own promo variation when available, otherwise it suppresses
@@ -417,7 +429,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
-        const merged = deepMerge(root, variation);
+        const merged = mergeLayer(root, variation);
         merged.variationId = variation.id;
         if (Object.keys(variation).length) {
             merged.promoVariationProject = label;
@@ -434,7 +446,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     const regionalVariation = isRegionLocale ? findRegionalVariation(variations, customizeContext) : null;
     if (regionalVariation) {
         logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
-        const merged = deepMerge(root, regionalVariation);
+        const merged = mergeLayer(root, regionalVariation);
         merged.variationId = regionalVariation.id;
         return merged;
     }
@@ -444,7 +456,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
             customizeContext,
         );
-        const merged = deepMerge(root, personalizationVariation);
+        const merged = mergeLayer(root, personalizationVariation);
         merged.variationId = personalizationVariation.id;
         return merged;
     }
@@ -540,13 +552,17 @@ function prepareBaseline(baseline) {
 }
 
 /**
- * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Empty
- * icons (`[]`, `['']`) don't count.
+ * An icon's alt text describes it: the icons & alt text of the layers below the highest one setting icons are dropped, so an
+ * icon never gets the alt text of a lower layer, while a higher layer can still override the alt text alone. Empty icons
+ * (`[]`, `['']`) don't count.
  */
-function withOfferIcon(offerBaseline, higherLayers) {
-    if (higherLayers.every(({ fields }) => isEmptyFieldValue(fields.mnemonicIcon))) return offerBaseline;
-    const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
-    return { ...offerBaseline, fields };
+function withoutLowerIcons(layers, fragment) {
+    const iconLayer = [...layers, fragment].findLastIndex(({ fields }) => !isEmptyFieldValue(fields.mnemonicIcon));
+    return layers.map((layer, index) => {
+        if (index >= iconLayer) return layer;
+        const { mnemonicIcon, mnemonicAlt, ...fields } = layer.fields;
+        return { ...layer, fields };
+    });
 }
 
 /**
@@ -567,14 +583,11 @@ function withoutInheritedEmptyFields(fragment, baselines) {
  */
 function applyBaselines(fragment, { baselines }) {
     const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } = baselines?.[fragment.id] ?? {};
-    const higherLayers = [fragmentBaseline, fragmentSegmentBaseline, fragment].filter(Boolean);
-    const layers = [
-        offerBaseline && withOfferIcon(offerBaseline, higherLayers),
-        fragmentBaseline,
-        fragmentSegmentBaseline,
-    ].filter((baseline) => baseline && baseline.id !== fragment.id);
+    const layers = [offerBaseline, fragmentBaseline, fragmentSegmentBaseline].filter(
+        (baseline) => baseline && baseline.id !== fragment.id,
+    );
     if (!layers.length) return fragment;
-    const preparedLayers = layers.map(prepareBaseline);
+    const preparedLayers = withoutLowerIcons(layers, fragment).map(prepareBaseline);
     const card = withoutInheritedEmptyFields(fragment, preparedLayers);
     const merged = deepMerge(card, ...preparedLayers, card);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
@@ -584,7 +597,7 @@ function applyBaselines(fragment, { baselines }) {
 }
 
 function applyMask(fragment, maskFragment) {
-    const merged = { ...deepMerge(fragment, maskFragment), maskId: maskFragment.id };
+    const merged = { ...mergeLayer(fragment, maskFragment), maskId: maskFragment.id };
     const tags = [...new Set([...(maskFragment.fields?.tags ?? []), ...(fragment.fields?.tags ?? [])])];
     if (tags.length > 0) merged.fields.tags = tags;
     return merged;

@@ -141,7 +141,8 @@ export function createSwrCache({
     maxEntries = 1000,
     shouldCache = () => true,
 }) {
-    const createBackend = () => ({ store: new Map(), refills: new Map() });
+    // `superseded`: keys whose pending refill must not write its value, `set` having written a newer one meanwhile
+    const createBackend = () => ({ store: new Map(), refills: new Map(), superseded: new Set() });
     const backends = { published: createBackend(), preview: createBackend() };
     const jitteredTtl = (context) => (context.preview ? previewTtl : ttl) * (1 + (Math.random() * 2 - 1) * jitter);
     const storageKey = (key) => `${name}-${key}`;
@@ -195,7 +196,7 @@ export function createSwrCache({
                     if (value == null) return value;
                     const policy = shouldCache(value);
                     if (!policy) return value;
-                    if (backends[mode] === backend) {
+                    if (backends[mode] === backend && !backend.superseded.has(memoryKey)) {
                         write(context, key, stale && policy !== true ? entry.value : value, policy.ttl, target);
                     }
                     return value;
@@ -210,6 +211,7 @@ export function createSwrCache({
                     memoryKey,
                     pending.finally(() => {
                         backend.refills.delete(memoryKey);
+                        backend.superseded.delete(memoryKey);
                     }),
                 );
             }
@@ -222,10 +224,13 @@ export function createSwrCache({
         },
         /**
          * Writes a fresh `value` for `key`, e.g. after the caller persisted it elsewhere, so this
-         * instance does not keep serving the previous value until its TTL expires.
+         * instance does not keep serving the previous value until its TTL expires. A refill already
+         * in progress for `key` then leaves this value in place.
          */
         set(context, key, value) {
-            write(context, key, value);
+            const target = resolve(context, key);
+            if (target.backend.refills.has(target.memoryKey)) target.backend.superseded.add(target.memoryKey);
+            write(context, key, value, jitteredTtl(context), target);
         },
         /** Drops entries and refills; a pending refill cannot repopulate the cleared backend. */
         clear(preview = false) {

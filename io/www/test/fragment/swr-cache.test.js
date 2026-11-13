@@ -206,6 +206,30 @@ describe('swr-cache', () => {
             expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('new');
         });
 
+        it('keeps a value set while a refill is in progress, then lets the next refill write', async () => {
+            const now = sinon.stub(Date, 'now').returns(0);
+            const settle = () => new Promise((resolve) => setImmediate(resolve));
+            try {
+                const cache = createSwrCache({ name: 'set-refill', ttl: 1000, jitter: 0 });
+                await cache.get(published, 'k', async () => 'old');
+                now.returns(2000);
+                let resolveRefill;
+                const refill = () => new Promise((resolve) => (resolveRefill = resolve));
+                expect(await cache.get(published, 'k', refill)).to.equal('old');
+                cache.set(published, 'k', 'new');
+                resolveRefill('older');
+                await settle();
+                expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('new');
+
+                now.returns(4000);
+                expect(await cache.get(published, 'k', async () => 'next')).to.equal('new');
+                await settle();
+                expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('next');
+            } finally {
+                now.restore();
+            }
+        });
+
         it('writes persistent preview values to localStorage', async () => {
             const storage = installLocalStorageShim();
             try {

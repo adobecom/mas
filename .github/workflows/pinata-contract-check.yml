@@ -29,3 +29,28 @@ jobs:
             - run: python -m unittest discover -s .pinata/scripts -p 'test_contract.py' -v
             - run: bash .pinata/scripts/test-preview-supervisor.sh
             - run: node --test .pinata/scripts/run-affected-tests.test.mjs
+
+    # The accessibility target check's browser paths (a state reached by a click, the page served from the
+    # checkout, axe's verdict, the deadline) need this repository's own Playwright and axe and a Chromium for
+    # them. A11Y_TARGET_BROWSER_TESTS=required makes a class that cannot run fail here instead of skipping.
+    # A named image, not ubuntu-latest: `playwright install` only knows the images its own version supports,
+    # so the job has to stay on one this repository's Playwright can install a Chromium for.
+    target-check:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20.x
+                  cache: 'npm'
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+            - run: python -m pip install PyYAML==6.0.2
+            - run: npm ci
+            - run: npx playwright install --with-deps chromium
+            - run: python -m unittest test_contract.A11yTargetScriptTests test_contract.A11yTargetStateTests -v
+              working-directory: .pinata/scripts
+              env:
+                  A11Y_TARGET_BROWSER_TESTS: required

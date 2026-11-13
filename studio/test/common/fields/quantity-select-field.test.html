@@ -16,6 +16,7 @@
             import sinon from 'sinon';
             import {
                 createQuantitySelectValue,
+                isSameQuantitySelectValue,
                 joinLicenseLabel,
                 parseQuantitySelectValue,
                 splitLicenseLabel,
@@ -55,6 +56,26 @@
                     it('parseQuantitySelectValue empty value defaults defaultValue to 1', () => {
                         const parsed = parseQuantitySelectValue('');
                         expect(parsed.defaultValue).to.equal('1');
+                    });
+
+                    it('isSameQuantitySelectValue matches baseline markup missing default-value', () => {
+                        const baseline =
+                            '<merch-quantity-select title="Qty" min="1" step="1" max="10"></merch-quantity-select>';
+                        const restored = createQuantitySelectValue({ title: 'Qty', min: '1', step: '1', defaultValue: '1' });
+                        expect(baseline).to.not.equal(restored);
+                        expect(isSameQuantitySelectValue(baseline, restored)).to.be.true;
+                    });
+
+                    it('isSameQuantitySelectValue detects a changed component', () => {
+                        const baseline = '<merch-quantity-select title="Qty" min="1" step="1"></merch-quantity-select>';
+                        const changed = createQuantitySelectValue({ title: 'Qty', min: '1', step: '2', defaultValue: '1' });
+                        expect(isSameQuantitySelectValue(baseline, changed)).to.be.false;
+                    });
+
+                    it('isSameQuantitySelectValue treats an absent value as different from a configured one', () => {
+                        const configured = createQuantitySelectValue({ title: '', min: '1', step: '1', defaultValue: '1' });
+                        expect(isSameQuantitySelectValue('', configured)).to.be.false;
+                        expect(isSameQuantitySelectValue('', undefined)).to.be.true;
                     });
                 });
 

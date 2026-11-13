@@ -4,6 +4,106 @@ const DEFAULT_TTL = 5 * 60 * 1000;
 // Randomize each entry's TTL by ±20% so entries don't expire in lockstep across container
 // instances — spreads refetches instead of bursting them onto Odin all at once.
 const DEFAULT_JITTER = 0.2;
+const DEFAULT_MAX_MEMORY_BYTES = 256 * 1024 * 1024;
+
+// One heap per container: every memory entry of every cache instance is tracked here, ordered from
+// least to most recently used, so the least recently used ones (whatever their cache) are evicted
+// while the estimated total size exceeds `maxBytes`, or the heap used exceeds the heap budget when one
+// is set (see `setHeapBudget`). Sizes are serialized lengths, an estimate only.
+const memory = { lru: new Map(), bytes: 0, evictions: 0, maxBytes: DEFAULT_MAX_MEMORY_BYTES, heap: null, caches: {} };
+
+const sizeOf = (value) => JSON.stringify(value)?.length ?? 0;
+
+function untrack(entry) {
+    const ref = memory.lru.get(entry);
+    if (!ref) return;
+    memory.lru.delete(entry);
+    memory.bytes -= entry.size;
+    memory.caches[ref.name].entries--;
+    memory.caches[ref.name].bytes -= entry.size;
+}
+
+function evict(entry) {
+    const { name, backend, memoryKey } = memory.lru.get(entry);
+    backend.store.delete(memoryKey);
+    untrack(entry);
+    memory.evictions++;
+    memory.caches[name].evictions++;
+}
+
+function touch(backend, memoryKey, entry) {
+    const ref = memory.lru.get(entry);
+    backend.store.delete(memoryKey);
+    backend.store.set(memoryKey, entry);
+    memory.lru.delete(entry);
+    memory.lru.set(entry, ref);
+}
+
+function store(name, backend, memoryKey, entry, maxEntries) {
+    untrack(backend.store.get(memoryKey));
+    backend.store.delete(memoryKey);
+    backend.store.set(memoryKey, entry);
+    memory.lru.set(entry, { name, backend, memoryKey });
+    memory.bytes += entry.size;
+    memory.caches[name] ??= { entries: 0, bytes: 0, evictions: 0 };
+    memory.caches[name].entries++;
+    memory.caches[name].bytes += entry.size;
+    if (backend.store.size > maxEntries) evict(backend.store.values().next().value);
+    enforceBudget();
+}
+
+function heapExcess() {
+    const { heap } = memory;
+    const used = heap.getHeapUsed();
+    // Evicted entries are only freed by the next garbage collection, which is what shrinks the heap:
+    // until then they are deducted from the heap used, so that a single excess is not evicted again.
+    if (used < heap.lastUsed) heap.evicted = 0;
+    heap.lastUsed = used;
+    return used - heap.evicted - heap.maxUsed;
+}
+
+function enforceBudget() {
+    let excess = memory.heap ? heapExcess() : memory.bytes - memory.maxBytes;
+    while (excess > 0 && memory.lru.size > 1) {
+        const entry = memory.lru.keys().next().value;
+        excess -= entry.size;
+        if (memory.heap) memory.heap.evicted += entry.size;
+        evict(entry);
+    }
+}
+
+const untrackBackend = (backend) => {
+    for (const entry of backend.store.values()) untrack(entry);
+};
+
+/**
+ * Estimated memory held by all cache instances: totals and per cache name. `evictions` counts the entries evicted
+ * (over `maxEntries` or the memory budget) since the container started.
+ */
+export const getMemoryStats = () => ({
+    entries: memory.lru.size,
+    bytes: memory.bytes,
+    evictions: memory.evictions,
+    maxBytes: memory.maxBytes,
+    maxHeapUsed: memory.heap?.maxUsed,
+    caches: structuredClone(memory.caches),
+});
+
+/** Sets the memory budget shared by all cache instances, evicting least recently used entries above it. */
+export function setMemoryLimit(maxBytes) {
+    memory.maxBytes = maxBytes;
+    enforceBudget();
+}
+
+/**
+ * Replaces the byte budget with the actual heap usage (where the runtime exposes it): least recently
+ * used entries are evicted while `getHeapUsed()` exceeds `maxHeapUsed`. Called without arguments,
+ * goes back to the byte budget.
+ */
+export function setHeapBudget(maxHeapUsed, getHeapUsed) {
+    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, lastUsed: 0, evicted: 0 } : null;
+    enforceBudget();
+}
 
 /**
  * Creates a herd-protected cache: jittered TTL + single-flight refills + stale-while-revalidate.
@@ -13,9 +113,9 @@ const DEFAULT_JITTER = 0.2;
  * Published reads use memory. Preview defaults to per-key localStorage (`<name>-<key>`)
  * unless `previewMemory` is enabled. Memory-only preview caches share an invalidation revision
  * in localStorage, so clearing one instance also invalidates other clients on the same origin.
- * Each memory backend keeps at most `maxEntries` (default 1000), evicting the oldest written
- * entry on overflow. Refreshing a key moves it to the newest position; reads do not.
- * Cached values remain in memory. The read path:
+ * Each memory backend keeps at most `maxEntries` (default 1000), evicting its least recently
+ * used entry on overflow; all memory backends also share one budget (see `setMemoryLimit` and `setHeapBudget`).
+ * Reads, refreshes and `set` move a key to the most recently used position. The read path:
  *   - fresh entry         → return it;
  *   - expired, published  → serve stale, refill in the background (coalesced single-flight);
  *   - cold, or expired preview read → await the (coalesced) refill.
@@ -41,11 +141,35 @@ export function createSwrCache({
     maxEntries = 1000,
     shouldCache = () => true,
 }) {
-    const createBackend = () => ({ store: new Map(), refills: new Map() });
+    // `superseded`: keys whose pending refill must not write its value, `set` having written a newer one meanwhile
+    const createBackend = () => ({ store: new Map(), refills: new Map(), superseded: new Set() });
     const backends = { published: createBackend(), preview: createBackend() };
     const jitteredTtl = (context) => (context.preview ? previewTtl : ttl) * (1 + (Math.random() * 2 - 1) * jitter);
     const storageKey = (key) => `${name}-${key}`;
     const revisionKey = `mas-preview-cache-revision:${name}`;
+
+    function resolve(context, key) {
+        const mode = context.preview ? 'preview' : 'published';
+        let backend = backends[mode];
+        if (context.preview && previewMemory) {
+            const revision = localStorage.getItem(revisionKey);
+            if (backend.revision !== revision) {
+                untrackBackend(backend);
+                backend = backends[mode] = { ...createBackend(), revision };
+            }
+        }
+        const memoryKey = context.preview ? `${context.preview.url ?? ''}:${key}` : key;
+        return { mode, backend, memoryKey, persistent: context.preview && !previewMemory };
+    }
+
+    function write(context, key, value, entryTtl = jitteredTtl(context), target = resolve(context, key)) {
+        const entry = { value, timestamp: Date.now(), ttl: entryTtl };
+        if (target.persistent) {
+            localStorage.setItem(storageKey(key), JSON.stringify(entry));
+            return;
+        }
+        store(name, target.backend, target.memoryKey, { ...entry, size: sizeOf(value) }, maxEntries);
+    }
 
     return {
         /**
@@ -55,19 +179,12 @@ export function createSwrCache({
          * @param {() => Promise<*>} loader resolves null/undefined to skip caching.
          */
         async get(context, key, loader) {
-            const mode = context.preview ? 'preview' : 'published';
-            let backend = backends[mode];
-            if (context.preview && previewMemory) {
-                const revision = localStorage.getItem(revisionKey);
-                if (backend.revision !== revision) {
-                    backend = backends[mode] = { ...createBackend(), revision };
-                }
-            }
-            const memoryKey = context.preview ? `${context.preview.url ?? ''}:${key}` : key;
-            const persistent = context.preview && !previewMemory;
+            const target = resolve(context, key);
+            const { mode, backend, memoryKey, persistent } = target;
             const entry = persistent
                 ? JSON.parse(localStorage.getItem(storageKey(key)) ?? 'null')
                 : backend.store.get(memoryKey);
+            if (entry && !persistent) touch(backend, memoryKey, entry);
             if (entry && entry.ttl > 0 && Date.now() - entry.timestamp <= entry.ttl) {
                 logDebug(() => `[${name}] cache hit for "${key}"`, context);
                 return entry.value;
@@ -79,18 +196,8 @@ export function createSwrCache({
                     if (value == null) return value;
                     const policy = shouldCache(value);
                     if (!policy) return value;
-                    const refreshed = {
-                        value: stale && policy !== true ? entry.value : value,
-                        timestamp: Date.now(),
-                        ttl: policy.ttl ?? jitteredTtl(context),
-                    };
-                    if (backends[mode] === backend) {
-                        if (persistent) localStorage.setItem(storageKey(key), JSON.stringify(refreshed));
-                        else {
-                            backend.store.delete(memoryKey);
-                            backend.store.set(memoryKey, refreshed);
-                            if (backend.store.size > maxEntries) backend.store.delete(backend.store.keys().next().value);
-                        }
+                    if (backends[mode] === backend && !backend.superseded.has(memoryKey)) {
+                        write(context, key, stale && policy !== true ? entry.value : value, policy.ttl, target);
                     }
                     return value;
                 })();
@@ -104,6 +211,7 @@ export function createSwrCache({
                     memoryKey,
                     pending.finally(() => {
                         backend.refills.delete(memoryKey);
+                        backend.superseded.delete(memoryKey);
                     }),
                 );
             }
@@ -114,9 +222,21 @@ export function createSwrCache({
             logDebug(() => `[${name}] cold read for "${key}", awaiting refill`, context);
             return backend.refills.get(memoryKey);
         },
+        /**
+         * Writes a fresh `value` for `key`, e.g. after the caller persisted it elsewhere, so this
+         * instance does not keep serving the previous value until its TTL expires. A refill already
+         * in progress for `key` then leaves this value in place.
+         */
+        set(context, key, value) {
+            const target = resolve(context, key);
+            if (target.backend.refills.has(target.memoryKey)) target.backend.superseded.add(target.memoryKey);
+            write(context, key, value, jitteredTtl(context), target);
+        },
         /** Drops entries and refills; a pending refill cannot repopulate the cleared backend. */
         clear(preview = false) {
-            backends[preview ? 'preview' : 'published'] = createBackend();
+            const mode = preview ? 'preview' : 'published';
+            untrackBackend(backends[mode]);
+            backends[mode] = createBackend();
             if (preview && previewMemory) {
                 try {
                     localStorage.setItem(revisionKey, globalThis.crypto.randomUUID());

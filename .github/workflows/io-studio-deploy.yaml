@@ -136,6 +136,9 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
+            - name: Record deploy time for the info action
+              run: echo "DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
             - name: Deploy core Studio actions
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
@@ -147,7 +150,7 @@ jobs:
                   DEPLOY_COMMIT: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
                   DEPLOY_PR: ${{ github.event.pull_request.number }}
                   DEPLOY_RUN_ID: ${{ github.run_id }}
-              run: DEPLOY_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) node scripts/deploy-actions.mjs core
+              run: node scripts/deploy-actions.mjs core
 
             - name: Fetch optional AI secrets from Vault
               id: ai-secrets

@@ -133,6 +133,7 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    PROMOTIONS_HISTORY: 'promotions-history',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
     AI_ASSISTANT: 'ai-assistant',

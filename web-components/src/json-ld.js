@@ -22,21 +22,13 @@ function buildImage(mnemonicIcon) {
     return mnemonicIcon.map((icon) => `${icon}${suffix}`);
 }
 
-function getCurrencyCode(offer) {
-    try {
-        return JSON.parse(offer.analytics).currencyCode;
-    } catch {
-        return undefined;
-    }
-}
-
 export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
     if (!fields?.cardTitle || !offer) return null;
 
-    const currency = getCurrencyCode(offer);
+    const currency = offer.priceInfo?.currencyCode;
     if (!currency) {
         console.warn(
-            '[json-ld] No currency code found in offer analytics — JSON-LD injection skipped',
+            '[json-ld] No currency code found in offer priceInfo — JSON-LD injection skipped',
         );
         return null;
     }

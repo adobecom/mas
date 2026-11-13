@@ -13,6 +13,7 @@ import {
 } from './utilities.js';
 import '../src/mas.js';
 import '../src/mas-field.js';
+import { delay } from './utils.js';
 
 function deferred() {
     let resolve;
@@ -679,13 +680,19 @@ describe('aup-select checkout routing', () => {
             });
 
             it('preserves a resolved empty-offer action without locking subsequent checkout', async () => {
+                let handler;
+                const checkoutActionPromise = new Promise(
+                    (resolve) => (handler = resolve),
+                );
+                handler({ handler: legacy });
                 const element = await create(Class);
                 element.renderOffers(
                     [],
                     { ...element.options, ms: undefined },
                     {},
-                    { handler: legacy },
+                    checkoutActionPromise,
                 );
+                await delay(50);
                 expect(element.marketSegment).to.be.undefined;
                 const event = click(element);
                 expect(legacy.calledOnceWithExactly(event)).to.be.true;

@@ -39,7 +39,7 @@ const EMPTY_TAGS_BY_TYPE = {
 };
 const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
-const DEFAULT_ENABLED_FILTERS = [
+export const DEFAULT_ENABLED_FILTERS = [
     FILTER_TYPE.TEMPLATE,
     FILTER_TYPE.OFFER_TYPE,
     FILTER_TYPE.PLAN_TYPE,
@@ -51,6 +51,8 @@ const DEFAULT_ENABLED_FILTERS = [
     FILTER_TYPE.STATUS,
     FILTER_TYPE.PZN,
 ];
+// Selection views (translation, bulk publish, promotions) opt in to the Created by filter.
+export const SELECTION_ENABLED_FILTERS = [...DEFAULT_ENABLED_FILTERS, FILTER_TYPE.CREATED_BY];
 const sameValues = (a, b) => a.length === b.length && a.every((value, index) => value === b[index]);
 
 class MasSearchAndFilters extends LitElement {

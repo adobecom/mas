@@ -16,7 +16,7 @@ import {
 } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
-import './mas-search-and-filters.js';
+import { DEFAULT_ENABLED_FILTERS } from './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
 import { debounce, isUUID, extractSurfaceFromPath, extractLocaleFromPath } from '../../utils.js';
 
@@ -44,6 +44,7 @@ class MasItemsSelector extends LitElement {
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
+        enabledFilters: { type: Array, attribute: false },
         selectableTabs: { type: Array, attribute: 'selectable-tabs' },
         variationTabs: { type: Array },
         variationColumns: { type: Array, attribute: false },
@@ -81,6 +82,7 @@ class MasItemsSelector extends LitElement {
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
+        this.enabledFilters = DEFAULT_ENABLED_FILTERS;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
@@ -531,6 +533,7 @@ class MasItemsSelector extends LitElement {
                 .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                 .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.lockedTemplateFilter : ''}
                 .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.defaultTemplateFilter : ''}
+                .enabledFilters=${this.enabledFilters}
             ></mas-search-and-filters>
         `;
     }

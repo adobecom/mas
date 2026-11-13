@@ -1979,7 +1979,6 @@ class MerchCardEditor extends LitElement {
                         @input="${this.#handleFragmentUpdate}"
                         @change="${this.#handleFragmentUpdate}"
                     ></osi-field>
-                    ${this.isOsiReadOnly ? html`<sp-help-text>The offer is managed on the base card.</sp-help-text>` : nothing}
                     ${this.renderFieldStatusIndicator('osi')}
                 </sp-field-group>
                 <sp-field-group id="perUnitLabel" class="toggle">

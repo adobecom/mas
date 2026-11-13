@@ -32,6 +32,17 @@ describe('osi-field readonly', () => {
         expect(field.shadowRoot.querySelector('sp-icon-alert')).to.not.exist;
     });
 
+    it('explains on hover that the OSI is managed on the parent card', async () => {
+        const field = await fixture(html`<osi-field readonly></osi-field>`);
+        const tooltip = field.shadowRoot.querySelector('sp-tooltip[self-managed]');
+        expect(tooltip.textContent.trim()).to.equal('The OSI is managed on the parent card.');
+    });
+
+    it('shows no tooltip when editable', async () => {
+        const field = await fixture(html`<osi-field></osi-field>`);
+        expect(field.shadowRoot.querySelector('sp-tooltip')).to.not.exist;
+    });
+
     it('does not open the offer selector', async () => {
         const field = await fixture(html`<osi-field readonly value="abc"></osi-field>`);
         field.handleOpenOfferSelector();

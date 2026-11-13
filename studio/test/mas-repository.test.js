@@ -5307,6 +5307,61 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.processError.firstCall.args[0].message).to.include('mas:pzn/country/ar');
         });
     });
+
+    describe('saveFragment - variation OSI follows the parent', () => {
+        const variationPath = '/content/dam/mas/sandbox/fr_FR/card';
+        const createParentStore = (osi) => {
+            const fragment = new Fragment({
+                id: 'card',
+                path: '/content/dam/mas/sandbox/en_US/card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [
+                    { name: 'osi', values: ['old-osi'] },
+                    { name: 'variations', multiple: true, values: [variationPath] },
+                ],
+            });
+            fragment.updateField('osi', [osi]);
+            return new FragmentStore(fragment);
+        };
+
+        const setup = (variationOsiValues) => {
+            const repository = createFullRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().resolves({
+                        id: 'variation-id',
+                        path: variationPath,
+                        fields: [{ name: 'osi', values: variationOsiValues }],
+                    }),
+                    save: sandbox.stub().callsFake(async (fragment) => fragment),
+                },
+            });
+            sandbox.stub(repository, 'getPromoVariationPaths').resolves([]);
+            return repository;
+        };
+
+        it('clears the OSI overridden on variations when the parent OSI changes', async () => {
+            const repository = setup(['stale-osi']);
+            await repository.saveFragment(createParentStore('new-osi'), { withToast: false });
+
+            const { save } = repository.aem.sites.cf.fragments;
+            expect(save.callCount).to.equal(2);
+            expect(save.secondCall.args[0].id).to.equal('variation-id');
+            expect(save.secondCall.args[0].fields.find((field) => field.name === 'osi').values).to.deep.equal([]);
+        });
+
+        it('leaves variations that already inherit the OSI untouched', async () => {
+            const repository = setup([]);
+            await repository.saveFragment(createParentStore('new-osi'), { withToast: false });
+            expect(repository.aem.sites.cf.fragments.save.callCount).to.equal(1);
+        });
+
+        it('does not touch variations when the parent OSI is unchanged', async () => {
+            const repository = setup(['stale-osi']);
+            await repository.saveFragment(createParentStore('old-osi'), { withToast: false });
+            expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
+        });
+    });
 });
 
 describe('MasRepository publishFragment', () => {

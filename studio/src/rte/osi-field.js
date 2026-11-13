@@ -120,6 +120,9 @@ class OsiField extends LitElement {
                     ${this.#offerSelectorToolButton}
                 </sp-action-group>
                 <p id=${this.id}>Selected Offer: <strong>${this.value}</strong></p>
+                ${this.readonly
+                    ? html`<sp-tooltip self-managed placement="top">The OSI is managed on the parent card.</sp-tooltip>`
+                    : nothing}
             </div>
         `;
     }

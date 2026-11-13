@@ -1,8 +1,21 @@
 import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log } from './log.js';
-const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template, surface }) => {
+const getRequestMetadataKey = ({
+    id,
+    locale,
+    country,
+    pzn,
+    mask,
+    offer,
+    template,
+    surface,
+    serveLatest,
+    wcsConfiguration = [],
+}) => {
     const geo = geoCacheKey(locale, country);
+    const useLatestStage =
+        (serveLatest === true || serveLatest === 'true') && wcsConfiguration.some(({ env }) => env === 'stage');
     const suffixes = [
         geo.country,
         pzn && `p_${pzn}`,
@@ -10,6 +23,7 @@ const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template
         offer && `o_${offer}`,
         template && `t_${template}`,
         surface && `s_${surface}`,
+        useLatestStage && 'latest',
     ];
     return [`req-${id ?? 'offer'}-${geo.locale}`, ...suffixes].filter(Boolean).join('-');
 };

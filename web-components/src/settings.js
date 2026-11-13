@@ -129,6 +129,20 @@ function getSettings(config = {}, service) {
         wcsURL = WCS_STAGE_URL;
     }
 
+    const orion =
+        isStage &&
+        ['on', 'true'].includes(
+            getParameter(
+                'mas.orion',
+                {
+                    'mas.orion': document.querySelector(
+                        'meta[name="mas.orion"]',
+                    )?.content,
+                },
+                { storage: false },
+            )?.toLowerCase(),
+        );
+
     const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config.preview;
     const preview =
         typeof previewParam != 'undefined' &&
@@ -164,6 +178,7 @@ function getSettings(config = {}, service) {
         wcsURL,
         landscape,
         masIOUrl,
+        ...(orion && { orion }),
         ...(preselectPlan && { preselectPlan }), // only add if defined
         ...(instant && { instant }),
     };

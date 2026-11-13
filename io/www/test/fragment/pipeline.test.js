@@ -101,6 +101,71 @@ const EXPECTED_BODY_HASH = '4dabb3118d14b2fb0670e62d455d6fe36e8ced4576546445a784
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
+describe('Orion fragment pipeline', () => {
+    beforeEach(() => {
+        resetCache();
+        clearSettingsCache();
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake(() => createResponse(404, {}));
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment' });
+        fetchStub
+            .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
+            .callsFake((url) =>
+                createResponse(200, {
+                    resolvedOffers: [{ offerId: new URL(url).searchParams.has('serveLatest') ? 'orion' : 'legacy' }],
+                }),
+            );
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+        resetCache();
+        clearSettingsCache();
+    });
+
+    it('returns isolated latest prefill and keeps production requests unchanged', async () => {
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({
+                wcsConfiguration: [
+                    { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+                ],
+            }),
+        );
+        const response = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            serveLatest: 'true',
+            state,
+        });
+        expect(response.statusCode).to.equal(200);
+        expect(response.body.wcs).to.have.property('stage-latest');
+        expect(response.body.wcs).not.to.have.property('stage');
+        const latest = Object.values(response.body.wcs['stage-latest']).flat();
+        expect(latest).not.to.be.empty;
+        expect(latest.every(({ offerId }) => offerId === 'orion')).to.be.true;
+        expect(
+            Object.values(response.body.wcs.prod)
+                .flat()
+                .every(({ offerId }) => offerId === 'legacy'),
+        ).to.be.true;
+    });
+
+    it('uses normal response metadata for latest requests without a Stage configuration', async () => {
+        const state = new MockState();
+        const response = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            serveLatest: 'true',
+            state,
+        });
+        expect(response.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(response.body.wcs).to.have.all.keys('prod');
+    });
+});
+
 const runOnFilledState = async (fetchStub, entry, headers) => {
     setupFragmentMocks(fetchStub, {
         id: 'some-en-us-fragment',

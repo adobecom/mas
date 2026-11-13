@@ -86,6 +86,27 @@ const parseAddonBackground = (html) => {
     return { background: element?.localName === ADDON_TAG ? element.getAttribute('background') || '' : '' };
 };
 
+/** Pairs each item with an equal, not yet paired parent item regardless of position, so removing or reordering items keeps the others inherited. */
+const matchParentItems = (items, parentItems) => {
+    const unmatched = parentItems.map((_, index) => index);
+    const matches = items.map((item) => {
+        const position = unmatched.findIndex((index) => deepEquals(item, parentItems[index]));
+        return position < 0 ? -1 : unmatched.splice(position, 1)[0];
+    });
+    return { matches, unmatched };
+};
+
+/** Restores the item at `index` to the parent item at the same position, or the first unpaired one; with none left the item is removed. */
+const restoreParentItem = (items, parentItems, index) => {
+    const { unmatched } = matchParentItems(items, parentItems);
+    const parentIndex = unmatched.includes(index) ? index : unmatched[0];
+    const parentItem = parentItems[parentIndex];
+    const restored = [...items];
+    if (parentItem) restored[index] = parentItem;
+    else restored.splice(index, 1);
+    return { items: restored, parentItem };
+};
+
 function isEditorPriceElement(element) {
     if (element.closest('#preview-wrapper')) return true;
     const host = element.getRootNode()?.host;
@@ -1236,11 +1257,14 @@ class MerchCardEditor extends LitElement {
         const own = this.whatsIncluded;
         const parent = this.parentWhatsIncluded;
         const inheritedState = this.isInheritedFromBaseline(WHAT_IS_INCLUDED) ? BASELINE_FIELD_STATE : 'inherited';
-        const withStates = (items, parentItems) =>
-            items.map((item, index) => {
-                if (!parentItems.length) return item;
-                return { ...item, fieldState: deepEquals(item, parentItems[index]) ? inheritedState : 'overridden' };
-            });
+        const withStates = (items, parentItems) => {
+            if (!parentItems.length) return items;
+            const { matches } = matchParentItems(items, parentItems);
+            return items.map((item, index) => ({
+                ...item,
+                fieldState: matches[index] < 0 ? 'overridden' : inheritedState,
+            }));
+        };
         return {
             ...own,
             values: withStates(own.values, parent.values),
@@ -1253,8 +1277,14 @@ class MerchCardEditor extends LitElement {
         return this.whatsIncluded.label === this.parentWhatsIncluded.label ? 'inherited' : 'overridden';
     }
 
+    /** Pro stores the label only alongside its sections, so with every section removed the label can't be restored on its own. */
+    get #isWhatsIncludedLabelRestorable() {
+        if (this.getWhatsIncludedLabelState() !== 'overridden') return false;
+        return !this.#isProWhatsIncluded || this.whatsIncluded.bullets.length > 0;
+    }
+
     renderWhatsIncludedLabelStatusIndicator() {
-        if (this.getWhatsIncludedLabelState() === 'overridden') {
+        if (this.#isWhatsIncludedLabelRestorable) {
             return this.#renderOverrideIndicatorLink(() =>
                 this.#restoreWhatsIncludedPart({ label: this.parentWhatsIncluded.label }),
             );
@@ -1266,7 +1296,7 @@ class MerchCardEditor extends LitElement {
     /** Section-level restore, for overrides no item or label shows (e.g. removed or cleared items). */
     renderWhatsIncludedStatusIndicator() {
         if (this.getFieldState(WHAT_IS_INCLUDED) !== 'overridden') return nothing;
-        if (this.getWhatsIncludedLabelState() === 'overridden') return nothing;
+        if (this.#isWhatsIncludedLabelRestorable) return nothing;
         const { values, bullets } = this.whatsIncludedItems;
         if ([...values, ...bullets].some(({ fieldState }) => fieldState === 'overridden')) return nothing;
         if (this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') === 'overridden') return nothing;
@@ -1293,10 +1323,11 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) return [];
         const parentMnemonics = this.parentMnemonics;
         const inheritedState = this.mnemonicsFromBaseline ? BASELINE_FIELD_STATE : 'inherited';
-        return this.#toMnemonics((fieldName) => this.getEffectiveFieldValues(fieldName)).map((mnemonic, index) => {
+        const mnemonics = this.#toMnemonics((fieldName) => this.getEffectiveFieldValues(fieldName));
+        const { matches } = matchParentItems(mnemonics, parentMnemonics);
+        return mnemonics.map((mnemonic, index) => {
             if (!parentMnemonics.length || !mnemonic.icon) return mnemonic;
-            const fieldState = deepEquals(mnemonic, parentMnemonics[index]) ? inheritedState : 'overridden';
-            return { ...mnemonic, fieldState };
+            return { ...mnemonic, fieldState: matches[index] < 0 ? 'overridden' : inheritedState };
         });
     }
 
@@ -2648,10 +2679,7 @@ class MerchCardEditor extends LitElement {
             .composedPath()
             .find((element) => ['mas-included-field', 'mas-icon-picker-field'].includes(element.localName));
         const index = event.currentTarget.getFieldIndex(field);
-        const parentItem = this.parentWhatsIncluded[listName][index];
-        const items = [...this.whatsIncluded[listName]];
-        if (parentItem) items[index] = parentItem;
-        else items.splice(index, 1);
+        const { items } = restoreParentItem(this.whatsIncluded[listName], this.parentWhatsIncluded[listName], index);
         this.#restoreWhatsIncludedPart({ [listName]: items });
     }
 
@@ -2738,13 +2766,10 @@ class MerchCardEditor extends LitElement {
         const field = event.composedPath().find((element) => element.localName === 'mas-mnemonic-field');
         const index = event.currentTarget.getFieldIndex(field);
         if (index < 0) return;
-        const parentMnemonic = this.parentMnemonics[index];
         const mnemonics = this.mnemonics.map(({ fieldState, ...mnemonic }) => mnemonic);
-        if (parentMnemonic) mnemonics[index] = parentMnemonic;
-        else mnemonics.splice(index, 1);
-        this.#saveMnemonics(mnemonics);
-        if (parentMnemonic)
-            showToast(`Visual restored to ${this.mnemonicsFromBaseline ? 'baseline' : 'parent'} value`, 'positive');
+        const { items, parentItem } = restoreParentItem(mnemonics, this.parentMnemonics, index);
+        this.#saveMnemonics(items);
+        if (parentItem) showToast(`Visual restored to ${this.mnemonicsFromBaseline ? 'baseline' : 'parent'} value`, 'positive');
     }
 
     #saveMnemonics(entries) {

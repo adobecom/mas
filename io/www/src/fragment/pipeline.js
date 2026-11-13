@@ -46,28 +46,39 @@ const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `$
 const HEAP_LIMIT = v8.getHeapStatistics().heap_size_limit;
 setHeapBudget(HEAP_LIMIT * 0.75, () => v8.getHeapStatistics().used_heap_size);
 
-// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB, limit 768.0MB | caches 6.1MB up to heap used 576.0MB
-// in 548 entries, 12 evicted: response 4.0MB (180, 12 evicted), request-metadata 75KB (180, 0 evicted), ..." (largest cache first,
-// entry count in parentheses; evictions are counted since the container started)
 // e.g. "42s" or "7m12s"
 const formatAge = (ms) => {
     const seconds = Math.round(ms / 1000);
     return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
 };
 
-function memoryUsage() {
+// Memory usage is logged on its own line, on the first request of a container, then at most once a minute.
+const MEMORY_LOG_INTERVAL = 60 * 1000;
+let memoryLoggedAt = -Infinity;
+
+// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB, limit 768.0MB | caches 6.1MB up to heap used 576.0MB
+// in 548 entries, 12 evicted: response 4.0MB (180, 12 evicted), request-metadata 75KB (180, 0 evicted), ..." (largest
+// cache first, entry count in parentheses; evictions are counted since the container started)
+function logMemoryUsage(context) {
+    const now = Date.now();
+    if (now - memoryLoggedAt < MEMORY_LOG_INTERVAL) return;
+    memoryLoggedAt = now;
     const { entries, bytes, evictions, maxHeapUsed, caches } = getMemoryStats();
     const { rss, heapUsed, heapTotal } = process.memoryUsage();
     const perCache = Object.entries(caches)
         .sort(([, a], [, b]) => b.bytes - a.bytes)
         .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries}, ${cache.evictions} evicted)`)
         .join(', ');
-    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)}, limit ${formatSize(HEAP_LIMIT)} | caches ${formatSize(bytes)} up to heap used ${formatSize(maxHeapUsed)} in ${entries} entries, ${evictions} evicted: ${perCache}`;
+    log(
+        `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)}, limit ${formatSize(HEAP_LIMIT)} | caches ${formatSize(bytes)} up to heap used ${formatSize(maxHeapUsed)} in ${entries} entries, ${evictions} evicted: ${perCache}`,
+        context,
+    );
 }
 
 function resetCache() {
     resetConfiguration();
     clearRequestCaches();
+    memoryLoggedAt = -Infinity;
 }
 
 /** 200 (or 304 when not modified since `If-Modified-Since`) response for an already encoded body. */
@@ -174,17 +185,19 @@ async function main(params) {
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const { duration } = measureTiming(context, 'pipeline', 'start');
-    const completed = `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.statusCode} in ${duration}ms`;
-    const outcome = cache ? `cache ${cache} ${requestKey}${cacheDetail ? ` (${cacheDetail})` : ''} | ` : '';
+    const parts = [
+        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.statusCode} in ${duration}ms`,
+        cache && `cache ${cache} ${requestKey}${cacheDetail ? ` (${cacheDetail})` : ''}`,
+    ];
     // a stored response only reports its cache outcome; a built one also reports the timings of its steps
-    if (cache && cache !== 'miss') {
-        log(`${completed} | ${outcome}${memoryUsage()}`, context);
-        return returnValue;
+    if (!cache || cache === 'miss') {
+        const measures = context.measures
+            .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
+            .join('|');
+        parts.push(`timings (time and duration) region: ${region}: ${measures}`);
     }
-    const measures = context.measures
-        .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
-        .join('|');
-    log(`${completed} | ${outcome}timings (time and duration) region: ${region}: ${measures} | ${memoryUsage()}`, context);
+    log(parts.filter(Boolean).join(' | '), context);
+    logMemoryUsage(context);
     return returnValue;
 }
 

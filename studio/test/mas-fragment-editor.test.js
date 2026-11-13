@@ -1345,6 +1345,25 @@ describe('MasFragmentEditor', () => {
             }
         }
 
+        for (const staged of [true, false]) {
+            it(`${staged ? 'does not' : 'does'} publish a ${staged ? '' : 'non-'}staged card with empty required fields`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+                const { el } = createPublishingEditor({ model: CARD_MODEL_PATH, promotional: false, staged });
+                sandbox
+                    .stub(el, 'querySelector')
+                    .callsFake((selector) => (selector === 'merch-card-editor' ? { emptyRequiredFields: ['Title'] } : null));
+                const toast = sandbox.spy(Events.toast, 'emit');
+
+                await el.publishFragment();
+
+                expect(save.called).to.be.false;
+                expect(publish.called).to.equal(!staged);
+                expect(toast.calledWithMatch({ content: 'Fill in the required fields: Title.', variant: 'negative' })).to.equal(
+                    staged,
+                );
+            });
+        }
+
         it('rejects unauthorized staged promo changes before showing the references dialog', async () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
             const { el } = createPublishingEditor({ model: CARD_MODEL_PATH });

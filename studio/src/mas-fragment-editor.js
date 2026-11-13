@@ -1832,11 +1832,7 @@ export default class MasFragmentEditor extends LitElement {
                 showToast('You do not have permission to update promo variations.', 'negative');
                 return;
             }
-            const emptyRequiredFields = this.querySelector('merch-card-editor')?.emptyRequiredFields ?? [];
-            if (emptyRequiredFields.length) {
-                showToast(`Fill in the required fields: ${emptyRequiredFields.join(', ')}.`, 'negative');
-                return;
-            }
+            if (this.#rejectEmptyRequiredFields()) return;
             if (this.fragment?.model?.path === CARD_MODEL_PATH) {
                 migrateLegacyVariant(this.fragmentStore);
             }
@@ -1864,6 +1860,14 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    /** Shows an error when template-required fields are empty, as the card cannot be saved then. */
+    #rejectEmptyRequiredFields() {
+        const emptyRequiredFields = this.querySelector('merch-card-editor')?.emptyRequiredFields ?? [];
+        if (!emptyRequiredFields.length) return false;
+        showToast(`Fill in the required fields: ${emptyRequiredFields.join(', ')}.`, 'negative');
+        return true;
+    }
+
     get canPublishFragment() {
         if (this.isPromotionProject) {
             return canManagePromotions();
@@ -1876,6 +1880,8 @@ export default class MasFragmentEditor extends LitElement {
             showToast('You do not have permission to publish this content.', 'negative');
             return;
         }
+        // Publishing a staged card saves its pending changes (clearStagedTag), so it needs the save validation.
+        if (this.fragment?.isStaged && this.#rejectEmptyRequiredFields()) return;
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
             let publishOptions;

@@ -100,6 +100,8 @@ export class PreviewFragmentStore extends FragmentStore {
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
     #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
+    /** Fields before resolution: `this.value` holds the resolved result, which lost the placeholder keys and inherited-setting markers. */
+    #sourceFields = [];
 
     /**
      * @param {Fragment} initialValue
@@ -109,6 +111,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
         this.lazy = lazy;
+        this.#captureSourceFields();
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
             if (this.lazy || !Store.previewDictionaryReady(this.previewLocale)) return;
@@ -132,12 +135,17 @@ export class PreviewFragmentStore extends FragmentStore {
            rather than (in this case) "super.set(value)"
         */
         this.value.replaceFrom(value, false);
+        this.#captureSourceFields();
         this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateField(name, value) {
         this.value.updateField(name, value);
+        const field = this.value.getField(name);
+        const index = this.#sourceFields.findIndex((sourceField) => sourceField.name === name);
+        if (index !== -1) this.#sourceFields[index] = structuredClone(field);
+        else if (field) this.#sourceFields.push(structuredClone(field));
         this.#valueVersion++;
         this.resolveFragment();
     }
@@ -150,14 +158,20 @@ export class PreviewFragmentStore extends FragmentStore {
 
     refreshFrom(value) {
         this.value.refreshFrom(value);
+        this.#captureSourceFields();
         this.#valueVersion++;
         this.resolveFragment();
     }
 
     discardChanges() {
         this.value.discardChanges();
+        this.#captureSourceFields();
         this.#valueVersion++;
         this.resolveFragment();
+    }
+
+    #captureSourceFields() {
+        this.#sourceFields = structuredClone(this.value.fields);
     }
 
     get previewLocale() {
@@ -265,6 +279,7 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
+        body.fields = structuredClone(this.#sourceFields);
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 

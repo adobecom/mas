@@ -281,6 +281,30 @@ describe('PreviewFragmentStore', () => {
         store.dispose();
     });
 
+    it('re-resolves placeholders from the authored fields when the preview locale changes', async () => {
+        sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+        Store.placeholders.previewByLocale.value = { en_US: { 'card-title': 'US title' }, en_AU: { 'card-title': 'AU title' } };
+        const store = new PreviewFragmentStore(
+            createFragment({
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['{{card-title}}'] },
+                ],
+            }),
+            null,
+            { lazy: true },
+        );
+
+        store.replaceFrom(await store.getResolvedFragment());
+        expect(store.value.getFieldValue('cardTitle')).to.equal('US title');
+
+        store.setPreviewLocaleOverride('en_AU');
+        const result = await store.getResolvedFragment();
+
+        expect(result.fields.find(({ name }) => name === 'cardTitle').values).to.deep.equal(['AU title']);
+        store.dispose();
+    });
+
     it('previewLocale getter prefers the override over the global locale', () => {
         const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
         expect(store.previewLocale).to.equal('en_US');

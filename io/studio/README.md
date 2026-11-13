@@ -74,7 +74,7 @@ Using Github workflows, the CI/CD of I/O studio is automated. Deployment secrets
 - auto-deploy the I/O studio actions to the personal I/O runtime workspace of the person who opened the PR (`github.event.pull_request.user.login`), reading that workspace's `env`/`aio` from their Vault path and the `odin_bucket` from the shared QA path
 - run a health-check against the deployed workspace
 - on merge, auto-deploy to stage (with health-check) then prod, reading each environment's secrets from its own Vault path
-- bind the deployed commit and PR to the `info` action: `GET /api/v1/web/MerchAtScaleStudio/info` returns them with links to the commit, the PR and the deploy workflow run, and the deploy time. A PR deploy reports the PR head commit, a merge deploy the merge commit on `main`. Deploying `info` outside CI leaves it without them.
+- bind the deployed branch, commit and PR to the `info` action: `GET /api/v1/web/MerchAtScaleStudio/info` returns them with links to the commit, the PR and the deploy workflow run, and the deploy time. A PR deploy reports the PR branch and head commit, a merge deploy `main` and the merge commit. Deploying `info` outside CI leaves it without them.
 
 There is no QA fallback: if your personal Vault path is missing, the PR run fails at preflight.
 

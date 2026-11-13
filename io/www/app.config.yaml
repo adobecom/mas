@@ -46,6 +46,7 @@ application:
                         runtime: nodejs:22
                         inputs:
                             DEPLOY_REPO_URL: $DEPLOY_REPO_URL
+                            DEPLOY_BRANCH: $DEPLOY_BRANCH
                             DEPLOY_COMMIT: $DEPLOY_COMMIT
                             DEPLOY_PR: $DEPLOY_PR
                             DEPLOY_RUN_ID: $DEPLOY_RUN_ID

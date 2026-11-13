@@ -147,6 +147,7 @@ jobs:
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
                   # Read by the info action. A PR deploy runs GitHub's test merge of the PR, so it reports the PR head instead.
                   DEPLOY_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+                  DEPLOY_BRANCH: ${{ github.event.pull_request.merged && github.event.pull_request.base.ref || github.event.pull_request.head.ref }}
                   DEPLOY_COMMIT: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
                   DEPLOY_PR: ${{ github.event.pull_request.number }}
                   DEPLOY_RUN_ID: ${{ github.run_id }}

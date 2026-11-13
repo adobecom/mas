@@ -81,6 +81,48 @@ describe('MasChat ENTERPRISE offers', () => {
     });
 
     describe('direct requests for an ENTERPRISE offer', () => {
+        it('shows the availability message when an arrangement-code lookup excludes an ENTERPRISE product', async () => {
+            globalThis.fetch = async () => ({
+                ok: true,
+                status: 200,
+                json: async () => ({ product: enterprise, arrangementCode: enterprise.arrangement_code }),
+            });
+
+            await el.executeRegularOperation(
+                {
+                    type: 'studio_operation',
+                    operationName: 'get_product_by_arrangement_code',
+                    operationParams: { arrangementCode: enterprise.arrangement_code },
+                },
+                'get_product_by_arrangement_code',
+                'release',
+            );
+
+            expect(lastMessage().content).to.include("isn't available");
+            expect(lastMessage().content).to.not.include('No MCS product found');
+            expect(lastMessage().buttonGroup.options.map(({ value }) => value)).to.deep.equal([
+                'release_pick_different_offer',
+                'release_cancel',
+            ]);
+            expect(el.selectedReleaseProduct).to.not.be.ok;
+        });
+
+        it('keeps the missing-product message when an arrangement-code lookup finds no product', async () => {
+            globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ product: null }) });
+
+            await el.executeRegularOperation(
+                {
+                    type: 'studio_operation',
+                    operationName: 'get_product_by_arrangement_code',
+                    operationParams: { arrangementCode: 'missing_product' },
+                },
+                'get_product_by_arrangement_code',
+                'release',
+            );
+
+            expect(lastMessage().content).to.include('No MCS product found for arrangement code `missing_product`');
+        });
+
         const lookupOffer = async (operationName, body) => {
             globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => body });
             const continueStub = sinon.stub(el, 'continueFromResolvedOffer').resolves();

@@ -1967,7 +1967,9 @@ export class MasChat extends LitElement {
                 ...this.messages,
                 {
                     role: 'assistant',
-                    content: `No MCS product found for arrangement code \`${arrangementCode}\`. Pick a different offer or proceed with a minimal card.`,
+                    content: operationResult.unavailable
+                        ? OFFER_NOT_AVAILABLE_MESSAGE
+                        : `No MCS product found for arrangement code \`${arrangementCode}\`. Pick a different offer or proceed with a minimal card.`,
                     buttonGroup: {
                         label: 'Release Recovery',
                         options: [

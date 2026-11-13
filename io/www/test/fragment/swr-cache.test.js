@@ -142,16 +142,16 @@ describe('swr-cache', () => {
             // older entries of the previous tests are evicted first: the excess also covers them, then a and b
             heapUsed = 1000 + getMemoryStats().bytes - 150;
             await cache.get(published, 'd', async () => 'd'.repeat(98));
-            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 2, bytes: 200 });
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 2, bytes: 200, evictions: 2 });
             expect(getMemoryStats().maxHeapUsed).to.equal(1000);
 
             // the evicted entries are not freed yet: the same heap used does not evict again
             await cache.get(published, 'e', async () => 'e'.repeat(98));
-            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300 });
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 2 });
 
             heapUsed = 1050;
             await cache.get(published, 'f', async () => 'f'.repeat(98));
-            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300 });
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 3 });
             expect(await cache.get(published, 'c', async () => 'reloaded')).to.equal('reloaded');
         });
 
@@ -167,13 +167,13 @@ describe('swr-cache', () => {
 
             expect(await first.get(published, 'k', async () => 'unexpected')).to.have.length(98);
             expect(await second.get(published, 'k', async () => 'reloaded')).to.equal('reloaded');
-            expect(cacheStats('budget-a')).to.deep.equal({ entries: 1, bytes: 100 });
+            expect(cacheStats('budget-a')).to.deep.equal({ entries: 1, bytes: 100, evictions: 0 });
         });
 
         it('counts an undefined value as empty', async () => {
             const cache = createSwrCache({ name: 'budget-undefined' });
             cache.set(published, 'k', undefined);
-            expect(cacheStats('budget-undefined')).to.deep.equal({ entries: 1, bytes: 0 });
+            expect(cacheStats('budget-undefined')).to.deep.equal({ entries: 1, bytes: 0, evictions: 0 });
         });
 
         it('keeps a single entry larger than the budget', async () => {
@@ -186,13 +186,15 @@ describe('swr-cache', () => {
 
         it('stops counting replaced, evicted and cleared entries', async () => {
             const cache = createSwrCache({ name: 'budget-count', maxEntries: 1 });
+            const { evictions } = getMemoryStats();
             await cache.get(published, 'a', async () => 'aa');
             cache.set(published, 'a', 'aaaa');
-            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 6 });
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 6, evictions: 0 });
             await cache.get(published, 'b', async () => 'b');
-            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 3 });
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 3, evictions: 1 });
             cache.clear();
-            expect(cacheStats('budget-count')).to.deep.equal({ entries: 0, bytes: 0 });
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 0, bytes: 0, evictions: 1 });
+            expect(getMemoryStats().evictions).to.equal(evictions + 1);
         });
     });
 

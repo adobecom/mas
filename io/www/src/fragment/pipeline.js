@@ -47,7 +47,8 @@ const HEAP_LIMIT = v8.getHeapStatistics().heap_size_limit;
 setHeapBudget(HEAP_LIMIT * 0.75, () => v8.getHeapStatistics().used_heap_size);
 
 // e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB, limit 768.0MB | caches 6.1MB up to heap used 576.0MB
-// in 548 entries: response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
+// in 548 entries, 12 evicted: response 4.0MB (180, 12 evicted), request-metadata 75KB (180, 0 evicted), ..." (largest cache first,
+// entry count in parentheses; evictions are counted since the container started)
 // e.g. "42s" or "7m12s"
 const formatAge = (ms) => {
     const seconds = Math.round(ms / 1000);
@@ -55,13 +56,13 @@ const formatAge = (ms) => {
 };
 
 function memoryUsage() {
-    const { entries, bytes, maxHeapUsed, caches } = getMemoryStats();
+    const { entries, bytes, evictions, maxHeapUsed, caches } = getMemoryStats();
     const { rss, heapUsed, heapTotal } = process.memoryUsage();
     const perCache = Object.entries(caches)
         .sort(([, a], [, b]) => b.bytes - a.bytes)
-        .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries})`)
+        .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries}, ${cache.evictions} evicted)`)
         .join(', ');
-    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)}, limit ${formatSize(HEAP_LIMIT)} | caches ${formatSize(bytes)} up to heap used ${formatSize(maxHeapUsed)} in ${entries} entries: ${perCache}`;
+    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)}, limit ${formatSize(HEAP_LIMIT)} | caches ${formatSize(bytes)} up to heap used ${formatSize(maxHeapUsed)} in ${entries} entries, ${evictions} evicted: ${perCache}`;
 }
 
 function resetCache() {

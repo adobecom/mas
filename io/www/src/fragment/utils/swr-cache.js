@@ -10,7 +10,7 @@ const DEFAULT_MAX_MEMORY_BYTES = 256 * 1024 * 1024;
 // least to most recently used, so the least recently used ones (whatever their cache) are evicted
 // while the estimated total size exceeds `maxBytes`, or the heap used exceeds the heap budget when one
 // is set (see `setHeapBudget`). Sizes are serialized lengths, an estimate only.
-const memory = { lru: new Map(), bytes: 0, maxBytes: DEFAULT_MAX_MEMORY_BYTES, heap: null, caches: {} };
+const memory = { lru: new Map(), bytes: 0, evictions: 0, maxBytes: DEFAULT_MAX_MEMORY_BYTES, heap: null, caches: {} };
 
 const sizeOf = (value) => JSON.stringify(value)?.length ?? 0;
 
@@ -24,9 +24,11 @@ function untrack(entry) {
 }
 
 function evict(entry) {
-    const { backend, memoryKey } = memory.lru.get(entry);
+    const { name, backend, memoryKey } = memory.lru.get(entry);
     backend.store.delete(memoryKey);
     untrack(entry);
+    memory.evictions++;
+    memory.caches[name].evictions++;
 }
 
 function touch(backend, memoryKey, entry) {
@@ -43,7 +45,7 @@ function store(name, backend, memoryKey, entry, maxEntries) {
     backend.store.set(memoryKey, entry);
     memory.lru.set(entry, { name, backend, memoryKey });
     memory.bytes += entry.size;
-    memory.caches[name] ??= { entries: 0, bytes: 0 };
+    memory.caches[name] ??= { entries: 0, bytes: 0, evictions: 0 };
     memory.caches[name].entries++;
     memory.caches[name].bytes += entry.size;
     if (backend.store.size > maxEntries) evict(backend.store.values().next().value);
@@ -74,10 +76,14 @@ const untrackBackend = (backend) => {
     for (const entry of backend.store.values()) untrack(entry);
 };
 
-/** Estimated memory held by all cache instances: totals and per cache name. */
+/**
+ * Estimated memory held by all cache instances: totals and per cache name. `evictions` counts the entries evicted
+ * (over `maxEntries` or the memory budget) since the container started.
+ */
 export const getMemoryStats = () => ({
     entries: memory.lru.size,
     bytes: memory.bytes,
+    evictions: memory.evictions,
     maxBytes: memory.maxBytes,
     maxHeapUsed: memory.heap?.maxUsed,
     caches: structuredClone(memory.caches),

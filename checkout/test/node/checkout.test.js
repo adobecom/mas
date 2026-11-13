@@ -3,6 +3,32 @@ import { describe, it } from 'node:test';
 import { buildCheckoutUrl, applyPageLocaleToCheckoutUrl } from '../../src/buildCheckoutUrl.js';
 import { resolveCheckoutData, resolveCheckoutIntent } from '../../src/checkout.js';
 import { urlCases, offerCases } from '../fixtures/cases.js';
+import { checkoutDecisionsV1 } from '../../src/decisions.js';
+import { decisionCases } from '../fixtures/decisions.js';
+
+describe('shared checkout decisions without browser globals', () => {
+    for (const { id, decision, input, expected } of decisionCases) {
+        it(id, () => {
+            const original = structuredClone(input);
+            assert.deepEqual(checkoutDecisionsV1[decision](input), expected);
+            assert.deepEqual(input, original);
+        });
+    }
+
+    it('preserves the error for a missing recognized segment path', () => {
+        assert.throws(
+            () =>
+                checkoutDecisionsV1.selectModalPath({
+                    config: { BUY_NOW_PATH: '/a|/b' },
+                    offerType: 'BUY',
+                    isCheckoutLink: true,
+                    customerSegment: 'TEAM',
+                    marketSegments: ['EDU'],
+                }),
+            TypeError,
+        );
+    });
+});
 
 describe('checkout URLs without browser globals', () => {
     for (const { id, data, pageContext, expected } of urlCases) {

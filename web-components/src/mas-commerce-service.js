@@ -18,6 +18,7 @@ import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 import { getParameter } from '@dexter/tacocat-core';
+import { checkoutDecisionsV1 } from '../../checkout/src/decisions.js';
 
 export const TAG_NAME_SERVICE = 'mas-commerce-service';
 
@@ -38,6 +39,11 @@ export class MasCommerceService extends HTMLElement {
     #featureFlags;
 
     lastLoggingTime = 0;
+
+    get checkoutDecisionsV1() {
+        return checkoutDecisionsV1;
+    }
+
     get #config() {
         const env = this.getAttribute('env') ?? 'prod';
         const config = {

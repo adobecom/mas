@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Checkout mixin tests</title>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { CheckoutLink } from '../src/checkout-link.js';
+            import { CheckoutButton } from '../src/checkout-button.js';
+
+            runTests(() => {
+                describe('CheckoutMixin modal classification', () => {
+                    let elements;
+
+                    beforeEach(() => {
+                        elements = [new CheckoutLink(), new CheckoutButton()];
+                    });
+
+                    afterEach(() => {
+                        document
+                            .querySelector('meta[name=mas-ff-3in1]')
+                            ?.remove();
+                    });
+
+                    it('recognizes 3-in-1 modal types', () => {
+                        for (const element of elements) {
+                            for (const modal of ['crm', 'twp']) {
+                                element.setAttribute('data-modal', modal);
+                                expect(element.is3in1Modal).to.be.true;
+                            }
+                        }
+                    });
+
+                    it('does not classify other modals as 3-in-1', () => {
+                        for (const element of elements) {
+                            expect(element.is3in1Modal).to.be.false;
+                            element.setAttribute('data-modal', 'true');
+                            expect(element.is3in1Modal).to.be.false;
+                        }
+                    });
+
+                    it('preserves modal classification when opening 3-in-1 is disabled', () => {
+                        const meta = document.createElement('meta');
+                        meta.name = 'mas-ff-3in1';
+                        meta.content = 'off';
+                        document.head.append(meta);
+                        for (const element of elements) {
+                            element.setAttribute('data-modal', 'crm');
+                            expect(element.is3in1Modal).to.be.true;
+                            expect(element.isOpen3in1Modal).to.be.false;
+                        }
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body></body>
+</html>

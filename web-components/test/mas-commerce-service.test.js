@@ -31,6 +31,33 @@ describe('commerce service', () => {
     });
 
     describe(`component "${TAG_NAME_SERVICE}"`, () => {
+        it('exposes shared checkout decisions before connection and after activation', () => {
+            const disconnected = document.createElement(TAG_NAME_SERVICE);
+            const context = {
+                modal: 'crm',
+                fallbackStep: 'payment',
+                checkoutWorkflowStep: 'segmentation',
+                threeInOneEnabled: false,
+            };
+            const expected = {
+                checkoutWorkflowStep: 'payment',
+                modal: undefined,
+                fallbackUsed: true,
+            };
+            expect(
+                disconnected.checkoutDecisionsV1.resolveWorkflowFallback(
+                    context,
+                ),
+            ).to.deep.equal(expected);
+            const service = initMasCommerceService();
+            expect(service.checkoutDecisionsV1).to.equal(
+                disconnected.checkoutDecisionsV1,
+            );
+            expect(
+                service.checkoutDecisionsV1.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+        });
+
         describe('feature flags', () => {
             it('considers feature flags', async () => {
                 let el = await initMasCommerceService();

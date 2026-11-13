@@ -10,8 +10,8 @@ import { CheckoutWorkflowStep } from './constants.js';
 import { buildCheckoutUrl } from './buildCheckoutUrl.js';
 import { Defaults } from './defaults.js';
 import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
-import { MODAL_TYPE_3_IN_1 } from './constants.js';
 import { resolveCheckoutData } from '../../checkout/src/checkout.js';
+import { isOpen3in1Modal } from '../../checkout/src/decisions.js';
 
 /**
  * generate Checkout configuration
@@ -107,9 +107,10 @@ export function Checkout({ settings, providers }) {
         const { env, landscape } = settings;
         const resolvedOptions = collectCheckoutOptions(options);
         const masFF3in1 = document.querySelector('meta[name=mas-ff-3in1]');
-        const is3in1 =
-            Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) &&
-            (!masFF3in1 || masFF3in1.content !== 'off');
+        const is3in1 = isOpen3in1Modal({
+            modal: options.modal,
+            threeInOneEnabled: !masFF3in1 || masFF3in1.content !== 'off',
+        });
         const context = window.frameElement || is3in1 ? 'if' : 'fp';
         const data = resolveCheckoutData(offers, resolvedOptions, {
             env,

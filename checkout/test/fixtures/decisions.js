@@ -128,6 +128,21 @@ export const decisionCases = [
         expected: { PRODUCT_FAMILY: 'family+variant', LOCALE: '', BUY_NOW_PATH: '/variant' },
     },
     {
+        id: 'config-svar-preserves-authored-order',
+        decision: 'selectCheckoutConfig',
+        input: {
+            productFamily: 'family',
+            locale: 'de',
+            svar: 'variant',
+            configs: [
+                { PRODUCT_FAMILY: 'family', LOCALE: '', BUY_NOW_PATH: '/base' },
+                { PRODUCT_FAMILY: 'family+variant', LOCALE: '', BUY_NOW_PATH: '/first' },
+                { PRODUCT_FAMILY: 'family+variant', LOCALE: '', BUY_NOW_PATH: '/second' },
+            ],
+        },
+        expected: { PRODUCT_FAMILY: 'family+variant', LOCALE: '', BUY_NOW_PATH: '/first' },
+    },
+    {
         id: 'config-missing',
         decision: 'selectCheckoutConfig',
         input: { ...configInput, configs: [] },
@@ -173,12 +188,43 @@ export const decisionCases = [
         expected,
     })),
     {
+        id: 'unknown-segment-uses-first-path',
+        decision: 'selectModalPath',
+        input: {
+            config: { BUY_NOW_PATH: ' /individual | /team | /student | /education ' },
+            offerType: 'BUY',
+            isCheckoutLink: true,
+            customerSegment: 'UNKNOWN',
+            marketSegments: ['COM'],
+        },
+        expected: '/individual',
+    },
+    {
+        id: 'missing-segment-uses-first-path',
+        decision: 'selectModalPath',
+        input: {
+            config: { BUY_NOW_PATH: ' /individual | /team ' },
+            offerType: 'BUY',
+            isCheckoutLink: true,
+            customerSegment: 'INDIVIDUAL',
+        },
+        expected: '/individual',
+    },
+    {
+        id: 'non-checkout-link-uses-first-path',
+        decision: 'selectModalPath',
+        input: { config: { BUY_NOW_PATH: ' /individual | /team ' }, offerType: 'BUY', isCheckoutLink: false },
+        expected: '/individual',
+    },
+    {
         id: '3in1-does-not-split-segment-paths',
         decision: 'selectModalPath',
         input: { config: { BUY_NOW_PATH: '/a|/b' }, offerType: 'BUY', isOpen3in1: true },
         expected: '/a|/b',
     },
     { id: 'hash-missing-config', decision: 'selectModalHash', input: {}, expected: undefined },
+    { id: 'path-missing-config', decision: 'selectModalPath', input: {}, expected: undefined },
+    { id: 'path-null-config', decision: 'selectModalPath', input: { config: null }, expected: undefined },
     { id: 'hash-missing-offer', decision: 'selectModalHash', input: { config: modalConfig }, expected: undefined },
     {
         id: 'path-disabled',

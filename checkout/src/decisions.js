@@ -90,7 +90,7 @@ export function resolveWorkflowFallback({
 }
 
 export function selectCheckoutConfig({ configs, productArrangementCode, productCode, productFamily, locale, svar }) {
-    const sorted = [...configs].sort((a, b) => (a.PRODUCT_FAMILY.includes('+') && !b.PRODUCT_FAMILY.includes('+') ? -1 : 1));
+    const sorted = [...configs].sort((a, b) => Number(b.PRODUCT_FAMILY.includes('+')) - Number(a.PRODUCT_FAMILY.includes('+')));
     const candidates = [productArrangementCode, productCode, productFamily].flatMap((product) => {
         const matches = [];
         for (const config of sorted) {
@@ -125,12 +125,12 @@ export function selectModalHash({ config, modal, isOpen3in1, offerType }) {
 }
 
 export function selectModalPath({ config, modal, isOpen3in1, offerType, isCheckoutLink, customerSegment, marketSegments }) {
+    if (!config) return undefined;
     let path = config[modalColumn({ modal, isOpen3in1, offerType }, 'PATH')];
     if (path?.includes('|') && !isOpen3in1) {
         const segment = isCheckoutLink ? `${customerSegment}_${marketSegments?.[0]}` : '';
         const segments = ['INDIVIDUAL_COM', 'TEAM_COM', 'INDIVIDUAL_EDU', 'TEAM_EDU'];
-        // Preserve the legacy error for unknown segments or missing path entries.
-        const index = segments.indexOf(segment) || 0;
+        const index = Math.max(segments.indexOf(segment), 0);
         path = path.split('|')[index].trim();
     }
     return path;

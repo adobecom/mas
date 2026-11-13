@@ -15,23 +15,19 @@ describe('shared checkout decisions without browser globals', () => {
         });
     }
 
-    for (const context of [
-        { isCheckoutLink: true, customerSegment: 'UNKNOWN', marketSegments: ['COM'] },
-        { isCheckoutLink: true, customerSegment: 'TEAM', marketSegments: ['EDU'] },
-        { isCheckoutLink: false },
-    ]) {
-        it(`preserves the missing segment entry error for ${JSON.stringify(context)}`, () => {
-            assert.throws(
-                () =>
-                    checkoutDecisionsV1.selectModalPath({
-                        config: { BUY_NOW_PATH: '/a|/b' },
-                        offerType: 'BUY',
-                        ...context,
-                    }),
-                TypeError,
-            );
-        });
-    }
+    it('preserves the error for a missing recognized segment path', () => {
+        assert.throws(
+            () =>
+                checkoutDecisionsV1.selectModalPath({
+                    config: { BUY_NOW_PATH: '/a|/b' },
+                    offerType: 'BUY',
+                    isCheckoutLink: true,
+                    customerSegment: 'TEAM',
+                    marketSegments: ['EDU'],
+                }),
+            TypeError,
+        );
+    });
 });
 
 describe('checkout URLs without browser globals', () => {

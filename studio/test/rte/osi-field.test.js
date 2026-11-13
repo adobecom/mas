@@ -22,3 +22,30 @@ describe('osi-field error state', () => {
         expect(errorIcon(field)).to.not.exist;
     });
 });
+
+describe('osi-field readonly', () => {
+    const button = (field) => field.shadowRoot.querySelector('#offerSelectorToolButtonOSI');
+
+    it('disables the offer selector button and hides the error icon', async () => {
+        const field = await fixture(html`<osi-field readonly></osi-field>`);
+        expect(button(field).disabled).to.be.true;
+        expect(field.shadowRoot.querySelector('sp-icon-alert')).to.not.exist;
+    });
+
+    it('explains on hover that the OSI is managed on the parent card', async () => {
+        const field = await fixture(html`<osi-field readonly></osi-field>`);
+        const tooltip = field.shadowRoot.querySelector('sp-tooltip[self-managed]');
+        expect(tooltip.textContent.trim()).to.equal('The OSI is managed on the parent card.');
+    });
+
+    it('shows no tooltip when editable', async () => {
+        const field = await fixture(html`<osi-field></osi-field>`);
+        expect(field.shadowRoot.querySelector('sp-tooltip')).to.not.exist;
+    });
+
+    it('does not open the offer selector', async () => {
+        const field = await fixture(html`<osi-field readonly value="abc"></osi-field>`);
+        field.handleOpenOfferSelector();
+        expect(field.showOfferSelector).to.be.false;
+    });
+});

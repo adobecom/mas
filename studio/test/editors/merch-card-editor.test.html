@@ -327,6 +327,21 @@
                         Store.editor.resetChanges();
                     });
 
+                    it('shows the inherited OSI read-only on a variation', async () => {
+                        await setupTestEnvironment({}, 'osi-readonly');
+                        const group = editor.querySelector('osi-field#osi').closest('sp-field-group');
+                        const osiField = group.querySelector('osi-field');
+                        expect(osiField.readonly).to.be.true;
+                        expect(osiField.hasAttribute('readonly')).to.be.true;
+                        expect(osiField.value).to.equal('parent-osi');
+                    });
+
+                    it('keeps the OSI editable on the base card', async () => {
+                        await setupTestEnvironment({ isVariation: false }, 'osi-editable');
+                        const group = editor.querySelector('osi-field#osi').closest('sp-field-group');
+                        expect(group.querySelector('osi-field').hasAttribute('readonly')).to.be.false;
+                    });
+
                     it('removes inherited mnemonic and restores it via override indicator', async () => {
                         await setupTestEnvironment();
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');

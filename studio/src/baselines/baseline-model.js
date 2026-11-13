@@ -152,7 +152,7 @@ export async function createBaseline(repository, { title, osi, ...baseline }) {
     return { folder, fragment };
 }
 
-const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
+export const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
 
 const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
     ...offerBaseline,
@@ -190,8 +190,9 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
  * offer icon & its alt text are dropped when a higher baseline or the card has its own icon. Card identity & system
  * fields never come from a baseline. Arrays listed in the `MERGE_CONFIG` of the effective variant (card, else highest
  * baseline) are concatenated across baselines, as `deepMerge` does; their source is the highest contributing baseline.
- * `null` when no baseline provides any field.
- * @returns {{ fragment: Fragment, sources: Record<string, 'offer' | 'template' | 'segment'> } | null}
+ * `variant` is that effective variant, for the card to merge its own arrays with. `null` when no baseline provides any
+ * field.
+ * @returns {{ fragment: Fragment, sources: Record<string, 'offer' | 'template' | 'segment'>, variant?: string } | null}
  */
 export function buildBaselineParent(baselines, card) {
     const fieldValues = (layer, fieldName) => layer?.fields.find(({ name }) => name === fieldName)?.values;
@@ -214,5 +215,9 @@ export function buildBaselineParent(baselines, card) {
         }
     }
     if (!fields.size) return null;
-    return { fragment: new Fragment({ fields: normalizeExplicitEmptyInFields([...fields.values()]), tags: [] }), sources };
+    return {
+        fragment: new Fragment({ fields: normalizeExplicitEmptyInFields([...fields.values()]), tags: [] }),
+        sources,
+        variant,
+    };
 }

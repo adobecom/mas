@@ -198,6 +198,14 @@ application:
                             timeout: 60000 # ms — 1 min (web action ceiling)
                         annotations:
                             require-adobe-auth: false
+                    bulk-report:
+                        function: src/bulk-publish/report-action.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000 # ms — 1 min (web action ceiling)
+                        annotations:
+                            require-adobe-auth: false
                     cleanup-variations:
                         function: src/cleanup-variations/index.js
                         web: 'yes'

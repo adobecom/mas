@@ -15,6 +15,12 @@ function extractLocale(path) {
     return match?.groups?.locale || 'unknown';
 }
 
+function indexPathOf(path) {
+    const segmentIndex = path.indexOf(DICTIONARY_SEGMENT);
+    if (segmentIndex === -1) return null;
+    return path.slice(0, segmentIndex) + INDEX_SUFFIX;
+}
+
 function groupAndChunk(paths, maxChunkSize) {
     const groups = new Map();
     for (const path of paths) {
@@ -65,9 +71,8 @@ function deriveIndexPaths(details) {
     }
     const indexPaths = new Set();
     for (const path of publishedPaths) {
-        const segmentIndex = path.indexOf(DICTIONARY_SEGMENT);
-        if (segmentIndex === -1 || path.endsWith(INDEX_SUFFIX)) continue;
-        const indexPath = path.slice(0, segmentIndex) + INDEX_SUFFIX;
+        const indexPath = indexPathOf(path);
+        if (!indexPath || path.endsWith(INDEX_SUFFIX)) continue;
         if (!publishedPaths.has(indexPath)) indexPaths.add(indexPath);
     }
     return Array.from(indexPaths);
@@ -101,4 +106,14 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     return indexDetails;
 }
 
-module.exports = { publishResolved, publishDictionaryIndexes, extractLocale, groupAndChunk, STATUS, MAX_CHUNK_SIZE };
+module.exports = {
+    publishResolved,
+    publishDictionaryIndexes,
+    extractLocale,
+    groupAndChunk,
+    indexPathOf,
+    STATUS,
+    MAX_CHUNK_SIZE,
+    DICTIONARY_SEGMENT,
+    INDEX_SUFFIX,
+};

@@ -13,6 +13,42 @@ application:
                     translationJobPayloadTtl: $TRANSLATION_JOB_PAYLOAD_TTL
                     translationProjectSummaryTtl: $TRANSLATION_PROJECT_SUMMARY_TTL
                 actions:
+                    history-cleanup:
+                        function: src/history/cleanup.js
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            final: true
+                    history-record:
+                        function: src/history/record.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    history-list:
+                        function: src/history/list.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    history-restore:
+                        function: src/history/restore.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     ost-products-write:
                         function: src/ost-products/write.js
                         web: 'yes'
@@ -239,11 +275,18 @@ application:
                             require-adobe-auth: false
                             final: true
                 triggers:
+                    history-cleanup-daily:
+                        feed: /whisk.system/alarms/alarm
+                        inputs:
+                            cron: '17 3 * * *'
                     fragment-usage-hourly:
                         feed: /whisk.system/alarms/alarm
                         inputs:
                             cron: '5 * * * *' # on the clock: every deploy recreates the feed, which restarts an interval alarm
                 rules:
+                    history-cleanup-rule:
+                        trigger: history-cleanup-daily
+                        action: history-cleanup
                     fragment-usage-rollup-rule:
                         trigger: fragment-usage-hourly
                         action: fragment-usage-rollup

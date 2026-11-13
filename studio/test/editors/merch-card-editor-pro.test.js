@@ -2,7 +2,7 @@ import { expect } from '@open-wc/testing';
 import '../../src/swc.js';
 import '../../src/editors/merch-card-editor.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
 import '../../../web-components/src/merch-card.js';
 import { getFragmentMapping } from '../../src/utils.js';
@@ -16,7 +16,7 @@ describe('merch-card-editor whats-included variant routing', () => {
     function makeEditor(variant, whatsIncludedHtml) {
         const MerchCardEditor = customElements.get('merch-card-editor');
         const editor = new MerchCardEditor();
-        editor.fragmentStore = new FragmentStore(
+        editor.fragmentStore = generateFragmentStore(
             new Fragment({
                 fields: [
                     { name: 'variant', values: [variant] },
@@ -93,7 +93,7 @@ describe('merch-card-editor pro appearance mapping', () => {
             title: '',
             description: '',
         });
-        const store = new FragmentStore(fragment);
+        const store = generateFragmentStore(fragment);
         const MerchCardEditor = customElements.get('merch-card-editor');
         const editor = new MerchCardEditor();
         editor.fragmentStore = store;
@@ -318,7 +318,7 @@ describe('merch-card-editor pro edu whats-included label field', () => {
             description: '',
         });
         const editor = new (customElements.get('merch-card-editor'))();
-        editor.fragmentStore = new FragmentStore(fragment);
+        editor.fragmentStore = generateFragmentStore(fragment);
         document.body.append(editor);
         return editor;
     }

@@ -30,6 +30,15 @@ import {
 } from '../../../src/constants.js';
 
 describe('render-utils', () => {
+    it('labels surface baseline selections as Baseline instead of Default', () => {
+        expect(
+            getItemTypeLabel({
+                path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                model: { path: CARD_MODEL_PATH },
+            }),
+        ).to.equal('Baseline');
+    });
+
     describe('renderFragmentStatusCell', () => {
         it('returns nothing when status is missing', () => {
             expect(renderFragmentStatusCell()).to.equal(nothing);

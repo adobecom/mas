@@ -409,10 +409,8 @@ class MerchCardEditor extends LitElement {
         return this.fragment.getFieldState(fieldName, parent, true);
     }
 
-    /** Whether an inherited field gets its value from the baselines rather than the locale default fragment. */
     isInheritedFromBaseline(fieldName, baselineParent = this.baselinesController.parent) {
-        const fromLocaleDefault = this.effectiveIsVariation && hasContent(this.localeDefaultFragment.getFieldValues(fieldName));
-        return !fromLocaleDefault && hasContent(baselineParent?.getFieldValues(fieldName));
+        return !this.effectiveIsVariation && hasContent(baselineParent?.getFieldValues(fieldName));
     }
 
     /** Fragment the visuals are compared to: unlike `inheritanceParent`, it keeps the offer icon when the card has own visuals. */
@@ -515,11 +513,10 @@ class MerchCardEditor extends LitElement {
         </div>`;
     }
 
-    /** Only cards inheriting from baselines enforce the template-required fields, so existing cards keep saving as before. */
     isRequiredFieldEmpty(fieldName) {
         return (
-            this.supportsBaselines &&
-            this.getEffectiveFieldValue('enableBaselines') === true &&
+            !this.isBaseline &&
+            this.baselinesController.enabled &&
             this.baselinesController.status !== BASELINE_STATUS.PENDING &&
             isTemplateRequiredField(this.getEffectiveFieldValue('variant'), fieldName) &&
             !hasContent(this.getEffectiveFieldValues(fieldName))

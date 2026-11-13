@@ -2227,6 +2227,48 @@
                                 expect(indicatorText(editor, 'callout')).to.equal('');
                             });
 
+                            const makeBaselineVariation = (defaultFields) => {
+                                const editor = makeBaselineCard([]);
+                                editor.isVariation = true;
+                                editor.localeDefaultFragment = new Fragment({
+                                    id: 'locale-default',
+                                    path: '/content/dam/mas/nala/en_US/locale-default',
+                                    model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                                    tags: [],
+                                    fields: [{ name: 'variant', values: ['catalog'] }, ...defaultFields],
+                                });
+                                return editor;
+                            };
+
+                            it('shows the baseline value of a variation as inherited from its locale default card', () => {
+                                const editor = makeBaselineVariation([ENABLE_BASELINES]);
+                                expect(editor.getFormWithInheritance().subtitle.values).to.deep.equal(['Baseline subtitle']);
+                                expect(editor.getFieldState('subtitle')).to.equal('inherited');
+                                expect(indicatorText(editor, 'subtitle')).to.equal('');
+                                expect(editor.supportsBaselines).to.be.false;
+                            });
+
+                            it('flags a required field cleared on a variation as overridden and required', () => {
+                                const editor = makeBaselineVariation([
+                                    ENABLE_BASELINES,
+                                    { name: 'cardTitle', values: ['Default title'] },
+                                    { name: 'description', values: ['<p>Default</p>'] },
+                                    { name: 'ctas', values: ['<a href="#">Default CTA</a>'] },
+                                ]);
+                                editor.fragment.updateField('cardTitle', [''], editor.inheritanceParent);
+                                expect(editor.getFieldState('cardTitle')).to.equal('overridden');
+                                expect(indicatorText(editor, 'cardTitle')).to.include('Click to restore');
+                                expect(indicatorText(editor, 'cardTitle')).to.include('This field is required.');
+                                expect(editor.emptyRequiredFields).to.deep.equal(['Title']);
+                            });
+
+                            it('lets a required field cleared on a variation inherit again when its card has baselines off', () => {
+                                const editor = makeBaselineVariation([{ name: 'cardTitle', values: ['Default title'] }]);
+                                editor.fragment.updateField('cardTitle', [''], editor.inheritanceParent);
+                                expect(editor.getEffectiveFieldValue('cardTitle')).to.equal('Default title');
+                                expect(editor.emptyRequiredFields).to.deep.equal([]);
+                            });
+
                             it('flags a cleared required field as overridden and required', () => {
                                 const editor = makeBaselineCard([
                                     ENABLE_BASELINES,

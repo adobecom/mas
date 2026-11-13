@@ -47,6 +47,7 @@ import {
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
+import { buildEditorHref } from './common/utils/editor-link.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import { countdownNotice, hasCountdownSentinel, nextCountdownBoundary } from './promotions/countdown-preview.js';
@@ -1590,6 +1591,12 @@ export default class MasFragmentEditor extends LitElement {
         );
     }
 
+    #handleLocaleDefaultLinkClick(event) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey) return;
+        event.preventDefault();
+        this.navigateToLocaleDefaultFragment();
+    }
+
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
         const parentPath = this.localeDefaultFragment.path;
@@ -2331,12 +2338,20 @@ export default class MasFragmentEditor extends LitElement {
                         <sp-icon size="s"> ${branch2Icon} </sp-icon>
                         <span>Derived from</span>
                     </div>
-                    <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-link clickable">
+                    <a
+                        href=${buildEditorHref(this.localeDefaultFragment)}
+                        @click=${this.#handleLocaleDefaultLinkClick}
+                        class="derived-from-link clickable"
+                    >
                         <span>View fragment</span>
                         <sp-icon-open-in size="s"></sp-icon-open-in>
                     </a>
                 </div>
-                <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-content clickable">
+                <a
+                    href=${buildEditorHref(this.localeDefaultFragment)}
+                    @click=${this.#handleLocaleDefaultLinkClick}
+                    class="derived-from-content clickable"
+                >
                     ${this.localeDefaultFragment.title}${this.localeDefaultLocaleLabel}
                 </a>
             </div>

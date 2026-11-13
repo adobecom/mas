@@ -26,6 +26,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
+            import { setViewport } from '@web/test-runner-commands';
             import '../../src/swc.js';
             import '../../src/settings/mas-settings.js';
             import Store from '../../src/store.js';
@@ -680,6 +681,43 @@
                             );
                             Store.settings.addOverride = originalAddOverride;
                         });
+
+                        for (const height of [820, 600]) {
+                            it(`keeps quantity select override actions visible with scrollable content at ${height}px`, async () => {
+                                const viewport = { width: window.innerWidth, height: window.innerHeight };
+                                await setViewport({ width: 1200, height });
+                                try {
+                                    const references = [
+                                        createSettingReference({
+                                            id: 'setting-quantity-select',
+                                            name: 'quantitySelect',
+                                            valueType: 'text',
+                                            value: '<merch-quantity-select title="Qty" min="1" step="1"></merch-quantity-select>',
+                                        }),
+                                    ];
+                                    const { settingsPage, table } = await setupPage({ references, expectedRows: 1 });
+                                    const dialog = await openOverrideDialog(settingsPage, table, 'setting-quantity-select');
+                                    await dialog.updateComplete;
+                                    await waitForUpdates(settingsPage, 3);
+
+                                    const bounds = dialog.getBoundingClientRect();
+                                    expect(bounds.top).to.be.at.least(16);
+                                    expect(bounds.bottom).to.be.at.most(height - 16);
+                                    for (const button of dialog.querySelectorAll('sp-button[slot="button"]')) {
+                                        expect(button.getBoundingClientRect().bottom).to.be.at.most(height - 16);
+                                    }
+                                    const content = dialog.shadowRoot.querySelector('.content');
+                                    content.scrollTop = content.scrollHeight;
+                                    expect(content.scrollTop).to.be.greaterThan(0);
+                                    const quantity = dialog.querySelector('quantity-select-field');
+                                    expect(quantity.getBoundingClientRect().bottom).to.be.at.most(
+                                        content.getBoundingClientRect().bottom + 1,
+                                    );
+                                } finally {
+                                    await setViewport(viewport);
+                                }
+                            });
+                        }
 
                         it('renders quantity select override editor with compact stacked inputs', async () => {
                             const references = [

@@ -37,6 +37,21 @@ export const parseQuantitySelectValue = (value) => {
     };
 };
 
+const QUANTITY_SELECT_KEYS = ['title', 'min', 'step', 'defaultValue'];
+
+/**
+ * Compares two serialized quantity selector values by their parsed configuration.
+ * @param {string} first
+ * @param {string} second
+ * @returns {boolean}
+ */
+export const isSameQuantitySelectValue = (first, second) => {
+    if (!first || !second) return (first || '') === (second || '');
+    const a = parseQuantitySelectValue(first);
+    const b = parseQuantitySelectValue(second);
+    return QUANTITY_SELECT_KEYS.every((key) => a[key] === b[key]);
+};
+
 export const DEFAULT_LICENSE_TITLE = '{{license-label}}|{{licenses-label}}';
 
 export const splitLicenseLabel = (title) => {

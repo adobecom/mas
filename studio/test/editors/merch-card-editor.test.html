@@ -2544,6 +2544,26 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('keeps the card addon background when restoring Show Addon to the baseline', () => {
+                                    const gradient = 'linear-gradient(211deg, #ef9a37 1.11%, #e34850 58.25%, #c60066 100%)';
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'addon',
+                                                values: [`<merch-addon background="${gradient}">own</merch-addon>`],
+                                            },
+                                        ]),
+                                        [{ name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] }],
+                                    );
+                                    expect(editor.resetSettingToDefault('addon', true)).to.be.true;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                        `<merch-addon background="${gradient}">addon1</merch-addon>`,
+                                    );
+                                    expect(editor.isSettingOverridden('addon')).to.be.false;
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks a background breakpoint the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] },

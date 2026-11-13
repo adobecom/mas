@@ -33,7 +33,12 @@ import {
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
-import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
+import {
+    createQuantitySelectValue,
+    isSameQuantitySelectValue,
+    parseQuantitySelectValue,
+    QUANTITY_SELECT_TAG,
+} from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
@@ -721,6 +726,7 @@ class MerchCardEditor extends LitElement {
         const baselineValue = this.baselineSettingValue(fieldName);
         if (TOGGLE_SETTINGS.has(fieldName)) return isToggleOn(value) === isToggleOn(baselineValue);
         if (fieldName === ADDON) return this.#addonText(value) === this.#addonText(baselineValue);
+        if (fieldName === QUANTITY_MODEL) return isSameQuantitySelectValue(value, baselineValue);
         return `${value ?? ''}` === `${baselineValue ?? ''}`;
     }
 
@@ -849,7 +855,10 @@ class MerchCardEditor extends LitElement {
     resetAddonSettingToDefault() {
         let restored = false;
         if (this.effectiveIsVariation || this.#baselineSetsSetting(ADDON)) {
+            const ownBackground = parseAddonBackground(this.fragment?.getFieldValue(ADDON, 0)).background;
+            const parentBackground = parseAddonBackground(this.#settingParentValue(ADDON)).background;
             restored = this.fragmentStore.resetFieldToParent(ADDON);
+            if (restored && ownBackground && ownBackground !== parentBackground) this.#setAddonBackground(ownBackground);
         } else {
             const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
             if (this.isAddonWebComponent(addonFragment)) {
@@ -906,11 +915,7 @@ class MerchCardEditor extends LitElement {
                 step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
                 defaultValue: this.#getQuantitySelectValue(fieldName, 'defaultValue', parentValues, currentValues),
             });
-            if (parentHtml === html) {
-                this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
-            } else {
-                this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
-            }
+            this.fragmentStore.updateField(QUANTITY_MODEL, [isSameQuantitySelectValue(parentHtml, html) ? '' : html]);
         }
     }
 

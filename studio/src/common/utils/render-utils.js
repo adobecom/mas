@@ -97,6 +97,7 @@ export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
     if (isPromoVariationPath(item.path)) return 'Promotion';
+    if (Fragment.isBaselinePath(item.path)) return 'Baseline';
     if (item.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';

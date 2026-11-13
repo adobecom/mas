@@ -61,15 +61,15 @@ export function getBaselineInfo(fragment) {
 }
 
 /**
- * Loads the baselines of the surface and locale into `Store.baselines.list`, keeping created ones AEM has not indexed yet.
+ * Loads the baselines into the supplied list or `Store.baselines.list`, keeping created ones AEM has not indexed yet.
  * Rows of a previous surface or locale are cleared so the skeleton shows while the new folder loads.
  * @param {object} repository - mas-repository element
- * @param {{ surface: string, locale: string }} context
+ * @param {{ surface: string, locale: string, list?: { data: object, loading: object } }} context
  * @param {AbortController} abortController
  * @returns {Promise<boolean>} true when the results were published
  */
-export async function loadBaselines(repository, { surface, locale }, abortController) {
-    const { data, loading } = Store.baselines.list;
+export async function loadBaselines(repository, { surface, locale, list = Store.baselines.list }, abortController) {
+    const { data, loading } = list;
     if (!surface) {
         data.removeMeta(LOADED_PATH_META);
         data.set([]);
@@ -83,12 +83,12 @@ export async function loadBaselines(repository, { surface, locale }, abortContro
     }
     return loadProjectList(repository, {
         path,
-        list: Store.baselines.list,
+        list,
         abortController,
         errorMessage: 'Could not load baselines.',
         transform: (stores) =>
             mergePendingProjects(
-                Store.baselines.list.data,
+                data,
                 stores.filter((store) => store.get().fragmentName === BASELINE_NAME),
                 path,
             ),

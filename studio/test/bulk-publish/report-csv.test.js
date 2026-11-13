@@ -19,7 +19,7 @@ const row = (overrides = {}) => ({
 const report = (rows) => ({
     generatedAt: '2026-01-04T00:00:00.000Z',
     projectPublishedAt: '2026-01-03T00:00:00.000Z',
-    summary: { total: rows.length, live: 1, failed: 1, notLive: 0 },
+    summary: { total: rows.length, live: 1, failed: 1, notLive: 0, reportedPublished: 113, reportedTotal: 114 },
     missingIndexes: ['/content/dam/mas/acom/en_US/dictionary/index'],
     rows,
 });
@@ -31,6 +31,8 @@ describe('toReportCsv', () => {
         expect(lines).to.include('live,1');
         expect(lines).to.include('failed,1');
         expect(lines).to.include('not_live,0');
+        expect(lines).to.include('reported_published,113');
+        expect(lines).to.include('reported_total,114');
         expect(lines).to.include('missing_placeholder_indexes,/content/dam/mas/acom/en_US/dictionary/index');
         const header = lines.indexOf(
             'path,type,locale,status,reason,aem_status,modified_at,published_at,project_published_at,modified_after_publish',

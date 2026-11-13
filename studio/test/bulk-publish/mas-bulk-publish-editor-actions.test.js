@@ -334,7 +334,7 @@ describe('mas-bulk-publish-editor (report)', () => {
             .resolves(new Response(JSON.stringify(report), { status: 200, headers: { 'content-type': 'application/json' } }));
         const createObjectURL = sinon.stub(URL, 'createObjectURL').returns('blob:report');
         sinon.stub(URL, 'revokeObjectURL');
-        sinon.stub(HTMLAnchorElement.prototype, 'click');
+        const click = sinon.stub(HTMLAnchorElement.prototype, 'click');
 
         try {
             const el = await makeEditor();
@@ -346,6 +346,7 @@ describe('mas-bulk-publish-editor (report)', () => {
             expect(url).to.equal('https://io.example/bulk-report');
             expect(JSON.parse(init.body).projectId).to.equal('frag-id-1');
             expect(createObjectURL.calledOnce).to.equal(true);
+            expect(click.firstCall.thisValue.download).to.not.match(/[<>:"/\\|?*]/);
         } finally {
             sessionStorage.removeItem('masAccessToken');
             meta.remove();
@@ -1555,7 +1556,7 @@ describe('mas-bulk-publish-editor (publish)', () => {
     });
 
     it('publish triggers the publish flow and calls the IO action', async () => {
-        window.adobeIMS = { getAccessToken: () => ({ token: 'test', clientId: 'mas-studio' }) };
+        window.adobeIMS = { getAccessToken: () => ({ token: 'fake-token', clientId: 'mas-studio' }) };
 
         const el = await makeEditor();
         const items = [{ url: 'https://a.com', path: '/content/dam/mas/a', status: 'valid' }];

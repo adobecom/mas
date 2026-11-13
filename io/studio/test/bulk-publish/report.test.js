@@ -1,5 +1,6 @@
 const { expect } = require('chai');
-const { generateReport, REPORT_STATUS } = require('../../src/bulk-publish/report.js');
+const sinon = require('sinon');
+const { generateReport, REPORT_STATUS, MAX_REPORT_PATHS } = require('../../src/bulk-publish/report.js');
 
 const PROJECT_PUBLISHED_AT = '2026-01-10T10:00:00.000Z';
 const ROOT = '/content/dam/mas/acom/en_US';
@@ -48,7 +49,7 @@ describe('bulk-publish/report.js', () => {
         expect(index.status).to.equal(REPORT_STATUS.FAILED);
         expect(index.reason).to.equal('index-lacks-placeholders');
 
-        const ok = await run([placeholder], { fragments, entries: [placeholder] });
+        const ok = await run([placeholder], { fragments, entries: [`id-${placeholder}`] });
         expect(ok.rows.find((r) => r.path === INDEX).status).to.equal(REPORT_STATUS.LIVE);
     });
 
@@ -130,5 +131,72 @@ describe('bulk-publish/report.js', () => {
         const second = await run([path], { fragments });
         expect(first.rows[0].status).to.equal(REPORT_STATUS.LIVE);
         expect(second.rows[0].status).to.equal(REPORT_STATUS.NOT_LIVE);
+    });
+
+    describe('published index reads', () => {
+        const placeholder = `${ROOT}/dictionary/key`;
+        const card = `${ROOT}/card`;
+        const generate = () =>
+            generateReport({
+                projectId: 'p1',
+                project: projectFragment([placeholder, card]).fragment,
+                odinEndpoint: 'https://author-p22655-e59471.adobeaemcloud.com',
+                authToken: 'test',
+                deps: {
+                    checkFragment: async (path) => found(path, 'PUBLISHED'),
+                    processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)),
+                },
+            });
+
+        afterEach(() => sinon.restore());
+
+        it('checks published placeholder UUIDs on the target environment without requiring reference paths', async () => {
+            const fetch = sinon.stub(global, 'fetch').resolves({
+                ok: true,
+                json: async () => ({ fields: { entries: [`id-${placeholder}`] } }),
+            });
+            const report = await generate();
+            expect(fetch.firstCall.args[0]).to.equal(
+                `https://publish-p22655-e59471.adobeaemcloud.com/adobe/contentFragments/id-${INDEX}?references=direct-hydrated`,
+            );
+            expect(report.rows.find((row) => row.path === INDEX).status).to.equal(REPORT_STATUS.LIVE);
+        });
+
+        it('fails only the index row when published JSON is malformed', async () => {
+            sinon.stub(global, 'fetch').resolves({ ok: true, json: async () => JSON.parse('invalid') });
+            const report = await generate();
+            expect(report.rows.find((row) => row.path === INDEX).reason).to.equal('published-index-unreadable');
+            expect(report.rows.find((row) => row.path === card).status).to.equal(REPORT_STATUS.LIVE);
+        });
+
+        it('bounds each published index read with a 10s abort signal', async () => {
+            const timeout = sinon.spy(AbortSignal, 'timeout');
+            const fetch = sinon.stub(global, 'fetch').resolves({ ok: true, json: async () => ({ fields: { entries: [] } }) });
+            await generate();
+            expect(timeout.calledWith(10000)).to.equal(true);
+            expect(fetch.firstCall.args[1].signal).to.equal(timeout.firstCall.returnValue);
+        });
+
+        it('fails only the index row when its published read is aborted', async () => {
+            sinon.stub(global, 'fetch').rejects(new DOMException('timed out', 'TimeoutError'));
+            const report = await generate();
+            expect(report.rows.find((row) => row.path === INDEX).reason).to.equal('published-index-unreadable');
+            expect(report.rows.find((row) => row.path === card).status).to.equal(REPORT_STATUS.LIVE);
+        });
+    });
+
+    it('rejects a project larger than the report limit with a 413 before checking AEM', async () => {
+        const paths = Array.from({ length: MAX_REPORT_PATHS + 1 }, (value, i) => `${ROOT}/card-${i}`);
+        const check = sinon.stub();
+        const error = await generateReport({
+            projectId: 'p1',
+            project: projectFragment(paths).fragment,
+            odinEndpoint: 'https://odin',
+            authToken: 'tok',
+            deps: { checkFragment: check },
+        }).catch((err) => err);
+        expect(error.statusCode).to.equal(413);
+        expect(error.message).to.include(String(MAX_REPORT_PATHS));
+        expect(check.called).to.equal(false);
     });
 });

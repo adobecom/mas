@@ -203,7 +203,7 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         limits:
-                            timeout: 300000 # ms — 5 min
+                            timeout: 60000 # ms — 1 min (web action ceiling)
                         annotations:
                             require-adobe-auth: false
                     cleanup-variations:

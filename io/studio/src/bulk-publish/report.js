@@ -8,9 +8,10 @@ const ROW_TYPE = { ITEM: 'item', PLACEHOLDER: 'placeholder', DICTIONARY_INDEX: '
 
 const REPORT_CONCURRENCY = 5;
 const REPORT_RPS_LIMIT = 5;
+const MAX_REPORT_PATHS = 200;
 
 const INDEX_ENTRIES_FIELD = 'entries';
-const PUBLISHED_FRAGMENT_URL = 'https://odin.adobe.com/adobe/contentFragments';
+const INDEX_READ_TIMEOUT_MS = 10000;
 const DIRECT_HYDRATED = 'direct-hydrated';
 
 const LIVE_AEM_STATUSES = new Set(['PUBLISHED', 'MODIFIED']);
@@ -28,17 +29,23 @@ async function checkFragment(path, { odinEndpoint, authToken }) {
 /**
  * Reads the published `references=direct-hydrated` view of a dictionary index.
  * @param {{ id: string }} indexFragment author fragment of the index
- * @returns {Promise<string[]|null>} paths of the entries that are live, or null when the view cannot be read
+ * @param {string} odinEndpoint target AEM author endpoint
+ * @returns {Promise<string[]|null>} UUIDs of live entries, or null when the view cannot be read
  */
-async function readPublishedIndexEntries(indexFragment) {
-    const response = await fetch(`${PUBLISHED_FRAGMENT_URL}/${indexFragment.id}?references=${DIRECT_HYDRATED}`).catch(
-        () => null,
-    );
-    if (!response?.ok) return null;
-    const body = await response.json();
-    const references = body.references || {};
-    const entryIds = body.fields?.[INDEX_ENTRIES_FIELD] || [];
-    return entryIds.map((id) => references[id]?.value?.path).filter(Boolean);
+async function readPublishedIndexEntries(indexFragment, odinEndpoint) {
+    const origin = new URL(odinEndpoint);
+    origin.hostname = origin.hostname.replace(/^author-/, 'publish-');
+    try {
+        const response = await fetch(
+            `${origin.origin}/adobe/contentFragments/${indexFragment.id}?references=${DIRECT_HYDRATED}`,
+            { signal: AbortSignal.timeout(INDEX_READ_TIMEOUT_MS) },
+        );
+        if (!response.ok) return null;
+        const body = await response.json();
+        return body.fields?.[INDEX_ENTRIES_FIELD] || [];
+    } catch {
+        return null;
+    }
 }
 
 function rowType(path) {
@@ -66,15 +73,14 @@ function statusFromAem(check) {
     return { status: REPORT_STATUS.FAILED, reason: 'unknown-status' };
 }
 
-async function judgeIndex(check, placeholderPaths, readEntries) {
+function judgeIndex(check, placeholderIds, liveEntries) {
     const verdict = statusFromAem(check);
     if (verdict.status !== REPORT_STATUS.LIVE) {
         return check.state === CHECK.NOT_FOUND ? { ...verdict, reason: 'index-missing' } : verdict;
     }
-    const liveEntries = await readEntries(check.fragment);
     if (!liveEntries) return { status: REPORT_STATUS.FAILED, reason: 'published-index-unreadable' };
     const live = new Set(liveEntries);
-    const missing = placeholderPaths.filter((path) => !live.has(path));
+    const missing = placeholderIds.filter((id) => !live.has(id));
     if (missing.length) return { status: REPORT_STATUS.FAILED, reason: 'index-lacks-placeholders' };
     return verdict;
 }
@@ -105,7 +111,7 @@ function parseReportedResult(project) {
  */
 async function generateReport({ projectId, project, odinEndpoint, authToken, deps = {} }) {
     const check = deps.checkFragment || ((path) => checkFragment(path, { odinEndpoint, authToken }));
-    const readEntries = deps.readPublishedIndexEntries || readPublishedIndexEntries;
+    const readEntries = deps.readPublishedIndexEntries || ((fragment) => readPublishedIndexEntries(fragment, odinEndpoint));
     const runBatches = deps.processBatchWithConcurrency || processBatchWithConcurrency;
 
     const projectPublishedAt = getValue(project, 'publishedAt')?.value || '';
@@ -114,9 +120,26 @@ async function generateReport({ projectId, project, odinEndpoint, authToken, dep
     const itemPaths = resolvePaths(getProjectPaths(project), getProjectLocales(project));
     const placeholdersByIndex = groupPlaceholdersByIndex(itemPaths);
     const paths = [...new Set([...itemPaths, ...placeholdersByIndex.keys()])].sort();
+    if (paths.length > MAX_REPORT_PATHS) {
+        throw Object.assign(
+            new Error(`Report is limited to ${MAX_REPORT_PATHS} fragments; this project has ${paths.length}.`),
+            { statusCode: 413 },
+        );
+    }
 
     const checks = await runBatches(paths, REPORT_CONCURRENCY, check, REPORT_RPS_LIMIT);
     const checkByPath = new Map(paths.map((path, i) => [path, checks[i]]));
+    const indexPaths = paths.filter(
+        (path) =>
+            rowType(path) === ROW_TYPE.DICTIONARY_INDEX && statusFromAem(checkByPath.get(path)).status === REPORT_STATUS.LIVE,
+    );
+    const entries = await runBatches(
+        indexPaths,
+        REPORT_CONCURRENCY,
+        (path) => readEntries(checkByPath.get(path).fragment),
+        REPORT_RPS_LIMIT,
+    );
+    const entriesByIndex = new Map(indexPaths.map((path, i) => [path, entries[i]]));
 
     const missingIndexes = [];
     const errors = [];
@@ -126,7 +149,10 @@ async function generateReport({ projectId, project, odinEndpoint, authToken, dep
         const type = rowType(path);
         let verdict;
         if (type === ROW_TYPE.DICTIONARY_INDEX) {
-            verdict = await judgeIndex(result, placeholdersByIndex.get(path) || [], readEntries);
+            const placeholderIds = (placeholdersByIndex.get(path) || []).map(
+                (placeholder) => checkByPath.get(placeholder)?.fragment?.id,
+            );
+            verdict = judgeIndex(result, placeholderIds, entriesByIndex.get(path));
             if (verdict.reason === 'index-missing') missingIndexes.push(path);
         } else if (type === ROW_TYPE.PLACEHOLDER && checkByPath.get(indexPathOf(path))?.state === CHECK.NOT_FOUND) {
             verdict = { status: REPORT_STATUS.FAILED, reason: 'placeholder-index-missing' };
@@ -172,4 +198,4 @@ async function generateReport({ projectId, project, odinEndpoint, authToken, dep
     };
 }
 
-module.exports = { generateReport, REPORT_STATUS };
+module.exports = { generateReport, REPORT_STATUS, MAX_REPORT_PATHS };

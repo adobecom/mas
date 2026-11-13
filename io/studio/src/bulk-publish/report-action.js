@@ -39,7 +39,7 @@ async function main(params) {
         return { statusCode: 200, body: report };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'report-error', error: error.message }));
-        return errorResponse(500, error.message || 'Internal server error', logger);
+        return errorResponse(error.statusCode || 500, error.message || 'Internal server error', logger);
     }
 }
 

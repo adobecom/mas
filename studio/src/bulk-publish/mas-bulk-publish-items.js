@@ -244,19 +244,26 @@ class MasBulkPublishItems extends LitElement {
                               Check for modifications
                           </sp-action-button>`
                         : nothing}
-                    ${this.canReport
-                        ? nothing
-                        : html`<span data-testid="report-hint">Report available once the project is complete</span>`}
-                    <sp-action-button
-                        size="s"
-                        quiet
-                        data-testid="report-btn"
-                        ?disabled=${!this.canReport || this.reportPending}
-                        @click=${() => emit(this, 'download-report')}
+                    <span
+                        tabindex=${this.canReport ? -1 : 0}
+                        aria-label=${this.canReport ? nothing : 'Report available once the project is complete'}
                     >
-                        <sp-icon-download slot="icon"></sp-icon-download>
-                        Report
-                    </sp-action-button>
+                        <sp-action-button
+                            size="s"
+                            quiet
+                            data-testid="report-btn"
+                            ?disabled=${!this.canReport || this.reportPending}
+                            @click=${() => emit(this, 'download-report')}
+                        >
+                            <sp-icon-download slot="icon"></sp-icon-download>
+                            Report
+                        </sp-action-button>
+                        ${this.canReport
+                            ? nothing
+                            : html`<sp-tooltip self-managed placement="bottom">
+                                  Report available once the project is complete
+                              </sp-tooltip>`}
+                    </span>
                     <sp-action-button
                         size="s"
                         quiet

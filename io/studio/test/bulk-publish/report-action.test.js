@@ -89,6 +89,13 @@ describe('bulk-publish/report-action.js', function () {
         expect(res.body.error).to.equal('odin unreachable');
     });
 
+    it('returns the status code carried by a generateReport error', async () => {
+        generateReportStub.rejects(Object.assign(new Error('too large'), { statusCode: 413 }));
+        const res = await action.main(valid);
+        expect(res.statusCode).to.equal(413);
+        expect(res.body.error).to.equal('too large');
+    });
+
     it('never exposes the token in the response or in logger calls', async () => {
         const res = await action.main(valid);
         const logged = ['info', 'warn', 'error', 'debug'].flatMap((level) => loggerStub[level].args.flat());

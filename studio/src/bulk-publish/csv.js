@@ -38,6 +38,8 @@ export function toReportCsv(report) {
         ['live', summary.live],
         ['failed', summary.failed],
         ['not_live', summary.notLive],
+        ['reported_published', summary.reportedPublished],
+        ['reported_total', summary.reportedTotal],
         ['missing_placeholder_indexes', report.missingIndexes.join(' ')],
     ].map((line) => line.map(escape).join(','));
     const rows = report.rows.map((row) => REPORT_FIELDS.map((field) => escape(row[field])).join(','));

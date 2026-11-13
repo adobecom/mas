@@ -906,7 +906,7 @@ class MasBulkPublishEditor extends LitElement {
                 const url = URL.createObjectURL(new Blob([toReportCsv(report)], { type: 'text/csv' }));
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `bulk-publish-report-${normalizeKey(this.title)}-${new Date().toISOString()}.csv`;
+                link.download = `bulk-publish-report-${normalizeKey(this.title)}-${report.generatedAt.replaceAll(':', '-')}.csv`;
                 link.click();
                 URL.revokeObjectURL(url);
                 const { live, failed, notLive } = report.summary;

@@ -283,9 +283,11 @@ describe('mas-bulk-publish-items', () => {
         const btn = el.shadowRoot.querySelector('[data-testid="report-btn"]');
         expect(btn).to.exist;
         expect(btn.hasAttribute('disabled')).to.be.true;
-        expect(el.shadowRoot.querySelector('[data-testid="report-hint"]').textContent).to.include(
+        expect(el.shadowRoot.querySelector('[data-testid="report-hint"]')).to.be.null;
+        expect(el.shadowRoot.querySelector('sp-tooltip').textContent).to.include(
             'Report available once the project is complete',
         );
+        expect(btn.parentElement.tabIndex).to.equal(0);
     });
 
     it('enables the Report button and emits download-report when the project is complete', async () => {

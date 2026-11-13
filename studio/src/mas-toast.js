@@ -7,6 +7,18 @@ class MasToast extends LitElement {
             position: fixed;
             bottom: 10%;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        sp-toast:not([open]) {
+            display: none;
+        }
+
+        .long {
+            --mod-toast-negative-background-color-default: var(--spectrum-orange-900);
         }
     `;
 
@@ -25,8 +37,8 @@ class MasToast extends LitElement {
         Events.toast.unsubscribe(this.show);
     }
 
-    show({ variant, content }) {
-        const toast = this.shadowRoot.querySelector('sp-toast');
+    show({ variant, content, long = false }) {
+        const toast = this.shadowRoot.querySelector(long ? '.long' : '.auto-close');
         if (toast) {
             toast.textContent = content;
             toast.variant = variant;
@@ -35,7 +47,10 @@ class MasToast extends LitElement {
     }
 
     render() {
-        return html`<sp-toast timeout="6000"></sp-toast>`;
+        return html`
+            <sp-toast class="auto-close" timeout="6000"></sp-toast>
+            <sp-toast class="long" timeout="30000"></sp-toast>
+        `;
     }
 }
 

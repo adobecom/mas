@@ -7,6 +7,7 @@ const {
     getProjectSnapshots,
     removePendingMarker,
 } = require('./project.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-publish-reset', { level: 'info' });
 
@@ -58,4 +59,4 @@ async function main(params) {
     }
 }
 
-module.exports = { main };
+module.exports = { main: exposeRequestId(main) };

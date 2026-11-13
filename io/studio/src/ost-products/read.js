@@ -1,5 +1,6 @@
 const stateLib = require('@adobe/aio-lib-state');
 const { Ims } = require('@adobe/aio-lib-ims');
+const { exposeRequestId } = require('../response-headers.js');
 
 const authorize = async (__ow_headers = {}) => {
     const authHeader = __ow_headers['authorization'];
@@ -67,4 +68,4 @@ async function main({ __ow_headers }) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

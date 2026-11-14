@@ -198,7 +198,6 @@ class MasPromotionsEditor extends LitElement {
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
-    #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
@@ -547,15 +546,12 @@ class MasPromotionsEditor extends LitElement {
         } else if (!hasStoredItemSelection) {
             // Optimistic split for instant paint: trust the legacy `collections` field and
             // treat the rest as cards. Writes now merge everything into `fragments`, so this
-            // can be wrong for collections saved into `fragments` — the background refine
-            // below corrects it without blocking first paint (a surface's full collection
-            // catalog must never gate the editor).
+            // can be wrong for collections saved into `fragments` — the cards table flags those
+            // from the fragments it fetches (promotion-collections-detected) and they get
+            // re-bucketed then, without crawling every surface's collection catalog.
             const legacyCollections = new Set(fromCollections);
             Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
             Store.promotions.selectedCollections.set([...legacyCollections]);
-            // MWPW-204645: correct the optimistic split in the background with a single
-            // bounded collection search per surface (not one GET per attached path).
-            void this.#refinePromotionItemClassification(fromCollections);
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
@@ -572,31 +568,15 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
-    /**
-     * Corrects the optimistic card/collection split in the background. Issues one bounded
-     * collection-model search per surface (not one GET per attached path) and re-buckets the
-     * live selection, so the editor never blocks first paint on classification and a refine
-     * that is still in flight when the user edits the selection cannot clobber those edits.
-     * @param {string[]} legacyCollectionPaths paths listed in the legacy `collections` field
-     */
-    async #refinePromotionItemClassification(legacyCollectionPaths = []) {
-        if (!this.repository?.getCollectionPathsForSurfaces) return;
-        const token = ++this.#itemClassificationToken;
-        const collectionPaths = await this.repository.getCollectionPathsForSurfaces(this.promotionPickerSurfaces);
-        if (token !== this.#itemClassificationToken) return;
-        const legacy = new Set(legacyCollectionPaths);
-        const isCollection = (path) => collectionPaths.has(path) || legacy.has(path);
-        // Re-bucket the live selection rather than the hydration snapshot, so paths the user
-        // added or removed while the search was in flight are preserved.
-        const livePaths = [
-            ...new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]),
-        ];
-        const cards = [];
-        const cols = [];
-        for (const path of livePaths) (isCollection(path) ? cols : cards).push(path);
-        Store.promotions.selectedCards.set(cards);
-        Store.promotions.selectedCollections.set(cols);
-    }
+    // Re-buckets the live selection, so paths the user added or removed meanwhile are preserved.
+    #onPromotionCollectionsDetected = ({ detail: { paths } }) => {
+        const detected = new Set(paths);
+        const cards = Store.promotions.selectedCards.value;
+        const moved = cards.filter((path) => detected.has(path));
+        if (!moved.length) return;
+        Store.promotions.selectedCards.set(cards.filter((path) => !detected.has(path)));
+        Store.promotions.selectedCollections.set([...new Set([...Store.promotions.selectedCollections.value, ...moved])]);
+    };
 
     #ensurePromotionModelFields(promotion) {
         const names = new Set(promotion.fields.map((field) => field.name));
@@ -650,6 +630,7 @@ class MasPromotionsEditor extends LitElement {
         try {
             const promotion = await this.#fetchPromotionModelById(id);
             if (!promotion) return;
+            this.repository.updatePromotionInList(promotion.initialValue);
             this.storeController?.hostDisconnected();
             this.fragmentStore = new FragmentStore(promotion);
             this.storeController = new StoreController(this, this.fragmentStore);
@@ -1528,6 +1509,7 @@ class MasPromotionsEditor extends LitElement {
                 .getDisplayName=${host.getDisplayName}
                 .renderFragmentStatusCell=${host.renderFragmentStatusCell}
                 @view-only-loading-change=${this.#onPromotionItemsLoadingChange}
+                @promotion-collections-detected=${this.#onPromotionCollectionsDetected}
                 @group-by-cancel=${() => (this.promotionGroupBy = GROUP_BY.NONE)}
                 @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
                 @promotion-offer-removed=${() =>

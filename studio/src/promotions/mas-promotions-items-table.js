@@ -3,9 +3,9 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
-import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
+import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
 import { applySearchSurfaceFromPath, getOfferName, renderCopyableValueCell } from '../common/utils/render-utils.js';
-import { OFFER_DATA_CONCURRENCY_LIMIT, processConcurrently } from '../common/utils/item-loading.js';
+import { processConcurrently } from '../common/utils/item-loading.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
@@ -45,6 +45,9 @@ const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variat
 // How many already-selected items to fetch+render per window in the viewOnly tables,
 // so large promotions don't fetch every attached fragment at once.
 const SELECTED_ITEMS_WINDOW = 25;
+
+// Offer names for the default sort are prefetched in the background, after the first window paints.
+const SORT_PREFETCH_CONCURRENCY = 10;
 
 const offersTableHeaders = [
     { label: 'Offer', key: 'offer', class: 'offer-head-cell', sortable: true, sortKey: 'offerName' },
@@ -132,6 +135,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     #loadedPathsKey = null;
     #processAbortController = null;
+    #sortAbortController = null;
     #selectionController = null;
     itemsSelection = new ItemsSelectionController(this);
     #allSelectedPaths = [];
@@ -159,7 +163,8 @@ class MasPromotionsItemsTable extends LitElement {
         this.fragmentHasEmptyGeosVariation = false;
         this.relatedPagesDialogOpen = false;
         this.offersSortDirection = 'asc';
-        this.cardsSortDirection = 'asc';
+        // Cards open in stored order; sorting by offer fetches every selected card, so it waits for the header click.
+        this.cardsSortDirection = '';
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -199,6 +204,7 @@ class MasPromotionsItemsTable extends LitElement {
         super.disconnectedCallback();
         this.#processAbortController?.abort();
         this.#processAbortController = null;
+        this.#sortAbortController?.abort();
         this.viewOnlyLoading = false;
         this.confirmDialogConfig?.onCancel?.();
         this.confirmDialogConfig = null;
@@ -330,9 +336,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
+        this.#sortAbortController?.abort();
         this.#allSelectedPaths = paths;
         this.#loadedByPath = new Map();
-        this.#prefetchedByPath = new Map();
+        // #prefetchedByPath (raw fragments) is kept so re-bucketing the selection doesn't refetch.
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
         // Probe every selected card's/collection's promo variations in a single recursive folder
@@ -352,20 +359,41 @@ class MasPromotionsItemsTable extends LitElement {
         void this.#loadSelectedInOrder();
     }
 
-    // Offer names are known before loading windows so each window lands at the bottom in order.
+    // The first window paints in stored order while the rest of the selection loads in the background:
+    // classifying collections and sorting by offer both need every selected card, not just the visible window.
     async #loadSelectedInOrder() {
-        if (this.type === TABLE_TYPE.CARDS && this.cardsSortDirection) {
-            this.#processAbortController?.abort();
-            this.#processAbortController = new AbortController();
-            const signal = this.#processAbortController.signal;
-            this.viewOnlyLoading = true;
-            const sortedPaths = await this.#sortPathsByOfferName(this.#allSelectedPaths);
-            if (signal.aborted) return;
-            this.#allSelectedPaths = sortedPaths;
-            this.#cacheSelectedFragments([...this.#prefetchedByPath.values()]);
+        this.#sortAbortController?.abort();
+        this.#visibleCount = 0;
+        if (this.type !== TABLE_TYPE.CARDS) {
+            await this.#loadNextSelectedWindow();
+            return;
         }
+        const paths = this.#allSelectedPaths;
+        const sortController = new AbortController();
+        this.#sortAbortController = sortController;
+        const firstWindow = new Set(paths.slice(0, SELECTED_ITEMS_WINDOW));
+        const prefetch = this.#prefetchSelected(
+            paths.filter((path) => !firstWindow.has(path)),
+            sortController.signal,
+        );
+        await this.#loadNextSelectedWindow();
+        if (!this.cardsSortDirection) return;
+        await prefetch;
+        if (sortController.signal.aborted) return;
+        this.#allSelectedPaths = this.#sortByOfferName(paths);
         this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
+    }
+
+    // Collections saved into the `fragments` field start in the cards bucket; flag them from the
+    // fragments fetched anyway so the editor can re-bucket them without crawling the surfaces.
+    #reportCollections(fragments) {
+        if (this.type !== TABLE_TYPE.CARDS) return;
+        const paths = fragments.filter((fragment) => fragment?.model?.path === COLLECTION_MODEL_PATH).map(({ path }) => path);
+        if (!paths.length) return;
+        this.dispatchEvent(
+            new CustomEvent('promotion-collections-detected', { detail: { paths }, bubbles: true, composed: true }),
+        );
     }
 
     #cacheSelectedFragments(items) {
@@ -375,26 +403,86 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    async #sortPathsByOfferName(paths) {
-        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
+    async #prefetchSelected(paths, signal) {
+        if (!paths.length) return;
         await processConcurrently(
-            unnamed,
+            paths.filter((path) => !this.#offerNameByPath.has(path)),
             async (path) => {
-                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (signal.aborted) return;
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path, { signal })).catch(
+                    () => null,
+                );
+                if (signal.aborted) return;
                 if (fragment) this.#prefetchedByPath.set(path, fragment);
                 this.#offerNameByPath.set(path, getOfferName(fragment));
             },
-            OFFER_DATA_CONCURRENCY_LIMIT,
+            SORT_PREFETCH_CONCURRENCY,
         );
+        if (signal.aborted) return;
+        // Replays results cached by an interrupted earlier prefetch too, which never got to publish them.
+        const fetched = paths.map((path) => this.#prefetchedByPath.get(path)).filter(Boolean);
+        this.#cacheSelectedFragments(fetched);
+        this.#reportCollections(fetched);
+    }
+
+    /**
+     * Offer removal decides which items to drop from their product tags, so every selected item needs
+     * its metadata — not only the windows the tables have rendered so far.
+     * @param {string} selectorId offer being removed
+     * @returns {string[]} selected paths without cached metadata
+     */
+    #getSelectedPathsMissingMetadata(selectorId) {
+        const store = this.itemsSelection.value;
+        // Removing the last offer clears every item, so their metadata is irrelevant.
+        if (!store.selectedOffers.value.some((id) => id !== selectorId)) return [];
+        const isKnown = (path) =>
+            store.cardsByPaths.value.has(path) ||
+            store.collectionsByPaths.value.has(path) ||
+            store.groupedVariationsData.value.has(path);
+        return [...store.selectedCards.value, ...store.selectedCollections.value].filter((path) => !isKnown(path));
+    }
+
+    /**
+     * @param {string[]} paths
+     * @param {() => boolean} isCurrent whether the removal that requested the metadata still applies
+     * @returns {Promise<boolean>} false when some metadata could not be loaded
+     */
+    async #loadSelectedMetadata(paths, isCurrent) {
+        const store = this.itemsSelection.value;
+        const cards = [];
+        const collections = [];
+        let failed = false;
+        await processConcurrently(
+            paths,
+            async (path) => {
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (!fragment) {
+                    failed = true;
+                    return;
+                }
+                (fragment.model?.path === COLLECTION_MODEL_PATH ? collections : cards).push(fragment);
+            },
+            SORT_PREFETCH_CONCURRENCY,
+        );
+        // The selection stores are shared: after a promotion switch they belong to another promotion.
+        if (!isCurrent()) return false;
+        const merge = (previous, items) => new Map([...previous, ...items.map((item) => [item.path, item])]);
+        if (cards.length) store.cardsByPaths.set((previous) => merge(previous, cards));
+        if (collections.length) store.collectionsByPaths.set((previous) => merge(previous, collections));
+        return !failed;
+    }
+
+    #sortByOfferName(paths) {
         const direction = this.cardsSortDirection === 'desc' ? -1 : 1;
-        return [...paths].sort((a, b) => this.#offerNameByPath.get(a).localeCompare(this.#offerNameByPath.get(b)) * direction);
+        const nameOf = (path) => this.#offerNameByPath.get(path) ?? '';
+        return [...paths].sort((a, b) => nameOf(a).localeCompare(nameOf(b)) * direction);
     }
 
     async #probeAllPromoVariations(paths) {
         const promoTag = this.#promotionTagId;
         if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
         try {
-            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag, { cached: true });
         } catch {
             return new Map();
         }
@@ -418,6 +506,11 @@ class MasPromotionsItemsTable extends LitElement {
         await loadSelectedFragments(unloaded, this.type, this.repository, {
             signal,
             prefetched: this.#prefetchedByPath,
+            onFetched: (fragments) => {
+                // Raw cards reach the selection sidebar before the (slower) enrichment completes.
+                this.#cacheSelectedFragments(fragments);
+                this.#reportCollections(fragments);
+            },
             onItems: (items) => {
                 if (signal.aborted) return;
                 this.#cacheSelectedFragments(items);
@@ -429,7 +522,7 @@ class MasPromotionsItemsTable extends LitElement {
                 this.viewOnlyFragments = start === 0 ? windowItems : [...this.viewOnlyFragments, ...windowItems];
                 this.#visibleCount = end;
                 if (this.#supportsPromoVariations) {
-                    this.#syncExistingPromoVariations(items, signal);
+                    this.#syncExistingPromoVariations(windowItems, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -482,7 +575,9 @@ class MasPromotionsItemsTable extends LitElement {
                 try {
                     missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
                     if (missingPaths.length) {
-                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
+                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag, {
+                            cached: true,
+                        });
                         for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
                     allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
@@ -791,6 +886,21 @@ class MasPromotionsItemsTable extends LitElement {
         if (this.type === TABLE_TYPE.OFFERS) {
             if (this.offerRemovalDialogOpen) return;
             const selectorId = item.path || item.id;
+            const missing = this.#getSelectedPathsMissingMetadata(selectorId);
+            if (missing.length) {
+                const promotion = Store.promotions.inEdit.get();
+                const isCurrent = () =>
+                    Store.promotions.inEdit.get() === promotion && store.selectedOffers.value.includes(selectorId);
+                const loaded = await this.#loadSelectedMetadata(missing, isCurrent);
+                if (!isCurrent()) return;
+                if (!loaded) {
+                    this.#showToast(
+                        'Could not load every selected item, so the offer was not removed. Please retry.',
+                        'negative',
+                    );
+                    return;
+                }
+            }
             const { removed } = this.#getOfferRemovalContext(selectorId);
             const fragmentCount = removed.removedCards.length;
             const collectionCount = removed.removedCollections.length;
@@ -1177,7 +1287,7 @@ class MasPromotionsItemsTable extends LitElement {
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
             .viewOnlyHasMore=${hasMore}
-            .sortBy=${'offer'}
+            .sortBy=${this.cardsSortDirection ? 'offer' : ''}
             .sortDirection=${this.cardsSortDirection}
             @view-only-load-more=${() => this.#loadMore()}
             @view-only-sort=${(e) => this.#onViewOnlySort(e)}

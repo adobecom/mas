@@ -270,11 +270,11 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
  * @param {Array<string>} selectedPaths - Paths of selected fragments
  * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
  * @param {Object} repository - MasRepository instance
- * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName, store, prefetched: Map<path, fragmentData> }
+ * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, onFetched: (fragments) => void (before enrichment), getDisplayName, store, prefetched: Map<path, fragmentData> (read, and filled with fetched raw data) }
  * @returns {Promise<void>}
  */
 export async function loadSelectedFragments(selectedPaths, type, repository, options = {}) {
-    const { signal, onItems, getDisplayName, store, prefetched } = options;
+    const { signal, onItems, onFetched, getDisplayName, store, prefetched } = options;
     if (!repository || !selectedPaths?.length || !getDisplayName) {
         if (onItems) onItems([]);
         return;
@@ -285,7 +285,11 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
             selectedPaths,
             async (path) => {
                 try {
-                    const fragmentData = prefetched?.get(path) ?? (await repository.aem.getFragmentByPath(path));
+                    let fragmentData = prefetched?.get(path);
+                    if (!fragmentData) {
+                        fragmentData = await repository.aem.getFragmentByPath(path);
+                        prefetched?.set(path, fragmentData);
+                    }
                     const fragment = new Fragment(fragmentData);
                     return {
                         ...fragmentData,
@@ -300,6 +304,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         );
 
         const validFragments = fragments.filter(Boolean);
+        if (!signal?.aborted) onFetched?.(validFragments);
 
         if (type === TABLE_TYPE.CARDS) {
             if (signal?.aborted) return;

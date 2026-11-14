@@ -169,6 +169,34 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.include('fr_BE');
             expect(result).to.include('fr_CA');
         });
+
+        it('returns zh_TW + zh_HK + zh_MO for ccd and adobe-home', () => {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(action.getValidVariationsLocales(surface, 'zh_TW'), surface).to.deep.equal(['zh_TW', 'zh_HK', 'zh_MO']);
+            }
+        });
+
+        it('keeps the MWPW-214328 geo expansion regions as valid variations on ccd and adobe-home', () => {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(action.getValidVariationsLocales(surface, 'es_ES'), surface).to.include.members([
+                    'es_BO',
+                    'es_DO',
+                    'es_HN',
+                    'es_NI',
+                    'es_PA',
+                    'es_PY',
+                    'es_SV',
+                    'es_UY',
+                    'es_VE',
+                ]);
+                expect(action.getValidVariationsLocales(surface, 'en_US'), surface).to.include.members([
+                    'en_AR',
+                    'en_GB',
+                    'en_OM',
+                    'en_TN',
+                ]);
+            }
+        });
     });
 
     // ---------------------------------------------------------------------------
@@ -192,9 +220,9 @@ describe('cleanup-variations/index.js', () => {
         });
 
         it('returns 200 with zero processed when the locale is not known for the specified surface', async () => {
-            // en_GB is an ACOM locale but is not in the CCD locale set — it should be silently skipped
+            // ar_SA is an ACOM locale but is not in the CCD locale set — it should be silently skipped
             fetchStub.resolves(makeFolderResponse([]));
-            const result = await action.main({ ...baseParams, surface: 'ccd', locale: 'en_GB' });
+            const result = await action.main({ ...baseParams, surface: 'ccd', locale: 'ar_SA' });
             expect(result.statusCode).to.equal(200);
             expect(result.body.processed).to.equal(0);
             expect(fetchStub).to.not.have.been.called;

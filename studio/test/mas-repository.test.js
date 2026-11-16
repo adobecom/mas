@@ -587,6 +587,34 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads baselines of the surface and locale on BASELINES page, aborting the previous load', async () => {
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({ ...originalSearch, path: 'sandbox' });
+            Store.filters.set({ ...originalFilters, locale: 'fr_FR' });
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.BASELINES };
+            repository.searchFragmentList = sandbox.stub().returns(new Promise(() => {}));
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                MasRepository.prototype.handleSearch.call(repository);
+                const [firstQuery, , firstController] = repository.searchFragmentList.firstCall.args;
+                expect(firstQuery.path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+                expect(firstController.signal.aborted).to.be.true;
+                expect(repository.searchFragmentList.secondCall.args[2].signal.aborted).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                Store.baselines.list.data.removeMeta('loadedPath');
+                Store.baselines.list.data.set([]);
+                Store.baselines.list.loading.set(false);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {
@@ -1815,6 +1843,44 @@ describe('MasRepository dictionary helpers', () => {
                 try {
                     await repository.searchFragments();
                     expect(getByPathStub.calledOnceWith(parentPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('promotion');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('resolves top-level card for promo variation of a grouped variation UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/photoshop/pzn/my-card`;
+                const groupedPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const groupedFragment = createFragment({ id: 'grouped-id', path: groupedPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: parentPath,
+                    fields: [{ name: 'variations', values: [groupedPath] }],
+                });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByPathStub = sandbox.stub().resolves(groupedFragment);
+                repository.aem = createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().resolves(variationFragment),
+                        getByPath: getByPathStub,
+                        search: sandbox.stub(),
+                    },
+                });
+                const resolveParentStub = sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.firstCall.args[0]).to.equal(groupedPath);
+                    expect(resolveParentStub.calledOnceWith(groupedPath)).to.be.true;
                     expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
                     expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
                     expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
@@ -5182,6 +5248,34 @@ describe('MasRepository dictionary helpers', () => {
             Store.promotions.list.data.removeMeta('listFetched');
         });
 
+        it('passes an explicitly expected revision to AEM without changing the edited fragment', async () => {
+            const repository = createFullRepository();
+            const fragment = new Fragment({
+                id: 'card',
+                path: '/content/dam/mas/sandbox/en_US/card',
+                etag: '"editor"',
+                model: { path: '/conf/mas/settings/dam/cfm/models/other' },
+                fields: [],
+            });
+            const store = new FragmentStore(fragment);
+            repository.aem = createAemMock({
+                fragments: { save: sandbox.stub().rejects(new Error('Revision conflict')) },
+            });
+            sandbox.stub(repository, 'processError');
+
+            expect(
+                await repository.saveFragment(store, {
+                    withToast: false,
+                    refetchEtag: false,
+                    expectedEtag: '"prepared"',
+                }),
+            ).to.be.false;
+
+            expect(repository.aem.sites.cf.fragments.save.firstCall.args[0].etag).to.equal('"prepared"');
+            expect(repository.aem.sites.cf.fragments.save.firstCall.args[1]).to.deep.equal({ refetchEtag: false });
+            expect(store.get().etag).to.equal('"editor"');
+        });
+
         it('blocks the save and reports the conflict when the promo variation geo tags overlap a sibling', async () => {
             const repository = createFullRepository();
             const fragment = new Fragment({
@@ -5246,6 +5340,8 @@ describe('MasRepository dictionary helpers', () => {
             const savedFragment = { id: 'var-1', path: variationPath, fields: fragment.fields };
             repository.aem = createAemMock({
                 fragments: {
+                    createVersion: sandbox.stub().resolves('before-save'),
+                    getVersions: sandbox.stub().resolves({ items: [] }),
                     getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
                     getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
                     search,
@@ -5326,6 +5422,7 @@ describe('MasRepository publishFragment', () => {
         const repo = new MasRepository();
         repo.operation = { set: sandbox.stub() };
         repo.aem = {
+            replicateFragment: sandbox.stub().resolves(),
             sites: {
                 cf: {
                     fragments: {
@@ -5376,6 +5473,33 @@ describe('MasRepository publishFragment', () => {
         await repo.publishFragment(fragment);
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+        expect(repo.aem.replicateFragment.called).to.be.false;
+    });
+
+    it('directly replicates when requested without starting the reference workflow', async () => {
+        const repo = makeRepo();
+
+        const result = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+
+        expect(result).to.be.true;
+        expect(repo.aem.replicateFragment.calledOnceWithExactly(fragment)).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        expect(diagnosis.called).to.be.false;
+        expect(repo.operation.set.lastCall.args).to.deep.equal([null]);
+    });
+
+    it('reports replication errors and releases the publish lock for a later attempt', async () => {
+        const repo = makeRepo();
+        repo.aem.replicateFragment.rejects(new Error('Forbidden'));
+
+        const failed = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+        repo.aem.replicateFragment.resolves();
+        const retried = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+
+        expect(failed).to.be.false;
+        expect(retried).to.be.true;
+        expect(repo.processError.calledOnce).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
     });
 
     it('publishes parent with [] (no cascade) when allSelected is true and no refs present', async () => {
@@ -5579,6 +5703,24 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls refreshFragment for each published fragment', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
+    });
+
+    it('refreshes fragments from completed batches and reports partial success when a later batch fails', async () => {
+        const error = new Error('Failed to publish fragments: 500 Server Error');
+        error.publishedFragments = [frag1];
+        repo.aem.sites.cf.fragments.publishFragments.rejects(error);
+        const toastStub = sandbox.stub(Events.toast, 'emit');
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.refreshFragment.calledOnce).to.be.true;
+        expect(repo.processError.called).to.be.false;
+        expect(
+            toastStub.calledWith(
+                sinon.match({ variant: 'negative', content: 'Published 1 of 2 fragment(s); the rest failed.' }),
+            ),
+        ).to.be.true;
     });
 });
 

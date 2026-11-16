@@ -17,6 +17,7 @@ class IncludedField extends LitElement {
             iconLibrary: { type: Boolean, reflect: true },
             variant: { type: String, reflect: true },
             fieldState: { type: String, attribute: 'data-field-state' },
+            itemStatus: { type: Boolean, attribute: 'item-status' },
         };
     }
 
@@ -295,7 +296,7 @@ class IncludedField extends LitElement {
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>
-            ${itemStatusIndicator(this.fieldState)}
+            ${this.itemStatus ? itemStatusIndicator(this.fieldState) : nothing}
         `;
     }
 }

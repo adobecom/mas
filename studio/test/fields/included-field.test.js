@@ -270,7 +270,7 @@ describe('Included field', () => {
 
     it('shows From baseline under an item inherited from the baseline', async () => {
         const el = await fixture(
-            html`<mas-included-field data-field-state="baseline" icon="sp-icon-lock"></mas-included-field>`,
+            html`<mas-included-field item-status data-field-state="baseline" icon="sp-icon-lock"></mas-included-field>`,
             {
                 parentNode: spTheme(),
             },
@@ -281,7 +281,7 @@ describe('Included field', () => {
 
     it('fires restore-field from the override link of an overridden item', async () => {
         const el = await fixture(
-            html`<mas-included-field data-field-state="overridden" icon="sp-icon-lock"></mas-included-field>`,
+            html`<mas-included-field item-status data-field-state="overridden" icon="sp-icon-lock"></mas-included-field>`,
             {
                 parentNode: spTheme(),
             },
@@ -290,5 +290,15 @@ describe('Included field', () => {
         el.shadowRoot.querySelector('.field-status-restore-link').click();
         const event = await listener;
         expect(event.composed).to.be.true;
+    });
+
+    it('shows no item status without item-status', async () => {
+        const el = await fixture(
+            html`<mas-included-field data-field-state="overridden" icon="sp-icon-lock"></mas-included-field>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        expect(el.shadowRoot.querySelectorAll('.field-status-indicator').length).to.equal(0);
     });
 });

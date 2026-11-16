@@ -112,6 +112,24 @@ describe('offer writes validate AOS before mutation', () => {
         expect(result.statusCode).to.equal(200);
         expect(writes[0].fields.find((field) => field.name === 'osi').values).to.deep.equal([offerId]);
     });
+    const releaseTags = async () => {
+        await release({
+            ...params,
+            arrangement_code: 'firefly',
+            variants: ['plans'],
+            parentPath: '/content/dam/mas/acom/en_US',
+            osi: selector,
+        });
+        return JSON.stringify(writes);
+    };
+    it('tags release cards with the selected offer plan type', async () => {
+        offers = [{ ...product, commitment: 'YEAR', term: 'MONTHLY' }];
+        expect(await releaseTags()).to.include('mas:plan_type/abm');
+    });
+    it('omits the plan type tag when the offer maps to no plan type', async () => {
+        offers = [{ ...product, commitment: 'TERM_LICENSE', term: 'P3Y' }];
+        expect(await releaseTags()).to.not.include('mas:plan_type/');
+    });
     it('does not link an unresolved selector', async () => {
         offers = [];
         const result = await link({ ...params, cardId: 'card', offerSelectorId: selector });

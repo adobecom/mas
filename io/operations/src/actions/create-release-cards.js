@@ -6,6 +6,7 @@ import { StudioOperations } from '../lib/studio-operations.js';
 import { requireSurfaceAccess, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 const MAX_VARIANTS = 20;
+const RELEASE_PLAN_TYPES = ['ABM', 'PUF', 'M2M', 'PERPETUAL'];
 
 /**
  * Fetch full MCS merchandising data directly from AOS API for a given arrangement code.
@@ -156,6 +157,11 @@ async function main(params) {
         if (product.customer_segment) tags.push(`mas:customer_segment/${product.customer_segment}`);
         if (product.market_segments) {
             product.market_segments.forEach((s) => tags.push(`mas:market_segments/${s}`));
+        }
+        if (osi) {
+            const [baseOffer] = await aosClient.resolveOfferSelector(osi, undefined, { arrangementCode: arrangement_code });
+            const planType = baseOffer && aosClient.calculatePlanType(baseOffer.commitment, baseOffer.term);
+            if (RELEASE_PLAN_TYPES.includes(planType)) tags.push(`mas:plan_type/${planType.toLowerCase()}`);
         }
 
         // Create cards

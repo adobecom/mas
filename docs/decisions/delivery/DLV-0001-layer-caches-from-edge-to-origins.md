@@ -26,15 +26,15 @@ We will cache at every layer below. Each layer has its own key and lifetime, and
 | #   | Layer                                                 | Owner                  | Key                                      | Lifetime                                         |
 | --- | ----------------------------------------------------- | ---------------------- | ---------------------------------------- | ------------------------------------------------ |
 | 1   | Browser: HTTP cache and the `aem-fragment` page cache | M@S (`web-components`) | URL; fragment id                         | up to 5 min; page life                           |
-| 2   | `www.adobe.com` CDN, `/mas/io` path                   | WPS                    | request URL                              | 15 min                                           |
+| 2   | `www.adobe.com` CDN, `/mas/io` path                   | M@S                    | request URL                              | 15 min                                           |
 | 3   | `io/www` container memory                             | M@S (`io/www`)         | see below                                | 60 s for State copies; 5 min ±20% for inputs     |
 | 4   | App Builder State of the namespace                    | M@S (`io/www`)         | `req-<request key>`, `res-<request key>` | refreshed after 5 min; served stale up to 15 min |
-| 5   | `www.adobe.com` CDN, WCS artifacts path               | WCS team               | request URL                              | 15 min                                           |
+| 5   | `www.adobe.com` CDN, WCS artifacts path               | M@S                    | request URL                              | 15 min                                           |
 | 6   | AEM CDN in front of Odin                              | Odin / AEM             | URL                                      | 1 h                                              |
 
 The browser lifetime comes from `io/www`, which sends `Cache-Control: public, max-age=300, …`, configurable through `networkConfig.cacheMaxAge` in State. The CDN caps it to its own remaining lifetime.
 
-Layers 3 and 4 are owned by M@S. They behave as follows:
+Layers 3 and 4 live in `io/www`. They behave as follows:
 
 - **Request key**: built by `getRequestMetadataKey` from the fragment id (or `.offer`), the locale, the country and each personalization parameter present, e.g. `req-<id>-fr_FR-LU.p-edu.m-catalog`. Values are escaped so that two parameter sets never share a key.
 - **State, two entries per request key**:
@@ -84,7 +84,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 - **Hot keys only**: every request key needs its own entry, so rarely requested ones are still built on their first miss. State is limited to 200k keys and 1 GB per workspace; entries expire after 24 h without a write.
 - **CDN fragmentation**: each site currently gets its own layer 2 copy. [WPS-36704](https://jira.corp.adobe.com/browse/WPS-36704) removes that split.
 - **Heap budget**: memory eviction relies on V8 heap samples. [MWPW-215446](https://jira.corp.adobe.com/browse/MWPW-215446) tracks a case where heap usage is underestimated.
-- **Layers 2, 5 and 6 are owned by other teams**: their TTLs and keys can change without M@S being involved.
+- **Layer 6 is owned by Odin / AEM**: its lifetime can change without M@S being involved.
 
 ## References
 

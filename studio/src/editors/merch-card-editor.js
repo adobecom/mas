@@ -1095,7 +1095,7 @@ class MerchCardEditor extends LitElement {
         const parentHtml = this.inheritanceParent.getFieldValue(WHAT_IS_INCLUDED, 0) || '';
         const parentElement = new DOMParser().parseFromString(parentHtml, 'text/html').querySelector('merch-whats-included');
         const divider = this.whatsIncludedDividerFromMarkup;
-        if (!parentElement || divider === parseWhatsIncludedDivider(parentHtml).divider) {
+        if (!parentElement || !this.whatsIncludedElement || divider === parseWhatsIncludedDivider(parentHtml).divider) {
             await this.resetFieldToParent(WHAT_IS_INCLUDED);
             return;
         }

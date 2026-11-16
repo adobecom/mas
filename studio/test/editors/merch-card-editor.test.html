@@ -2575,6 +2575,21 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('restores the baseline divider color when the card cleared What is included', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    templateText(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.getEffectiveFieldValue('whatsIncluded')).to.equal(
+                                        whatsIncluded('spectrum-gray-300'),
+                                    );
+                                    expect(editor.getFieldState('whatsIncluded')).to.not.equal('overridden');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks an addon background the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },

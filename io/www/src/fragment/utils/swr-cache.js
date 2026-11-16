@@ -1,4 +1,4 @@
-import { logDebug, logError } from './log.js';
+import { log, logDebug, logError } from './log.js';
 
 const DEFAULT_TTL = 5 * 60 * 1000;
 // Randomize each entry's TTL by ±20% so entries don't expire in lockstep across container
@@ -88,6 +88,38 @@ export const getMemoryStats = () => ({
     maxHeapUsed: memory.heap?.maxUsed,
     caches: structuredClone(memory.caches),
 });
+
+const MB = 1024 * 1024;
+const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `${(bytes / MB).toFixed(1)}MB`);
+
+// Memory usage is logged on its own line, on the first call of a container, then at most once a minute.
+const MEMORY_LOG_INTERVAL = 60 * 1000;
+let memoryLoggedAt = -Infinity;
+
+/**
+ * Logs the process memory and the caches sizes, e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB |
+ * caches 6.1MB up to heap used 576.0MB in 548 entries, 12 evicted: response 4.0MB (180, 12 evicted),
+ * request-metadata 75KB (180, 0 evicted), ..." (largest cache first, entry count in parentheses; evictions are
+ * counted since the container started). Server side only.
+ */
+export function logMemoryUsage(context) {
+    const now = Date.now();
+    if (now - memoryLoggedAt < MEMORY_LOG_INTERVAL) return;
+    memoryLoggedAt = now;
+    const { rss, heapUsed, heapTotal } = process.memoryUsage();
+    const perCache = Object.entries(memory.caches)
+        .sort(([, a], [, b]) => b.bytes - a.bytes)
+        .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries}, ${cache.evictions} evicted)`)
+        .join(', ');
+    log(
+        `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(memory.bytes)} up to heap used ${formatSize(memory.heap?.maxUsed)} in ${memory.lru.size} entries, ${memory.evictions} evicted: ${perCache}`,
+        context,
+    );
+}
+
+export function resetMemoryLog() {
+    memoryLoggedAt = -Infinity;
+}
 
 /** Sets the memory budget shared by all cache instances, evicting least recently used entries above it. */
 export function setMemoryLimit(maxBytes) {

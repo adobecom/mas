@@ -221,9 +221,6 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         #preview-column {
-            position: sticky;
-            top: 16px;
-            height: fit-content;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -238,6 +235,26 @@ export default class MasFragmentEditor extends LitElement {
 
             #preview-column {
                 position: relative;
+                max-height: none;
+            }
+        }
+
+        @media (min-width: 1201px) {
+            #editor-content:not(.compare-chart-content):not(.full-width-content) {
+                grid-template-rows: minmax(0, 1fr);
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #form-column,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column {
+                min-height: 0;
+                overflow-y: auto;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > * {
+                flex-shrink: 0;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > #preview-wrapper {
                 max-height: none;
             }
         }

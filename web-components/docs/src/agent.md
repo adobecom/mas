@@ -69,16 +69,22 @@ Select a fragment UUID in the tables to open it in Studio.
 | `team` | `pzn=team` | [5c3fe2ac-0dbb-4495-9858-feac379ca19b](https://mas.adobe.com/studio.html#fragmentId=5c3fe2ac-0dbb-4495-9858-feac379ca19b&page=fragment-editor&path=brand-concierge) |
 | `edu` | `pzn=edu` | [2b1a6493-e03b-4803-a150-eed983094a05](https://mas.adobe.com/studio.html#fragmentId=2b1a6493-e03b-4803-a150-eed983094a05&page=fragment-editor&path=brand-concierge) |
 
-The `edu` branch maps only Adobe Express Premium, to
-[413ea6c9-a6ac-422a-90ff-0db9ad30b7e1](https://mas.adobe.com/studio.html#fragmentId=413ea6c9-a6ac-422a-90ff-0db9ad30b7e1&page=fragment-editor&path=brand-concierge).
+The `edu` branch maps these products:
+
+| Product name | Education fragment UUID |
+| --- | --- |
+| Adobe Express Premium | [413ea6c9-a6ac-422a-90ff-0db9ad30b7e1](https://mas.adobe.com/studio.html#fragmentId=413ea6c9-a6ac-422a-90ff-0db9ad30b7e1&page=fragment-editor&path=brand-concierge) |
+| Adobe Firefly Pro Plus | [5a769d77-efb2-4c1f-83a3-251fa0ff0a0c](https://mas.adobe.com/studio.html#fragmentId=5a769d77-efb2-4c1f-83a3-251fa0ff0a0c&page=fragment-editor&path=brand-concierge) |
+| Adobe Firefly Premium | [de8104d3-fdf2-4587-b6ca-993506da70c6](https://mas.adobe.com/studio.html#fragmentId=de8104d3-fdf2-4587-b6ca-993506da70c6&page=fragment-editor&path=brand-concierge) |
+
 Every other education product lookup returns [2b1a6493-e03b-4803-a150-eed983094a05](https://mas.adobe.com/studio.html#fragmentId=2b1a6493-e03b-4803-a150-eed983094a05&page=fragment-editor&path=brand-concierge), regardless of product name.
 `productName` is still required for product lookup.
 
 ### Product overrides
 
-The current map contains 23 product names. Cells marked `default` use the
+The current map contains 26 product names. Cells marked `default` use the
 selected segment's default UUID above. Education uses its shared default for
-every row except Adobe Express Premium.
+every row except the education-mapped products listed above.
 
 | Product name | Individual fragment UUID | Team fragment UUID |
 | --- | --- | --- |
@@ -88,9 +94,12 @@ every row except Adobe Express Premium.
 | Photography | [42df425a-e020-469f-bf0f-5b83504dabce](https://mas.adobe.com/studio.html#fragmentId=42df425a-e020-469f-bf0f-5b83504dabce&page=fragment-editor&path=brand-concierge) | `default` |
 | Acrobat Studio | [03822008-9d0f-403a-a22c-ee71884c25ef](https://mas.adobe.com/studio.html#fragmentId=03822008-9d0f-403a-a22c-ee71884c25ef&page=fragment-editor&path=brand-concierge) | [c777f435-3175-4d94-a461-88a0113b82f6](https://mas.adobe.com/studio.html#fragmentId=c777f435-3175-4d94-a461-88a0113b82f6&page=fragment-editor&path=brand-concierge) |
 | Photoshop | [9941bca0-5304-47f7-aeb3-4f638aeb8791](https://mas.adobe.com/studio.html#fragmentId=9941bca0-5304-47f7-aeb3-4f638aeb8791&page=fragment-editor&path=brand-concierge) | [c2c79d69-8990-44b8-9a86-071c69e4a25a](https://mas.adobe.com/studio.html#fragmentId=c2c79d69-8990-44b8-9a86-071c69e4a25a&page=fragment-editor&path=brand-concierge) |
-| Adobe Firefly Pro | [95c664e4-f605-41df-8f9c-4779d0ef58c5](https://mas.adobe.com/studio.html#fragmentId=95c664e4-f605-41df-8f9c-4779d0ef58c5&page=fragment-editor&path=brand-concierge) | `default` |
+| Adobe Firefly Pro | [95c664e4-f605-41df-8f9c-4779d0ef58c5](https://mas.adobe.com/studio.html#fragmentId=95c664e4-f605-41df-8f9c-4779d0ef58c5&page=fragment-editor&path=brand-concierge) | [d2721e56-7e0b-4b0b-a0fb-94f2396dd80f](https://mas.adobe.com/studio.html#fragmentId=d2721e56-7e0b-4b0b-a0fb-94f2396dd80f&page=fragment-editor&path=brand-concierge) |
+| Adobe Firefly Pro Plus | [0b47443c-f0a8-44a3-b577-7e4c7e77faf4](https://mas.adobe.com/studio.html#fragmentId=0b47443c-f0a8-44a3-b577-7e4c7e77faf4&page=fragment-editor&path=brand-concierge) | [98b10834-cff3-4f7e-9a12-05069ed03ef2](https://mas.adobe.com/studio.html#fragmentId=98b10834-cff3-4f7e-9a12-05069ed03ef2&page=fragment-editor&path=brand-concierge) |
+| Adobe Firefly Premium | [c34e7581-cbe7-4c55-ae9b-3fc87408e788](https://mas.adobe.com/studio.html#fragmentId=c34e7581-cbe7-4c55-ae9b-3fc87408e788&page=fragment-editor&path=brand-concierge) | [4d5fdc6e-00f4-4031-84c7-a94a6cca51ae](https://mas.adobe.com/studio.html#fragmentId=4d5fdc6e-00f4-4031-84c7-a94a6cca51ae&page=fragment-editor&path=brand-concierge) |
 | Adobe Firefly Standard | [25542a46-df3d-4b6c-83dc-8fe4b8bce22b](https://mas.adobe.com/studio.html#fragmentId=25542a46-df3d-4b6c-83dc-8fe4b8bce22b&page=fragment-editor&path=brand-concierge) | `default` |
 | Adobe Express Premium | [b96244bb-9101-4b24-8f81-0808e7a815cf](https://mas.adobe.com/studio.html#fragmentId=b96244bb-9101-4b24-8f81-0808e7a815cf&page=fragment-editor&path=brand-concierge) | [e6df1626-22e1-440f-8b98-bdc8137d79f8](https://mas.adobe.com/studio.html#fragmentId=e6df1626-22e1-440f-8b98-bdc8137d79f8&page=fragment-editor&path=brand-concierge) |
+| Adobe Express Free | [01e221d5-c255-4a15-a1d3-e9c12411f0dc](https://mas.adobe.com/studio.html#fragmentId=01e221d5-c255-4a15-a1d3-e9c12411f0dc&page=fragment-editor&path=brand-concierge) | `default` |
 | Adobe Premiere | [ea8f1b95-56b1-4665-b859-41ac2961ddcd](https://mas.adobe.com/studio.html#fragmentId=ea8f1b95-56b1-4665-b859-41ac2961ddcd&page=fragment-editor&path=brand-concierge) | [d53944f8-20f1-408d-99fb-98f4e2724534](https://mas.adobe.com/studio.html#fragmentId=d53944f8-20f1-408d-99fb-98f4e2724534&page=fragment-editor&path=brand-concierge) |
 | Illustrator | [d9f8b8e7-ff8a-4048-b11f-5e23a76f3d12](https://mas.adobe.com/studio.html#fragmentId=d9f8b8e7-ff8a-4048-b11f-5e23a76f3d12&page=fragment-editor&path=brand-concierge) | [9c6d13e0-49e0-4046-9ff4-185bc4717774](https://mas.adobe.com/studio.html#fragmentId=9c6d13e0-49e0-4046-9ff4-185bc4717774&page=fragment-editor&path=brand-concierge) |
 | After Effects | [e41c94e5-d89a-4c68-8d15-3c88c638b8e2](https://mas.adobe.com/studio.html#fragmentId=e41c94e5-d89a-4c68-8d15-3c88c638b8e2&page=fragment-editor&path=brand-concierge) | [6e4d5cfc-6d46-4120-8181-a28a1b6e2f57](https://mas.adobe.com/studio.html#fragmentId=6e4d5cfc-6d46-4120-8181-a28a1b6e2f57&page=fragment-editor&path=brand-concierge) |

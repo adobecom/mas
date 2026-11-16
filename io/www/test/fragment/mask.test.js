@@ -192,6 +192,45 @@ describe('mask transformer init', function () {
             globalThis.localStorage = originalStorage;
         });
 
+        it('does not recache an in-flight 404 after preview cache invalidation', async function () {
+            const oldResponse = Promise.withResolvers();
+            const lookupStarted = Promise.withResolvers();
+            const postClearStarted = Promise.withResolvers();
+            const lookupUrl = `${preview.url}/byPath?path=/content/dam/mas/sandbox/en_US/masks/photo`;
+            fetchStub
+                .withArgs(lookupUrl)
+                .returns(createResponse(200, { id: 'mask-id' }))
+                .onFirstCall()
+                .callsFake(() => {
+                    lookupStarted.resolve();
+                    return oldResponse.promise;
+                });
+            fetchStub.withArgs(`${preview.url}/mask-id`).returns(createResponse(200, MASK_BODY));
+
+            const preClear = mask.init(previewContext());
+            await lookupStarted.promise;
+            clearMaskCache(true);
+            const postClear = mask.init(
+                previewContext({
+                    marks: new Proxy(
+                        {},
+                        {
+                            set(target, key, value) {
+                                if (key === 'mask-id-cache-en_US') postClearStarted.resolve();
+                                return Reflect.set(target, key, value);
+                            },
+                        },
+                    ),
+                }),
+            );
+            await postClearStarted.promise;
+            oldResponse.resolve(createResponse(404, {}, 'Not Found'));
+            const [, result] = await Promise.all([preClear, postClear]);
+
+            expect(result?.fields?.badge).to.equal('MASKED BADGE');
+            expect((await mask.init(previewContext()))?.fields?.badge).to.equal('MASKED BADGE');
+        });
+
         it('reuses a persisted 404 in a fresh mask module instance', async function () {
             await mask.init(previewContext());
             const fresh = await import('../../src/fragment/transformers/mask.js?preview-cache-test');

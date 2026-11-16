@@ -1,4 +1,5 @@
 import {
+    clearPendingFetches,
     fetch,
     getFragmentId,
     getRequestInfos,
@@ -22,6 +23,7 @@ const maskIdCache = createSwrCache({
 
 export function clearMaskCache(preview = false) {
     maskIdCache.clear(preview);
+    if (preview) clearPendingFetches();
 }
 
 /**

@@ -204,6 +204,15 @@ describe('VariantPicker', () => {
             expect(names).to.deep.equal(['headless', 'plans']);
         });
 
+        ['dalp', 'elements'].forEach((surface) => {
+            it(`should return plans, headless, product, segment and special-offers templates for ${surface} surface`, () => {
+                const names = getVariantTreeData(surface)
+                    .map((v) => v.name)
+                    .sort();
+                expect(names).to.deep.equal(['headless', 'plans', 'product', 'segment', 'special-offers']);
+            });
+        });
+
         it('should return only the enabled templates for acom-edu surface', () => {
             const names = getVariantTreeData('acom-edu')
                 .map((v) => v.name)

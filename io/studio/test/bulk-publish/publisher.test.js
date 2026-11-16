@@ -79,6 +79,231 @@ describe('bulk-publish/publisher.js', () => {
         expect(body.filterReferencesByStatus).to.deep.equal([]);
     });
 
+    it('activates each index separately while sharing one CSRF token per chunk', async () => {
+        const indexes = ['/content/dam/mas/acom/en_US/dictionary/index', '/content/dam/mas/acom/fr_FR/dictionary/index'];
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+            json: async () => ({ token: 'csrf-token' }),
+        });
+        fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken).resolves({ status: 200 });
+
+        const results = await publisher.publishChunk({ chunk: indexes, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(fetchOdinStub.callCount).to.equal(3);
+        for (const [index, path] of indexes.entries()) {
+            const [, uri, , options] = fetchOdinStub.getCall(index + 1).args;
+            expect(uri).to.equal('/bin/replicate');
+            expect(options).to.include({
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                csrfToken: 'csrf-token',
+            });
+            const form = new URLSearchParams(options.body);
+            expect(form.get('cmd')).to.equal('Activate');
+            expect(form.getAll('path')).to.deep.equal([path]);
+            expect([...form.keys()]).to.deep.equal(['cmd', 'path']);
+        }
+        expect(results).to.deep.equal(indexes.map((path) => ({ path, status: 'published', retries: 0 })));
+    });
+
+    it('does not share CSRF tokens between separate chunks', async () => {
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken)
+            .resolves({ json: async () => ({ token: 'csrf-first' }) })
+            .onSecondCall()
+            .resolves({ json: async () => ({ token: 'csrf-second' }) });
+        const replication = fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken).resolves({ status: 200 });
+
+        await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(replication.getCalls().map(({ args }) => args[3].csrfToken)).to.deep.equal([
+            'csrf-first',
+            'csrf-first',
+            'csrf-first',
+            'csrf-second',
+            'csrf-second',
+            'csrf-second',
+        ]);
+    });
+
+    for (const status of [403, 404]) {
+        it(`isolates a replication ${status} failure without failing the other paths`, async () => {
+            fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+                json: async () => ({ token: 'csrf-token' }),
+            });
+            fetchOdinStub
+                .withArgs(odinEndpoint, '/bin/replicate', authToken)
+                .callsFake(async (endpoint, uri, token, options) => {
+                    if (new URLSearchParams(options.body).getAll('path').includes(chunk[1])) {
+                        throw new Error(`POST failed with status ${status}`);
+                    }
+                    return { status: 200 };
+                });
+
+            const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+            expect(results.map(({ path, status }) => ({ path, status }))).to.deep.equal([
+                { path: chunk[0], status: 'published' },
+                { path: chunk[1], status: 'failed' },
+                { path: chunk[2], status: 'published' },
+            ]);
+            expect(results[1].reason).to.include(`status ${status}`);
+            expect(fetchOdinStub.callCount).to.equal(status === 403 ? 7 : 5);
+        });
+    }
+
+    it('stops after one fresh-token retry on persistent replication 403 without falling back to a workflow', async () => {
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+            json: async () => ({ token: 'csrf-token' }),
+        });
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/bin/replicate', authToken)
+            .rejects(new Error('POST failed with status 403: Forbidden'));
+
+        const results = await publisher.publishChunk({
+            chunk: [chunk[0]],
+            odinEndpoint,
+            authToken,
+            logger,
+            replicate: true,
+            maxRetries: 1,
+        });
+
+        expect(results).to.deep.equal([
+            { path: chunk[0], status: 'failed', reason: 'POST failed with status 403: Forbidden', retries: 1 },
+        ]);
+        expect(fetchOdinStub.callCount).to.equal(4);
+        expect(logger.error.calledOnce).to.be.true;
+    });
+
+    it('refreshes an expired shared token for the failed path and reuses it for subsequent paths', async () => {
+        let tokenCount = 0;
+        const attemptedPaths = [];
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).callsFake(async () => ({
+            json: async () => ({ token: `csrf-${++tokenCount}` }),
+        }));
+        const replication = fetchOdinStub
+            .withArgs(odinEndpoint, '/bin/replicate', authToken)
+            .callsFake(async (endpoint, uri, token, options) => {
+                const path = new URLSearchParams(options.body).get('path');
+                attemptedPaths.push(path);
+                if (path === chunk[1] && options.csrfToken === 'csrf-1') {
+                    throw new Error('POST failed with status 403: CSRF token expired');
+                }
+                return { status: 200 };
+            });
+
+        const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(results).to.deep.equal([
+            { path: chunk[0], status: 'published', retries: 0 },
+            { path: chunk[1], status: 'published', retries: 1 },
+            { path: chunk[2], status: 'published', retries: 0 },
+        ]);
+        expect(attemptedPaths).to.deep.equal([chunk[0], chunk[1], chunk[1], chunk[2]]);
+        expect(tokenCount).to.equal(2);
+        expect(replication.getCalls().map(({ args }) => args[3].csrfToken)).to.deep.equal([
+            'csrf-1',
+            'csrf-1',
+            'csrf-2',
+            'csrf-2',
+        ]);
+    });
+
+    it('preserves transient retries and backoff after refreshing a rejected CSRF token', async () => {
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+            json: async () => ({ token: 'csrf-token' }),
+        });
+        const replication = fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken);
+        replication.onFirstCall().rejects(new Error('POST failed with status 403: CSRF token expired'));
+        replication.onSecondCall().rejects(new Error('POST failed with status 503: Unavailable'));
+        replication.onThirdCall().resolves({ status: 200 });
+        const clock = sinon.useFakeTimers();
+
+        const publishing = publisher.publishChunk({
+            chunk: [chunk[0]],
+            odinEndpoint,
+            authToken,
+            logger,
+            replicate: true,
+            maxRetries: 2,
+        });
+        await clock.tickAsync(1000);
+        expect(replication).to.have.been.calledThrice;
+        const results = await publishing;
+
+        expect(results).to.deep.equal([{ path: chunk[0], status: 'published', retries: 2 }]);
+    });
+
+    it('does not activate indexes when the CSRF request fails', async () => {
+        fetchOdinStub.rejects(new Error('GET failed with status 401: Unauthorized'));
+
+        const results = await publisher.publishChunk({ chunk: [chunk[0]], odinEndpoint, authToken, logger, replicate: true });
+
+        expect(results.every((result) => result.status === 'failed' && result.reason.includes('401'))).to.be.true;
+        expect(fetchOdinStub).to.have.been.calledOnce;
+        expect(fetchOdinStub.firstCall.args[1]).to.equal('/libs/granite/csrf/token.json');
+    });
+
+    it('retries transient replication failures with a fresh CSRF token', async () => {
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken)
+            .onFirstCall()
+            .resolves({ json: async () => ({ token: 'csrf-first' }) })
+            .onSecondCall()
+            .resolves({ json: async () => ({ token: 'csrf-second' }) });
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/bin/replicate', authToken)
+            .onFirstCall()
+            .rejects(new Error('POST failed with status 503: Unavailable'))
+            .onSecondCall()
+            .resolves({ status: 200 });
+        const clock = sinon.useFakeTimers();
+
+        const publishing = publisher.publishChunk({ chunk: [chunk[0]], odinEndpoint, authToken, logger, replicate: true });
+        await clock.tickAsync(1000);
+        const results = await publishing;
+
+        expect(results.every((result) => result.status === 'published' && result.retries === 1)).to.be.true;
+        expect(fetchOdinStub.callCount).to.equal(4);
+        expect(fetchOdinStub.lastCall.args[3].csrfToken).to.equal('csrf-second');
+    });
+
+    it('retries only the failed replication path without publishing successful paths twice', async () => {
+        let tokenCount = 0;
+        const attemptedPaths = [];
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).callsFake(async () => ({
+            json: async () => ({ token: `csrf-${++tokenCount}` }),
+        }));
+        fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken).callsFake(async (endpoint, uri, token, options) => {
+            const paths = new URLSearchParams(options.body).getAll('path');
+            attemptedPaths.push(paths);
+            if (paths.includes(chunk[1]) && attemptedPaths.length === 2) {
+                throw new Error('POST failed with status 503: Unavailable');
+            }
+            return { status: 200 };
+        });
+        const clock = sinon.useFakeTimers();
+
+        const publishing = publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        await clock.tickAsync(1000);
+        const results = await publishing;
+
+        expect(attemptedPaths).to.deep.equal([[chunk[0]], [chunk[1]], [chunk[1]], [chunk[2]]]);
+        expect(results).to.deep.equal([
+            { path: chunk[0], status: 'published', retries: 0 },
+            { path: chunk[1], status: 'published', retries: 1 },
+            { path: chunk[2], status: 'published', retries: 0 },
+        ]);
+        expect(tokenCount).to.equal(2);
+        expect(
+            fetchOdinStub
+                .withArgs(odinEndpoint, '/bin/replicate', authToken)
+                .getCalls()
+                .map(({ args }) => args[3].csrfToken),
+        ).to.deep.equal(['csrf-1', 'csrf-1', 'csrf-2', 'csrf-2']);
+    });
+
     it('translates partial success — 2 published + 1 not-found', async () => {
         fetchOdinStub.resolves(
             odinResponse([

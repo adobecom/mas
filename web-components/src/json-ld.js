@@ -25,10 +25,10 @@ function buildImage(mnemonicIcon) {
 export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
     if (!fields?.cardTitle || !offer) return null;
 
-    const currency = offer.priceInfo?.currencyCode;
+    const currency = offer.priceInfo?.format?.currencyCode;
     if (!currency) {
         console.warn(
-            '[json-ld] No currency code found in offer priceInfo — JSON-LD injection skipped',
+            '[json-ld] No currency code found in offer priceInfo.format — JSON-LD injection skipped',
         );
         return null;
     }

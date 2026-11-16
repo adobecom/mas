@@ -1,0 +1,1343 @@
+const crypto = require('node:crypto');
+const { setTimeout: delay } = require('node:timers/promises');
+const { Core } = require('@adobe/aio-sdk');
+const { init } = require('@adobe/aio-lib-state');
+const Files = require('@adobe/aio-lib-files');
+const { getBearerToken, isAllowed } = require('../../utils.js');
+const { versionFieldValues, compareVersionValues, restoreVersionFields } = require('../common/fragment-version.cjs');
+const { resolveScope } = require('./components/index.js');
+const { createVersion } = require('../common/aem-version.js');
+
+const logger = Core.Logger('history', { level: 'info' });
+const RETENTION = 95 * 86400;
+const MAX_BYTES = 750000;
+const MAX_FRAGMENTS = 100;
+const HISTORY_PAGE_SIZE = 10;
+const HISTORY_CONCURRENCY = 4;
+const INDEX_PAGE_SIZE = 100;
+const NUMBERING_RETRIES = 5;
+const NUMBERING_URL_TTL = 300;
+const RESTORE_BUDGET = 50000;
+const RESTORE_WRITE_BUDGET = 25000;
+const RESTORE_LEASE = 70000;
+const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+
+function fail(statusCode, message) {
+    throw Object.assign(new Error(message), { statusCode });
+}
+
+function text(value, name, max = 200) {
+    if (typeof value !== 'string' || !value.length || value.length > max) fail(400, `Invalid ${name}`);
+    return value;
+}
+
+function identifier(value) {
+    if (typeof value !== 'string' || !UUID.test(value)) fail(400, 'Invalid fragment ID');
+    return value;
+}
+
+function versionIdentifier(value) {
+    text(value, 'AEM version ID');
+    if (['.', '..'].includes(value) || /[/\\?#\0]/.test(value)) fail(400, 'Invalid AEM version ID');
+    return value;
+}
+
+function pathValue(value) {
+    text(value, 'fragment path', 1000);
+    if (
+        !value.startsWith('/content/dam/mas/') ||
+        /[?#\\\0]/.test(value) ||
+        value.split('/').some((part) => part === '.' || part === '..')
+    )
+        fail(400, 'Invalid fragment path');
+    return value;
+}
+
+function etagValue(value) {
+    text(value, 'ETag');
+    if (value === '*' || /[\r\n]/.test(value)) fail(400, 'Invalid ETag');
+    return value;
+}
+
+async function authenticate(params) {
+    const token = getBearerToken(params);
+    if (!token) fail(401, 'Authorization required');
+    let valid;
+    try {
+        valid = await isAllowed(token, 'mas-studio');
+    } catch {
+        fail(401, 'Token validation failed');
+    }
+    if (!valid) fail(401, 'Token validation failed');
+    const response = await fetch('https://ims-na1.adobelogin.com/ims/profile/v1', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) fail([401, 403].includes(response.status) ? response.status : 502, 'IMS verification failed');
+    const profile = await response.json();
+    const id = profile.id ?? profile.userId;
+    if (!id || !profile.email) fail(401, 'Verified IMS identity required');
+    return { token, user: { id, email: profile.email, ...(profile.name ? { name: profile.name } : {}) } };
+}
+
+function endpoint(params) {
+    let url;
+    try {
+        url = new URL(params.odinEndpoint);
+    } catch {
+        fail(500, 'Invalid configured AEM endpoint');
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/') {
+        fail(500, 'Invalid configured AEM endpoint');
+    }
+    return url.origin;
+}
+
+function requestSignal(context) {
+    const remaining = context.deadline ? context.deadline - Date.now() : 15000;
+    if (remaining <= 0) fail(503, 'Restore time budget exhausted; select fewer fragments and retry');
+    return AbortSignal.timeout(Math.min(15000, remaining));
+}
+
+async function aem(context, suffix, options = {}) {
+    const response = await fetch(`${context.endpoint}/adobe/sites/cf/fragments${suffix}`, {
+        ...options,
+        headers: { Authorization: `Bearer ${context.token}`, Accept: 'application/json', ...options.headers },
+        redirect: 'error',
+        signal: requestSignal(context),
+    });
+    if (!response.ok) {
+        logger.error(
+            JSON.stringify({
+                operation: context.operation,
+                scopeType: context.scopeType,
+                rootId: context.rootId,
+                requestId: context.requestId ? requestId(context) : undefined,
+                method: options.method ?? 'GET',
+                url: `${context.endpoint}/adobe/sites/cf/fragments${suffix.split('?')[0]}`,
+                status: response.status,
+            }),
+        );
+        fail(response.status, response.status === 412 ? 'Fragment changed; reload before restoring' : 'AEM request failed');
+    }
+    return response;
+}
+
+async function readFragment(context, id) {
+    identifier(id);
+    if (context.operation === 'list' && context.fragments.has(id)) return context.fragments.get(id);
+    const pending = (async () => {
+        const response = await aem(context, `/${id}`);
+        const fragment = await response.json();
+        if (fragment.id !== id) fail(502, 'AEM returned a different fragment');
+        pathValue(fragment.path);
+        return { fragment, etag: response.headers.get('etag') };
+    })();
+    if (context.operation === 'list') context.fragments.set(id, pending);
+    return pending;
+}
+
+async function readPath(context, path) {
+    const response = await aem(context, `?path=${encodeURIComponent(pathValue(path))}`);
+    const fragment = (await response.json()).items?.find((item) => item.path === path);
+    if (!fragment) fail(404, 'Referenced fragment no longer exists');
+    return fragment;
+}
+
+function assertTarget(context, fragment) {
+    pathValue(fragment.path);
+    context.scope.assertTarget(context, fragment);
+}
+
+function references(fragment) {
+    return [
+        ...new Set(
+            (fragment.fields ?? []).flatMap((field) =>
+                ['content-fragment', 'content-reference', 'fragment-reference'].includes(field.type) ||
+                ['fragments', 'variations', 'cards', 'collections'].includes(field.name)
+                    ? (field.values ?? []).filter((value) => typeof value === 'string' && value.startsWith('/content/dam/mas/'))
+                    : [],
+            ),
+        ),
+    ];
+}
+
+async function readVersion(context, entry, retryDelays = []) {
+    const versionId = versionIdentifier(entry.versionId);
+    let response;
+    try {
+        response = await aem(context, `/${identifier(entry.id)}/versions/${encodeURIComponent(versionId)}`);
+    } catch (error) {
+        if (error.statusCode !== 404 || !retryDelays.length) throw error;
+        await delay(retryDelays[0]);
+        return readVersion(context, entry, retryDelays.slice(1));
+    }
+    const fragment = await response.json();
+    if ((fragment.id && fragment.id !== entry.id) || (fragment.path && fragment.path !== entry.path)) {
+        fail(409, 'Historical fragment moved');
+    }
+    return { ...fragment, id: entry.id, path: entry.path };
+}
+
+function diff(before, after) {
+    const previous = new Map(before.fragments.map((fragment) => [fragment.id, fragment]));
+    const current = new Map(after.fragments.map((fragment) => [fragment.id, fragment]));
+    return [...new Set([...previous.keys(), ...current.keys()])].flatMap((id) => {
+        const fragment = current.get(id) ?? previous.get(id);
+        return compareVersionValues(versionFieldValues(previous.get(id)), versionFieldValues(current.get(id)), null).map(
+            (change) => ({ fragmentId: id, path: fragment.path, ...change }),
+        );
+    });
+}
+
+async function versionSnapshot(context, current, verifyLive = true) {
+    const fragments = [];
+    for (const fragment of current.fragments) {
+        const versionId = await createVersion(
+            context.endpoint,
+            identifier(fragment.id),
+            undefined,
+            `Change-set: ${requestId(context)}`,
+            context.token,
+            {
+                strictLocation: true,
+                request: (endpoint, path, token, { contentType, ...options }) =>
+                    aem(context, path.slice('/adobe/sites/cf/fragments'.length), {
+                        ...options,
+                        headers: { 'Content-Type': contentType },
+                    }),
+            },
+        );
+        const entry = { id: fragment.id, path: fragment.path, versionId };
+        const historical = await readVersion(context, entry, [250, 500, 1000]);
+        if (diff({ fragments: [fragment] }, { fragments: [historical] }).length) {
+            fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+        }
+        fragments.push(entry);
+    }
+    for (const fragment of verifyLive ? current.fragments : []) {
+        const live = (await readFragment(context, fragment.id)).fragment;
+        if (live.path !== fragment.path || diff({ fragments: [fragment] }, { fragments: [live] }).length) {
+            fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+        }
+    }
+    return { fragments };
+}
+
+function inheritanceContext(context, current) {
+    return context.scope.inheritanceMetadata(context, current);
+}
+
+async function historySnapshot(context, current) {
+    return { ...(await versionSnapshot(context, current)), ...inheritanceContext(context, current) };
+}
+
+async function prepareSnapshot(context, target) {
+    const current = { fragments: [target] };
+    try {
+        const response = await aem(context, `/${target.id}/versions?limit=50&sort=created:desc`);
+        const previous = (await response.json()).items
+            .filter(
+                (version) =>
+                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - RETENTION * 1000,
+            )
+            .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
+        if (previous) {
+            const entry = { id: target.id, path: target.path, versionId: previous.id };
+            const historical = await readVersion(context, entry);
+            if (!diff({ fragments: [historical] }, current).length) {
+                return { fragments: [entry], ...inheritanceContext(context, current) };
+            }
+        }
+    } catch (error) {
+        if (error.statusCode !== 404) throw error;
+    }
+    return historySnapshot(context, current);
+}
+
+function namespace(context, kind) {
+    return `history.${context.scopeType}.${context.rootId}.${kind}.`;
+}
+
+function requestId(context) {
+    const hash = crypto
+        .createHash('sha256')
+        .update(JSON.stringify([context.scopeType, context.rootId, context.user.id, context.requestId]))
+        .digest('hex');
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
+
+function bounded(value) {
+    const serialized = JSON.stringify(value);
+    if (Buffer.byteLength(serialized) > MAX_BYTES) fail(413, 'Version entry exceeds storage limit');
+    return serialized;
+}
+
+async function metadataRequest(context, name, options = {}) {
+    context.fileUrls ??= new Map();
+    if (!context.fileUrls.has(name)) {
+        context.files ??= await Files.init();
+        const url = await context.files.generatePresignURL(`private/history/${context.scopeType}/${context.rootId}/${name}`, {
+            permissions: 'rw',
+            expiryInSeconds: NUMBERING_URL_TTL,
+            urlType: 'internal',
+        });
+        if (new URL(url).protocol !== 'https:') fail(503, 'Invalid history storage endpoint');
+        context.fileUrls.set(name, url);
+    }
+    return fetch(context.fileUrls.get(name), {
+        ...options,
+        redirect: 'error',
+        signal: requestSignal(context),
+    });
+}
+
+async function readMetadata(context, name) {
+    const response = await metadataRequest(context, name);
+    if (response.status === 404) return null;
+    if (!response.ok) fail(503, 'History metadata is temporarily unavailable');
+    return { value: await response.json(), etag: response.headers.get('etag') };
+}
+
+async function updateMetadata(context, name, initial, update) {
+    for (let attempt = 0; attempt < NUMBERING_RETRIES; attempt += 1) {
+        const stored = await readMetadata(context, name);
+        const value = stored ? stored.value : structuredClone(initial);
+        if (!(await update(value, !!stored))) return value;
+        if (stored && !stored.etag) fail(503, 'History storage did not confirm its revision');
+        const written = await metadataRequest(context, name, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-ms-blob-type': 'BlockBlob',
+                'x-ms-version': '2021-12-02',
+                ...(stored ? { 'If-Match': stored.etag } : { 'If-None-Match': '*' }),
+            },
+            body: bounded(value),
+        });
+        if (written.ok) return value;
+        if (written.status !== 412) fail(503, 'History metadata could not be saved');
+        await delay(25 * 2 ** attempt);
+    }
+    fail(503, 'History metadata is busy; retry shortly');
+}
+
+async function reserveVersion(context, event, exclusive = false) {
+    if (!exclusive && context.numbering?.entries[event.id]?.version) {
+        const { version, createdAt } = context.numbering.entries[event.id];
+        return { version, createdAt };
+    }
+    let reserved = false;
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, async (ledger) => {
+        reserved = false;
+        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
+            fail(503, 'Invalid version numbering metadata');
+        }
+        const compacted = await compactReservations(context, ledger, event.id);
+        if (ledger.entries[event.id]?.version) return compacted;
+        const version = ++ledger.lastVersion;
+        if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
+        ledger.entries[event.id] = {
+            ...ledger.entries[event.id],
+            version,
+            createdAt: event.createdAt,
+            ...(exclusive ? { lockedUntil: Date.now() + RESTORE_LEASE } : {}),
+        };
+        reserved = true;
+        return true;
+    });
+    if (exclusive && !reserved) {
+        throw Object.assign(new Error('Restore already attempted; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
+    const { version, createdAt } = context.numbering.entries[event.id];
+    return { version, createdAt };
+}
+
+async function compactReservations(context, ledger, keepId) {
+    let changed = false;
+    const candidates = Object.entries(ledger.entries).filter(([id, entry]) => {
+        if (Date.parse(entry.createdAt) < Date.now() - RETENTION * 1000) {
+            delete ledger.entries[id];
+            changed = true;
+            return false;
+        }
+        return id !== keepId && !entry.lockedUntil;
+    });
+    const pages = new Map();
+    for (const [id, entry] of candidates.slice(0, 1000)) {
+        if (!entry.version) continue;
+        const page = indexPage(entry.version);
+        if (!pages.has(page)) pages.set(page, []);
+        pages.get(page).push(id);
+    }
+    for (const [page, ids] of pages) {
+        const indexed = await readMetadata(context, `index-${page}.json`);
+        for (let offset = 0; offset < ids.length; offset += HISTORY_CONCURRENCY) {
+            await Promise.all(
+                ids.slice(offset, offset + HISTORY_CONCURRENCY).map(async (id) => {
+                    if (indexed?.value.entries[id]?.version !== ledger.entries[id].version) return;
+                    if ((await findEntry(context, id))?.version !== ledger.entries[id].version) return;
+                    delete ledger.entries[id];
+                    changed = true;
+                }),
+            );
+        }
+    }
+    return changed;
+}
+
+async function releaseReservation(context) {
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        if (!ledger.entries[requestId(context)]) return false;
+        delete ledger.entries[requestId(context)];
+        return true;
+    });
+}
+
+async function claimRecord(context) {
+    context.claimToken = crypto.randomUUID();
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, async (ledger) => {
+        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries)
+            fail(503, 'Invalid version numbering metadata');
+        await compactReservations(context, ledger, requestId(context));
+        const entry = ledger.entries[requestId(context)];
+        if (entry?.lockedUntil > Date.now()) fail(503, 'Version request is in progress; retry shortly');
+        ledger.entries[requestId(context)] = {
+            ...entry,
+            createdAt: entry?.createdAt ?? new Date().toISOString(),
+            lockedUntil: Date.now() + RESTORE_LEASE,
+            claimToken: context.claimToken,
+        };
+        return true;
+    });
+}
+
+async function unlockRecord(context) {
+    await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        const entry = ledger.entries[requestId(context)];
+        if (entry?.claimToken !== context.claimToken) return false;
+        delete entry.lockedUntil;
+        delete entry.claimToken;
+        return true;
+    });
+}
+
+function entryTtl(event) {
+    return Math.max(1, Math.ceil((Date.parse(event.createdAt) + RETENTION * 1000 - Date.now()) / 1000));
+}
+
+function entryKey(context, id) {
+    return `${namespace(context, 'entry')}${id}`;
+}
+
+function indexPage(version) {
+    return Math.floor((version - 1) / INDEX_PAGE_SIZE);
+}
+
+function indexPosition(entry) {
+    return `${entry.createdAt}|${entry.id}`;
+}
+
+async function indexEntries(context, events) {
+    const pages = new Map();
+    for (const { id, version, createdAt } of events) {
+        const page = indexPage(version);
+        if (!pages.has(page)) pages.set(page, []);
+        pages.get(page).push({ id, version, createdAt });
+    }
+    for (const [page, entries] of pages) {
+        await updateMetadata(context, `index-${page}.json`, { entries: {} }, (value) => {
+            let changed = false;
+            for (const entry of entries) {
+                if (JSON.stringify(value.entries[entry.id]) === JSON.stringify(entry)) continue;
+                value.entries[entry.id] = entry;
+                changed = true;
+            }
+            return changed;
+        });
+    }
+    context.index = await updateMetadata(context, 'index.json', { pages: {} }, (value) => {
+        const previous = JSON.stringify(value);
+        value.pages = Object.fromEntries(
+            Object.entries(value.pages).filter(
+                ([, range]) => Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000,
+            ),
+        );
+        for (const [page, entries] of pages) {
+            for (const entry of entries) {
+                const position = indexPosition(entry);
+                value.pages[page] ??= { newest: position, oldest: position };
+                const range = value.pages[page];
+                if (position.localeCompare(range.newest) > 0) range.newest = position;
+                if (position.localeCompare(range.oldest) < 0) range.oldest = position;
+            }
+        }
+        return JSON.stringify(value) !== previous;
+    });
+}
+
+async function readHistoryIndex(context) {
+    const stored = await readMetadata(context, 'index.json');
+    context.index = stored?.value ?? { pages: {} };
+}
+
+async function readIndexPage(context, page) {
+    context.indexPages ??= new Map();
+    if (!context.indexPages.has(page)) {
+        context.indexPages.set(
+            page,
+            (async () => {
+                const stored = await readMetadata(context, `index-${page}.json`);
+                if (!stored) fail(503, 'History index page is unavailable');
+                return Object.values(stored.value.entries)
+                    .filter((entry) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000)
+                    .sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
+            })(),
+        );
+    }
+    return context.indexPages.get(page);
+}
+
+async function* indexedEntries(context, before) {
+    const pages = Object.entries(context.index.pages)
+        .filter(
+            ([, range]) =>
+                Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000 &&
+                (!before || range.oldest.localeCompare(indexPosition(before)) < 0),
+        )
+        .map(([page, range]) => ({ page: Number(page), ...range }))
+        .sort((a, b) => b.newest.localeCompare(a.newest));
+    const pending = [];
+    while (pages.length || pending.length) {
+        if (!pending.length || (pages.length && pages[0].newest.localeCompare(indexPosition(pending[0])) >= 0)) {
+            const { page } = pages.shift();
+            pending.push(
+                ...(await readIndexPage(context, page)).filter(
+                    (entry) => !before || indexPosition(entry).localeCompare(indexPosition(before)) < 0,
+                ),
+            );
+            pending.sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
+        } else {
+            yield pending.shift();
+        }
+    }
+}
+
+async function historyCursor(context, cursor) {
+    const [createdAt, id, number, ...extra] = cursor.split('|');
+    if (!UUID.test(id ?? '') || !Number.isFinite(Date.parse(createdAt)) || extra.length) fail(400, 'Invalid version cursor');
+    const version = Number(number);
+    if (!Number.isSafeInteger(version) || version < 1 || !context.index.pages[indexPage(version)]) {
+        fail(400, 'Invalid version cursor');
+    }
+    const entry = (await readIndexPage(context, indexPage(version))).find(
+        (entry) => entry.version === version && entry.id === id && entry.createdAt === createdAt,
+    );
+    if (!entry) fail(400, 'Invalid version cursor');
+    return entry;
+}
+
+async function readEntry(context, key) {
+    const stored = await context.state.get(key);
+    if (!stored?.value) return null;
+    const event = JSON.parse(stored.value);
+    return Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000 ? event : null;
+}
+
+async function findEntry(context, id) {
+    return readEntry(context, entryKey(context, id));
+}
+
+async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
+    const event = {
+        id: requestId(context),
+        createdAt: new Date().toISOString(),
+        user: context.user,
+        action,
+        scopeType: context.scopeType,
+        rootId: context.rootId,
+        targetId: context.target.id,
+        targetPath: context.target.path,
+        ...(context.recordGuard?.metadataOnly ? { snapshotUnavailable: true } : {}),
+        ...(action === 'delete' ? { targetTitle: context.target.title } : {}),
+        changes:
+            action === 'delete'
+                ? [
+                      {
+                          fragmentId: context.target.id,
+                          path: context.target.path,
+                          field: '@deleted',
+                          before: context.target.title,
+                          after: null,
+                          category: 'fragments',
+                      },
+                  ]
+                : diff(before, after).map((change) => ({
+                      ...change,
+                      category: context.scope.category(
+                          after.fragments.find((fragment) => fragment.id === change.fragmentId) ??
+                              before.fragments.find((fragment) => fragment.id === change.fragmentId),
+                          change.field,
+                      ),
+                  })),
+        beforeSnapshot,
+        afterSnapshot,
+    };
+    if (context.recordGuard) {
+        context.recordGuard.event = event;
+        await persistRestore(context, context.recordGuard);
+    }
+    return persistEvent(context, event);
+}
+
+async function persistEvent(context, event) {
+    if (!event.version) {
+        Object.assign(event, await reserveVersion(context, event));
+        if (context.recordGuard) await persistRestore(context, context.recordGuard);
+    }
+    await context.state.put(entryKey(context, event.id), bounded(event), {
+        ttl: entryTtl(event),
+    });
+    await indexEntries(context, [event]);
+    return event;
+}
+
+async function authorizeEvent(context, event) {
+    if (event.action === 'delete' || event.snapshotUnavailable) {
+        assertTarget(context, { id: event.targetId, path: event.targetPath });
+        return event;
+    }
+    const unavailable = new Set();
+    const targets = [...event.beforeSnapshot.fragments, ...event.afterSnapshot.fragments];
+    for (const entry of targets) {
+        assertTarget(context, entry);
+        const key = JSON.stringify([entry.id, entry.path, entry.versionId]);
+        if (!context.access.has(key))
+            context.access.set(
+                key,
+                (async () => {
+                    let missing = false;
+                    try {
+                        const { fragment } = await readFragment(context, entry.id);
+                        if (fragment.path !== entry.path) fail(409, 'Historical fragment moved');
+                    } catch (error) {
+                        if (error.statusCode !== 404) throw error;
+                        missing = true;
+                    }
+                    await readVersion(context, entry);
+                    return missing;
+                })(),
+            );
+        if (await context.access.get(key)) unavailable.add(entry.id);
+    }
+    return { ...event, ...(unavailable.size ? { unavailableFragments: [...unavailable] } : {}) };
+}
+
+async function record(context, params) {
+    let guard = context.recordGuard;
+    if (params.phase === 'prepare' && guard?.beforeSnapshot) {
+        assertTarget(context, guard.target);
+        return { beforeVersionId: guard.beforeSnapshot.fragments[0]?.versionId, etag: guard.etag };
+    }
+    if (params.phase === 'prepare' && guard?.action === 'delete') {
+        assertTarget(context, guard.target);
+        return { etag: guard.etag };
+    }
+    if (!params.phase && !guard && params.action !== 'create' && !params.metadataOnly)
+        fail(400, 'Prepared version request required');
+    await claimRecord(context);
+    try {
+        const stored = await context.state.get(`${namespace(context, 'request')}${requestId(context)}`);
+        guard = stored?.value ? JSON.parse(stored.value) : guard;
+        if (guard && (guard.operation !== 'record' || guard.action !== params.action || guard.target.id !== params.targetId))
+            fail(409, 'Request ID already used');
+        context.recordGuard = guard;
+        if (guard?.result) {
+            assertTarget(context, guard.target);
+            await releaseReservation(context);
+            return guard.result;
+        }
+        if (guard?.event && !params.phase) {
+            await authorizeEvent(context, guard.event);
+            const event = await persistEvent(context, guard.event);
+            await releaseReservation(context);
+            return { event };
+        }
+        return await captureRecord(context, params, guard);
+    } catch (error) {
+        logger.error(
+            JSON.stringify({
+                operation: 'record',
+                phase: params.phase ?? 'complete',
+                action: params.action,
+                rootId: context.rootId,
+                targetId: params.targetId,
+                requestId: requestId(context),
+                status: error.statusCode ?? 500,
+            }),
+        );
+        throw error;
+    } finally {
+        try {
+            await unlockRecord(context);
+        } catch (error) {
+            logger.error(
+                JSON.stringify({ operation: 'record-unlock', requestId: requestId(context), status: error.statusCode ?? 500 }),
+            );
+        }
+    }
+}
+
+async function captureRecord(context, params, guard) {
+    if (params.metadataOnly) {
+        const target = guard?.target ?? (await readFragment(context, params.targetId)).fragment;
+        assertTarget(context, target);
+        context.target = target;
+        context.recordGuard = guard ?? {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+        };
+        context.recordGuard.metadataOnly = true;
+        const empty = { fragments: [] };
+        const event = await writeEntry(context, params.action, empty, empty, empty, empty);
+        await releaseReservation(context);
+        return { event };
+    }
+    if (!params.phase && params.action === 'delete') {
+        assertTarget(context, guard.target);
+        let deleted = false;
+        for (let attempt = 0; attempt < 10; attempt++) {
+            try {
+                await readFragment(context, params.targetId);
+            } catch (error) {
+                if (error.statusCode !== 404) throw error;
+                deleted = true;
+                break;
+            }
+            if (attempt < 9) await delay(250);
+        }
+        if (!deleted) fail(503, 'Fragment deletion is still pending; retry shortly');
+        context.target = guard.target;
+        const empty = { fragments: [] };
+        const event = await writeEntry(context, 'delete', empty, empty, empty, empty);
+        await releaseReservation(context);
+        return { event };
+    }
+    const { fragment: target, etag } = await readFragment(context, params.targetId);
+    assertTarget(context, target);
+    context.target = target;
+    if (guard && guard.target.path !== target.path) fail(409, 'Prepared fragment moved');
+    if (params.phase === 'prepare') {
+        if (params.expectedEtag !== undefined && params.expectedEtag !== etag) fail(409, 'Fragment changed before preparation');
+        guard ??= {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+            etag,
+        };
+        context.recordGuard = guard;
+        await persistRestore(context, guard);
+        if (params.action === 'save' && !guard.beforeSnapshot) {
+            guard.beforeSnapshot = await prepareSnapshot(context, target);
+            const confirmed = await readFragment(context, target.id);
+            if (
+                confirmed.fragment.path !== target.path ||
+                diff({ fragments: [target] }, { fragments: [confirmed.fragment] }).length
+            )
+                fail(409, 'Fragment changed while preparing its version');
+            if (!confirmed.etag) fail(409, 'AEM did not provide a concurrency token for preparation');
+            guard.etag = confirmed.etag;
+            await persistRestore(context, guard);
+        }
+        return { beforeVersionId: guard.beforeSnapshot?.fragments[0]?.versionId, etag: guard.etag };
+    }
+    if (params.completionEtag !== undefined && params.completionEtag !== etag) {
+        fail(409, 'Completed fragment changed; reload before capturing its version');
+    }
+    if (params.action === 'save' && !guard.beforeSnapshot) fail(409, 'Version preparation did not finish');
+    if (!guard) {
+        guard = {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+        };
+        context.recordGuard = guard;
+        await persistRestore(context, guard);
+    }
+    const beforeEntry = guard.beforeSnapshot?.fragments[0];
+    const before = { fragments: beforeEntry ? [await readVersion(context, beforeEntry)] : [] };
+    const after = { fragments: [target] };
+    if (params.action === 'save' && !diff(before, after).length) {
+        guard.result = { unchanged: true };
+        await persistRestore(context, guard);
+        await releaseReservation(context);
+        return guard.result;
+    }
+    const inheritance = inheritanceContext(context, after);
+    const beforeSnapshot = guard.beforeSnapshot ?? { fragments: [] };
+    const afterSnapshot = { ...(await versionSnapshot(context, after, false)), ...inheritance };
+    const event = await writeEntry(context, params.action, before, after, beforeSnapshot, afterSnapshot);
+    await releaseReservation(context);
+    return { event };
+}
+
+async function list(context, params) {
+    const limit = params.limit ?? HISTORY_PAGE_SIZE;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid version limit');
+    if (params.query !== undefined) text(params.query, 'query', 200);
+    const query = params.query?.trim().toLowerCase();
+    if (params.cursor !== undefined) text(params.cursor, 'cursor', 150);
+    const before = params.cursor ? await historyCursor(context, params.cursor) : undefined;
+    const page = [];
+    let currentEventId = null;
+    if (params.cursor) {
+        for await (const entry of indexedEntries(context)) {
+            const event = await findEntry(context, entry.id);
+            if (!event) continue;
+            try {
+                currentEventId = (await authorizeEvent(context, event)).id;
+                break;
+            } catch (error) {
+                if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
+            }
+        }
+    }
+    const entries = indexedEntries(context, before);
+    let finished = false;
+    while (!finished) {
+        const batch = [];
+        const batchSize = Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length);
+        while (batch.length < batchSize) {
+            const next = await entries.next();
+            if (next.done) {
+                finished = true;
+                break;
+            }
+            const event = await findEntry(context, next.value.id);
+            if (!event) continue;
+            const matches = !query || [String(event.version), `version ${event.version}`].includes(query);
+            if (!currentEventId || matches) batch.push({ event, matches });
+        }
+        const authorized = await Promise.all(
+            batch.map(async ({ event, matches }) => {
+                try {
+                    return { event: await authorizeEvent(context, event), matches };
+                } catch (error) {
+                    if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
+                    return null;
+                }
+            }),
+        );
+        for (const result of authorized) {
+            if (!result) continue;
+            currentEventId ??= result.event.id;
+            if (result.matches) page.push(result.event);
+        }
+        if (page.length > limit) {
+            page.pop();
+            const last = page.at(-1);
+            return { events: page, currentEventId, cursor: `${last.createdAt}|${last.id}|${last.version}` };
+        }
+    }
+    return { events: page, currentEventId };
+}
+
+function restorePayload(current, historical, fields) {
+    const selected = new Set(fields);
+    const historicalFields = [
+        ...historical.fields,
+        ...current.fields
+            .filter((field) => selected.has(field.name) && !historical.fields.some((previous) => previous.name === field.name))
+            .map((field) => ({ ...field, values: [] })),
+    ];
+    return {
+        title: selected.has('@title') ? (historical.title ?? '') : (current.title ?? ''),
+        description: selected.has('@description') ? (historical.description ?? '') : (current.description ?? ''),
+        tags: selected.has('@tags') ? (historical.tags ?? []) : (current.tags ?? []),
+        fields: restoreVersionFields(current.fields, historicalFields, selected),
+    };
+}
+
+function tagIds(tags) {
+    return tags.map((tag) => (typeof tag === 'string' ? tag : (tag.id ?? tag.path)));
+}
+
+async function readTags(context, id) {
+    const response = await aem(context, `/${id}/tags`);
+    const body = await response.json();
+    const etag = response.headers.get('etag');
+    if (!etag) fail(409, 'AEM tags did not provide a concurrency token');
+    return { tags: tagIds(body.tags ?? []), etag };
+}
+
+async function confirmDraft(context, item) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const { fragment } = await readFragment(context, item.id);
+        const wanted = { ...item.before, ...item.payload };
+        const selected = diff({ fragments: [fragment] }, { fragments: [wanted] });
+        if (!selected.some((change) => item.fields.includes(change.field))) return fragment;
+        if (attempt < 4) await delay(250);
+    }
+    fail(409, 'Draft write could not be confirmed');
+}
+
+async function writeDraft(context, item) {
+    const { tags, ...content } = item.payload;
+    let contentWritten = false;
+    let tagsWritten = false;
+    let writingFields;
+    try {
+        if (item.fields.some((field) => field !== '@tags')) {
+            writingFields = item.fields.filter((field) => field !== '@tags');
+            await aem(context, `/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'If-Match': item.expected },
+                body: JSON.stringify(content),
+            });
+            writingFields = undefined;
+            contentWritten = true;
+            await confirmDraft(context, { ...item, fields: item.fields.filter((field) => field !== '@tags') });
+        }
+        if (item.tags) {
+            const current = contentWritten ? await readTags(context, item.id) : item.tags;
+            if (JSON.stringify(current.tags) !== JSON.stringify(item.tags.tags)) fail(409, 'Tags changed during restore');
+            const wanted = tagIds(tags);
+            writingFields = ['@tags'];
+            await aem(context, `/${item.id}/tags`, {
+                method: wanted.length ? 'PUT' : 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'If-Match': current.etag },
+                ...(wanted.length ? { body: JSON.stringify({ tags: wanted }) } : {}),
+            });
+            writingFields = undefined;
+            tagsWritten = true;
+        }
+        return await confirmDraft(context, item);
+    } catch (error) {
+        if (writingFields && (!error.statusCode || error.statusCode >= 500)) error.uncertainFields = writingFields;
+        error.partial = contentWritten || tagsWritten || Boolean(error.uncertainFields);
+        throw error;
+    }
+}
+
+function restoreSelections(params) {
+    if (!Array.isArray(params.selections) || !params.selections.length || params.selections.length > MAX_FRAGMENTS) {
+        fail(400, 'Invalid restore selections');
+    }
+    if (!Array.isArray(params.expected) || params.expected.length !== params.selections.length)
+        fail(400, 'Expected ETags required');
+    const selected = new Set();
+    for (const selection of params.selections) {
+        identifier(selection?.fragmentId);
+        if (selected.has(selection.fragmentId)) fail(400, 'Duplicate restore target');
+        selected.add(selection.fragmentId);
+        if (
+            !Array.isArray(selection.fields) ||
+            !selection.fields.length ||
+            selection.fields.length > 200 ||
+            selection.fields.some((field) => typeof field !== 'string' || !field.length || field.length > 200)
+        ) {
+            fail(400, 'Invalid selected fields');
+        }
+    }
+    const expectedIds = new Set();
+    for (const expected of params.expected) {
+        identifier(expected?.fragmentId);
+        etagValue(expected.etag);
+        if (!selected.has(expected.fragmentId) || expectedIds.has(expected.fragmentId)) fail(400, 'Invalid expected ETags');
+        expectedIds.add(expected.fragmentId);
+    }
+}
+
+async function restorePlan(context, params, source) {
+    const plan = [];
+    for (const selection of params.selections) {
+        const entry = source.beforeSnapshot.fragments.find((entry) => entry.id === selection.fragmentId);
+        if (!entry) fail(403, 'Target is not in the selected version');
+        const changes = source.changes.filter((change) => change.fragmentId === selection.fragmentId);
+        if (selection.fields.some((field) => !changes.some((change) => change.field === field))) {
+            fail(400, 'Only fields changed by this version can be restored');
+        }
+        const historical = await readVersion(context, entry);
+        const { fragment, etag } = await readFragment(context, entry.id);
+        assertTarget(context, fragment);
+        if (fragment.path !== entry.path) fail(409, 'Historical fragment moved');
+        const expected = params.expected.find((item) => item.fragmentId === entry.id).etag;
+        if (!etag || etag !== expected) fail(409, 'Fragment changed; reload before restoring');
+        const current = versionFieldValues(fragment);
+        if (
+            changes.some(
+                (change) =>
+                    selection.fields.includes(change.field) &&
+                    JSON.stringify(current.get(change.field) ?? null) !== JSON.stringify(change.after),
+            )
+        ) {
+            fail(409, 'Selected fields changed since this version; review newer changes before restoring');
+        }
+        const payload = restorePayload(fragment, historical, selection.fields);
+        for (const path of references(payload)) await readPath(context, path);
+        const tagsChanged = JSON.stringify(tagIds(payload.tags)) !== JSON.stringify(tagIds(fragment.tags ?? []));
+        const tags = tagsChanged ? await readTags(context, entry.id) : null;
+        if (tags && JSON.stringify(tags.tags) !== JSON.stringify(tagIds(fragment.tags ?? [])))
+            fail(409, 'Tags changed during preflight');
+        if (diff({ fragments: [fragment] }, { fragments: [{ ...fragment, ...payload }] }).length) {
+            plan.push({ id: entry.id, expected, payload, before: fragment, tags, fields: selection.fields });
+        }
+    }
+    return plan;
+}
+
+function versionPending(restored, failures) {
+    return Object.assign(new Error('Draft writes finished but version capture failed; do not retry blindly'), {
+        statusCode: 503,
+        result: { restored, failures, versionPending: true },
+    });
+}
+
+async function persistRestore(context, guard) {
+    await context.state.put(`${namespace(context, 'request')}${requestId(context)}`, bounded(guard), { ttl: RETENTION });
+}
+
+async function finishRestore(context, guard, plan, after) {
+    const { restored, failures, beforeSnapshot } = guard;
+    try {
+        const result = { restored, failures };
+        const changed = after.filter((fragment, index) => {
+            const changes = diff({ fragments: [plan[index].before] }, { fragments: [fragment] });
+            if (changes.some((change) => !plan[index].fields.includes(change.field))) {
+                fail(409, 'Unrelated content changed before version capture');
+            }
+            const wanted = versionFieldValues({ ...plan[index].before, ...plan[index].payload });
+            if (changes.some((change) => JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null))) {
+                fail(409, 'Selected fields changed during restore');
+            }
+            return changes.length;
+        });
+        if (changed.length) {
+            const ids = new Set(changed.map((fragment) => fragment.id));
+            for (const fragment of changed) {
+                if (guard.afterVersions.some((entry) => entry.id === fragment.id)) continue;
+                const snapshot = await versionSnapshot(context, { fragments: [fragment] });
+                guard.afterVersions.push(...snapshot.fragments);
+                await persistRestore(context, guard);
+            }
+            for (const fragment of changed) {
+                const live = (await readFragment(context, fragment.id)).fragment;
+                if (live.path !== fragment.path || diff({ fragments: [fragment] }, { fragments: [live] }).length) {
+                    fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+                }
+            }
+            const changedBefore = { fragments: plan.filter((item) => ids.has(item.id)).map((item) => item.before) };
+            const changedSnapshot = {
+                fragments: beforeSnapshot.fragments.filter((entry) => ids.has(entry.id)),
+                ...inheritanceContext(context, changedBefore),
+            };
+            result.event = await writeEntry(context, 'restore', changedBefore, { fragments: changed }, changedSnapshot, {
+                fragments: guard.afterVersions,
+                ...inheritanceContext(context, { fragments: changed }),
+            });
+        }
+        await persistRestore(context, { ...guard, versionPending: false });
+        await releaseReservation(context);
+        return result;
+    } catch (error) {
+        if (error.statusCode && error.statusCode < 500) {
+            error.result = { restored, failures };
+            try {
+                await persistRestore(context, {
+                    ...guard,
+                    versionPending: false,
+                    conflict: { statusCode: error.statusCode, message: error.message },
+                });
+                await releaseReservation(context);
+            } catch {
+                throw versionPending(restored, failures);
+            }
+            throw error;
+        }
+        throw versionPending(restored, failures);
+    }
+}
+
+async function reconcileRestore(context, guard, previous) {
+    if (!guard.beforeSnapshot) {
+        throw Object.assign(new Error('Restore already attempted; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
+    const source = await findEntry(context, guard.eventId);
+    if (!source) fail(404, 'Version no longer available');
+    await authorizeEvent(context, source);
+    if (previous) await authorizeEvent(context, previous);
+    let claimed = false;
+    try {
+        await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+            claimed = false;
+            const entry = ledger.entries[requestId(context)];
+            if (!entry?.lockedUntil || entry.lockedUntil > Date.now()) return false;
+            entry.lockedUntil = Date.now() + RESTORE_LEASE;
+            claimed = true;
+            return true;
+        });
+    } catch {
+        throw versionPending(guard.restored, guard.failures);
+    }
+    if (!claimed) {
+        throw Object.assign(new Error('Restore is still pending; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
+    context.target = context.root;
+    if (previous) {
+        try {
+            await indexEntries(context, [previous]);
+            await persistRestore(context, { ...guard, versionPending: false });
+            await releaseReservation(context);
+        } catch {
+            throw versionPending(guard.restored, guard.failures);
+        }
+        return { restored: guard.restored, failures: guard.failures, event: previous };
+    }
+    const plan = [];
+    const after = [];
+    try {
+        for (const entry of guard.beforeSnapshot.fragments) {
+            const before = await readVersion(context, entry);
+            const fields = guard.selections.find((selection) => selection.fragmentId === entry.id).fields;
+            const historical = await readVersion(
+                context,
+                source.beforeSnapshot.fragments.find((fragment) => fragment.id === entry.id),
+            );
+            const payload = restorePayload(before, historical, fields);
+            plan.push({ id: entry.id, before, fields, payload });
+            if (!guard.attempted.includes(entry.id)) {
+                after.push(before);
+                continue;
+            }
+            const { fragment } = await readFragment(context, entry.id);
+            assertTarget(context, fragment);
+            if (fragment.path !== entry.path) fail(409, 'Historical fragment moved');
+            const changes = diff({ fragments: [before] }, { fragments: [fragment] });
+            const wanted = versionFieldValues({ ...before, ...payload });
+            if (
+                changes.some(
+                    (change) =>
+                        !fields.includes(change.field) ||
+                        JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null),
+                )
+            ) {
+                throw versionPending(guard.restored, guard.failures);
+            }
+            let failure = guard.failures.find((failure) => failure.fragmentId === entry.id);
+            if (!changes.length && (!failure || failure.partial)) throw versionPending(guard.restored, guard.failures);
+            const incomplete = diff({ fragments: [fragment] }, { fragments: [{ ...before, ...payload }] }).some((change) =>
+                fields.includes(change.field),
+            );
+            if (incomplete && guard.restored.includes(entry.id)) throw versionPending(guard.restored, guard.failures);
+            if (incomplete && !failure) {
+                failure = { fragmentId: entry.id, statusCode: 503, error: 'Draft restore interrupted', partial: true };
+                guard.failures.push(failure);
+            }
+            if (!failure && !guard.restored.includes(entry.id)) guard.restored.push(entry.id);
+            const captured = guard.afterVersions.find((version) => version.id === entry.id);
+            if (captured) {
+                const historicalAfter = await readVersion(context, captured);
+                if (diff({ fragments: [historicalAfter] }, { fragments: [fragment] }).length) {
+                    throw versionPending(guard.restored, guard.failures);
+                }
+            }
+            after.push(fragment);
+        }
+        for (const item of plan.filter((item) => !guard.attempted.includes(item.id))) {
+            if (!guard.failures.some((failure) => failure.fragmentId === item.id)) {
+                guard.failures.push({ fragmentId: item.id, statusCode: 424, error: 'Not attempted before interruption' });
+            }
+        }
+        await persistRestore(context, guard);
+    } catch {
+        throw versionPending(guard.restored, guard.failures);
+    }
+    return finishRestore(context, guard, plan, after);
+}
+
+async function restore(context, params, source) {
+    if (!source) fail(404, 'Version no longer available');
+    if (source.snapshotUnavailable) fail(400, 'Snapshot unavailable; this event cannot be restored');
+    if (source.action === 'delete') fail(400, 'Deletion cannot be restored');
+    if (!source.beforeSnapshot.fragments.length) fail(400, 'Creation cannot be undone');
+    const plan = await restorePlan(context, params, source);
+    if (!plan.length) return { unchanged: true, restored: [], failures: [] };
+    context.target = context.root;
+    const before = { fragments: plan.map((item) => item.before) };
+    const beforeSnapshot = await historySnapshot(context, before);
+    const guard = {
+        eventId: source.id,
+        selections: params.selections,
+        expected: params.expected,
+        versionPending: true,
+        beforeSnapshot,
+        attempted: [],
+        restored: [],
+        failures: [],
+        afterVersions: [],
+    };
+    await reserveVersion(context, { id: requestId(context), createdAt: new Date().toISOString() }, true);
+    await persistRestore(context, guard);
+    const { restored, failures } = guard;
+    const after = [];
+    for (const [index, item] of plan.entries()) {
+        if (Date.now() >= context.writeDeadline) {
+            for (const remaining of plan.slice(index)) {
+                failures.push({
+                    fragmentId: remaining.id,
+                    statusCode: 424,
+                    error: 'Not attempted before restore time budget',
+                });
+                after.push(remaining.before);
+            }
+            break;
+        }
+        guard.attempted.push(item.id);
+        try {
+            await persistRestore(context, guard);
+        } catch {
+            throw versionPending(restored, failures);
+        }
+        try {
+            after.push(await writeDraft(context, item));
+            restored.push(item.id);
+        } catch (error) {
+            failures.push({
+                fragmentId: item.id,
+                statusCode: error.statusCode ?? 502,
+                error: 'Draft restore failed',
+                ...(error.partial ? { partial: true } : {}),
+            });
+            if (error.partial) {
+                try {
+                    after.push(
+                        error.uncertainFields
+                            ? await confirmDraft(context, { ...item, fields: error.uncertainFields })
+                            : (await readFragment(context, item.id)).fragment,
+                    );
+                } catch {
+                    throw versionPending(restored, failures);
+                }
+            } else after.push(item.before);
+            for (const remaining of plan.slice(index + 1)) {
+                failures.push({ fragmentId: remaining.id, statusCode: 424, error: 'Not attempted after earlier failure' });
+                after.push(remaining.before);
+            }
+            break;
+        }
+        try {
+            await persistRestore(context, guard);
+        } catch {
+            throw versionPending(restored, failures);
+        }
+    }
+    try {
+        await persistRestore(context, guard);
+    } catch {
+        throw versionPending(restored, failures);
+    }
+    return finishRestore(context, guard, plan, after);
+}
+
+async function execute(operation, params) {
+    const startedAt = Date.now();
+    if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
+    if (!['record', 'list', 'restore'].includes(operation)) fail(400, 'Unknown version operation');
+    const scope = resolveScope(params.scopeType);
+    identifier(params.rootId);
+    if (operation === 'record') {
+        identifier(params.targetId);
+        params = { ...params, action: params.action ?? 'save' };
+        if (!['save', 'create', 'delete'].includes(params.action)) fail(400, 'Invalid version action');
+        if (params.phase !== undefined && (params.phase !== 'prepare' || params.action === 'create'))
+            fail(400, 'Invalid version phase');
+        if (
+            params.metadataOnly !== undefined &&
+            (typeof params.metadataOnly !== 'boolean' || params.phase !== undefined || params.action === 'delete')
+        )
+            fail(400, 'Invalid metadata-only record');
+        if (params.beforeVersionId !== undefined) fail(400, 'Client before versions are not accepted');
+        if (params.expectedEtag !== undefined) etagValue(params.expectedEtag);
+        if (params.completionEtag !== undefined) etagValue(params.completionEtag);
+    }
+    if (operation === 'restore') {
+        identifier(params.eventId);
+        restoreSelections(params);
+    }
+    const configuredEndpoint = endpoint(params);
+    const identity = await authenticate(params);
+    const state = await init();
+    if (operation !== 'list') await scope.authorizeWrite(state, identity.user.email, operation);
+    const context = {
+        ...identity,
+        state,
+        operation,
+        endpoint: configuredEndpoint,
+        scopeType: params.scopeType,
+        scope,
+        rootId: params.rootId,
+        requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
+        access: new Map(),
+        fragments: new Map(),
+        ...(operation === 'list' ? {} : { deadline: startedAt + RESTORE_BUDGET }),
+        ...(operation === 'restore' ? { writeDeadline: startedAt + RESTORE_WRITE_BUDGET } : {}),
+    };
+    context.root = (await readFragment(context, context.rootId)).fragment;
+    scope.assertRoot(context.root);
+    await readHistoryIndex(context);
+    if (operation !== 'list') {
+        const previous = await findEntry(context, requestId(context));
+        if (previous && operation === 'record') {
+            if (previous.action !== params.action || previous.targetId !== params.targetId)
+                fail(409, 'Request ID already used');
+            await authorizeEvent(context, previous);
+            if (!params.phase) {
+                await indexEntries(context, [previous]);
+                await releaseReservation(context);
+                return { event: previous };
+            }
+        }
+        const request = await state.get(`${namespace(context, 'request')}${requestId(context)}`);
+        if (request?.value) {
+            const prior = JSON.parse(request.value);
+            if (operation === 'record') {
+                if (prior.operation !== 'record' || prior.action !== params.action || prior.target.id !== params.targetId)
+                    fail(409, 'Request ID already used');
+                context.recordGuard = prior;
+                return record(context, params);
+            }
+            if (
+                operation !== 'restore' ||
+                prior.eventId !== params.eventId ||
+                JSON.stringify(prior.selections) !== JSON.stringify(params.selections) ||
+                JSON.stringify(prior.expected) !== JSON.stringify(params.expected)
+            )
+                fail(409, 'Request ID already used');
+            if (prior.versionPending) return reconcileRestore(context, prior, previous);
+            if (prior.conflict)
+                throw Object.assign(new Error(prior.conflict.message), {
+                    statusCode: prior.conflict.statusCode,
+                    result: { restored: prior.restored, failures: prior.failures },
+                });
+            if (previous) await authorizeEvent(context, previous);
+            return { restored: prior.restored, failures: prior.failures, ...(previous ? { event: previous } : {}) };
+        }
+        if (previous) fail(409, 'Request ID already used');
+    }
+    if (operation === 'record') return record(context, params);
+    if (operation === 'restore') return restore(context, params, await findEntry(context, params.eventId));
+    return list(context, params);
+}
+
+module.exports = { execute };

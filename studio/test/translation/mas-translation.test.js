@@ -66,6 +66,22 @@ describe('MasTranslation', () => {
         });
     });
 
+    describe('column resizing', () => {
+        it('applies a resized width to the header and to the row cells', async () => {
+            Store.translationProjects.list.data.value = [createMockTranslationProject('1', 'Project 1')];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const handle = el.shadowRoot.querySelector('.column-resize-handle[data-column="status"]');
+            handle.dispatchEvent(
+                new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true, cancelable: true }),
+            );
+            await el.updateComplete;
+            const width = `${el.columnResize.widths.get('status')}px`;
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-head-cell')[1]).width).to.equal(width);
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-cell')[1]).width).to.equal(width);
+        });
+    });
+
     describe('translationProjectsData getter', () => {
         it('should return empty array when no data', async () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
@@ -299,7 +315,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[0].textContent).to.equal('My Translation Project');
+            expect(cells[0].querySelector('.title-clamp').textContent.trim()).to.equal('My Translation Project');
         });
 
         it('should display last updated by in table row', async () => {
@@ -942,7 +958,7 @@ describe('MasTranslation', () => {
             expect(createFragmentStub.firstCall.args[0].title).to.equal('Project-1-copy');
             const rows = el.shadowRoot.querySelectorAll('sp-table-row[data-id]');
             expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-1', 'dup-1']);
-            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Project-1-copy');
+            expect(rows[0].querySelector('.title-clamp').textContent.trim()).to.equal('Project-1-copy');
             expect(Store.translationProjects.list.data.get()[1]).to.equal(mockProject);
             expect(loadTranslationProjectsStub.called).to.be.false;
             expect(el.duplicateDialogOpen).to.be.false;

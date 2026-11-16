@@ -21,7 +21,7 @@ One CDN miss used to rebuild the whole response, which means many Odin and WCS c
 
 ## Decision
 
-We will cache at every layer below. Each layer has its own key and lifetime, and is only filled by the layer above it missing. From the visitor down:
+We will cache the `/mas/io/fragment` API at every layer below. Each layer has its own key and lifetime, and is only filled by the layer above it missing. From the visitor down:
 
 | #   | Layer                                                 | Owner                  | Key                                      | Lifetime                                         |
 | --- | ----------------------------------------------------- | ---------------------- | ---------------------------------------- | ------------------------------------------------ |
@@ -29,8 +29,11 @@ We will cache at every layer below. Each layer has its own key and lifetime, and
 | 2   | `www.adobe.com` CDN, `/mas/io` path                   | M@S                    | request URL                              | 15 min                                           |
 | 3   | `io/www` container memory                             | M@S (`io/www`)         | see below                                | 60 s for State copies; 5 min ±20% for inputs     |
 | 4   | App Builder State of the namespace                    | M@S (`io/www`)         | `req-<request key>`, `res-<request key>` | refreshed after 5 min; served stale up to 15 min |
-| 5   | `www.adobe.com` CDN, WCS artifacts path               | M@S                    | request URL                              | 15 min                                           |
-| 6   | AEM CDN in front of Odin                              | Odin / AEM             | URL                                      | 1 h                                              |
+
+On a rebuild, `io/www` calls two other APIs, each with its own cache:
+
+- **WCS**, through the `www.adobe.com/web_commerce_artifact` CDN path, owned by M@S and also called directly by pages for prices: 15 min.
+- **Odin**, through the AEM CDN, owned by Odin / AEM: 1 h.
 
 The browser lifetime comes from `io/www`, which sends `Cache-Control: public, max-age=300, …`, configurable through `networkConfig.cacheMaxAge` in State. The CDN caps it to its own remaining lifetime.
 
@@ -63,7 +66,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 ## Evidence
 
 - Replay of real production requests against a dev workspace, server side: stored responses served from memory in 9 ms p50 / 20 ms p90, against 242 ms p50 / 1627 ms p90 for the pipeline before. State reads and writes take ~85–90 ms each, run in parallel.
-- CDN lifetimes of layers 2, 5 and 6 were checked against the response headers and CDN configuration on 2026-11-16.
+- CDN lifetimes of layer 2, WCS and Odin were checked against the response headers and CDN configuration on 2026-11-16.
 
 ## Consequences
 
@@ -84,7 +87,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 - **Hot keys only**: every request key needs its own entry, so rarely requested ones are still built on their first miss. State is limited to 200k keys and 1 GB per workspace; entries expire after 24 h without a write.
 - **CDN fragmentation**: each site currently gets its own layer 2 copy. [WPS-36704](https://jira.corp.adobe.com/browse/WPS-36704) removes that split.
 - **Heap budget**: memory eviction relies on V8 heap samples. [MWPW-215446](https://jira.corp.adobe.com/browse/MWPW-215446) tracks a case where heap usage is underestimated.
-- **Layer 6 is owned by Odin / AEM**: its lifetime can change without M@S being involved.
+- **The Odin CDN is owned by Odin / AEM**: its lifetime can change without M@S being involved.
 
 ## References
 

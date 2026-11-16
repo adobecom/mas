@@ -2797,6 +2797,64 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                describe('quantity selector switch', () => {
+                                    const OFF = '<merch-quantity-select/>';
+                                    const ON =
+                                        '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>';
+                                    const mountWithBaselineQuantity = async (id, baselineQuantity) => {
+                                        const editor = document.createElement('merch-card-editor');
+                                        editor.isVariation = false;
+                                        editor.fragmentStore = generateFragmentStore(
+                                            new Fragment({
+                                                ...structuredClone(baseMockData),
+                                                id,
+                                                path: `/content/dam/mas/nala/en_US/${id}`,
+                                                fields: baseMockData.fields.map((field) => ({
+                                                    ...field,
+                                                    values: field.name === 'variant' ? ['plans'] : [],
+                                                })),
+                                            }),
+                                            null,
+                                            { lazy: true },
+                                        );
+                                        withBaselineSettings(editor, [{ name: 'quantitySelect', values: [baselineQuantity] }]);
+                                        editor.baselinesController.hostUpdate = () => {};
+                                        document.body.append(editor);
+                                        await editor.updateComplete;
+                                        return editor;
+                                    };
+                                    const switchQuantitySelect = async (editor, checked) => {
+                                        const field = editor.querySelector('quantity-select-settings-field');
+                                        await field.updateComplete;
+                                        const toggle = field.querySelector('#quantity-select-settings-field-toggle');
+                                        toggle.checked = checked;
+                                        toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                        await editor.updateComplete;
+                                        await field.updateComplete;
+                                        return toggle;
+                                    };
+                                    const unmount = (editor) => {
+                                        editor.remove();
+                                        editor.fragmentStore.previewStore.dispose();
+                                    };
+
+                                    it('keeps the selector switched off when the baseline shows it', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-off-card', ON);
+                                        const toggle = await switchQuantitySelect(editor, false);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(OFF);
+                                        expect(toggle.checked).to.be.false;
+                                        unmount(editor);
+                                    });
+
+                                    it('keeps the selector switched on when the baseline hides it', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-on-card', OFF);
+                                        const toggle = await switchQuantitySelect(editor, true);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
+                                        expect(toggle.checked).to.be.true;
+                                        unmount(editor);
+                                    });
+                                });
+
                                 describe('the baselines do not set', () => {
                                     const withGlobalSettings = (cardFields) => {
                                         Store.settings.rows.set(createDefaultSettingsRows());

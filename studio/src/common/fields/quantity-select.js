@@ -39,14 +39,18 @@ export const parseQuantitySelectValue = (value) => {
 
 const QUANTITY_SELECT_KEYS = ['title', 'min', 'step', 'defaultValue'];
 
+const isQuantitySelectEnabled = (value) =>
+    Boolean(new DOMParser().parseFromString(value, 'text/html').querySelector(QUANTITY_SELECT_TAG)?.hasAttributes());
+
 /**
- * Compares two serialized quantity selector values by their parsed configuration.
+ * Compares two serialized quantity selector values: on/off state first, then their parsed configuration.
  * @param {string} first
  * @param {string} second
  * @returns {boolean}
  */
 export const isSameQuantitySelectValue = (first, second) => {
     if (!first || !second) return (first || '') === (second || '');
+    if (isQuantitySelectEnabled(first) !== isQuantitySelectEnabled(second)) return false;
     const a = parseQuantitySelectValue(first);
     const b = parseQuantitySelectValue(second);
     return QUANTITY_SELECT_KEYS.every((key) => a[key] === b[key]);

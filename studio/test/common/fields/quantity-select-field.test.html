@@ -77,6 +77,22 @@
                         expect(isSameQuantitySelectValue('', configured)).to.be.false;
                         expect(isSameQuantitySelectValue('', undefined)).to.be.true;
                     });
+
+                    it('isSameQuantitySelectValue treats a switched off selector as different from a default one', () => {
+                        const off = '<merch-quantity-select/>';
+                        const on = '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>';
+                        expect(isSameQuantitySelectValue(off, on)).to.be.false;
+                        expect(isSameQuantitySelectValue(on, off)).to.be.false;
+                    });
+
+                    it('isSameQuantitySelectValue matches two switched off selectors', () => {
+                        expect(
+                            isSameQuantitySelectValue(
+                                '<merch-quantity-select/>',
+                                '<merch-quantity-select></merch-quantity-select>',
+                            ),
+                        ).to.be.true;
+                    });
                 });
 
                 describe('quantity-select-field', () => {

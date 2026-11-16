@@ -6,11 +6,40 @@ This custom element renders a checkout link supporting most of the features docu
 Sometimes a checkout-link can be also referred as placeholder, as it can be used as an inline link resolving at runtime.<br>
 The term placeholder will be deprecated and it is recommended to refer as **checkout-link custom element** going forward.
 
-Behind the scene, it uses https://git.corp.adobe.com/PandoraUI/commerce-core to generate the checkout url.
+Checkout URL construction and try/buy intent resolution use the shared source files in the repository-root `checkout/` folder.
 
 It requires an Offer Selector ID to retrieve the offer details from WCS.
 
 See [MAS](mas.html#terminology) to learn more.
+
+### Shared checkout source
+
+The shared files run in Node and browsers without runtime dependencies or DOM access. Import them directly by relative path; there is no shared checkout package or workspace. For example, from `web-components/src/`:
+
+```js
+import { buildCheckoutUrl } from '../../checkout/src/buildCheckoutUrl.js';
+import { resolveCheckoutData, resolveCheckoutIntent } from '../../checkout/src/checkout.js';
+
+const data = resolveCheckoutData(resolvedOffers, normalizedOptions, {
+    env: 'PRODUCTION',
+    landscape: 'PUBLISHED',
+    is3in1: false,
+    context: 'fp',
+});
+const url = buildCheckoutUrl(data, {
+    search: '?sdid=example',
+    pathnames: ['/us/products/example'],
+});
+const intent = resolveCheckoutIntent(resolvedOffers[0]);
+```
+
+Callers supply non-empty resolved offers and normalized options, including `checkoutClientId`, `checkoutWorkflowStep`, `country`, `language`, and a `quantity` array. The first offer is primary; its quantity applies to all URL items. Existing extra-option precedence is preserved, including `env` supplied in normalized options. `resolveCheckoutIntent` returns `try` for a primary `TRIAL` offer and `buy` otherwise.
+
+`buildCheckoutUrl` also accepts already-resolved checkout data directly (`env`, `workflowStep`, `clientId`, `country`, and `items` for workflows other than segmentation and team-upgrade plans). It retains required-field errors and returns a URL string.
+
+The optional second argument is explicit page context. Only allowlisted search parameters are forwarded, with the same precedence and sanitation as browser checkout. A TW or HK traditional-Chinese pathname, including a supplied parent pathname, sets top-level and per-item checkout language to `zh-Hant`. Omit page context to avoid page-derived query or language changes.
+
+Web-components keep their existing APIs and collect page, parent-frame, iframe, meta-tag and service/provider state before calling the shared code. Custom checkout action URLs still receive the page-locale adjustment. Offer fetching, AUP SDK requests and launches, click handlers, and modal lifecycle remain browser-owned. Server pipeline wiring is a separate follow-up; this extraction does not enable server-side rendering.
 
 ### Example
 

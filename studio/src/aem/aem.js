@@ -6,6 +6,7 @@ const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
 const MAX_NAME_ATTEMPTS = 10;
 const COPY_WAIT_TIME = 1000;
+const PUBLISH_BATCH_SIZE = 50;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -477,6 +478,22 @@ class AEM {
     }
 
     /**
+     * Activate only this fragment through classic replication, without a reference workflow.
+     * Requires crx:replicate on the fragment path for the calling user.
+     * @param {Object} fragment
+     * @returns {Promise<void>}
+     */
+    async replicateFragment(fragment) {
+        const formData = new FormData();
+        formData.append('cmd', 'Activate');
+        formData.append('path', fragment.path);
+        const response = await this.postFormWithCsrf('/bin/replicate', formData);
+        if (!response.ok) {
+            throw new Error(`Failed to replicate fragment: ${response.status} ${response.statusText}`);
+        }
+    }
+
+    /**
      * Publish a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
@@ -530,16 +547,33 @@ class AEM {
     }
 
     /**
-     * Publish multiple fragments in a single request
+     * Publish multiple fragments, split into requests of at most PUBLISH_BATCH_SIZE paths
+     * because the AEM publish API rejects larger payloads with a 400.
      * @param {Array<Object>} fragments - Array of fragment objects
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
-     * @returns {Promise<void>}
+     * @returns {Promise<Array<Object>>} One publish response per batch
+     * @throws {Error} When a batch fails; `error.publishedFragments` lists fragments from batches that were already
+     * accepted, so callers can report partial success.
      */
     async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
             throw new Error('No fragments provided to publish');
         }
+        const results = [];
+        for (let i = 0; i < fragments.length; i += PUBLISH_BATCH_SIZE) {
+            try {
+                results.push(
+                    await this.#publishFragmentsBatch(fragments.slice(i, i + PUBLISH_BATCH_SIZE), publishReferencesWithStatus),
+                );
+            } catch (error) {
+                error.publishedFragments = fragments.slice(0, i);
+                throw error;
+            }
+        }
+        return results;
+    }
 
+    async #publishFragmentsBatch(fragments, publishReferencesWithStatus) {
         // Use the first fragment's etag for the If-Match header
         const etag = fragments[0].etag;
         const paths = fragments.map((fragment) => fragment.path);
@@ -1114,6 +1148,24 @@ class AEM {
     }
 
     /**
+     * Check whether an AEM tag exists
+     * @param {string} tagPath - Path of the tag, e.g. /content/cq:tags/mas/product_code/ccsn
+     * @returns {Promise<boolean>}
+     */
+    async tagExists(tagPath) {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.ok) return true;
+        if (response.status === 404) return false;
+        throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
+    }
+
+    /**
      * Create a new AEM tag, failing if one already exists at the given path
      * @param {string} tagPath - Path of the tag to create
      * @param {string} title - Title of the tag
@@ -1547,6 +1599,10 @@ class AEM {
          * @see AEM#listTags
          */
         list: this.listTags.bind(this),
+        /**
+         * @see AEM#tagExists
+         */
+        exists: this.tagExists.bind(this),
         /**
          * @see AEM#createTag
          */

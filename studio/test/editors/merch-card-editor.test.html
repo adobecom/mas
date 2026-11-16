@@ -662,6 +662,26 @@
                         expect(saveNavItem.disabled).to.be.false;
                     });
 
+                    it('restores overridden footer rows from the section only, not from each row', async () => {
+                        await setupTestEnvironment({}, 'footer-rows');
+                        editor.fragmentStore.updateField('footerRows', [
+                            editor.createFooterRowsElement([{ icon: '/own.svg', alt: 'Own row' }]).outerHTML,
+                        ]);
+                        await editor.updateComplete;
+                        const multifield = editor.querySelector('#footerRows mas-multifield');
+                        await multifield.updateComplete;
+                        const rows = [...multifield.shadowRoot.querySelectorAll('mas-included-field')];
+                        await Promise.all(rows.map((row) => row.updateComplete));
+                        expect(editor.getFieldState('footerRows')).to.equal('overridden');
+                        expect(rows.length).to.equal(1);
+                        expect(rows[0].getAttribute('data-field-state')).to.equal('overridden');
+                        expect(rows[0].shadowRoot.querySelectorAll('.field-status-restore-link').length).to.equal(0);
+
+                        editor.querySelector('#footerRows > .field-status-indicator .field-status-restore-link').click();
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('footerRows')).to.equal('inherited');
+                    });
+
                     it('renders grouped-variation-tags as readonly in non en_US locales', async () => {
                         await setupTestEnvironment(
                             { path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-readonly' },

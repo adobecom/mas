@@ -17,22 +17,22 @@ Pages get merch cards and collections from `https://www.adobe.com/mas/io/fragmen
 
 A response depends on all of them, on the request parameters (`id`, `locale`, `country`, `pzn`, `mask`, `offer`, `template`, `surface`) and on the date (promotion windows). It can't be invalidated when content is published.
 
-One CDN miss used to rebuild the whole response, which means many Odin and WCS calls. Akamai has ~21k edges and little parent tier sharing, so misses were frequent. Over 24 h, 2.57 M requests waited for the origin (p50 363 ms, p90 1.44 s), and ~460k of those took over 1 s. An I/O Runtime container only lives a few minutes, so its memory alone can't absorb these misses.
+One CDN miss used to rebuild the whole response, which means many Odin and WCS calls. The CDN has many edges and little parent tier sharing, so misses were frequent: millions of requests a day waited for the origin, with a p90 above 1 s. An I/O Runtime container only lives a few minutes, so its memory alone can't absorb these misses.
 
 ## Decision
 
 We will cache at every layer below. Each layer has its own key and lifetime, and is only filled by the layer above it missing. From the visitor down:
 
-| #   | Layer                                                          | Owner                  | Key                                             | Lifetime                                         |
-| --- | -------------------------------------------------------------- | ---------------------- | ----------------------------------------------- | ------------------------------------------------ |
-| 1   | Browser: HTTP cache and the `aem-fragment` page cache          | M@S (`web-components`) | URL; fragment id                                | `max-age=300`; page life                         |
-| 2   | Akamai `www.adobe.com`, rule `Mas/io` (CP code 1781119)        | WPS                    | path and query without `api_key`, plus `Origin` | 15 min                                           |
-| 3   | `io/www` container memory                                      | M@S (`io/www`)         | see below                                       | 60 s for State copies; 5 min ±20% for inputs     |
-| 4   | App Builder State of the namespace                             | M@S (`io/www`)         | `req-<request key>`, `res-<request key>`        | refreshed after 5 min; served stale up to 15 min |
-| 5   | Akamai `www.adobe.com/web_commerce_artifact` (CP code 1672007) | WCS team               | query without `api_key`                         | 15 min                                           |
-| 6   | AEM CDN `odin.adobe.com` (Fastly)                              | Odin / AEM             | URL                                             | `s-maxage=3600`, `stale-while-revalidate=3600`   |
+| #   | Layer                                                 | Owner                  | Key                                      | Lifetime                                         |
+| --- | ----------------------------------------------------- | ---------------------- | ---------------------------------------- | ------------------------------------------------ |
+| 1   | Browser: HTTP cache and the `aem-fragment` page cache | M@S (`web-components`) | URL; fragment id                         | up to 5 min; page life                           |
+| 2   | `www.adobe.com` CDN, `/mas/io` path                   | WPS                    | request URL                              | 15 min                                           |
+| 3   | `io/www` container memory                             | M@S (`io/www`)         | see below                                | 60 s for State copies; 5 min ±20% for inputs     |
+| 4   | App Builder State of the namespace                    | M@S (`io/www`)         | `req-<request key>`, `res-<request key>` | refreshed after 5 min; served stale up to 15 min |
+| 5   | `www.adobe.com` CDN, WCS artifacts path               | WCS team               | request URL                              | 15 min                                           |
+| 6   | AEM CDN in front of Odin                              | Odin / AEM             | URL                                      | 1 h                                              |
 
-The browser lifetime comes from `io/www`: it sends `Cache-Control: public, max-age=300, stale-while-revalidate=86400`, configurable through `networkConfig.cacheMaxAge` and `cacheStaleWhileRevalidate` in State. Akamai passes `max-age` on to browsers but drops `stale-while-revalidate`.
+The browser lifetime comes from `io/www`, which sends `Cache-Control: public, max-age=300, …`, configurable through `networkConfig.cacheMaxAge` in State. The CDN caps it to its own remaining lifetime.
 
 Layers 3 and 4 are owned by M@S. They behave as follows:
 
@@ -54,8 +54,8 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 
 ## Rationale
 
-- **State as a shared origin cache**: it survives container recycling and is shared by all containers, so a key is built about once every 5 minutes for the whole fleet instead of once per CDN miss. A CDN miss then usually costs a memory read (~9 ms) or a State read (~85 ms, State being in the `amer` region) instead of a rebuild.
-- **Not a bigger CDN parent tier instead**: Akamai Cloud Wrapper starts at 100 TB/month (~$9.4k/month) for a need of ~250 GB/month. Tiered distribution would not shield a cold key either.
+- **State as a shared origin cache**: it survives container recycling and is shared by all containers, so a key is built about once every 5 minutes for the whole fleet instead of once per CDN miss. A CDN miss then usually costs a memory read (~9 ms) or a State read (~85 ms) instead of a rebuild.
+- **Not a bigger CDN parent tier instead**: the available offers are sized and priced for far more traffic than this endpoint has, and a parent tier would not shield a cold key either.
 - **Two State entries rather than one**: most rebuilds produce the same hash. They then write ~1 KB of metadata rather than a body of up to 900 KB, which keeps within State's bandwidth limits (10 MB/min by default).
 - **A short memory copy in front of State**: hot keys don't hit State on every request. A minute bounds how far a container can lag behind another one's refresh.
 - **Stale-while-revalidate everywhere**: visitors don't wait for a rebuild. Odin and WCS see one request per key and interval rather than a burst when entries expire together, which the ±20% jitter also prevents.
@@ -63,10 +63,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 ## Evidence
 
 - Replay of real production requests against a dev workspace, server side: stored responses served from memory in 9 ms p50 / 20 ms p90, against 242 ms p50 / 1627 ms p90 for the pipeline before. State reads and writes take ~85–90 ms each, run in parallel.
-- `Pragma: akamai-x-get-cache-key` on 2026-11-16:
-    - `/mas/io/fragment`: key `S/L/1319/1781119/15m/…/fragment?… cid=id=…&locale=en_US///`;
-    - `web_commerce_artifact`: key `S/L/1319/1672007/15m/wcs.adobe.io/…`.
-- `odin.adobe.com` response headers on 2026-11-16: `cache-control: max-age=300, s-maxage=3600, stale-if-error=86400, stale-while-revalidate=3600`, served by Fastly.
+- CDN lifetimes of layers 2, 5 and 6 were checked against the response headers and CDN configuration on 2026-11-16.
 
 ## Consequences
 
@@ -85,7 +82,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
     - 15 min in Akamai;
     - 5 min in the browser.
 - **Hot keys only**: every request key needs its own entry, so rarely requested ones are still built on their first miss. State is limited to 200k keys and 1 GB per workspace; entries expire after 24 h without a write.
-- **Akamai fragmentation**: `Origin` is part of the layer 2 key today, so each site gets its own copy. [WPS-36704](https://jira.corp.adobe.com/browse/WPS-36704) removes it from the `Mas/io` key.
+- **CDN fragmentation**: each site currently gets its own layer 2 copy. [WPS-36704](https://jira.corp.adobe.com/browse/WPS-36704) removes that split.
 - **Heap budget**: memory eviction relies on V8 heap samples. [MWPW-215446](https://jira.corp.adobe.com/browse/MWPW-215446) tracks a case where heap usage is underestimated.
 - **Layers 2, 5 and 6 are owned by other teams**: their TTLs and keys can change without M@S being involved.
 

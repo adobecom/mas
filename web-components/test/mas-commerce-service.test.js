@@ -45,16 +45,14 @@ describe('commerce service', () => {
                 fallbackUsed: true,
             };
             expect(
-                disconnected.checkoutDecisionsV1.resolveWorkflowFallback(
-                    context,
-                ),
+                disconnected.checkoutDecisions.resolveWorkflowFallback(context),
             ).to.deep.equal(expected);
             const service = initMasCommerceService();
-            expect(service.checkoutDecisionsV1).to.equal(
-                disconnected.checkoutDecisionsV1,
+            expect(service.checkoutDecisions).to.equal(
+                disconnected.checkoutDecisions,
             );
             expect(
-                service.checkoutDecisionsV1.resolveWorkflowFallback(context),
+                service.checkoutDecisions.resolveWorkflowFallback(context),
             ).to.deep.equal(expected);
         });
 

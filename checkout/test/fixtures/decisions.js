@@ -22,6 +22,7 @@ const modalConfig = {
     CRM_PATH: '/crm',
     CRM_HASH: 'crm',
 };
+const segmentedCrmConfig = { CRM_PATH: ' /individual | /team | /student ' };
 
 export const decisionCases = [
     ...['twp', 'd2p', 'crm', 'other', undefined].flatMap((modal) => [
@@ -188,19 +189,20 @@ export const decisionCases = [
         expected,
     })),
     {
-        id: 'unknown-segment-uses-first-path',
+        id: 'crm-unmapped-segment-skips-modal',
         decision: 'selectModalPath',
         input: {
-            config: { BUY_NOW_PATH: ' /individual | /team | /student | /education ' },
+            config: segmentedCrmConfig,
+            modal: 'crm',
             offerType: 'BUY',
             isCheckoutLink: true,
-            customerSegment: 'UNKNOWN',
-            marketSegments: ['COM'],
+            customerSegment: 'TEAM',
+            marketSegments: ['GOV'],
         },
-        expected: '/individual',
+        expected: undefined,
     },
     {
-        id: 'missing-segment-uses-first-path',
+        id: 'missing-segment-skips-modal',
         decision: 'selectModalPath',
         input: {
             config: { BUY_NOW_PATH: ' /individual | /team ' },
@@ -208,13 +210,46 @@ export const decisionCases = [
             isCheckoutLink: true,
             customerSegment: 'INDIVIDUAL',
         },
-        expected: '/individual',
+        expected: undefined,
     },
     {
-        id: 'non-checkout-link-uses-first-path',
+        id: 'crm-button-skips-segmented-modal',
         decision: 'selectModalPath',
-        input: { config: { BUY_NOW_PATH: ' /individual | /team ' }, offerType: 'BUY', isCheckoutLink: false },
-        expected: '/individual',
+        input: {
+            config: segmentedCrmConfig,
+            modal: 'crm',
+            offerType: 'BUY',
+            isCheckoutLink: false,
+            customerSegment: 'TEAM',
+            marketSegments: ['COM'],
+        },
+        expected: undefined,
+    },
+    {
+        id: 'crm-mapped-segment-selects-own-path',
+        decision: 'selectModalPath',
+        input: {
+            config: segmentedCrmConfig,
+            modal: 'crm',
+            offerType: 'BUY',
+            isCheckoutLink: true,
+            customerSegment: 'TEAM',
+            marketSegments: ['COM'],
+        },
+        expected: '/team',
+    },
+    {
+        id: 'crm-missing-segment-path-skips-modal',
+        decision: 'selectModalPath',
+        input: {
+            config: segmentedCrmConfig,
+            modal: 'crm',
+            offerType: 'BUY',
+            isCheckoutLink: true,
+            customerSegment: 'TEAM',
+            marketSegments: ['EDU'],
+        },
+        expected: undefined,
     },
     {
         id: '3in1-does-not-split-segment-paths',

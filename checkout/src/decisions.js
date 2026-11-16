@@ -130,14 +130,14 @@ export function selectModalPath({ config, modal, isOpen3in1, offerType, isChecko
     if (path?.includes('|') && !isOpen3in1) {
         const segment = isCheckoutLink ? `${customerSegment}_${marketSegments?.[0]}` : '';
         const segments = ['INDIVIDUAL_COM', 'TEAM_COM', 'INDIVIDUAL_EDU', 'TEAM_EDU'];
-        const index = Math.max(segments.indexOf(segment), 0);
-        path = path.split('|')[index].trim();
+        const index = segments.indexOf(segment);
+        path = path.split('|')[index]?.trim();
     }
     return path;
 }
 
-// Additive browser capability: keep V1 stable while older Milo deployments coexist.
-export const checkoutDecisionsV1 = Object.freeze({
+/** Stateless checkout decisions. See checkout/README.md for the public contracts. */
+export const checkoutDecisions = Object.freeze({
     is3in1Modal,
     isOpen3in1Modal,
     resolveWorkflowFallback,

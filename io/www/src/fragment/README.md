@@ -14,6 +14,9 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 
 `fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector`
 
+Grouped and promo variations tagged with both geography and an audience require both to match.
+Geography-only and audience-only variations remain supported.
+
 ## Inactive price-render transformer
 
 `transformers/render.js` is available for direct execution only. It is **not**

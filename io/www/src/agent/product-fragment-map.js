@@ -26,8 +26,11 @@ const PRODUCT_FRAGMENT_MAP = {
             'adobe substance 3d collection': '99a79b2f-0fc0-44c6-822f-b5c3e3098ffc',
             'adobe substance 3d texturing': 'cab214a9-9f95-4308-aeb2-ff58ff177d06',
             'adobe firefly pro': '95c664e4-f605-41df-8f9c-4779d0ef58c5',
+            'adobe firefly pro plus': '0b47443c-f0a8-44a3-b577-7e4c7e77faf4',
+            'adobe firefly premium': 'c34e7581-cbe7-4c55-ae9b-3fc87408e788',
             'adobe firefly standard': '25542a46-df3d-4b6c-83dc-8fe4b8bce22b',
             'adobe express premium': 'b96244bb-9101-4b24-8f81-0808e7a815cf',
+            'adobe express free': '01e221d5-c255-4a15-a1d3-e9c12411f0dc',
         },
     },
     team: {
@@ -50,6 +53,9 @@ const PRODUCT_FRAGMENT_MAP = {
             'ai assistant for acrobat': '9ac1751b-4b73-4e1e-bc92-797de6d93cf9',
             'adobe substance 3d collection': '6375d22a-bdf1-4d5b-8769-3e4ddc635e61',
             'frame.io': 'ee2636e6-0ecc-49df-9a01-69ffd0558f74',
+            'adobe firefly pro': 'd2721e56-7e0b-4b0b-a0fb-94f2396dd80f',
+            'adobe firefly pro plus': '98b10834-cff3-4f7e-9a12-05069ed03ef2',
+            'adobe firefly premium': '4d5fdc6e-00f4-4031-84c7-a94a6cca51ae',
             'adobe express premium': 'e6df1626-22e1-440f-8b98-bdc8137d79f8',
         },
     },
@@ -57,6 +63,8 @@ const PRODUCT_FRAGMENT_MAP = {
         default: '2b1a6493-e03b-4803-a150-eed983094a05',
         products: {
             'adobe express premium': '413ea6c9-a6ac-422a-90ff-0db9ad30b7e1',
+            'adobe firefly pro plus': '5a769d77-efb2-4c1f-83a3-251fa0ff0a0c',
+            'adobe firefly premium': 'de8104d3-fdf2-4587-b6ca-993506da70c6',
         },
     },
 };

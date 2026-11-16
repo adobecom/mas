@@ -1505,6 +1505,199 @@ describe('customize baselines', function () {
     });
 });
 
+describe('customize icon alt text', function () {
+    const CARD_PATH = '/content/dam/mas/sandbox/en_US/card';
+    const baseline = (id, fields) => ({ id, path: `/content/dam/mas/sandbox/en_US/baselines/${id}`, fields });
+    const icon = (name) => ({ mnemonicIcon: [`${name}.svg`], mnemonicAlt: [name] });
+    const templateBaseline = { fragmentBaseline: baseline('template', { badge: 'Template badge' }) };
+    const variationOf = (variation, regionalVariation) => {
+        if (variation) {
+            return {
+                id: 'pzn',
+                path: `${CARD_PATH}/pzn/ar`,
+                fields: { pznTags: ['mas:pzn/country/AR'], ...variation },
+            };
+        }
+        return regionalVariation && { id: 'be', path: '/content/dam/mas/sandbox/en_BE/card', fields: regionalVariation };
+    };
+    const processCard = (fields, { variation, regionalVariation, baselines, maskFragment } = {}) => {
+        const layer = variationOf(variation, regionalVariation);
+        return process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'card',
+            locale: regionalVariation ? 'en_BE' : 'en_US',
+            country: regionalVariation ? 'BE' : 'AR',
+            maskFragment,
+            baselines: baselines && { card: baselines },
+            body: {
+                id: 'card',
+                path: CARD_PATH,
+                model: { id: CARD_MODEL_ID },
+                fields: layer ? { ...fields, variations: [layer.id] } : fields,
+                references: layer ? { [layer.id]: { type: 'content-fragment', value: layer } } : {},
+                referencesTree: layer ? [{ fieldName: 'variations', identifier: layer.id, referencesTree: [] }] : [],
+            },
+        });
+    };
+
+    describe('across baselines', function () {
+        it('drops the alt text of a lower baseline when a higher one sets its own icon', async function () {
+            const { body } = await processCard(
+                {},
+                {
+                    baselines: {
+                        fragmentBaseline: baseline('template', icon('Template')),
+                        fragmentSegmentBaseline: baseline('segment', { mnemonicIcon: ['segment.svg'] }),
+                    },
+                },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['segment.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+
+        it('never gives the card icon the alt text of a baseline', async function () {
+            const { body } = await processCard(
+                { mnemonicIcon: ['card.svg'] },
+                {
+                    baselines: {
+                        offerBaseline: baseline('offer', icon('Offer')),
+                        fragmentBaseline: baseline('template', { mnemonicAlt: ['Template'] }),
+                    },
+                },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['card.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+
+        it('lets a layer above the icon override its alt text alone', async function () {
+            const { body } = await processCard(
+                { mnemonicAlt: ['Card'] },
+                {
+                    baselines: {
+                        offerBaseline: baseline('offer', icon('Offer')),
+                        fragmentSegmentBaseline: baseline('segment', { mnemonicAlt: ['Segment'] }),
+                    },
+                },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['Offer.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+        });
+    });
+
+    describe('of a variation', function () {
+        it('keeps the card alt text on its own icon when the card has no baselines', async function () {
+            const { body } = await processCard(icon('Card'), { variation: { mnemonicIcon: ['pzn.svg'] } });
+            expect(body.variationId).to.equal('pzn');
+            expect(body.fields.mnemonicIcon).to.deep.equal(['pzn.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+        });
+
+        it('never gives its own icon the alt text of a card with baselines', async function () {
+            const { body } = await processCard(icon('Card'), {
+                variation: { mnemonicIcon: ['pzn.svg'] },
+                baselines: templateBaseline,
+            });
+            expect(body.variationId).to.equal('pzn');
+            expect(body.fields.mnemonicIcon).to.deep.equal(['pzn.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+
+        it('keeps the card alt text on cleared icons when the card has no baselines', async function () {
+            const { body } = await processCard(icon('Card'), { variation: { mnemonicIcon: [''] } });
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+        });
+
+        it('never gives cleared icons the alt text of a card with baselines', async function () {
+            const { body } = await processCard(icon('Card'), {
+                variation: { mnemonicIcon: [''] },
+                baselines: templateBaseline,
+            });
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+
+        it('keeps the card icon and alt text when it has no icons', async function () {
+            const { body } = await processCard(icon('Card'), { variation: { mnemonicIcon: [] } });
+            expect(body.fields.mnemonicIcon).to.deep.equal(['Card.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+        });
+
+        it('overrides the alt text of the card icon', async function () {
+            const { body } = await processCard(icon('Card'), { variation: { mnemonicAlt: ['PZN'] } });
+            expect(body.fields.mnemonicIcon).to.deep.equal(['Card.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['PZN']);
+        });
+
+        it('never gives its own icon the alt text of the card baselines', async function () {
+            const { body } = await processCard(
+                {},
+                { variation: { mnemonicIcon: ['pzn.svg'] }, baselines: { offerBaseline: baseline('offer', icon('Offer')) } },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['pzn.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+
+        it('keeps the card alt text on the icon of a regional variation when the card has no baselines', async function () {
+            const { body } = await processCard(icon('Card'), { regionalVariation: { mnemonicIcon: ['be.svg'] } });
+            expect(body.variationId).to.equal('be');
+            expect(body.fields.mnemonicIcon).to.deep.equal(['be.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+        });
+
+        it('never gives the icon of a regional variation the alt text of a card with baselines', async function () {
+            const { body } = await processCard(icon('Card'), {
+                regionalVariation: { mnemonicIcon: ['be.svg'] },
+                baselines: templateBaseline,
+            });
+            expect(body.variationId).to.equal('be');
+            expect(body.fields.mnemonicIcon).to.deep.equal(['be.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+    });
+
+    describe('of a mask', function () {
+        it('keeps the card alt text on its icon when the card has no baselines', async function () {
+            const { body } = await processCard(
+                { ...icon('Card'), badge: 'Card badge' },
+                { maskFragment: { id: 'mask', fields: { mnemonicIcon: ['mask.svg'] } } },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['mask.svg']);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Card']);
+            expect(body.fields.badge).to.equal('Card badge');
+        });
+
+        it('never gives its icon the alt text of a card with baselines', async function () {
+            const { body } = await processCard(
+                { ...icon('Card'), badge: 'Card badge' },
+                { maskFragment: { id: 'mask', fields: { mnemonicIcon: ['mask.svg'] } }, baselines: templateBaseline },
+            );
+            expect(body.fields.mnemonicIcon).to.deep.equal(['mask.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+            expect(body.fields.badge).to.equal('Card badge');
+        });
+
+        it('keeps the baseline ids over a variation and drops the card alt text', async function () {
+            const { body } = await processCard(icon('Card'), {
+                variation: { badge: 'PZN badge' },
+                maskFragment: { id: 'mask', fields: { mnemonicIcon: ['mask.svg'] } },
+                baselines: {
+                    offerBaseline: baseline('offer', { cardTitle: 'Offer' }),
+                    fragmentBaseline: baseline('template', { badge: 'Template badge' }),
+                    fragmentSegmentBaseline: baseline('segment', { subtitle: 'Segment' }),
+                },
+            });
+            expect(body).to.include({
+                offerBaselineId: 'offer',
+                fragmentBaselineId: 'template',
+                fragmentSegmentBaselineId: 'segment',
+                variationId: 'pzn',
+                maskId: 'mask',
+            });
+            expect(body.fields.mnemonicIcon).to.deep.equal(['mask.svg']);
+            expect(body.fields).to.not.have.property('mnemonicAlt');
+        });
+    });
+});
+
 async function process(context) {
     const phase1 = {
         status: 200,

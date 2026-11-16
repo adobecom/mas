@@ -47,8 +47,8 @@ Layers 3 and 4 live in `io/www`. They behave as follows:
     - Beyond that, one rebuild starts per container while the previous response is served, up to 15 minutes old. Older ones wait for the rebuild.
     - Before rebuilding, the container re-reads State, in case another container just refreshed it.
     - A failed rebuild (5xx) falls back to a response less than 15 minutes old.
-    - Every rebuild rewrites `req-`. `res-` is only rewritten when the hash changed.
-- **Memory**, one shared LRU per container, bounded by 75% of the V8 heap:
+    - Every rebuild rewrites `req-`, to update `refreshedAt`. `res-` is only rewritten when the hash changed.
+- **Memory**, one shared LRU (least recently used) cache per container, bounded by 75% of the V8 heap:
     - copies of the State entries, re-read at most every minute;
     - stale-while-revalidate caches of the inputs that many responses share: `dictionary`, `promotions`, `baselines`, `offers`, `offer-mapping` and `wcs-artifacts`. Each refills in the background and in a single flight per key.
 - **Bypass**: Studio preview and `instant` (time travel) requests read neither the memory copies nor the stored responses.
@@ -62,11 +62,6 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 - **Two State entries rather than one**: most rebuilds produce the same hash. They then write ~1 KB of metadata rather than a body of up to 900 KB, which keeps within State's bandwidth limits (10 MB/min by default).
 - **A short memory copy in front of State**: hot keys don't hit State on every request. A minute bounds how far a container can lag behind another one's refresh.
 - **Stale-while-revalidate everywhere**: visitors don't wait for a rebuild. Odin and WCS see one request per key and interval rather than a burst when entries expire together, which the ±20% jitter also prevents.
-
-## Evidence
-
-- Replay of real production requests against a dev workspace, server side: stored responses served from memory in 9 ms p50 / 20 ms p90, against 242 ms p50 / 1627 ms p90 for the pipeline before. State reads and writes take ~85–90 ms each, run in parallel.
-- CDN lifetimes of layer 2, WCS and Odin were checked against the response headers and CDN configuration on 2026-11-16.
 
 ## Consequences
 

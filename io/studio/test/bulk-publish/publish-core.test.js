@@ -30,6 +30,41 @@ describe('bulk-publish/publish-core.js — publishResolved', () => {
         expect(details.every((d) => d.status === 'published')).to.be.true;
         expect(publishChunkStub.callCount).to.equal(2);
     });
+
+    it('directly replicates an explicitly selected dictionary index', async () => {
+        const indexPath = '/content/dam/mas/acom/en_US/dictionary/index';
+        publishChunkStub.resolves([{ path: indexPath, status: 'published' }]);
+
+        const details = await core.publishResolved([indexPath], 'https://odin', 'token', logger);
+
+        expect(publishChunkStub).to.have.been.calledOnce;
+        expect(publishChunkStub.firstCall.args[0]).to.deep.include({
+            chunk: [indexPath],
+            replicate: true,
+        });
+        expect(details).to.deep.equal([{ path: indexPath, status: 'published' }]);
+    });
+
+    it('separates explicit indexes from workflow publishing without publishing them twice', async () => {
+        publishChunkStub.callsFake(async ({ chunk }) => chunk.map((path) => ({ path, status: 'published' })));
+        const indexPath = '/content/dam/mas/acom/en_US/dictionary/index';
+        const fragmentPaths = [
+            '/content/dam/mas/acom/en_US/dictionary/free',
+            '/content/dam/mas/acom/en_US/index',
+            '/content/dam/mas/acom/en_US/dictionary/index-copy',
+        ];
+
+        const details = await core.publishResolved([indexPath, ...fragmentPaths], 'https://odin', 'token', logger);
+        const indexDetails = await core.publishDictionaryIndexes(details, 'https://odin', 'token', logger);
+
+        expect(publishChunkStub).to.have.been.calledTwice;
+        expect(publishChunkStub.firstCall.args[0]).to.include({ replicate: false });
+        expect(publishChunkStub.firstCall.args[0].chunk).to.deep.equal(fragmentPaths);
+        expect(publishChunkStub.secondCall.args[0]).to.include({ replicate: true });
+        expect(publishChunkStub.secondCall.args[0].chunk).to.deep.equal([indexPath]);
+        expect(details).to.deep.equal([...fragmentPaths, indexPath].map((path) => ({ path, status: 'published' })));
+        expect(indexDetails).to.deep.equal([]);
+    });
 });
 
 describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
@@ -69,6 +104,7 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         ]);
         for (const call of publishChunkStub.getCalls()) {
             expect(call.args[0].filterReferencesByStatus).to.deep.equal([]);
+            expect(call.args[0].replicate).to.be.true;
         }
     });
 
@@ -95,6 +131,24 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         expect(results).to.deep.equal([]);
         expect(publishChunkStub).to.not.have.been.called;
     });
+
+    for (const status of ['failed', 'skipped']) {
+        it(`does not derive an explicitly selected ${status} index again after publishing a sibling entry`, async () => {
+            const indexPath = '/content/dam/mas/acom/en_US/dictionary/index';
+            const details = [
+                { path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' },
+                { path: indexPath, status },
+            ];
+
+            const results = await core.publishDictionaryIndexes(details, 'https://odin', 'token', logger);
+
+            expect([...details, ...results].filter(({ path }) => path === indexPath)).to.deep.equal([
+                { path: indexPath, status },
+            ]);
+            expect(fetchFragmentByPathStub).to.not.have.been.called;
+            expect(publishChunkStub).to.not.have.been.called;
+        });
+    }
 
     it('skips an index that is already published with no pending changes', async () => {
         fetchFragmentByPathStub.resolves({ fragment: { status: 'PUBLISHED' }, status: 200 });

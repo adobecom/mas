@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { selectOffers, sumOffers } from '../../src/index.js';
+import { selectOffers, sumOffers } from '../../src/offers.js';
 import { selectionCases, summationCases } from '../fixtures/offer-cases.js';
 
 const golden = await fetch(new URL('../fixtures/offers.expected.json', import.meta.url)).then((response) => response.json());

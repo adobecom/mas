@@ -26,7 +26,7 @@ merch-sidenav.catalog {
     --merch-sidenav-item-label-bottom-margin: 11px;
     --merch-sidenav-item-icon-top-margin: 11px;
     --merch-sidenav-item-icon-gap: 13px;
-    --merch-sidenav-item-selected-background: var(--spectrum-gray-300, #D5D5D5);
+    --merch-sidenav-item-selected-background: #919191;
     --merch-sidenav-list-item-gap: 5px;
     --merch-sidenav-checkbox-group-padding: 0 15px;
     --merch-sidenav-modal-border-radius: 0;
@@ -34,6 +34,12 @@ merch-sidenav.catalog {
 
 merch-sidenav.catalog merch-sidenav-checkbox-group {
     border: none;
+}
+
+merch-sidenav.catalog merch-sidenav-list {
+    --mod-sidenav-background-key-focus-selected: var(--merch-sidenav-item-selected-background);
+    --mod-sidenav-background-hover-selected: var(--merch-sidenav-item-selected-background);
+    --mod-sidenav-item-background-down-selected: var(--merch-sidenav-item-selected-background);
 }
 
 merch-sidenav.catalog merch-sidenav-list:not(:first-of-type) {

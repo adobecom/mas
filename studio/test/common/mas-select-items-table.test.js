@@ -91,6 +91,8 @@ describe('MasSelectItemsTable', () => {
         Store.translationProjects.placeholdersByPaths.set(new Map());
         Store.translationProjects.displayPlaceholders.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.baselinesList.data.set([]);
+        Store.translationProjects.baselinesList.loading.set(false);
 
         Store.fragments.list.data.set([]);
         Store.fragments.list.firstPageLoaded.set(true);
@@ -133,6 +135,73 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('initialization', () => {
+        it('selects and deselects all baselines without changing regular fragment selections', async () => {
+            const baseline = createMockCard('/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline', 'Baseline');
+            Store.translationProjects.baselinesList.data.set([{ value: baseline }]);
+            Store.translationProjects.selectedCards.set(['/regular-card']);
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="baselines"
+                    .getDisplayName=${(fragment) => fragment.path}
+                ></mas-select-items-table>`,
+            );
+            const checkbox = el.shadowRoot.querySelector('sp-table-head sp-checkbox');
+            checkbox.dispatchEvent(new Event('change'));
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/regular-card', baseline.path]);
+            checkbox.dispatchEvent(new Event('change'));
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/regular-card']);
+        });
+
+        it('uses baseline loading independently of the card search and does not request card pages', async () => {
+            const querySelector = document.querySelector.bind(document);
+            const repository = { loadNextPage: sandbox.stub() };
+            sandbox
+                .stub(document, 'querySelector')
+                .callsFake((selector) => (selector === 'mas-repository' ? repository : querySelector(selector)));
+            Store.translationProjects.baselinesList.loading.set(true);
+            Store.fragments.list.loading.set(true);
+            Store.fragments.list.firstPageLoaded.set(false);
+            Store.fragments.list.hasMore.set(true);
+            const el = await fixture(html`<mas-select-items-table type="baselines"></mas-select-items-table>`);
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+
+            Store.translationProjects.baselinesList.loading.set(false);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.not.exist;
+            expect(el.shadowRoot.textContent).to.include('No items found.');
+            Store.fragments.list.loading.set(false);
+            await el.updateComplete;
+            expect(repository.loadNextPage.called).to.be.false;
+        });
+
+        it('separates saved baseline references from regular cards in view-only tables', async () => {
+            const card = createMockCard('/content/dam/mas/acom/en_US/cards/photoshop', 'Photoshop');
+            const baseline = createMockCard('/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline', 'Baseline');
+            Store.translationProjects.selectedCards.set([card.path, baseline.path]);
+            const getFragmentByPath = sandbox.stub().callsFake(async (path) => (path === card.path ? card : baseline));
+            const querySelector = document.querySelector.bind(document);
+            sandbox
+                .stub(document, 'querySelector')
+                .callsFake((selector) =>
+                    selector === 'mas-repository' ? { aem: { getFragmentByPath } } : querySelector(selector),
+                );
+            const cardsTable = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .viewOnly=${true}
+                    .separateBaselines=${true}
+                ></mas-select-items-table>`,
+            );
+            const baselinesTable = await fixture(
+                html`<mas-select-items-table type="baselines" .viewOnly=${true}></mas-select-items-table>`,
+            );
+            await waitUntil(() => !cardsTable.viewOnlyLoading && !baselinesTable.viewOnlyLoading);
+
+            expect(cardsTable.itemsToDisplay.map(({ path }) => path)).to.deep.equal([card.path]);
+            expect(baselinesTable.itemsToDisplay.map(({ path }) => path)).to.deep.equal([baseline.path]);
+            expect(baselinesTable.shadowRoot.textContent).to.include('Baseline title');
+        });
+
         it('exposes collection editor links without changing row selection on plain click', async () => {
             const collection = {
                 ...createMockCollection('/content/dam/mas/acom/en_US/collections/example', 'Example collection'),
@@ -2214,6 +2283,24 @@ describe('MasSelectItemsTable column overrides and sorting', () => {
         expect(row.variationCells).to.deep.equal(variationCells);
         expect(row.variationColumns).to.deep.equal(variationColumns);
         expect(row.hideVariationExpand).to.be.true;
+    });
+
+    it('forwards the grouped variation column and cell props to mas-collapsible-table-row', async () => {
+        const groupedVariationCells = ['OfferName', 'PersonalizationTags'];
+        const groupedVariationColumns = [{ label: 'Offer', key: 'offer', sortable: true }];
+        setupCards([createCard('/p/a', 'A')]);
+        const el = await fixture(
+            html`<mas-select-items-table
+                .type=${TABLE_TYPE.CARDS}
+                .groupedVariationCells=${groupedVariationCells}
+                .groupedVariationColumns=${groupedVariationColumns}
+            ></mas-select-items-table>`,
+        );
+        el.dataReady = true;
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+        expect(row.groupedVariationCells).to.equal(groupedVariationCells);
+        expect(row.groupedVariationColumns).to.equal(groupedVariationColumns);
     });
 
     it('sorts items by offer name when the Offer column is sorted', async () => {

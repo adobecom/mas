@@ -11,7 +11,7 @@ import { asTagQueryResponse, emptyTagQuery, isAemTagQuery, stubAemTagQueryFetch 
 import { resetProductArrangementCodes } from '../../src/common/utils/product-arrangement-codes.js';
 import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
-import '../../src/common/components/mas-search-and-filters.js';
+import { SELECTION_ENABLED_FILTERS } from '../../src/common/components/mas-search-and-filters.js';
 import '../../src/common/components/mas-select-items-table.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
@@ -2405,6 +2405,55 @@ describe('MasSearchAndFilters', () => {
             expect(el.workflowStepFilter).to.not.include('mas:workflow-step/email');
         });
     });
+    describe('Created by filter in selection views', () => {
+        const titles = () => Store.translationProjects.displayCards.get().map((card) => card.title);
+        const setup = async (searchOnly = false) => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'A', created: { by: 'Alice@Adobe.com' } }),
+                createMockFragment({ title: 'B', created: { by: 'bob@adobe.com' } }),
+                createMockFragment({ title: 'C' }),
+            ]);
+            return fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .searchOnly=${searchOnly}
+                    .enabledFilters=${SELECTION_ENABLED_FILTERS}
+                ></mas-search-and-filters>`,
+            );
+        };
+
+        it('renders an outlined Created by picker last in the filters row', async () => {
+            const el = await setup();
+            const last = el.shadowRoot.querySelector('.filters').lastElementChild;
+            expect(last.tagName.toLowerCase()).to.equal('mas-user-picker');
+            expect(last.getAttribute('label')).to.equal('Created by');
+            expect(last.quiet).to.be.false;
+        });
+
+        it('keeps cards by creator case-insensitively and hides cards without created.by', async () => {
+            const el = await setup();
+            expect(titles()).to.deep.equal(['A', 'B', 'C']);
+            el.createdByFilter = ['alice@adobe.com'];
+            await el.updateComplete;
+            expect(titles()).to.deep.equal(['A']);
+            expect(Store.createdByUsers.get()).to.deep.equal([]);
+        });
+
+        it('restores the list on Clear all', async () => {
+            const el = await setup();
+            el.createdByFilter = ['alice@adobe.com'];
+            await el.updateComplete;
+            el.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+            await el.updateComplete;
+            expect(titles()).to.deep.equal(['A', 'B', 'C']);
+        });
+
+        it('renders no picker on searchOnly', async () => {
+            const el = await setup(true);
+            expect(el.shadowRoot.querySelector('mas-user-picker')).to.be.null;
+        });
+    });
+
     describe('baselines configuration', () => {
         const BASELINE_FILTERS = [
             FILTER_TYPE.MARKET_SEGMENT,

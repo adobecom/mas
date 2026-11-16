@@ -203,6 +203,12 @@ class IoStudioWorkflowContractTests(unittest.TestCase):
         for job in workflow["jobs"].values():
             self.assertNotIn("concurrency", job)
 
+    def test_isolated_deploys_skip_ai_secrets(self):
+        for name in CALLER_WORKFLOWS:
+            with self.subTest(workflow=name):
+                deploy = self.workflows[name]["jobs"]["deploy"]["with"]
+                self.assertEqual(deploy.get("deploy_ai"), deploy.get("shared-secrets"))
+
     def test_only_workspace_preflights_can_enumerate_runs(self):
         for name, workflow in self.workflows.items():
             for job_name, job in workflow["jobs"].items():

@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing';
 import { stub } from 'sinon';
-import { resolveIoBaseUrl } from '../src/io-base-url.js';
+import { AEM_BUCKETS, resolveAemEnv, resolveIoBaseUrl } from '../src/io-base-url.js';
 
 const host = (search) => new URL(resolveIoBaseUrl(search)).host;
 
@@ -89,4 +89,39 @@ describe('resolveIoBaseUrl', () => {
             '14257-merchatscale-pinata.adobeioruntime.net',
         );
     });
+});
+
+describe('resolveAemEnv', () => {
+    const prodUrl = 'https://author-p22655-e59433.adobeaemcloud.com';
+
+    it('defaults to the production author bucket', () => {
+        expect(resolveAemEnv('', 'https://mas.adobe.com/studio.html')).to.deep.equal({
+            env: '',
+            bucket: 'e59433',
+            baseUrl: prodUrl,
+            authorUrl: prodUrl,
+        });
+    });
+
+    it('falls back to production for an unknown aem.env', () => {
+        expect(resolveAemEnv('?aem.env=axel', 'https://mas.adobe.com/').bucket).to.equal('e59433');
+    });
+
+    it('uses the local proxy without a bucket on localhost', () => {
+        expect(resolveAemEnv('?aem.env=stage&proxy.port=8081', 'http://localhost:3000/studio.html')).to.deep.equal({
+            env: 'stage',
+            bucket: undefined,
+            baseUrl: 'http://localhost:8081',
+            authorUrl: 'https://author-p22655-e59471.adobeaemcloud.com',
+        });
+    });
+
+    for (const value of ['stage', 'STAGE', 'Stage', 'qa', 'QA']) {
+        it(`routes AEM and IO to the same environment for aem.env=${value}`, () => {
+            const search = `?aem.env=${value}`;
+            const { env, bucket } = resolveAemEnv(search, 'https://mas.adobe.com/');
+            expect(bucket).to.equal(AEM_BUCKETS[value.toLowerCase()]);
+            expect(host(search)).to.equal(`14257-masstudio-${env}.adobeioruntime.net`);
+        });
+    }
 });

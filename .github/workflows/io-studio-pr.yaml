@@ -115,4 +115,6 @@ jobs:
             vault-path: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
             odin-bucket-path: ${{ needs.identity.outputs.odin_bucket_path }}
             shared-secrets: ${{ fromJSON(needs.identity.outputs.shared_secrets) }}
+            # Isolated (bot) deploys skip AI too: deploy-ai runs candidate code with AI_FOUNDRY_API_KEY.
+            deploy_ai: ${{ fromJSON(needs.identity.outputs.shared_secrets) }}
         secrets: inherit

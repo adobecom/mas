@@ -707,6 +707,7 @@
                                         expect(button.getBoundingClientRect().bottom).to.be.at.most(height - 16);
                                     }
                                     const content = dialog.shadowRoot.querySelector('.content');
+                                    expect(content.scrollHeight).to.be.greaterThan(content.clientHeight);
                                     content.scrollTop = content.scrollHeight;
                                     expect(content.scrollTop).to.be.greaterThan(0);
                                     const quantity = dialog.querySelector('quantity-select-field');

@@ -2599,21 +2599,6 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
-                                it('restores the baseline divider color when the card cleared What is included', () => {
-                                    const editor = withBaseline(
-                                        makeBaselineCard([{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }]),
-                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
-                                    );
-                                    templateText(editor.renderWhatsIncludedStatusIndicator())
-                                        .querySelector('.field-status-restore-link')
-                                        .click();
-                                    expect(editor.getEffectiveFieldValue('whatsIncluded')).to.equal(
-                                        whatsIncluded('spectrum-gray-300'),
-                                    );
-                                    expect(editor.getFieldState('whatsIncluded')).to.not.equal('overridden');
-                                    editor.fragmentStore.previewStore.dispose();
-                                });
-
                                 it('marks an addon background the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },
@@ -3147,6 +3132,41 @@
                                     expect(editor.whatsIncluded.label).to.equal('Included');
                                     expect(editor.whatsIncluded.bullets).to.have.length(1);
                                     editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                describe('when the card cleared What is included and the baseline has a divider color', () => {
+                                    const DIVIDER = 'spectrum-gray-300';
+                                    const clearedCard = (label, bullets) => {
+                                        const editor = makeBaselineCard([]);
+                                        const html = editor.createIncludedElement(label, [], bullets, DIVIDER).outerHTML;
+                                        const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                        editor.baselinesController.parent = baseline;
+                                        editor.fragmentStore.setBaselineParent(baseline);
+                                        editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                        return editor;
+                                    };
+
+                                    it('offers the section restore and inherits the divider color again', async () => {
+                                        const editor = clearedCard('', [BULLET]);
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                            .querySelector('.field-status-restore-link')
+                                            .click();
+                                        await delay(0);
+                                        expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('inherits the divider color again when the label restore makes it match the baseline', async () => {
+                                        const editor = clearedCard('Included', []);
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator())
+                                            .querySelector('.field-status-restore-link')
+                                            .click();
+                                        await delay(0);
+                                        expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
                                 });
                             });
 

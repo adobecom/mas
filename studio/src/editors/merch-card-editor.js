@@ -1160,6 +1160,14 @@ class MerchCardEditor extends LitElement {
         return parseWhatsIncludedDivider(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0)).divider;
     }
 
+    /** Without `<merch-whats-included>` markup the card can't hold a divider color, so it can't override the parent's. */
+    get #isWhatsIncludedDividerOverridden() {
+        return (
+            Boolean(this.whatsIncludedElement) &&
+            this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') === 'overridden'
+        );
+    }
+
     /** The divider color lives on the `<merch-whats-included>` markup, so it can't be set or restored without it.
      *  Unlike other components, an empty divider is the "Default" picker option, so it still counts as from baseline. */
     renderWhatsIncludedDividerStatusIndicator() {
@@ -1335,7 +1343,7 @@ class MerchCardEditor extends LitElement {
         if (this.#isWhatsIncludedLabelRestorable) return nothing;
         const { values, bullets } = this.whatsIncludedItems;
         if ([...values, ...bullets].some(({ fieldState }) => fieldState === 'overridden')) return nothing;
-        if (this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') === 'overridden') return nothing;
+        if (this.#isWhatsIncludedDividerOverridden) return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(WHAT_IS_INCLUDED));
     }
 
@@ -2703,7 +2711,7 @@ class MerchCardEditor extends LitElement {
         const parent = this.parentWhatsIncluded;
         const matchesParent =
             deepEquals({ label, values, bullets }, { label: parent.label, values: parent.values, bullets: parent.bullets }) &&
-            this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') !== 'overridden';
+            !this.#isWhatsIncludedDividerOverridden;
         if (matchesParent) {
             await this.resetFieldToParent(WHAT_IS_INCLUDED);
             return;

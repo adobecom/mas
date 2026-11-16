@@ -18,14 +18,19 @@ describe('getPlanType', () => {
         expect(getPlanType({ commitment: 'PERPETUAL' })).to.equal('perpetual');
     });
 
-    it('returns null for offers without an allowed plan type', () => {
-        expect(getPlanType({ commitment: 'YEAR', term: 'P3Y' })).to.equal(null);
-        expect(getPlanType({ commitment: 'MONTH', term: 'ANNUAL' })).to.equal(null);
-        expect(getPlanType({ commitment: 'TERM_LICENSE', term: 'P3Y' })).to.equal(null);
-        expect(getPlanType({ commitment: '' })).to.equal(null);
-        expect(getPlanType({})).to.equal(null);
-        expect(getPlanType({ commitment: 'UNKNOWN' })).to.equal(null);
-        expect(getPlanType()).to.equal(null);
-        expect(getPlanType(null)).to.equal(null);
-    });
+    const unmappedOffers = [
+        { commitment: 'YEAR', term: 'P3Y' },
+        { commitment: 'MONTH', term: 'ANNUAL' },
+        { commitment: 'TERM_LICENSE', term: 'P3Y' },
+        { commitment: '' },
+        {},
+        { commitment: 'UNKNOWN' },
+        undefined,
+        null,
+    ];
+    for (const offer of unmappedOffers) {
+        it(`returns null for ${JSON.stringify(offer)}`, () => {
+            expect(getPlanType(offer)).to.equal(null);
+        });
+    }
 });

@@ -211,15 +211,13 @@ describe('MasChat state regressions', () => {
         el.selectedReleaseOsi = 'base-selector';
         el.selectedReleaseOffer = { commitment: 'YEAR', term: 'MONTHLY' };
         const getElement = customElements.get.bind(customElements);
-        sinon
-            .stub(customElements, 'get')
-            .callsFake((name) =>
-                name === 'merch-card'
-                    ? { getFragmentMapping: () => ({ title: {}, description: {}, ctas: {}, mnemonics: {}, osi: {} }) }
-                    : name === 'aem-fragment'
-                      ? undefined
-                      : getElement(name),
-            );
+        sinon.stub(customElements, 'get').callsFake((name) => {
+            if (name === 'merch-card') {
+                return { getFragmentMapping: () => ({ title: {}, description: {}, ctas: {}, mnemonics: {}, osi: {} }) };
+            }
+            if (name === 'aem-fragment') return undefined;
+            return getElement(name);
+        });
         let saved;
         sinon.stub(el, 'repository').get(() => ({
             aem: {

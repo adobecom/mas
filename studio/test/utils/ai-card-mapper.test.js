@@ -1057,16 +1057,16 @@ describe('ai-card-mapper', () => {
             expect(tags).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1', 'mas:plan_type/m2m']);
         });
 
-        it('emits no plan_type tag without a mappable offer', () => {
-            for (const offer of [
-                undefined,
-                null,
-                { commitment: 'YEAR', term: 'P3Y' },
-                { commitment: 'TERM_LICENSE', term: 'P3Y' },
-            ]) {
+        for (const offer of [
+            undefined,
+            null,
+            { commitment: 'YEAR', term: 'P3Y' },
+            { commitment: 'TERM_LICENSE', term: 'P3Y' },
+        ]) {
+            it(`emits no plan_type tag for ${JSON.stringify(offer)}`, () => {
                 expect(buildReleaseTags(planProduct, offer)).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1']);
-            }
-        });
+            });
+        }
     });
 
     describe('createFragmentDataForAEM with tags', () => {

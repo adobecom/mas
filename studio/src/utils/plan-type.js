@@ -10,7 +10,9 @@
 export function getPlanType(offer) {
     switch (offer?.commitment) {
         case 'YEAR':
-            return offer.term === 'MONTHLY' ? 'abm' : offer.term === 'ANNUAL' ? 'puf' : null;
+            if (offer.term === 'MONTHLY') return 'abm';
+            if (offer.term === 'ANNUAL') return 'puf';
+            return null;
         case 'MONTH':
             return offer.term === 'MONTHLY' ? 'm2m' : null;
         case 'PERPETUAL':

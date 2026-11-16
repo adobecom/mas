@@ -157,7 +157,7 @@ async function main() {
 
     const previous = previousCommit(BEFORE_SHA, AFTER_SHA);
     // Deleted files have no pushed version to wait for. Studio also loads io/www/src (through
-    // studio/libs/fragment-client.js) and some web-components/src modules unbundled.
+    // studio/libs/fragment-client.js) and some web-components/src modules with checkout/src dependencies unbundled.
     const diff = git(
         'diff',
         '-z',
@@ -170,6 +170,7 @@ async function main() {
         'studio',
         'web-components/dist',
         'web-components/src',
+        'checkout/src',
         'io/www/src',
     );
     // Purges even when no cached file changed: this run may have cancelled an older one that still had files to purge.

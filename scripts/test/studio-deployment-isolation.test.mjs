@@ -31,12 +31,19 @@ test('deployment groups cover every action without overlap', () => {
     );
 });
 
-test('core deployment schedules the hourly usage rollup', () => {
+test('core deployment schedules history cleanup and the hourly usage rollup', () => {
     assert.deepEqual(getDeploymentRules(manifest.config, 'core'), {
-        actions: ['MerchAtScaleStudio/fragment-usage-rollup'],
-        triggers: ['fragment-usage-hourly'],
-        rules: ['fragment-usage-rollup-rule'],
+        actions: ['MerchAtScaleStudio/history-cleanup', 'MerchAtScaleStudio/fragment-usage-rollup'],
+        triggers: ['history-cleanup-daily', 'fragment-usage-hourly'],
+        rules: ['history-cleanup-rule', 'fragment-usage-rollup-rule'],
     });
+});
+
+test('history cleanup runs once daily without exposing a public purge endpoint', () => {
+    const pkg = manifest.config.application.runtimeManifest.packages.MerchAtScaleStudio;
+    assert.equal(pkg.actions['history-cleanup'].web, undefined);
+    assert.equal(pkg.triggers['history-cleanup-daily'].feed, '/whisk.system/alarms/alarm');
+    assert.equal(pkg.triggers['history-cleanup-daily'].inputs.cron, '17 3 * * *');
 });
 
 test('the usage rollup fires on the clock, so a redeploy cannot restart its schedule', () => {

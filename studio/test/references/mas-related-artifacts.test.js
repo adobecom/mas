@@ -23,7 +23,9 @@ const deferred = () => {
     return handle;
 };
 
-describe('mas-related-artifacts', () => {
+describe('mas-related-artifacts', function () {
+    this.timeout(20000);
+
     let sandbox;
     let getReferencedByFragmentId;
     let repository;
@@ -36,9 +38,10 @@ describe('mas-related-artifacts', () => {
         dialogOf(el)
             .buckets.find((bucket) => bucket.key === 'collections')
             .rows.map((row) => row.title);
-    // Opening the modal runs a Spectrum transition, which can take over a second on a loaded CI
-    // runner.
-    const modalTransition = { timeout: 5000 };
+    // Opening and closing the modal each run a Spectrum transition. On the CI runner (run 41587889767)
+    // one open plus one close outlasted mocha's 5000ms, so each wait gets 8s inside a 20s suite limit and
+    // a slow step fails with its own message instead of a generic mocha timeout.
+    const modalTransition = { timeout: 8000 };
     // Closing the modal before it finishes opening strands Spectrum's focus trap, which then
     // swallows every click on the page; wait until focus has moved into the dialog.
     const openArtifactsDialog = async (el) => {

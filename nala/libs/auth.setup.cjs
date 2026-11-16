@@ -46,6 +46,8 @@ setup('authenticate, @mas-studio', async ({ page, browser, baseURL, browserName 
 
     // End of authentication steps.
 
+    // Studio now starts in table view per browser session; the suite was written against render view.
+    await page.context().addCookies([{ name: 'mas-render-mode', value: 'render', url: baseURL }]);
     await page.context().storageState({ path: authFile });
     await removePageRoutes(page);
     const fragmentId = individualsSpec.features[0].data.cardid;

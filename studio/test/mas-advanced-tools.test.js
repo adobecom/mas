@@ -1,7 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import router from '../src/router.js';
-import { PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-advanced-tools.js';
 
 describe('mas-advanced-tools', () => {
@@ -27,15 +26,22 @@ describe('mas-advanced-tools', () => {
         expect(card.querySelector('.tool-card-icon svg')).to.exist;
     });
 
-    it('opens the bulk edits page when the card is clicked', async () => {
+    it('renders the bulk edits card as disabled', async () => {
         const el = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
-        bulkEditCard(el).click();
-        expect(navigate.calledOnceWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
+        const card = bulkEditCard(el);
+        expect(card.getAttribute('aria-disabled')).to.equal('true');
+        expect(card.getAttribute('tabindex')).to.equal('-1');
     });
 
-    it('opens the bulk edits page when the card is activated with Enter', async () => {
+    it('does not navigate when the disabled card is clicked', async () => {
+        const el = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        bulkEditCard(el).click();
+        expect(navigate.called).to.be.false;
+    });
+
+    it('does not navigate when the disabled card receives Enter', async () => {
         const el = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
         bulkEditCard(el).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-        expect(navigate.calledOnceWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
+        expect(navigate.called).to.be.false;
     });
 });

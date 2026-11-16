@@ -1,4 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { resolveCheckoutIntent } from '../../checkout/src/checkout.js';
 import {
     AUP_CHECKOUT_CLIENT_IDS,
     CheckoutWorkflowStep,
@@ -163,7 +164,7 @@ function getRequest(offers, options, hasUpgradeAction) {
         if (options[key] != null) params[key] = options[key];
     }
     return {
-        intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',
+        intent: resolveCheckoutIntent(offer),
         context,
         params,
         enableRenderIn: 'iframe',

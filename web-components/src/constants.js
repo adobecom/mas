@@ -119,23 +119,14 @@ export const STATE_FAILED = 'failed';
 export const STATE_PENDING = 'pending';
 export const STATE_RESOLVED = 'resolved';
 
-export const Landscape = {
-    DRAFT: 'DRAFT',
-    PUBLISHED: 'PUBLISHED',
-};
+export {
+    Landscape,
+    CheckoutWorkflowStep,
+    PROVIDER_ENVIRONMENT,
+    MODAL_TYPE_3_IN_1,
+} from '../../checkout/src/constants.js';
 
 export const HEADER_X_REQUEST_ID = 'X-Request-Id';
-
-export const CheckoutWorkflowStep = Object.freeze({
-    SEGMENTATION: 'segmentation',
-    BUNDLE: 'bundle',
-    COMMITMENT: 'commitment',
-    RECOMMENDATION: 'recommendation',
-    EMAIL: 'email',
-    PAYMENT: 'payment',
-    CHANGE_PLAN_TEAM_PLANS: 'change-plan/team-upgrade/plans',
-    CHANGE_PLAN_TEAM_PAYMENT: 'change-plan/team-upgrade/payment',
-});
 
 export const CheckoutWorkflow = 'UCv3';
 
@@ -144,16 +135,6 @@ export const Env = Object.freeze({
     PRODUCTION: 'PRODUCTION',
     LOCAL: 'LOCAL',
 });
-
-export const PROVIDER_ENVIRONMENT = {
-    PRODUCTION: 'PRODUCTION',
-};
-
-export const MODAL_TYPE_3_IN_1 = {
-    TWP: 'twp',
-    D2P: 'd2p',
-    CRM: 'crm',
-};
 
 export const AUP_CHECKOUT_CLIENT_IDS = new Set([
     'creative',

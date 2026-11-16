@@ -61,15 +61,15 @@ export function getBaselineInfo(fragment) {
 }
 
 /**
- * Loads the baselines of the surface and locale into `Store.baselines.list`, keeping created ones AEM has not indexed yet.
+ * Loads the baselines into the supplied list or `Store.baselines.list`, keeping created ones AEM has not indexed yet.
  * Rows of a previous surface or locale are cleared so the skeleton shows while the new folder loads.
  * @param {object} repository - mas-repository element
- * @param {{ surface: string, locale: string }} context
+ * @param {{ surface: string, locale: string, list?: { data: object, loading: object } }} context
  * @param {AbortController} abortController
  * @returns {Promise<boolean>} true when the results were published
  */
-export async function loadBaselines(repository, { surface, locale }, abortController) {
-    const { data, loading } = Store.baselines.list;
+export async function loadBaselines(repository, { surface, locale, list = Store.baselines.list }, abortController) {
+    const { data, loading } = list;
     if (!surface) {
         data.removeMeta(LOADED_PATH_META);
         data.set([]);
@@ -83,12 +83,12 @@ export async function loadBaselines(repository, { surface, locale }, abortContro
     }
     return loadProjectList(repository, {
         path,
-        list: Store.baselines.list,
+        list,
         abortController,
         errorMessage: 'Could not load baselines.',
         transform: (stores) =>
             mergePendingProjects(
-                Store.baselines.list.data,
+                data,
                 stores.filter((store) => store.get().fragmentName === BASELINE_NAME),
                 path,
             ),
@@ -152,7 +152,7 @@ export async function createBaseline(repository, { title, osi, ...baseline }) {
     return { folder, fragment };
 }
 
-const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
+export const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
 
 const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
     ...offerBaseline,
@@ -190,8 +190,9 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
  * offer icon & its alt text are dropped when a higher baseline or the card has its own icon. Card identity & system
  * fields never come from a baseline. Arrays listed in the `MERGE_CONFIG` of the effective variant (card, else highest
  * baseline) are concatenated across baselines, as `deepMerge` does; their source is the highest contributing baseline.
- * `null` when no baseline provides any field.
- * @returns {{ fragment: Fragment, sources: Record<string, 'offer' | 'template' | 'segment'> } | null}
+ * `variant` is that effective variant, for the card to merge its own arrays with. `null` when no baseline provides any
+ * field.
+ * @returns {{ fragment: Fragment, sources: Record<string, 'offer' | 'template' | 'segment'>, variant?: string } | null}
  */
 export function buildBaselineParent(baselines, card) {
     const fieldValues = (layer, fieldName) => layer?.fields.find(({ name }) => name === fieldName)?.values;
@@ -214,5 +215,9 @@ export function buildBaselineParent(baselines, card) {
         }
     }
     if (!fields.size) return null;
-    return { fragment: new Fragment({ fields: normalizeExplicitEmptyInFields([...fields.values()]), tags: [] }), sources };
+    return {
+        fragment: new Fragment({ fields: normalizeExplicitEmptyInFields([...fields.values()]), tags: [] }),
+        sources,
+        variant,
+    };
 }

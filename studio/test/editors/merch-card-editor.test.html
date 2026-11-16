@@ -94,6 +94,7 @@
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
             import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
             import { delay } from '../utils.js';
+            import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
             // Background URL edits measure the image before committing; test URLs don't resolve,
             // so fake a successful load with fixed natural dimensions.
@@ -1790,6 +1791,17 @@
                         });
                     });
 
+                    describe('explicit empty sentinel', () => {
+                        it('shows fields storing the explicit empty sentinel as empty', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { subtitle: [EXPLICIT_EMPTY_SENTINEL], cardTitle: [EXPLICIT_EMPTY_SENTINEL] },
+                                'explicit-empty',
+                            );
+                            expect(editor.querySelector('#card-subtitle').value).to.equal('');
+                            expect(editor.querySelector('#card-title').value).to.equal('');
+                        });
+                    });
+
                     describe('compat version', () => {
                         it('writes COMPAT_VERSION into the fragment store when effective compat is below the constant', async () => {
                             const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat');
@@ -1963,6 +1975,34 @@
                             sw.click();
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([false]);
+                        });
+
+                        it('renders the baseline status as help text', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            Object.assign(editor.baselinesController, {
+                                status: 'found',
+                                baselines: { fragmentBaseline: { title: 'Photoshop catalog' } },
+                            });
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            const status = container.querySelector('sp-help-text#fragment-baseline-status');
+                            expect(status.textContent.trim()).to.equal('Baseline found: Photoshop catalog');
+                            expect(status.getAttribute('variant')).to.equal('neutral');
+                        });
+
+                        it('renders a failed baseline lookup as negative help text', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.baselinesController.status = 'error';
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            expect(container.querySelector('sp-help-text').getAttribute('variant')).to.equal('negative');
+                        });
+
+                        it('renders no baseline status without an offer and a template', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            expect(container.querySelector('sp-help-text')).to.be.null;
                         });
                     });
 

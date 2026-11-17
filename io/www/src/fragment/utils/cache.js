@@ -1,8 +1,8 @@
 import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log } from './log.js';
-// e.g. `req-<id>-fr_FR-CA-p_edu-m_catalog`, or `req-offer-en_US-o_<offer>-t_plans-s_acom-y_json` without a fragment id
-const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template, surface, type }) => {
+// e.g. `req-<id>-fr_FR-CA-p_edu-m_catalog`, or `req-offer-en_US-o_<offer>-t_plans-s_acom-y_json-a_aup` without a fragment id
+const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template, surface, type, mapping }) => {
     const geo = geoCacheKey(locale, country);
     const suffixes = [
         geo.country,
@@ -12,6 +12,7 @@ const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template
         template && `t_${template}`,
         surface && `s_${surface}`,
         type && `y_${type}`,
+        mapping && `a_${mapping}`,
     ];
     return [`req-${id ?? 'offer'}-${geo.locale}`, ...suffixes].filter(Boolean).join('-');
 };

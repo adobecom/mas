@@ -252,4 +252,8 @@ async function serialize(context) {
     return context;
 }
 
+/** html value emitted in the given type: Odin json nodes, sanitized html or text */
+const serializeValue = (html, type, report) => EMITTERS[type].format(toNodes(html, report));
+
 export const transformer = { name: 'serialize', process: serialize };
+export { serializeValue };

@@ -278,6 +278,29 @@ describe('pipeline corner cases', () => {
         expect(keys).to.include.members(['req-some-en-us-fragment-en_US-y_text', 'req-some-en-us-fragment-en_US-y_json']);
     });
 
+    it("maps the card to the AUP shape for the api key's mapping only", async () => {
+        setupFragmentMocks(fetchStub, {});
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({ apiKeyDefaults: { 'wcms-commerce-ims-ro-user-milo': { type: 'html', mapping: 'aup' } } }),
+        );
+        const mapped = await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', state });
+        expect(mapped.statusCode).to.equal(200);
+        expect(mapped.body).to.include({ template: 'plans' });
+        expect(mapped.body).not.to.have.property('fields');
+        expect(Object.keys(state.store)).to.include('req-some-en-us-fragment-en_US-y_html-a_aup');
+        resetCache();
+        const unmapped = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            mapping: 'aup',
+            type: 'html',
+            state: new MockState(),
+        });
+        expect(unmapped.body).to.have.property('fields');
+    });
+
     it('should 400 when api_key param is missing', async () => {
         const result = await action({
             id: 'some-en-us-fragment',

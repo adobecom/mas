@@ -17,6 +17,7 @@ import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
 import { transformer as render } from './transformers/render.js';
+import { transformer as aup } from './transformers/aup.js';
 import { transformer as serialize } from './transformers/serialize.js';
 import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
@@ -36,6 +37,7 @@ const PIPELINE = [
     wcs,
     corrector,
     render,
+    aup,
     serialize,
 ];
 
@@ -155,6 +157,8 @@ async function mainProcess(context) {
     if (!TYPES.includes(context.type)) {
         return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter 'type'` }) };
     }
+    // MWPW-214840: the response mapping is bound to the api key only.
+    context.mapping = apiKeyDefaults.mapping;
     const { id, locale, offer, template, surface } = context;
     // without a fragment id, the offer baseline is resolved from `offer`, `template` & `surface`.
     if (!locale || (!id && !(offer && template && surface))) {

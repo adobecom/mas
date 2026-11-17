@@ -1,0 +1,118 @@
+body {
+    margin: 0;
+    background: var(--spectrum-gray-50);
+    color: var(--spectrum-gray-900);
+    font-family: 'Adobe Clean', adobe-clean, 'Trebuchet MS', sans-serif;
+}
+
+body > sp-theme {
+    display: block;
+    min-height: 100vh;
+    background: radial-gradient(
+            ellipse at 8% 0%,
+            rgb(235, 16, 0, 0.08),
+            transparent 45%
+        ),
+        radial-gradient(
+            ellipse at 92% 10%,
+            rgb(101, 72, 255, 0.08),
+            transparent 45%
+        ),
+        var(--spectrum-gray-50);
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 24px;
+}
+
+h1 {
+    margin: 12px 0 28px;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    text-align: center;
+}
+
+h1::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 3px;
+    margin: 12px auto 0;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #eb1000, #6548ff);
+}
+
+.preview-controls,
+.preview-controls-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: center;
+    gap: 10px;
+}
+
+.preview-controls {
+    margin-bottom: 20px;
+}
+
+.preview-controls-secondary {
+    flex-basis: 100%;
+}
+
+.preview-controls sp-textfield {
+    --mod-textfield-border-width: 1px;
+    --mod-textfield-border-color: rgb(118, 118, 118);
+    --mod-textfield-corner-radius: 4px;
+    --mod-textfield-font-family: 'Adobe Clean', adobe-clean, 'Trebuchet MS',
+        sans-serif;
+    --mod-textfield-icon-spacing-block-invalid: calc(
+        50% - var(--spectrum-textfield-icon-size-invalid) / 2
+    );
+}
+
+.preview-controls sp-picker {
+    --mod-picker-border-width: 1px;
+    --mod-picker-border-color-default: rgb(118, 118, 118);
+    --mod-picker-border-radius: 4px;
+    --mod-picker-font-size: 14px;
+    --mod-picker-font-weight: 400;
+
+    width: auto;
+    min-width: 80px;
+}
+
+.preview-controls sp-button {
+    --mod-button-background-color-default: rgb(59, 99, 251);
+    --mod-button-background-color-hover: rgb(39, 77, 234);
+    --mod-button-border-color-default: rgb(59, 99, 251);
+    --mod-button-border-color-hover: rgb(39, 77, 234);
+    --mod-button-border-radius: 16px;
+    --mod-button-font-family: 'Adobe Clean', adobe-clean, 'Trebuchet MS',
+        sans-serif;
+    --mod-button-font-size: 15px;
+
+    font-weight: 700;
+}
+
+sp-field-label {
+    display: block;
+}
+
+#fragment-id {
+    width: 320px;
+    max-width: 100%;
+}
+
+#preview {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+}
+
+#preview > merch-card-collection {
+    width: 100%;
+}

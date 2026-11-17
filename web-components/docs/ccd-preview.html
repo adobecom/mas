@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>M@S Preview</title>
+        <link rel="stylesheet" href="spectrum.css" />
+        <link rel="stylesheet" href="ccd-preview.css" />
+        <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
+        <script type="module" src="../../studio/libs/swc.js"></script>
+        <script type="module">
+            import { initPreview } from './ccd-preview.js';
+            await initPreview();
+        </script>
+    </head>
+    <body class="spectrum spectrum--medium spectrum--light">
+        <sp-theme color="light" scale="medium">
+            <main>
+                <h1>M@S Preview</h1>
+                <div class="preview-controls">
+                    <div>
+                        <sp-field-label for="fragment-id"
+                            >Fragment ID</sp-field-label
+                        >
+                        <sp-textfield
+                            id="fragment-id"
+                            data-param
+                            placeholder="Fragment UUID"
+                            required
+                        ></sp-textfield>
+                    </div>
+                    <div>
+                        <sp-field-label for="content-type"
+                            >Content type</sp-field-label
+                        >
+                        <sp-picker
+                            id="content-type"
+                            data-param
+                            value="merch-card"
+                        >
+                            <sp-menu-item value="merch-card">Card</sp-menu-item>
+                            <sp-menu-item value="merch-card-collection"
+                                >Collection</sp-menu-item
+                            >
+                        </sp-picker>
+                    </div>
+                    <div>
+                        <sp-field-label for="locale">Locale</sp-field-label>
+                        <sp-picker
+                            id="locale"
+                            data-param
+                            value="en_US"
+                        ></sp-picker>
+                    </div>
+                    <div>
+                        <sp-field-label for="country">Country</sp-field-label>
+                        <sp-picker
+                            id="country"
+                            data-param
+                            value=""
+                            label="Default"
+                        ></sp-picker>
+                    </div>
+                    <div>
+                        <sp-field-label for="theme">Theme</sp-field-label>
+                        <sp-picker id="theme" data-param value="light">
+                            <sp-menu-item value="light">Light</sp-menu-item>
+                            <sp-menu-item value="dark">Dark</sp-menu-item>
+                            <sp-menu-item value="darkest"
+                                >Darkest (CCD)</sp-menu-item
+                            >
+                        </sp-picker>
+                    </div>
+                    <div>
+                        <sp-field-label for="mas.preview"
+                            >Preview</sp-field-label
+                        >
+                        <sp-picker id="mas.preview" data-param value="off">
+                            <sp-menu-item value="off">off</sp-menu-item>
+                            <sp-menu-item value="on">on</sp-menu-item>
+                        </sp-picker>
+                    </div>
+                    <div class="preview-controls-secondary">
+                        <div>
+                            <sp-field-label for="mask">Mask</sp-field-label>
+                            <sp-textfield
+                                id="mask"
+                                data-param
+                                placeholder="Mask name"
+                            ></sp-textfield>
+                        </div>
+                        <div>
+                            <sp-field-label for="pzn">PZN</sp-field-label>
+                            <sp-textfield
+                                id="pzn"
+                                data-param
+                                placeholder="Audience identifier"
+                            ></sp-textfield>
+                        </div>
+                        <sp-button id="show-preview" variant="accent"
+                            >Preview</sp-button
+                        >
+                        <sp-button id="copy-url" variant="accent"
+                            >Copy URL</sp-button
+                        >
+                    </div>
+                </div>
+                <p id="status" role="status" aria-live="polite"></p>
+                <div id="preview"></div>
+            </main>
+        </sp-theme>
+    </body>
+</html>

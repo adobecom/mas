@@ -411,6 +411,60 @@ describe('MASA answer in the thread', () => {
         expect(el.shadowRoot.querySelectorAll('.finding ul > li').length).to.equal(2);
     });
 
+    describe('blocks in the finding', () => {
+        const mountBlocks = async (blocks, extra = {}) => {
+            const text = findingText({ answer: { type: 'explain', answer: 'Here.', ...extra, blocks } });
+            return mountAnswer(makeController({ history: [{ ...record(), text }] }));
+        };
+        const markup = '<merch-card>\n  <aem-fragment fragment="1"></aem-fragment>\n</merch-card>';
+        const comparison = {
+            type: 'table',
+            columns: ['', 'Grouped', 'Regional'],
+            rows: [
+                ['Scope', 'One country', 'One locale'],
+                ['Status', 'Recommended', 'Deprecated'],
+            ],
+        };
+        const cells = (row) => [...row.cells].map((cell) => cell.textContent.trim());
+
+        it('shows a code block as preformatted code, line breaks and markup intact', async () => {
+            const el = await mountBlocks([{ type: 'code', language: 'html', text: markup }]);
+            expect(el.shadowRoot.querySelector('.finding pre code').textContent.trim()).to.equal(markup);
+        });
+
+        it('keeps a snippet that contains a code fence in one block', async () => {
+            const text = 'before\n```\ninside\n```\nafter';
+            const el = await mountBlocks([{ type: 'code', language: 'text', text }]);
+            expect(el.shadowRoot.querySelectorAll('.finding pre').length).to.equal(1);
+            expect(el.shadowRoot.querySelector('.finding pre code').textContent.trim()).to.equal(text);
+        });
+
+        it('shows a table with its column headers and a row per entry', async () => {
+            const el = await mountBlocks([comparison]);
+            const table = el.shadowRoot.querySelector('.finding table');
+            expect(cells(table.tHead.rows[0])).to.deep.equal(comparison.columns);
+            expect([...table.tBodies[0].rows].map(cells)).to.deep.equal(comparison.rows);
+        });
+
+        it('keeps a cell that contains a pipe or a line break in its own cell', async () => {
+            const el = await mountBlocks([{ type: 'table', columns: ['Key', 'Value'], rows: [['a|b', 'one\ntwo']] }]);
+            expect(cells(el.shadowRoot.querySelector('.finding table').tBodies[0].rows[0])).to.deep.equal(['a|b', 'one two']);
+        });
+
+        it('puts a block title above its block', async () => {
+            const el = await mountBlocks([{ ...comparison, title: 'How they differ' }]);
+            const table = el.shadowRoot.querySelector('.finding table');
+            const block = table.closest('.table-wrap') ?? table;
+            expect(block.previousElementSibling.textContent.trim()).to.equal('How they differ');
+        });
+
+        it('shows several blocks in the order MASA gave them, after the steps', async () => {
+            const el = await mountBlocks([{ type: 'code', language: 'html', text: markup }, comparison], { steps: ['A', 'B'] });
+            const order = [...el.shadowRoot.querySelectorAll('.finding ol, .finding pre, .finding table')];
+            expect(order.map((node) => node.localName)).to.deep.equal(['ol', 'pre', 'table']);
+        });
+    });
+
     it('renders steps as a numbered list in the finding', async () => {
         const text = findingText({ answer: { type: 'explain', answer: 'How.', steps: ['A', 'B'] } });
         const el = await mountAnswer(makeController({ history: [{ ...record(), text }] }));

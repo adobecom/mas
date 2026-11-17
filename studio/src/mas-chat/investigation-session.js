@@ -59,6 +59,28 @@ const leadIn = (text) => {
         : trimmed;
 };
 
+/** A snippet in a fence longer than any run of backticks inside it, so the snippet cannot close its own block. */
+const codeBlock = ({ language = '', text }) => {
+    const longest = Math.max(0, ...(String(text).match(/`+/g) ?? []).map((run) => run.length));
+    const fence = '`'.repeat(Math.max(3, longest + 1));
+    return `${fence}${language}\n${text}\n${fence}`;
+};
+
+const tableRow = (cells) =>
+    `| ${cells
+        .map((cell) =>
+            String(cell)
+                .replace(/\|/g, '\\|')
+                .replace(/\s*\n\s*/g, ' '),
+        )
+        .join(' | ')} |`;
+
+const tableBlock = ({ columns, rows }) => [columns, columns.map(() => '---'), ...rows].map(tableRow).join('\n');
+
+/** A code block or a table MASA attached to its answer, under its title when it has one. */
+const blockText = (block) =>
+    [block.title, block.type === 'code' ? codeBlock(block) : tableBlock(block)].filter(Boolean).join('\n\n');
+
 const documentBlocks = (answer) => [
     `**${answer.title}**`,
     answer.summary,
@@ -76,6 +98,7 @@ const bodyBlocks = (answer) => {
         points.length > 1 && points.map((point) => `- ${point}`).join('\n'),
         steps.length === 1 && points.length > 1 && asSentence(steps[0]),
         steps.length > 1 && steps.map((step, index) => `${index + 1}. ${step}`).join('\n'),
+        ...(answer.blocks ?? []).map(blockText),
         answer.nextCheck && `**Next check:** ${answer.nextCheck}`,
         asks.length === 1 && `To check this, I need ${asks[0]}`,
         asks.length > 1 && ['To check this, I need:', ...asks.map((ask) => `- ${ask}`)].join('\n'),

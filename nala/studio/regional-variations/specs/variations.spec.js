@@ -121,12 +121,6 @@ export default {
                 borderColor: { name: 'Gray 300', css: 'rgb(218, 218, 218)' },
                 price: PRICE_PATTERN.EG.mo,
                 ctaLabel: '[var] CTA label',
-                osi: 'XTzr-NReoRxcsGKF7WMHBJ_pLC8r6K9dclKiEgFxbUc',
-                osiTags: {
-                    offerType: 'offer_type/trial',
-                    marketSegment: 'market_segments/edu',
-                    planType: 'plan_type/puf',
-                },
             },
             tags: '@mas-studio @regional-variations',
         },

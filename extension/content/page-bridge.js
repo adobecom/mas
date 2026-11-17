@@ -52,6 +52,29 @@
         return { preview: config?.mep?.preview === true, swaps };
     }
 
+    // The mapping entries that render a slotted element, keyed as merch-card names them.
+    function serializeFieldSlots(mapping) {
+        const slots = {};
+        for (const [name, config] of Object.entries(mapping || {})) {
+            if (typeof config?.slot !== 'string') continue;
+            slots[name] = { slot: config.slot, ...(typeof config.tag === 'string' ? { tag: config.tag } : {}) };
+        }
+        return slots;
+    }
+
+    function postFieldSlots(variant) {
+        let slots = {};
+        try {
+            slots = serializeFieldSlots(customElements.get('merch-card')?.getFragmentMapping?.(variant));
+        } catch {
+            // A page without merch-card has no slots to report.
+        }
+        window.postMessage(
+            { source: BRIDGE_SOURCE, type: 'FIELD_SLOTS', variant, slots: JSON.stringify(slots) },
+            location.origin,
+        );
+    }
+
     async function readMepState() {
         try {
             const url = findMiloUtilsUrl(performance.getEntriesByType('resource'), location.origin);
@@ -73,14 +96,15 @@
     if (isPage && !location.pathname.endsWith('/studio.html')) {
         window.addEventListener('message', (event) => {
             if (event.source !== window || event.origin !== location.origin) return;
-            if (event.data?.source !== REQUEST_SOURCE || event.data?.type !== 'GET_MEP_STATE') return;
-            postMepState();
+            if (event.data?.source !== REQUEST_SOURCE) return;
+            if (event.data.type === 'GET_MEP_STATE') postMepState();
+            if (event.data.type === 'GET_FIELD_SLOTS') postFieldSlots(event.data.variant);
         });
         postMepState();
     }
 
     // This runs in the page's own world, so a page global named module must never be written.
     if (typeof module === 'object' && module && module.exports && typeof window === 'undefined') {
-        module.exports = { findMiloUtilsUrl, serializeMepState };
+        module.exports = { findMiloUtilsUrl, serializeMepState, serializeFieldSlots };
     }
 })();

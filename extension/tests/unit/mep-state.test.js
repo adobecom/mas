@@ -163,6 +163,22 @@ test('a field-specific row with a different replacement blocks the PZN fallback'
     assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'description' }), null);
 });
 
+test('a row for one CTA leaves the card-level PZN row applying to another CTA', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed', manifestId: 'card.json' },
+        'ctas[buy-now]': { action: 'replace', content: AUTHORED },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'ctas[start-trial]' }).manifestId, 'card.json');
+});
+
+test('a row for one CTA still blocks the card-level PZN row for that CTA', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed' },
+        'ctas[buy-now]': { action: 'replace', content: AUTHORED },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'ctas[buy-now]' }), null);
+});
+
 test('a non-replace field row blocks the card-level PZN fallback', () => {
     const { MASMepState, state } = stateFromRows({
         '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed' },

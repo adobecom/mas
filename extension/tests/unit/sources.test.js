@@ -113,7 +113,7 @@ const swappedCta = () => fakeElement({ attrs: { 'fragment-id': GROUPED }, visibl
 // The bridge posts onLoadState when the page loads, then answers every GET_MEP_STATE with replyState.
 function loadSources(
     { fields = [], detected = [] },
-    { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState, misses = {}, fragments = FRAGMENTS } = {},
+    { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState, misses = {}, fragments = FRAGMENTS, records = {} } = {},
 ) {
     const fetched = [];
     const messages = [];
@@ -139,7 +139,7 @@ function loadSources(
                     messages.push(message);
                     fetched.push(message.fragmentId);
                     const miss = misses[message.fragmentId];
-                    const data = miss ? null : fragments[message.fragmentId];
+                    const data = miss ? null : (message.raw ? records : fragments)[message.fragmentId];
                     callback(data ? { success: true, data } : { success: false, error: 'fetch_failed', miss });
                 },
             },
@@ -305,14 +305,14 @@ const REGIONAL_RESPONSE = {
     id: AUTHORED_RESOLVED,
     path: '/content/dam/mas/acom/fr_FR/card',
     fields: { cardTitle: 'French title', description: 'Canadian', variations: [REGIONAL_ID] },
-    references: { [REGIONAL_ID]: { type: 'content-fragment', value: REGIONAL_DATA } },
+    references: {},
 };
 
 for (const [field, source, supplierId] of [
     ['description', 'locale', REGIONAL_ID],
     ['cardTitle', 'default', AUTHORED_RESOLVED],
 ]) {
-    test(`a regional IO response attributes ${field} using the stamped variation record`, async () => {
+    test(`a regional IO response attributes ${field} using the variation's unmerged Odin record`, async () => {
         const element = masField({
             ...F.stamps.shortDescription,
             field,
@@ -322,7 +322,7 @@ for (const [field, source, supplierId] of [
         });
         const { sources } = loadSources(
             { fields: [element], detected: [['regional', badged(element, 'field', { locale: 'fr_CA', country: 'CA' })]] },
-            { fragments: { [REGIONAL_ID]: REGIONAL_RESPONSE } },
+            { fragments: { [REGIONAL_ID]: REGIONAL_RESPONSE }, records: { [REGIONAL_ID]: REGIONAL_DATA } },
         );
 
         const result = await sources.getSourcesFor('regional');
@@ -330,6 +330,12 @@ for (const [field, source, supplierId] of [
         assert.deepEqual([result.entries[0].source, result.entries[0].supplierId], [source, supplierId]);
     });
 }
+
+test('a variation IO returns as itself is not fetched again from Odin', async () => {
+    const { sources, messages } = loadSources(homepage());
+    await sources.getSourcesFor('field-2');
+    assert.equal(messages.filter(({ raw }) => raw).length, 0);
+});
 
 test('a badged bare CTA joins its card group, labeled from its fetched replacement', async () => {
     const page = homepage();

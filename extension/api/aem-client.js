@@ -1,4 +1,5 @@
 const DEFAULT_MAS_IO_URL = 'https://www.adobe.com/mas/io';
+const ODIN_FRAGMENT_URL = 'https://odin.adobe.com/adobe/contentFragments';
 const DEFAULT_WCS_API_KEY = 'wcms-commerce-ims-ro-user-milo-extension';
 const LOCALE_PATH_PATTERN = /^Fragment with identifier \/content\/dam\/mas\/[^/]+\/([a-z]{2}_[A-Z]{2})\//;
 const NOT_FOUND = { kind: 'not-found' };
@@ -34,6 +35,15 @@ class AEMClient {
         this.masIOUrl = validators?.resolveMasIOUrl(masIOUrl) ?? DEFAULT_MAS_IO_URL;
         this.wcsApiKey = wcsApiKey || DEFAULT_WCS_API_KEY;
         this.defaultLocale = 'en_US';
+    }
+
+    // Odin's published record is the fragment as authored, before IO localizes it or merges variations.
+    async fetchFragmentRecord(fragmentId) {
+        const response = await fetch(`${ODIN_FRAGMENT_URL}/${encodeURIComponent(fragmentId)}`, {
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
     }
 
     async fetchFragmentData(fragmentId, locale = this.defaultLocale, country = null) {

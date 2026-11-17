@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function handleFetchFragmentData(message, sendResponse) {
-    const { fragmentId, locale, country, masIOUrl, wcsApiKey } = message;
+    const { fragmentId, locale, country, raw, masIOUrl, wcsApiKey } = message;
     if (!MASValidators.isValidUUID(fragmentId)) {
         sendResponse({ success: false, error: 'invalid_fragment_id' });
         return;
@@ -38,7 +38,9 @@ async function handleFetchFragmentData(message, sendResponse) {
     }
     try {
         const client = new AEMClient({ masIOUrl, wcsApiKey });
-        const data = await client.fetchFragmentData(fragmentId, locale, country);
+        const data = raw
+            ? await client.fetchFragmentRecord(fragmentId)
+            : await client.fetchFragmentData(fragmentId, locale, country);
         sendResponse({ success: true, data });
     } catch (error) {
         sendResponse({ success: false, error: 'fetch_failed', miss: error.miss ?? null });

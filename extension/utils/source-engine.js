@@ -238,11 +238,13 @@
     }
 
     // A whole card is requested (and MEP-swapped) once, so the card-level swap applies to every field.
+    // A merch-card stamps no fragment-id, so the fragment IO returned names the locale that supplied it.
     function resolveCard(stamps, inputs = {}, { variant } = {}) {
         const swap = swapFor(stamps, inputs.mepState, inputs.overrideIds);
         if (stamps.failed || stamps.loading) return [resolveWithSwap(stamps, inputs, swap)];
         const cardInputs = { ...inputs, variant };
-        return cardFields(stamps, inputs).map((field) => resolveWithSwap({ ...stamps, field }, cardInputs, swap));
+        const resolvedId = inputs.requestedData?.id ?? stamps.resolvedId;
+        return cardFields(stamps, inputs).map((field) => resolveWithSwap({ ...stamps, resolvedId, field }, cardInputs, swap));
     }
 
     function groupKey(stamps, mepState) {

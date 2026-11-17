@@ -151,7 +151,7 @@ function initialize() {
             if (extensionEnabled) {
                 window.MASCardOverlay.show();
                 chrome.storage.local.get(['masShowSources'], (result) => {
-                    if (result.masShowSources === true) {
+                    if (extensionEnabled && result.masShowSources === true) {
                         enableSourceOutlines();
                     }
                 });

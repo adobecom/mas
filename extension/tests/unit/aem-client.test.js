@@ -98,3 +98,21 @@ test('a 404 is an answer, not logged as an error', async () => {
 test('a server error is still logged', async () => {
     assert.equal(await errorsLoggedFor(503, '{}'), 1);
 });
+
+test('the unmerged record of a fragment is read from Odin by id', async () => {
+    let requested;
+    global.fetch = async (url) => {
+        requested = url;
+        return { ok: true, status: 200, json: async () => ({ id: FRAGMENT_ID }) };
+    };
+
+    const record = await new AEMClient().fetchFragmentRecord(FRAGMENT_ID);
+
+    assert.equal(requested, `https://odin.adobe.com/adobe/contentFragments/${FRAGMENT_ID}`);
+    assert.deepEqual(record, { id: FRAGMENT_ID });
+});
+
+test('a fragment Odin has not published has no unmerged record', async () => {
+    global.fetch = async () => ({ ok: false, status: 404 });
+    await assert.rejects(() => new AEMClient().fetchFragmentRecord(FRAGMENT_ID), /HTTP 404/);
+});

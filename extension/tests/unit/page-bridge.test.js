@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { runInNewContext } = require('node:vm');
-const { findMiloUtilsUrl, serializeMepState } = require('../../content/page-bridge.js');
+const { findMiloUtilsUrl, serializeMepState, serializeFieldSlots } = require('../../content/page-bridge.js');
 
 const bridgeSource = readFileSync(resolve(__dirname, '../../content/page-bridge.js'), 'utf8');
 
@@ -22,7 +22,7 @@ function runInPage(pathname, globals = {}) {
         performance: { getEntriesByType: () => [] },
         ...globals,
     });
-    return { listeners, posted };
+    return { window, listeners, posted };
 }
 
 const AUTHORED = '4e3e071a-1111-4222-8333-444455556666';
@@ -149,4 +149,53 @@ test('a page global named module is never written', () => {
     const pageModule = { exports: { page: true } };
     runInPage('/', { module: pageModule });
     assert.deepEqual(pageModule.exports, { page: true });
+});
+
+test('field slots keep only the mapping entries that render a slotted element', () => {
+    const mapping = {
+        title: { tag: 'h3', slot: 'heading-xs' },
+        ctas: { slot: 'footer', size: 'm' },
+        mnemonics: { size: 'l' },
+        secureLabel: true,
+        borderColor: { attribute: 'border-color' },
+    };
+    assert.deepEqual(serializeFieldSlots(mapping), { title: { tag: 'h3', slot: 'heading-xs' }, ctas: { slot: 'footer' } });
+});
+
+test('a variant merch-card does not know has no field slots', () => {
+    assert.deepEqual(serializeFieldSlots(undefined), {});
+});
+
+test('the bridge answers a field-slots request from merch-card’s mapping for that variant', async () => {
+    const mappings = { plans: { description: { tag: 'div', slot: 'body-xs' } } };
+    const customElements = { get: (name) => name === 'merch-card' && { getFragmentMapping: (variant) => mappings[variant] } };
+    const { window, listeners, posted } = runInPage('/creativecloud.html', { customElements });
+    await new Promise(setImmediate);
+
+    listeners[0]({
+        source: window,
+        origin: 'https://www.adobe.com',
+        data: { source: 'mas-ext', type: 'GET_FIELD_SLOTS', variant: 'plans' },
+    });
+
+    assert.deepEqual(
+        posted.filter(({ type }) => type === 'FIELD_SLOTS').map(({ variant, slots }) => [variant, JSON.parse(slots)]),
+        [['plans', { description: { tag: 'div', slot: 'body-xs' } }]],
+    );
+});
+
+test('a page without merch-card answers a field-slots request with no slots', async () => {
+    const { window, listeners, posted } = runInPage('/creativecloud.html');
+    await new Promise(setImmediate);
+
+    listeners[0]({
+        source: window,
+        origin: 'https://www.adobe.com',
+        data: { source: 'mas-ext', type: 'GET_FIELD_SLOTS', variant: 'plans' },
+    });
+
+    assert.deepEqual(
+        posted.filter(({ type }) => type === 'FIELD_SLOTS').map(({ slots }) => slots),
+        ['{}'],
+    );
 });

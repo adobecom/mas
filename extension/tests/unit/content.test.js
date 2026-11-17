@@ -22,7 +22,8 @@ function badge(overlayId) {
 }
 
 // stored is what chrome.storage.local holds; it is read once the detector callback is registered.
-function loadContent({ response = { success: true, data: FRAGMENT }, stored = null } = {}) {
+function loadContent({ response = { success: true, data: FRAGMENT }, stored = null, deferStorage = false } = {}) {
+    const storageReads = [];
     const messages = [];
     const named = [];
     const outlined = [];
@@ -42,7 +43,15 @@ function loadContent({ response = { success: true, data: FRAGMENT }, stored = nu
                 },
                 onMessage: { addListener: (listener) => messageListeners.push(listener) },
             },
-            storage: { local: { get: (keys, callback) => stored && callback(stored) } },
+            storage: {
+                local: {
+                    get: (keys, callback) => {
+                        if (!stored) return;
+                        if (deferStorage) storageReads.push(() => callback(stored));
+                        else callback(stored);
+                    },
+                },
+            },
         },
         MASMepState: { request: () => {} },
         MASCardDetector: {
@@ -55,6 +64,7 @@ function loadContent({ response = { success: true, data: FRAGMENT }, stored = nu
             createBadge: () => ({ style: {} }),
             updateCardNameInPanel: () => {},
             updateBadgeVariant: () => {},
+            show: () => {},
             hide: () => {},
         },
         MASSourceOutlines: {
@@ -73,7 +83,8 @@ function loadContent({ response = { success: true, data: FRAGMENT }, stored = nu
     }
     const detect = (cardData) => detectedCallbacks.forEach((callback) => callback(cardData));
     const send = (message) => messageListeners.forEach((listener) => listener(message, {}, () => {}));
-    return { detect, send, messages, named, outlined, sources: sandbox.MASSources };
+    const releaseStorage = () => storageReads.splice(0).forEach((read) => read());
+    return { detect, send, releaseStorage, messages, named, outlined, sources: sandbox.MASSources };
 }
 
 test('two badges for the same source fragment send one FETCH_FRAGMENT_DATA', async () => {
@@ -141,6 +152,16 @@ test('a card detected while Show sources is off is not outlined', () => {
 test('turning the extension off stops outlining newly detected cards', () => {
     const { detect, send, outlined } = loadContent({ stored: { masShowSources: true } });
     send({ type: 'SET_EXTENSION_ENABLED', enabled: false });
+    detect(badge('field-1'));
+    assert.deepEqual(outlined, []);
+});
+
+test('a stored Show sources read that lands after the extension is turned off outlines nothing', () => {
+    const { detect, send, releaseStorage, outlined } = loadContent({ stored: { masShowSources: true }, deferStorage: true });
+    releaseStorage();
+    send({ type: 'SET_EXTENSION_ENABLED', enabled: true });
+    send({ type: 'SET_EXTENSION_ENABLED', enabled: false });
+    releaseStorage();
     detect(badge('field-1'));
     assert.deepEqual(outlined, []);
 });

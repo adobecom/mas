@@ -360,6 +360,13 @@ test('a sparse variation keeps inherited and masked card fields in whole-card an
     ]);
 });
 
+test('a whole card links inherited fields to the localized fragment IO returned', () => {
+    const stamps = { ...CARD, variationId: null, promoProject: null, promoVariationProject: null };
+    const requestedData = { id: AUTHORED_RESOLVED, fields: { cardTitle: 'Titre' } };
+    const [entry] = resolveCard(stamps, { ...F.inputs, requestedData }, { variant: 'plans' });
+    assert.deepEqual([entry.supplierId, entry.requestedId], [AUTHORED_RESOLVED, AUTHORED]);
+});
+
 test('a card without a variation lists its own fields as the default card', () => {
     const stamps = { ...CARD, variationId: null, promoProject: null, promoVariationProject: null };
     const requestedData = { fields: { cardTitle: 'CC Pro', description: { mimeType: 'text/html' }, variations: [], tags: [] } };

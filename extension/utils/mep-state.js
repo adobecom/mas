@@ -60,7 +60,7 @@
                     entry.replacementId === replacementId &&
                     entry.field === '' &&
                     entry.pzn &&
-                    !entry.excludedFields?.some((excluded) => normalizeField(excluded) === wanted),
+                    !entry.excludedFields?.includes(field),
             );
         }
         return swap ? { authoredId: swap.authoredId, manifestId: swap.manifestId } : null;

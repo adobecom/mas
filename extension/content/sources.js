@@ -20,8 +20,16 @@
         return true;
     }
 
-    function requestFragment(fragmentId, locale, country) {
-        const message = { type: 'FETCH_FRAGMENT_DATA', fragmentId, locale, country, ...detector().getServiceConfig() };
+    // raw asks for Odin's unmerged record instead of IO's localized, merged response.
+    function requestFragment(fragmentId, locale, country, raw) {
+        const message = {
+            type: 'FETCH_FRAGMENT_DATA',
+            fragmentId,
+            locale,
+            country,
+            ...(raw ? { raw } : {}),
+            ...detector().getServiceConfig(),
+        };
         return new Promise((resolve) => {
             try {
                 chrome.runtime.sendMessage(message, (response) => {
@@ -34,14 +42,14 @@
     }
 
     // Concurrent callers share one request; a cached id costs no budget.
-    function fetchResponse(id, locale, country) {
+    function fetchResponse(id, locale, country, raw = false) {
         if (!id) return Promise.resolve({});
-        const key = `${id}|${locale ?? ''}|${country ?? ''}`;
+        const key = `${id}|${locale ?? ''}|${country ?? ''}|${raw}`;
         if (!fragmentCache.has(key)) {
             if (!consumeBudget()) return Promise.resolve({});
             fragmentCache.set(
                 key,
-                requestFragment(id, locale, country).then((response) => {
+                requestFragment(id, locale, country, raw).then((response) => {
                     if (!response.success && !response.miss) fragmentCache.delete(key);
                     return response;
                 }),
@@ -50,8 +58,15 @@
         return fragmentCache.get(key);
     }
 
-    function fetchFragment(id, locale, country) {
-        return fetchResponse(id, locale, country).then((response) => (response.success ? (response.data ?? null) : null));
+    function fetchFragment(id, locale, country, raw) {
+        return fetchResponse(id, locale, country, raw).then((response) => (response.success ? (response.data ?? null) : null));
+    }
+
+    // IO answers a regional variation's id with its default-language parent, the variation already
+    // merged in and dropped from references, so only Odin still has the variation's own fields.
+    function unmergedVariation(variationId, response) {
+        if (!response || response.id === variationId) return response;
+        return fetchFragment(variationId, null, null, true);
     }
 
     // Why IO refused a fragment, as its 404 tells; null when it gave no reason.
@@ -99,10 +114,7 @@
         const [variationResponse, maskData, requestedData] = await Promise.all(
             [stamps.variationId, stamps.maskId, requestedId].map(load),
         );
-        const variationData =
-            variationResponse?.id === stamps.variationId
-                ? variationResponse
-                : (variationResponse?.references?.[stamps.variationId]?.value ?? null);
+        const variationData = await unmergedVariation(stamps.variationId, variationResponse);
         return { ...inputs, variationData, maskData, requestedData, isRegionLocale: isRegionLocale(locale, variationData) };
     }
 

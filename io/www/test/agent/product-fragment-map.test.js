@@ -33,4 +33,37 @@ describe('resolveFragmentId', () => {
         expect(resolveFragmentId('Adobe Express Premium', 'edu')).to.equal('413ea6c9-a6ac-422a-90ff-0db9ad30b7e1');
         expect(resolveFragmentId('Creative Cloud Standard', 'team')).to.equal('5c3fe2ac-0dbb-4495-9858-feac379ca19b');
     });
+
+    it('resolves Adobe Express Free for individuals only', () => {
+        expect(resolveFragmentId('Adobe Express Free')).to.equal('01e221d5-c255-4a15-a1d3-e9c12411f0dc');
+        expect(resolveFragmentId('Adobe Express Free', 'team')).to.equal('5c3fe2ac-0dbb-4495-9858-feac379ca19b');
+        expect(resolveFragmentId('Adobe Express Free', 'edu')).to.equal('2b1a6493-e03b-4803-a150-eed983094a05');
+    });
+
+    for (const [product, individual, team, edu] of [
+        [
+            'Adobe Firefly Premium',
+            'c34e7581-cbe7-4c55-ae9b-3fc87408e788',
+            '4d5fdc6e-00f4-4031-84c7-a94a6cca51ae',
+            'de8104d3-fdf2-4587-b6ca-993506da70c6',
+        ],
+        [
+            'Adobe Firefly Pro Plus',
+            '0b47443c-f0a8-44a3-b577-7e4c7e77faf4',
+            '98b10834-cff3-4f7e-9a12-05069ed03ef2',
+            '5a769d77-efb2-4c1f-83a3-251fa0ff0a0c',
+        ],
+    ]) {
+        it(`resolves ${product} for every audience`, () => {
+            expect(resolveFragmentId(product)).to.equal(individual);
+            expect(resolveFragmentId(product, 'team')).to.equal(team);
+            expect(resolveFragmentId(product, 'edu')).to.equal(edu);
+        });
+    }
+
+    it('resolves Adobe Firefly Pro for individuals and teams', () => {
+        expect(resolveFragmentId('Adobe Firefly Pro')).to.equal('95c664e4-f605-41df-8f9c-4779d0ef58c5');
+        expect(resolveFragmentId('Adobe Firefly Pro', 'team')).to.equal('d2721e56-7e0b-4b0b-a0fb-94f2396dd80f');
+        expect(resolveFragmentId('Adobe Firefly Pro', 'edu')).to.equal('2b1a6493-e03b-4803-a150-eed983094a05');
+    });
 });

@@ -100,6 +100,8 @@ describe('merch-card-editor pro appearance mapping', () => {
         editor.updateFragment = ({ target }) => {
             store.updateField(target.dataset.field, [target.value]);
         };
+        // Theme, border and add-on style live in the optional Badge and card decoration section.
+        editor.addSection('badge');
         document.body.append(editor);
         return { editor, store };
     }

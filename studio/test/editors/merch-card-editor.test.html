@@ -93,6 +93,12 @@
             import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
             import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
+            import {
+                OPTIONAL_SECTIONS,
+                isSectionShown,
+                isSectionSupported,
+                sectionHasContent,
+            } from '../../src/editors/merch-card-editor.js';
             import { delay } from '../utils.js';
             import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
@@ -119,6 +125,17 @@
 
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+            // The mock has no callout field, which the optional Callout text section needs to hold content.
+            if (!baseMockData.fields.some((field) => field.name === 'callout')) {
+                baseMockData.fields.push({
+                    name: 'callout',
+                    type: 'long-text',
+                    multiple: false,
+                    locked: false,
+                    mimeType: 'text/html',
+                    values: [],
+                });
+            }
 
             const createSettingRow = ({
                 name,
@@ -311,12 +328,20 @@
 
                         editor = fragmentEditor.querySelector('merch-card-editor');
                         saveNavItem = sideNav.shadowRoot.querySelector('mas-side-nav-item[label="Save"]');
+                        if (overrides.showOptionalSections !== false) await showAllOptionalSections();
 
                         fragmentStore.get().hasChanges = false;
                         fragmentStore.notify();
                         await sideNav.updateComplete;
 
                         return { fragmentStore, editor, sideNav, saveNavItem };
+                    }
+
+                    // Most tests predate optional sections and query their fields on content-less fixtures.
+                    async function showAllOptionalSections() {
+                        for (const section of OPTIONAL_SECTIONS) editor.addSection(section.id);
+                        await editor.updateComplete;
+                        await delay(50);
                     }
 
                     afterEach(() => {
@@ -337,12 +362,17 @@
                             },
                             'mweb-legal',
                         );
+                        editor.addSection('callout');
+                        await editor.updateComplete;
+                        await delay(50);
                         fragmentStore.updateField('callout', [disclaimer]);
                         await editor.updateComplete;
+                        await delay(50);
                         const group = editor.querySelector('sp-field-group#callout');
                         expect(getComputedStyle(group).display).not.to.equal('none');
                         expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Legal Disclaimer');
                         const field = group.querySelector('rte-field');
+                        await field.updateComplete;
                         expect(field.value).to.equal(disclaimer);
 
                         for (const value of ['<p>Aucun remboursement apr\u00e8s 14 jours.</p>', '']) {
@@ -862,6 +892,7 @@
 
                             editor = fragmentEditor.querySelector('merch-card-editor');
                             fragmentStore = store;
+                            await showAllOptionalSections();
 
                             store.get().hasChanges = false;
                             store.notify();
@@ -1939,7 +1970,7 @@
 
                         it('groups a plans card into the redesigned sections', async () => {
                             const { editor } = await setupTestEnvironment(
-                                { isVariation: false, variant: ['plans'] },
+                                { isVariation: false, variant: ['plans'], showOptionalSections: false },
                                 'section-order-plans',
                             );
                             await editor.toggleFields();
@@ -1953,11 +1984,8 @@
                                 'Product description',
                                 'Call to action',
                                 'Visuals',
-                                "What's included",
-                                "What's included",
                                 'Footer rows',
                                 'Custom fields',
-                                'Options and settings',
                             ]);
                             expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#planType'))).to.equal(
                                 'Price and Promo',
@@ -1977,10 +2005,12 @@
                             );
                             await editor.toggleFields();
                             const visualsFields = editor.constructor.SECTION_FIELDS.Visuals;
+                            expect(visualsFields).to.deep.equal(['backgrounds', 'image']);
                             const heading = [...editor.querySelectorAll('.section-title')].find(
                                 (h) => h.textContent.trim() === 'Visuals',
                             );
-                            for (const visible of ['backgroundImage', 'backgrounds']) {
+                            for (const visible of visualsFields) {
+                                if (!editor.querySelector(`#${visible}`)) continue;
                                 for (const id of visualsFields) {
                                     const el = editor.querySelector(`#${id}`);
                                     if (el) el.style.display = id === visible ? 'block' : 'none';
@@ -1988,6 +2018,185 @@
                                 editor.toggleSectionHeadings();
                                 expect(heading.style.display).to.equal('block');
                             }
+                        });
+
+                        it('declares the redesigned SECTION_FIELDS grouping without Options and settings', () => {
+                            const sectionFields = customElements.get('merch-card-editor').SECTION_FIELDS;
+                            expect(Object.keys(sectionFields)).to.not.include('Options and settings');
+                            expect(sectionFields['Callout text']).to.deep.equal(['callout']);
+                            expect(sectionFields['Product description']).to.not.include('callout');
+                            expect(sectionFields['Quantity selector/Addon']).to.deep.equal([
+                                'addon',
+                                'quantitySelect',
+                                'addonConfirmation',
+                            ]);
+                            expect(sectionFields['Badge and card decoration']).to.include.members([
+                                'badge',
+                                'border-color',
+                                'backgroundColor',
+                                'backgroundImage',
+                            ]);
+                        });
+
+                        describe('optional sections', () => {
+                            const menuValues = (editor) =>
+                                [...editor.querySelectorAll('.add-section-trigger sp-menu-item')].map((item) =>
+                                    item.getAttribute('value'),
+                                );
+                            const setupPlans = (extra, testId) =>
+                                setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'], showOptionalSections: false, ...extra },
+                                    testId,
+                                );
+
+                            it('computes support, content and shown state with pure functions', () => {
+                                const [callout, , , quantityAddon] = OPTIONAL_SECTIONS;
+                                expect(isSectionSupported(callout, {})).to.be.false;
+                                expect(isSectionSupported(callout, { callout: [] })).to.be.false;
+                                expect(isSectionSupported(callout, { callout: { tag: 'p' } })).to.be.true;
+                                expect(isSectionSupported(callout, { callout: { tag: 'p' }, disabledAttributes: ['callout'] }))
+                                    .to.be.false;
+                                expect(sectionHasContent(quantityAddon, () => undefined)).to.be.false;
+                                expect(sectionHasContent(quantityAddon, (name) => (name === 'addon' ? '{{a}}' : ''))).to.be
+                                    .true;
+                                expect(isSectionShown(true, false, false)).to.be.false;
+                                expect(isSectionShown(true, false, true)).to.be.true;
+                                expect(isSectionShown(false, true, true)).to.be.false;
+                            });
+
+                            it('renders optional sections after Call to action in order with their field blocks', async () => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'] },
+                                    'optional-order',
+                                );
+                                await editor.toggleFields();
+                                const titles = [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim());
+                                expect(titles.slice(titles.indexOf('Call to action'))).to.deep.equal([
+                                    'Call to action',
+                                    'Visuals',
+                                    'Footer rows',
+                                    'Custom fields',
+                                    'Callout text',
+                                    'Badge and card decoration',
+                                    "What's included",
+                                    'Quantity selector/Addon',
+                                ]);
+                                expect(editor.querySelector('sp-field-group.toggle#callout rte-field[data-field="callout"]')).to
+                                    .exist;
+                                expect(editor.querySelector('sp-field-group.toggle#addonConfirmation')).to.exist;
+                            });
+
+                            it('hides empty Callout text and Badge sections and offers them in the menu', async () => {
+                                const { editor } = await setupPlans({}, 'optional-empty');
+                                await editor.toggleFields();
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                                expect(editor.querySelector('badge-section')).to.not.exist;
+                                expect(menuValues(editor)).to.include.members(['callout', 'badge']);
+                            });
+
+                            it('shows a saved callout on load and leaves it out of the menu', async () => {
+                                const { editor } = await setupPlans({ callout: ['<p>Saved callout</p>'] }, 'optional-saved');
+                                await editor.toggleFields();
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                expect(menuValues(editor)).to.not.include('callout');
+                            });
+
+                            it('does not show Quantity selector/Addon for a global settings default alone', async () => {
+                                const { editor } = await setupPlans({}, 'optional-settings-default');
+                                await editor.toggleFields();
+                                expect(editor.hasContent('quantityAddon')).to.be.false;
+                                expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
+                                expect(menuValues(editor)).to.include('quantityAddon');
+                            });
+
+                            it('shows a section picked from the menu and resets the picks on another fragment', async () => {
+                                const { editor } = await setupPlans({}, 'optional-pick');
+                                editor.querySelector('.add-section-trigger sp-menu-item[value="callout"]').click();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                expect(menuValues(editor)).to.not.include('callout');
+                                expect(editor.addedSections.has('callout')).to.be.true;
+
+                                const other = generateFragmentStore(
+                                    new Fragment(
+                                        structuredClone({
+                                            ...baseMockData,
+                                            id: 'optional-other-id',
+                                            path: '/content/dam/mas/nala/en_US/optional-other',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : [],
+                                            })),
+                                        }),
+                                    ),
+                                );
+                                editor.fragmentStore = other;
+                                await editor.updateComplete;
+                                expect(editor.addedSections.size).to.equal(0);
+                            });
+
+                            it('renders a full-width Add section button that is disabled when every section is shown', async () => {
+                                const { editor } = await setupPlans({}, 'optional-button');
+                                const button = editor.querySelector('.add-section-button');
+                                expect(button.querySelector('sp-icon-add')).to.exist;
+                                expect(button.textContent).to.include('Add section');
+                                expect(button.hasAttribute('disabled')).to.be.false;
+                                expect(button.offsetWidth).to.equal(button.parentElement.offsetWidth);
+
+                                await showAllOptionalSections();
+                                expect(editor.hiddenSupportedSections).to.have.length(0);
+                                expect(editor.querySelector('.add-section-button').hasAttribute('disabled')).to.be.true;
+                            });
+
+                            it('removes a top-level section by clearing its fields and hiding it', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { callout: ['<p>Saved callout</p>'] },
+                                    'optional-delete-top',
+                                );
+                                const calls = [];
+                                const updateField = fragmentStore.updateField.bind(fragmentStore);
+                                fragmentStore.updateField = (...args) => {
+                                    calls.push(args);
+                                    return updateField(...args);
+                                };
+                                const remove = editor.querySelector('sp-action-button[aria-label="Remove Callout text"]');
+                                expect(remove.hasAttribute('quiet')).to.be.true;
+                                expect(remove.querySelector('sp-icon-delete')).to.exist;
+                                remove.click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(calls.some(([name, value]) => name === 'callout' && value.length === 0)).to.be.true;
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                                expect(editor.addedSections.has('callout')).to.be.false;
+                            });
+
+                            it('resets a variation section to its parent and keeps it visible', async () => {
+                                const { editor, fragmentStore } = await setupTestEnvironment(
+                                    { showOptionalSections: false },
+                                    'optional-delete-variation',
+                                );
+                                const reset = [];
+                                const resetFieldToParent = fragmentStore.resetFieldToParent.bind(fragmentStore);
+                                fragmentStore.resetFieldToParent = (...args) => {
+                                    reset.push(args[0]);
+                                    return resetFieldToParent(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Callout text"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(reset).to.include('callout');
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                            });
+
+                            it('keeps Restore all in the Quantity selector/Addon header row', async () => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'], addon: ['{{addon2}}'] },
+                                    'optional-restore-all',
+                                );
+                                const link = editor.querySelector('.restore-all-link');
+                                expect(link).to.exist;
+                                expect(link.closest('.section-header-row').textContent).to.include('Quantity selector/Addon');
+                            });
                         });
 
                         it('keeps the General info fields in order without a gap', async () => {

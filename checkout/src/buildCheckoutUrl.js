@@ -67,6 +67,12 @@ const ALLOWED_KEYS = new Set([
     'trackingid',
     'usid',
     'workflowid',
+    // Genuine NC (non-genuine) flow parameters
+    'closeWindow',
+    'openBrowser',
+    'static',
+    'takeAction',
+    'exitApp',
     'context.guid',
     'so.ca',
     'so.su',

@@ -311,7 +311,7 @@ describe('class "CheckoutButton"', () => {
             const checkoutButton = mockCheckoutButton('abm');
             await checkoutButton.onceSettled();
             expect(checkoutButton.classList.contains('upgrade')).to.be.true;
-            checkoutButton.click();
+            await checkoutButton.clickHandler(new MouseEvent('click'));
             expect(checkoutButton.textContent.trim()).to.equal('Upgrade');
             sinon.assert.calledOnce(handler);
             expect(checkoutButton.href).to.equal('#');

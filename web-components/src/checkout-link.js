@@ -13,10 +13,14 @@ export class CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
         return true;
     }
 
-    clickHandler(e) {
-        if (this.handleAupCheckout(e)) return;
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(e);
+    async clickHandler(e) {
+        if (this.handleAupCheckout(e)) {
+            return;
+        }
+        if (this.checkoutActionHandler instanceof Promise) {
+            e.preventDefault();
+            const handler = await this.checkoutActionHandler;
+            handler?.(e);
             return;
         }
     }

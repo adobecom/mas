@@ -565,10 +565,11 @@ describe('aup-select checkout routing', () => {
                 expect(launch.firstCall.args[0].params.ot).to.equal('TRIAL');
             });
 
-            it('falls back synchronously when the host SDK is not ready, and uses it on a later click', async () => {
+            it('falls back when the host SDK is not ready, and uses it on a later click', async () => {
                 const element = await create(Class);
                 delete window.aupsdk;
                 click(element);
+                await Promise.resolve();
                 expect(legacy.calledOnce).to.be.true;
                 expect(lifecycle.called).to.be.false;
                 window.aupsdk = sdk;
@@ -587,7 +588,7 @@ describe('aup-select checkout routing', () => {
                     calls.push('fallback');
                     event.preventDefault();
                 });
-                element.checkoutActionHandler = legacy;
+                element.checkoutActionHandler = Promise.resolve(legacy);
                 const event = click(element);
                 await element.aupCheckoutPromise;
                 expect(legacy.calledOnceWithExactly(event)).to.be.true;
@@ -610,7 +611,8 @@ describe('aup-select checkout routing', () => {
                     const log = sinon.spy(element.masElement.log, 'error');
                     const event = click(element);
                     const replacement = sinon.spy();
-                    element.checkoutActionHandler = replacement;
+                    element.checkoutActionHandler =
+                        Promise.resolve(replacement);
                     await element.aupCheckoutPromise;
                     expect(legacy.calledOnceWithExactly(event)).to.be.true;
                     expect(replacement.called).to.be.false;
@@ -634,7 +636,7 @@ describe('aup-select checkout routing', () => {
                     const element = await create(Class);
                     const error = new Error('Host checkout failed');
                     const handler = sinon.stub()[failure](error);
-                    element.checkoutActionHandler = handler;
+                    element.checkoutActionHandler = Promise.resolve(handler);
                     const log = sinon.spy(element.masElement.log, 'error');
                     launch.resolves({ status: 'no-workflow-found' });
                     const event = click(element);
@@ -695,6 +697,7 @@ describe('aup-select checkout routing', () => {
                 await delay(50);
                 expect(element.marketSegment).to.be.undefined;
                 const event = click(element);
+                await Promise.resolve();
                 expect(legacy.calledOnceWithExactly(event)).to.be.true;
                 expect(sdk.getOrchestratorContext.called).to.be.false;
                 const other = await create(Class);
@@ -710,6 +713,7 @@ describe('aup-select checkout routing', () => {
                 }));
                 const element = await create(Class);
                 click(element);
+                await Promise.resolve();
                 expect(legacy.calledOnce).to.be.true;
                 expect(sdk.getOrchestratorContext.called).to.be.false;
             });
@@ -733,6 +737,7 @@ describe('aup-select checkout routing', () => {
                 );
                 const firstEvent = click(element);
                 const secondEvent = click(element);
+                await Promise.resolve();
                 expect(sdk.getOrchestratorContext.called).to.be.false;
                 expect(launch.called).to.be.false;
                 expect(legacy.firstCall.calledWithExactly(firstEvent)).to.be
@@ -815,6 +820,7 @@ describe('aup-select checkout routing', () => {
                     click(first);
                     if (bypass === 'missing-sdk') delete window.aupsdk;
                     const event = click(other);
+                    await Promise.resolve();
                     expect(legacy.calledOnceWithExactly(event)).to.be.true;
                     expect(sdk.getOrchestratorContext.calledOnce).to.be.true;
                     context.resolve({ launchWorkflowInModal: launch });
@@ -885,6 +891,7 @@ describe('aup-select checkout routing', () => {
             );
             const element = await create();
             click(element);
+            await Promise.resolve();
             expect(sdk.getOrchestratorContext.called).to.be.false;
             expect(legacy.calledOnce).to.be.true;
         });
@@ -934,6 +941,7 @@ describe('aup-select checkout routing', () => {
         );
         const element = await create();
         click(element);
+        await Promise.resolve();
         expect(legacy.calledOnce).to.be.true;
         expect(sdk.getOrchestratorContext.called).to.be.false;
     });
@@ -971,6 +979,7 @@ describe('aup-select checkout routing', () => {
             );
             const element = await create();
             const event = click(element, init);
+            await Promise.resolve();
             expect(legacy.calledOnceWithExactly(event)).to.be.true;
             expect(sdk.getOrchestratorContext.called).to.be.false;
         });
@@ -1003,6 +1012,7 @@ describe('aup-select checkout routing', () => {
             perpetual: true,
         });
         const event = click(element, { metaKey: true });
+        await Promise.resolve();
         expect(legacy.calledOnceWithExactly(event)).to.be.true;
         expect(sdk.getOrchestratorContext.called).to.be.false;
     });
@@ -1014,6 +1024,7 @@ describe('aup-select checkout routing', () => {
         element.removeAttribute('target');
         element.setAttribute('download', '');
         click(element);
+        await Promise.resolve();
         expect(sdk.getOrchestratorContext.called).to.be.false;
         expect(legacy.calledTwice).to.be.true;
     });
@@ -1049,6 +1060,7 @@ describe('aup-select checkout routing', () => {
         click(element);
         element.updateOptions({ wcsOsi: 'stock-m2m' });
         click(element);
+        await Promise.resolve();
         expect(legacy.calledOnce).to.be.true;
         await element.onceSettled();
         context.resolve({ launchWorkflowInModal: launch });
@@ -1176,6 +1188,7 @@ describe('aup-select checkout routing', () => {
             );
             const element = await create(CheckoutLink, { modal });
             const event = click(element);
+            await Promise.resolve();
             expect(legacy.calledOnceWithExactly(event)).to.be.true;
             expect(sdk.getOrchestratorContext.called).to.be.false;
             expect(launch.called).to.be.false;

@@ -95,7 +95,7 @@ export function createCheckoutElement(Class, options = {}, innerHTML = '') {
 
 export function CheckoutMixin(Base) {
     return class CheckoutBase extends Base {
-        /* c8 ignore next 1 */
+        /** @type {Promise<CheckoutAction['handler']> | undefined} */
         checkoutActionHandler;
 
         /** @type {AupHandler | undefined} */
@@ -237,7 +237,7 @@ export function CheckoutMixin(Base) {
          * @param {Commerce.Wcs.Offer[]} offers
          * @param {Commerce.Checkout.Options} options
          * @param {Commerce.Checkout.AnyOptions} overrides
-         * @param {CheckoutAction} checkoutActionPromise
+         * @param {Promise<CheckoutAction>} checkoutActionPromise
          * @param {number} version
          */
         renderOffers(
@@ -252,10 +252,12 @@ export function CheckoutMixin(Base) {
             const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
             options = { ...extraOptions, ...options, ...overrides };
             version ??= this.masElement.togglePending(options);
-            if (this.checkoutActionHandler) {
-                /* c8 ignore next 2 */
-                this.checkoutActionHandler = undefined;
-            }
+
+            let handlerResolved;
+            this.checkoutActionHandler = new Promise((resolve) => {
+                handlerResolved = resolve;
+            });
+
             this.aupHandler = undefined;
             this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
             if (checkoutActionPromise) {
@@ -284,12 +286,24 @@ export function CheckoutMixin(Base) {
                                     ? service.buildCheckoutURL(offers, options)
                                     : '#',
                             );
-                            this.checkoutActionHandler = handler.bind(this);
+                            handlerResolved(handler.bind(this));
+                        } else {
+                            handlerResolved(
+                                () =>
+                                    (window.location.href =
+                                        this.getAttribute('href')),
+                            );
                         }
                         if (typeof aupHandler === 'function') {
                             this.aupHandler = aupHandler.bind(this);
                         }
                         this.updateCheckoutUrl();
+                    } else {
+                        handlerResolved(
+                            () =>
+                                (window.location.href =
+                                    this.getAttribute('href')),
+                        );
                     }
                 });
             }
@@ -399,8 +413,9 @@ export function CheckoutMixin(Base) {
             this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;
-            const fallback = () => {
-                if (checkoutActionHandler) return checkoutActionHandler(e);
+            const fallback = async () => {
+                const handler = await checkoutActionHandler;
+                if (handler) return handler(e);
                 if (href) window.location.href = href;
             };
             const notifyAupHandler = (type) => {

@@ -359,7 +359,7 @@ describe('class "CheckoutLink"', () => {
             const checkoutLink = mockCheckoutLink('abm');
             await checkoutLink.onceSettled();
             expect(checkoutLink.classList.contains('upgrade')).to.be.true;
-            checkoutLink.click();
+            await checkoutLink.clickHandler(new MouseEvent('click'));
             expect(checkoutLink.textContent.trim()).to.equal('Upgrade');
             sinon.assert.calledOnce(handler);
             expect(checkoutLink.getAttribute('href')).to.equal('#');
@@ -375,8 +375,29 @@ describe('class "CheckoutLink"', () => {
             const href = checkoutLink.getAttribute('href');
             expect(href).to.not.equal('#');
             expect(href).to.include('commerce.adobe.com/store');
-            checkoutLink.click();
+            await checkoutLink.clickHandler(new MouseEvent('click'));
             sinon.assert.calledOnce(handler);
+        });
+
+        it('waits for a pending checkout action before invoking its handler', async () => {
+            let resolveAction;
+            const actionPromise = new Promise((resolve) => {
+                resolveAction = resolve;
+            });
+            initMasCommerceService({}, () => actionPromise);
+            const checkoutLink = mockCheckoutLink('abm');
+            await checkoutLink.onceSettled();
+
+            const handler = sinon.spy();
+            const event = new MouseEvent('click');
+            const clickPromise = checkoutLink.clickHandler(event);
+            sinon.assert.notCalled(handler);
+
+            resolveAction({ handler });
+            await clickPromise;
+
+            sinon.assert.calledOnceWithExactly(handler, event);
+            expect(handler.firstCall.thisValue).to.equal(checkoutLink);
         });
 
         it('skips entitlements check', async () => {

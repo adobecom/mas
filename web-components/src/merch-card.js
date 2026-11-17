@@ -679,11 +679,14 @@ export class MerchCard extends LitElement {
         );
         if (!cta) return;
         trigger.setAttribute('tabindex', '0');
-        trigger.addEventListener('click', (e) => {
-            cta.checkoutActionHandler?.(e);
+        trigger.addEventListener('click', async (e) => {
+            const handler = await cta.checkoutActionHandler;
+            handler?.(e);
         });
-        trigger.addEventListener('keypress', (e) => {
-            if (e.code === 'Enter') cta.checkoutActionHandler?.(e);
+        trigger.addEventListener('keypress', async (e) => {
+            if (e.code !== 'Enter') return;
+            const handler = await cta.checkoutActionHandler;
+            handler?.(e);
         });
         trigger.classList.add('modal-trigger');
         const titleDaaLL = this.title.replace(/\s+/g, '-').toLowerCase();

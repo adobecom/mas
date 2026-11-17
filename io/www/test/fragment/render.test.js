@@ -443,6 +443,21 @@ describe('inactive inline-price render transformer', () => {
         expect(context.body.fields.description).to.include(golden.results['US-en/INDIVIDUAL/default/regular']);
     });
 
+    it('picks the offers of a comma-joined osi from its joined cache entry', async () => {
+        const context = contextFor();
+        const addon = { ...structuredClone(baseOffer), offerSelectorIds: ['addon'] };
+        context.body.wcs.prod = { 'osi-base,addon-us-mult': [addon, structuredClone(baseOffer)] };
+        await render.process(context, invocation(resolvedOptions({ wcsOsi: ['osi-base', 'addon'], promotionCodes: ['', ''] })));
+        expect(context.body.fields.description).to.include('>59</span>').and.include('>98</span>');
+        const missing = contextFor();
+        missing.body.wcs.prod = { 'osi-base,addon-us-mult': [structuredClone(baseOffer)] };
+        await expectFailure(
+            missing,
+            invocation(resolvedOptions({ wcsOsi: ['osi-base', 'addon'], promotionCodes: ['', ''] })),
+            'No cached offers for osi-base,addon-us-mult',
+        );
+    });
+
     it('sums all resolved OSI groups rather than using only the first price', async () => {
         const context = contextFor();
         context.body.wcs.prod['addon-us-mult'] = [structuredClone(baseOffer)];

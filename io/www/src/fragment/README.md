@@ -45,7 +45,8 @@ referenced cards is rendered in place, keeping its wrapper, from the prod WCS ca
 attributes (final substituted `data-wcs-osi`, `data-template`, `data-display-*`, `data-quantity`…), the element's
 promotion code or else its fragment's `promoCode` (`cancel-context` meaning none), the request commerce country and
 locale language, `displayPlanType`/`displayAnnual` card settings and the resolved price literals (price library
-defaults otherwise). A price that can't be rendered (e.g. offer missing from the cache) is logged, and leaves every
+defaults otherwise). A comma-joined `data-wcs-osi` (fetched as one WCS artifact outside preview) falls back to its joined
+cache entry, whose offers are picked by `offerSelectorIds`. A price that can't be rendered (e.g. offer missing from the cache) is logged, and leaves every
 field unrendered.
 
 `transformers/render.js` imports the shared framework-free implementation directly from

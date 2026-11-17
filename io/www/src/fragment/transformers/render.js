@@ -71,6 +71,23 @@ function checkOptions(options, fail) {
 
 const toList = (value) => value.split(',').map((entry) => entry.trim());
 
+/** WCS cache key of the `wcs` transformer: final osi, lowercased country, `mult` except for GB, promotion code */
+const offerCacheKey = (osi, country, promotionCode = '') =>
+    [osi, country.toLowerCase(), country.toUpperCase() === 'GB' ? '' : 'mult', promotionCode.toLowerCase()]
+        .filter(Boolean)
+        .join('-');
+
+/**
+ * cached offers of `osi`, one of the `osis` of a price: the `wcs` transformer fetches (outside preview) a
+ * comma-joined `data-wcs-osi` as one artifact, cached under the joined key, whose offers are then picked by osi
+ */
+function cachedOffersOf(cache, osi, osis, country, promotionCode) {
+    const key = offerCacheKey(osi, country, promotionCode);
+    if (cache[key]?.length || osis.length < 2) return { key, offers: cache[key] };
+    const joinedKey = offerCacheKey(osis.join(','), country, promotionCode);
+    return { key: joinedKey, offers: cache[joinedKey]?.filter(({ offerSelectorIds }) => offerSelectorIds.includes(osi)) };
+}
+
 /**
  * Resolves an inline price's options from its data attributes as the browser's `collectPriceOptions`
  * does, against what the `wcs` transformer cached: final (substituted) OSIs, the element's promotion
@@ -140,15 +157,13 @@ async function render(context, { environment, resolveOptions } = {}) {
             const options = await resolveOptions({ context, fragment, fieldName, valueIndex, attributes });
             checkOptions(options, fieldFail);
             const selected = options.wcsOsi.map((osi, index) => {
-                const key = [
+                const { key, offers } = cachedOffersOf(
+                    cache,
                     osi,
-                    options.country.toLowerCase(),
-                    options.country.toUpperCase() === 'GB' ? '' : 'mult',
-                    options.promotionCodes[index].toLowerCase(),
-                ]
-                    .filter(Boolean)
-                    .join('-');
-                const offers = cache[key];
+                    options.wcsOsi,
+                    options.country,
+                    options.promotionCodes[index],
+                );
                 if (!offers?.length) fieldFail(`No cached offers for ${key}`);
                 return selectOffers(offers.map(applyPlanType), options)[0];
             });

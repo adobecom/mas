@@ -221,9 +221,6 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         #preview-column {
-            position: sticky;
-            top: 16px;
-            height: fit-content;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -239,6 +236,42 @@ export default class MasFragmentEditor extends LitElement {
             #preview-column {
                 position: relative;
                 max-height: none;
+            }
+        }
+
+        @media (min-width: 1201px) {
+            #editor-content:not(.compare-chart-content):not(.full-width-content) {
+                grid-template-rows: minmax(0, 1fr);
+                margin-block: -32px;
+                padding-bottom: 0;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #form-column,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column {
+                min-height: 0;
+                overflow-y: auto;
+                padding-block: 32px;
+                box-sizing: border-box;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #form-column {
+                padding-left: 8px;
+                margin-left: -8px;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > * {
+                flex-shrink: 0;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > #preview-wrapper {
+                max-height: none;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-variations,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-artifacts,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-pages {
+                width: 100%;
+                max-width: 600px;
             }
         }
 
@@ -331,6 +364,13 @@ export default class MasFragmentEditor extends LitElement {
             border-radius: 0;
             background: transparent;
             box-shadow: none;
+        }
+
+        .section.card-editor-section {
+            background: none;
+            border: 0;
+            box-shadow: none;
+            padding: 0;
         }
 
         .section.compare-chart-section #author-path {
@@ -2385,7 +2425,10 @@ export default class MasFragmentEditor extends LitElement {
             ${this.isPromoReadOnly
                 ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
                 : nothing}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
+            <div
+                class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}${this.fragment.model.path === CARD_MODEL_PATH ? ' card-editor-section' : ''}`}
+                ?inert=${this.isPromoReadOnly}
+            >
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;

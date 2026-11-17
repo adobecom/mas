@@ -371,6 +371,9 @@
                         const group = editor.querySelector('sp-field-group#callout');
                         expect(getComputedStyle(group).display).not.to.equal('none');
                         expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Legal Disclaimer');
+                        expect(
+                            editor.querySelector('sp-field-group#shortDescription sp-field-label').textContent.trim(),
+                        ).to.equal('Pricing subtext');
                         const field = group.querySelector('rte-field');
                         await field.updateComplete;
                         expect(field.value).to.equal(disclaimer);
@@ -2204,6 +2207,114 @@
                                 expect(link).to.exist;
                                 expect(link.closest('.section-header-row').textContent).to.include('Quantity selector/Addon');
                             });
+
+                            it('wraps every shown optional section in a card with its header first', async () => {
+                                const { editor } = await setupPlans({}, 'optional-section-cards');
+                                const hidden = editor.hiddenSupportedSections[0];
+                                expect(hidden, 'a supported hidden section').to.exist;
+                                const cardFor = (title) => editor.querySelector(`.editor-section[data-section="${title}"]`);
+                                expect(cardFor(hidden.title)).to.not.exist;
+                                editor.addSection(hidden.id);
+                                await editor.updateComplete;
+                                for (const id of editor.shownSectionIds) {
+                                    const card = cardFor(OPTIONAL_SECTIONS.find((section) => section.id === id).title);
+                                    expect(card, id).to.exist;
+                                    expect(card.firstElementChild.classList.contains('section-header-row'), id).to.be.true;
+                                }
+                                const trigger = editor.querySelector('.add-section-trigger');
+                                expect(trigger.closest('.editor-section')).to.be.null;
+                            });
+                        });
+
+                        it('wraps each section of a plans card in its own card', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'section-cards-plans',
+                            );
+                            await editor.toggleFields();
+                            const containers = [...editor.querySelectorAll('.editor-section')];
+                            expect(containers.map((c) => c.dataset.section)).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                'Footer rows',
+                                'Custom fields',
+                                ...editor.shownSectionIds.map(
+                                    (id) => OPTIONAL_SECTIONS.find((section) => section.id === id).title,
+                                ),
+                            ]);
+                            expect(containers[0].querySelector('.section-title-status')).to.exist;
+                            expect(containers.filter((c) => c.classList.contains('editor-section--meta'))).to.deep.equal([
+                                containers[1],
+                            ]);
+                            const inside = (id, index) => expect(containers[index].querySelector(`#${id}`)).to.exist;
+                            inside('variant', 0);
+                            inside('cardName', 1);
+                            inside('ctas', 5);
+                            inside('secureLabel', 5);
+                            inside('customFields', 8);
+                        });
+
+                        it('hides the card of a section whose fields are all hidden', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'section-cards-hidden',
+                            );
+                            await editor.toggleFields();
+                            for (const id of editor.constructor.SECTION_FIELDS.Visuals) {
+                                const el = editor.querySelector(`#${id}`);
+                                if (el) el.style.display = 'none';
+                            }
+                            editor.querySelector('#customFields').style.display = 'none';
+                            editor.querySelector('#footerRows').style.display = 'none';
+                            editor.toggleSectionHeadings();
+                            const card = (name) => editor.querySelector(`.editor-section[data-section="${name}"]`);
+                            for (const name of ['Visuals', 'Custom fields', 'Footer rows']) {
+                                expect(getComputedStyle(card(name)).display).to.equal('none');
+                            }
+                            for (const name of ['Card framework', 'Meta data', 'Price and Promo']) {
+                                expect(getComputedStyle(card(name)).display).to.not.equal('none');
+                            }
+
+                            const visualsId = editor.constructor.SECTION_FIELDS.Visuals.find((id) =>
+                                editor.querySelector(`#${id}`),
+                            );
+                            editor.querySelector(`#${visualsId}`).style.display = 'block';
+                            editor.toggleSectionHeadings();
+                            expect(getComputedStyle(card('Visuals')).display).to.not.equal('none');
+                        });
+
+                        it('uses the Figma default labels', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-labels',
+                            );
+                            const labelOf = (selector) => editor.querySelector(`${selector} sp-field-label`).textContent.trim();
+                            expect(labelOf('sp-field-group#size')).to.equal('Card Size');
+                            expect(labelOf('sp-field-group#cardName')).to.equal('Deep linking name');
+                            expect(labelOf('sp-field-group#title')).to.equal('Card title');
+                            const osiGroup = editor.querySelector('osi-field').closest('sp-field-group');
+                            expect(osiGroup.querySelector('sp-field-label').textContent.trim()).to.equal('OSI');
+                            expect(editor.querySelector('mas-plan-type-field').label).to.equal('Show plan type');
+                            expect(labelOf('sp-field-group#promoCode')).to.equal('Promo code');
+                            expect(labelOf('sp-field-group#promoText')).to.equal('Promo text');
+                        });
+
+                        it('places the Primary CTA label before the CTAs field', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'primary-cta-label',
+                            );
+                            const group = editor.querySelector('sp-field-group#ctas');
+                            const label = [...group.children].find((child) => child.localName === 'sp-field-label');
+                            expect(label.textContent.trim()).to.equal('Primary CTA');
+                            expect(label.compareDocumentPosition(group.querySelector('rte-field#ctas'))).to.equal(
+                                Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
                         });
 
                         it('keeps the General info fields in order without a gap', async () => {

@@ -6,6 +6,8 @@ import './inline-price.js';
 import './aem-fragment.js';
 import './mas-field.js';
 
+export * from './commerce-shared.js';
+
 import { CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 import { Defaults } from './defaults.js';
 import { Log } from './log.js';

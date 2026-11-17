@@ -31,24 +31,20 @@ import {
     FF_DEFAULTS,
     MERCH_CARD_LOAD_TIMEOUT,
     TEMPLATE_PRICE_LEGAL,
-} from './constants.js';
-import { VariantLayout } from './variants/variant-layout.js';
-import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import {
     getService,
     printMeasure,
     setForegroundTimeout,
     clearForegroundTimeout,
-} from './utils.js';
-import { toPromotionCodes } from './utilities.js';
-import { hostOsi } from './plan-type-text.js';
-import {
+    toPromotionCodes,
+    hostOsi,
     applyContextPromotionCode,
     applyDisplayAnnualDefault,
     applyHideStPriceLabels,
     mergePriceLiterals,
     registerContextOptionsProviders,
-} from './mas-context.js';
+} from './commerce-shared.js';
+import { VariantLayout } from './variants/variant-layout.js';
+import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 
 const MERCH_CARD = 'merch-card';
 

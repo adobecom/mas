@@ -1,7 +1,9 @@
 import { VariantLayout } from './variant-layout.js';
 import { html, css } from 'lit';
-import { isMobileOrTablet } from '../utils.js';
-import { EVENT_MERCH_CARD_ACTION_MENU_TOGGLE } from '../constants.js';
+import {
+    isMobileOrTablet,
+    EVENT_MERCH_CARD_ACTION_MENU_TOGGLE,
+} from '../commerce-shared.js';
 import { CSS } from './catalog.css.js';
 
 export const CATALOG_AEM_FRAGMENT_MAPPING = {

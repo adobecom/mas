@@ -4,7 +4,7 @@ import { CSS } from './segment.css.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
-} from '../constants.js';
+} from '../commerce-shared.js';
 
 export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

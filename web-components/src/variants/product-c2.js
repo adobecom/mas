@@ -3,7 +3,7 @@ import { html, css } from 'lit';
 import {
     TEMPLATE_PRICE_LEGAL,
     SELECTOR_MAS_INLINE_PRICE,
-} from '../constants.js';
+} from '../commerce-shared.js';
 import { CSS } from './product-c2.css.js';
 
 export const PRODUCT_C2_AEM_FRAGMENT_MAPPING = {

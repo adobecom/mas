@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { toRelativeAssetUrl } from './utils.js';
+import { toRelativeAssetUrl } from './commerce-shared.js';
 
 // Self-contained tooltip detection for MAS
 function hasSpectrumTooltip() {

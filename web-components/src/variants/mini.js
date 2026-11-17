@@ -1,6 +1,6 @@
 import { VariantLayout } from './variant-layout.js';
 import { css, html } from 'lit';
-import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
+import { SELECTOR_MAS_INLINE_PRICE } from '../commerce-shared.js';
 import { CSS } from './mini.css.js';
 
 export const MINI_AEM_FRAGMENT_MAPPING = {

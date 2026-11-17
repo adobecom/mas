@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import { extractBackgroundUrl } from '../image-markup.js';
+import { extractBackgroundUrl } from '../commerce-shared.js';
 
 // The default is desktop background.
 export const BACKGROUNDS_DETAIL_BREAKPOINTS = ['tablet', 'mobile'];

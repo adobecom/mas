@@ -1,9 +1,5 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { build } from 'esbuild';
-import {
-    assertNoSharedModules,
-    createSharedCommerce,
-} from './build/shared-commerce.mjs';
 
 const outfolder = './dist';
 
@@ -21,123 +17,21 @@ const defaults = {
 // Read the price-literals.js file content
 const priceLiteralsContent = readFileSync('./price-literals.json', 'utf-8');
 
-const sharedCommerce = createSharedCommerce({
-    resolveDir: process.cwd(),
-    entryPoint: './src/commerce.js',
-    modules: {
-        constants: {
-            source: './src/constants.js',
-            exports: [
-                'EVENT_AEM_ERROR',
-                'EVENT_AEM_LOAD',
-                'EVENT_MAS_ERROR',
-                'EVENT_MAS_READY',
-                'EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE',
-                'EVENT_MERCH_CARD_ACTION_MENU_TOGGLE',
-                'EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED',
-                'EVENT_MERCH_CARD_QUANTITY_CHANGE',
-                'EVENT_MERCH_OFFER_SELECT_READY',
-                'EVENT_MERCH_QUANTITY_SELECTOR_CHANGE',
-                'EVENT_TYPE_RESOLVED',
-                'FF_DEFAULTS',
-                'HEADLESS_STYLE_CTA_VARIANTS',
-                'MARK_DURATION_SUFFIX',
-                'MARK_START_SUFFIX',
-                'MERCH_CARD_LOAD_TIMEOUT',
-                'SELECTOR_MAS_CHECKOUT_LINK',
-                'SELECTOR_MAS_ELEMENT',
-                'SELECTOR_MAS_INLINE_PRICE',
-                'TEMPLATE_PRICE_LEGAL',
-                'TRIAL_ANALYTICS_IDS',
-                'TRIAL_TO_BUY_CTA_ANALYTICS_IDS',
-            ],
-        },
-        utils: {
-            source: './src/utils.js',
-            exports: [
-                'clearForegroundTimeout',
-                'createTag',
-                'debounce',
-                'getHeadlessCtaVariant',
-                'getOuterHeight',
-                'getService',
-                'hydrateHeadlessCta',
-                'isMobileOrTablet',
-                'printMeasure',
-                'setForegroundTimeout',
-                'toRelativeAssetUrl',
-            ],
-        },
-        masElement: {
-            source: './src/mas-element.js',
-            exports: ['createMasElement'],
-        },
-        utilities: {
-            source: './src/utilities.js',
-            exports: ['toPromotionCodes'],
-        },
-        uptLink: {
-            source: './src/upt-link.js',
-            exports: ['UptLink'],
-        },
-        imageMarkup: {
-            source: './src/image-markup.js',
-            exports: [
-                'extractBackgroundUrl',
-                'rewriteImageUrlsForProd',
-                'sanitizePictureMarkup',
-            ],
-        },
-        planType: {
-            source: './src/plan-type-text.js',
-            exports: ['hostOsi'],
-        },
-        context: {
-            source: './src/mas-context.js',
-            exports: [
-                'applyContextPromotionCode',
-                'applyDisplayAnnualDefault',
-                'applyHideStPriceLabels',
-                'mergePriceLiterals',
-                'registerContextOptionsProviders',
-            ],
-        },
-        log: {
-            source: './src/log.js',
-            exports: ['Log'],
-        },
-    },
-});
-
-// Link both sides before replacing either published bundle.
-const commerce = await build({
+// commerce.js
+const { metafile } = await build({
     ...defaults,
     alias: {
         react: 'test/mocks/react.js',
     },
-    stdin: sharedCommerce.entry,
+    entryPoints: ['./src/commerce.js'],
     outfile: `${outfolder}/commerce.js`,
     metafile: true,
-    write: false,
     platform: 'browser',
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
 });
-const card = await build({
-    ...defaults,
-    entryPoints: ['./src/merch-card.js'],
-    outfile: `${outfolder}/merch-card.js`,
-    metafile: true,
-    write: false,
-    plugins: [rewriteImportsToLibsFolder(), sharedCommerce.plugin],
-});
-assertNoSharedModules(commerce.metafile, card.metafile);
-for (const file of [...commerce.outputFiles, ...card.outputFiles]) {
-    writeFileSync(file.path, file.contents);
-}
-writeFileSync('commerce.json', JSON.stringify(commerce.metafile));
-writeFileSync('merch-card.json', JSON.stringify(card.metafile));
+writeFileSync(`commerce.json`, JSON.stringify(metafile));
 
 // mas.js
 await build({
@@ -176,6 +70,17 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
+    buildLitComponent('merch-card', [
+        {
+            name: 'shared-commerce',
+            setup(build) {
+                build.onResolve({ filter: /\/commerce-shared\.js$/ }, () => ({
+                    path: './commerce.js',
+                    external: true,
+                }));
+            },
+        },
+    ]),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -190,14 +95,14 @@ Promise.all([
     process.exit(1);
 });
 
-async function buildLitComponent(name) {
+async function buildLitComponent(name, plugins = []) {
     const { metafile } = await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [rewriteImportsToLibsFolder(), ...plugins],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));

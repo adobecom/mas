@@ -125,7 +125,6 @@ export default class StudioPage {
         this.promotionsButton = this.sideNav.locator('mas-side-nav-item[label="Promotions"]');
         this.collectionsButton = this.sideNav.locator('mas-side-nav-item[label="Collections"]');
         this.placeholdersButton = this.sideNav.locator('mas-side-nav-item[label="Placeholders"]');
-        this.supportButton = this.sideNav.locator('mas-side-nav-item[label="Support"]');
         // Create dialog elements
         this.createButton = page.locator('sp-button:has-text("Create")').first();
         this.createDialog = page.locator('mas-create-dialog');

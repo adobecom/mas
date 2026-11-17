@@ -16,7 +16,7 @@ import { transformer as customize } from '../../io/www/src/fragment/transformers
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { clearMaskCache, transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
-import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
+import { clearOfferMappingCache, clearWcsCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
 import { clearPendingFetches, mark } from '../../io/www/src/fragment/utils/common.js';
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
@@ -75,6 +75,7 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    clearWcsCache();
     clearMaskCache(true);
     clearBaselineCache(true);
     clearPendingFetches();

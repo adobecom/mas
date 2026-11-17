@@ -28,6 +28,16 @@ npm run studio
 
 This starts the proxy and `aem up`. Use `npm run studio:qa` or `npm run studio:stage` for the corresponding author environment.
 
+## Publishing promotions
+
+Publishing a promotion keeps the **Publish promo variations** checkbox. When selected, Studio creates one existing Bulk Publish project per surface containing all attached unpublished promo variations, including modified variations. Known content validation errors are warnings, not reasons to omit a variation.
+
+All projects must be created before the promotion publish request and automatic Bulk Publish requests begin. A creation failure stops publishing; there is no direct variation-publish fallback or automatic rollback. Created projects remain available for inspection.
+
+The result dialog provides project links in the current Studio environment instead of opening tabs. **Request accepted** does not mean AEM/Odin publishing has completed; use the existing Bulk Publish project to inspect results and perform follow-up actions. Errors also appear at the top of the promotion view.
+
+Scheduled promotions create and start these projects immediately when Publish is confirmed. Clearing the checkbox publishes only the promotion. Existing promotion permissions and Bulk Publish access rules are unchanged.
+
 ## Optional features
 
 MASA and Offers are enabled in `studio.html`. Disable either independently by setting its metadata content to `false`; set it to `true` to re-enable:

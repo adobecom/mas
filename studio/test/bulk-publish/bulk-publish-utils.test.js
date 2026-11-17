@@ -1,6 +1,42 @@
 import { expect } from '@open-wc/testing';
-import { itemTypeFromPath, itemTypeFromFragment, buildItemsMetadata } from '../../src/bulk-publish/bulk-publish-utils.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
+import {
+    itemTypeFromPath,
+    itemTypeFromFragment,
+    buildItemsMetadata,
+    buildProjectPayload,
+} from '../../src/bulk-publish/bulk-publish-utils.js';
+import { COLLECTION_MODEL_PATH, BULK_PUBLISH_PROJECT_MODEL_ID } from '../../src/constants.js';
+
+describe('buildProjectPayload()', () => {
+    it('preserves the existing Bulk Publish creation contract', () => {
+        const fragments = ['/content/dam/mas/acom/en_US/promotions/sale/card'];
+        const items = buildItemsMetadata([{ path: fragments[0], type: 'collection', status: 'valid' }]);
+        expect(
+            buildProjectPayload({
+                parentPath: '/content/dam/mas/acom/bulk-publish-projects',
+                title: 'Sale 2026-11-17T03:00:00.000Z',
+                status: 'Draft',
+                urls: '',
+                fragments,
+                locales: [],
+                items,
+            }),
+        ).to.deep.equal({
+            title: 'Sale 2026-11-17T03:00:00.000Z',
+            name: 'sale-2026-11-17t030000000z',
+            modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
+            parentPath: '/content/dam/mas/acom/bulk-publish-projects',
+            fields: [
+                { name: 'title', type: 'text', values: ['Sale 2026-11-17T03:00:00.000Z'] },
+                { name: 'status', type: 'text', values: ['Draft'] },
+                { name: 'urls', type: 'text', values: [''] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
+                { name: 'locales', type: 'text', multiple: true, values: [] },
+                { name: 'items', type: 'text', values: [items] },
+            ],
+        });
+    });
+});
 
 describe('itemTypeFromPath()', () => {
     it('classifies dictionary paths as placeholder', () => {

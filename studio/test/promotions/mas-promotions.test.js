@@ -632,12 +632,61 @@ describe('MasPromotions', () => {
             return {
                 operation: { set: sandbox.stub() },
                 aem: {
-                    sites: { cf: { fragments: { publish: sandbox.stub().resolves() } } },
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sandbox.stub().callsFake(async (fragment) => ({
+                                    items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+                                })),
+                                getWithEtag: sandbox.stub().callsFake(async (id) =>
+                                    Store.promotions.list.data
+                                        .get()
+                                        .find((item) => item.get().id === id)
+                                        ?.get(),
+                                ),
+                            },
+                        },
+                    },
                     tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
                 },
                 ...overrides,
             };
         }
+
+        it('shows shared publish results at the top without claiming the promotion was published', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Sale', status: 'DRAFT' });
+            const { el } = await mountWithRepo(promotion, makePublishableRepo());
+            const dialog = el.shadowRoot.querySelector('mas-promotion-publish-dialog');
+            expect(dialog).to.exist;
+            dialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: {
+                        promotionId: 'promo-1',
+                        promotion: { status: 'not-started' },
+                        error: 'Could not create Bulk Publish project',
+                        projects: [],
+                    },
+                }),
+            );
+            await el.updateComplete;
+            expect(el.error).to.include('Sale');
+            expect(el.shadowRoot.querySelector('[role="alert"]').textContent).to.include(
+                'Could not create Bulk Publish project',
+            );
+            expect(promotion.status).to.equal('DRAFT');
+        });
+
+        it('reports a list refresh error after acceptance instead of leaving an unhandled rejection', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Sale', status: 'DRAFT' });
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+            repo.loadPromotions.rejects(new Error('Refresh failed'));
+            el.promotionPublishDialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: { promotionId: 'promo-1', promotion: { status: 'accepted' }, error: null, projects: [] },
+                }),
+            );
+            await waitUntil(() => el.error?.includes('Refresh failed'), 'refresh error should be visible');
+        });
 
         it('publishes a promotion project and refreshes the list', async () => {
             const promotion = makePromotion({
@@ -718,10 +767,10 @@ describe('MasPromotions', () => {
                 repoOverrides,
             );
             findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
+            await waitUntil(() => el.promotionPublishDialog.phase === 'confirm', 'confirm dialog should open');
             await el.updateComplete;
             Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            el.promotionPublishDialog.confirm();
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
         });

@@ -34,8 +34,8 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
-import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
+import { generateLinkToUse, showToast } from '../utils.js';
+import { buildProjectPayload, buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
 const PUBLISH_BLOCKED_REASON = {
@@ -63,23 +63,6 @@ async function mapWithConcurrency(items, limit, fn) {
     };
     await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
     return results;
-}
-
-function buildProjectPayload({ parentPath, title, status, urls, fragments, locales, items }) {
-    return {
-        title,
-        name: normalizeKey(title),
-        modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
-        parentPath,
-        fields: [
-            { name: 'title', type: 'text', values: [title] },
-            { name: 'status', type: 'text', values: [status] },
-            { name: 'urls', type: 'text', values: [urls] },
-            { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
-            { name: 'locales', type: 'text', multiple: true, values: locales },
-            { name: 'items', type: 'text', values: [items] },
-        ],
-    };
 }
 
 class MasBulkPublishEditor extends LitElement {

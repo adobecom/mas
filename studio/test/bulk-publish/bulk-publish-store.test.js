@@ -1,4 +1,4 @@
-import { expect } from '@open-wc/testing';
+import { expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
@@ -118,6 +118,75 @@ describe('startPublishing()', () => {
         const [r1, r2] = await Promise.all([startPublishing(opts), startPublishing(opts)]);
         expect(publishFn.callCount).to.equal(1);
         expect([r1, r2].some((r) => r?.alreadyPublishing === true)).to.equal(true);
+    });
+
+    it('returns acceptance before terminal while retaining the shared project guard', async () => {
+        let finish;
+        const terminal = new Promise((resolve) => {
+            finish = resolve;
+        });
+        repo.refreshFragment.callsFake(async () => {
+            await terminal;
+            project.setStatus(BULK_PUBLISH_STATUS.PUBLISHED);
+        });
+        const publishFn = sinon.stub().resolves({ accepted: true, activationId: 'activation-1' });
+        const pending = startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            waitForCompletion: false,
+        });
+        const result = await Promise.race([
+            pending,
+            new Promise((resolve) => setTimeout(() => resolve({ waiting: true }), 50)),
+        ]);
+        const guarded = Store.bulkPublishProjects.publishing.get()[project.id];
+        const duplicate = await startPublishing({
+            project: makeProject(project.id),
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+        });
+        finish();
+        await pending;
+        await waitUntil(() => !Store.bulkPublishProjects.publishing.get()[project.id]);
+        expect(result).to.deep.equal({ accepted: true, activationId: 'activation-1' });
+        expect(guarded).to.equal(true);
+        expect(duplicate).to.deep.equal({ alreadyPublishing: true });
+        expect(publishFn.callCount).to.equal(1);
+    });
+
+    it('preserves the default terminal outcome', async () => {
+        const outcome = await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn: sinon.stub().resolves({ accepted: true }),
+        });
+        expect(outcome).to.deep.equal({ status: BULK_PUBLISH_STATUS.PUBLISHED });
+    });
+
+    it('does not start a monitor for an unconfirmed acceptance response', async () => {
+        let error;
+        try {
+            await startPublishing({
+                project,
+                token,
+                ioBaseUrl,
+                repository: repo,
+                publishFn: sinon.stub().resolves({}),
+                waitForCompletion: false,
+            });
+        } catch (cause) {
+            error = cause;
+        }
+        expect(error.message).to.include('could not be confirmed');
+        expect(repo.refreshFragment.called).to.be.false;
+        expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
     });
 });
 

@@ -196,9 +196,11 @@ describe('MasPromotionsEditor', () => {
                     cf: {
                         fragments: {
                             getById: sandbox.stub().resolves(null),
-                            publish: sandbox.stub().resolves(),
+                            publish: sandbox.stub().callsFake(async (fragment) => ({
+                                items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+                            })),
                             publishFragments: sandbox.stub().resolves(),
-                            getWithEtag: sandbox.stub(),
+                            getWithEtag: sandbox.stub().callsFake(async () => Store.promotions.inEdit.get()?.get()),
                             search: makeSearchStub(),
                         },
                     },
@@ -346,6 +348,30 @@ describe('MasPromotionsEditor', () => {
             expect(el.fragment.getFieldValue('endDate')).to.equal('2099-12-31T00:00:00.000Z');
         });
 
+        it('shows shared publish results as a top error without changing server validation or status', async () => {
+            const el = await mountExistingPromotion();
+            const dialog = el.renderRoot.querySelector('mas-promotion-publish-dialog');
+            expect(dialog).to.exist;
+            const status = el.fragment.status;
+            const validation = el.fragment.validationStatus;
+            dialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: {
+                        promotionId: el.fragment.id,
+                        promotion: { status: 'not-started' },
+                        error: 'Could not create Bulk Publish project',
+                        projects: [],
+                    },
+                }),
+            );
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('[role="alert"]').textContent).to.include(
+                'Could not create Bulk Publish project',
+            );
+            expect(el.fragment.status).to.equal(status);
+            expect(el.fragment.validationStatus).to.equal(validation);
+        });
+
         for (const action of ['Publish', 'Unpublish']) {
             it(`disables ${action} for promo editors`, async () => {
                 setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
@@ -376,7 +402,7 @@ describe('MasPromotionsEditor', () => {
                         status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
                         etag: '"variation-etag"',
                     };
-                    const promotionWithEtag = { id: 'tiered-promo', etag: '"etag"' };
+                    const promotionWithEtag = { id: 'tiered-promo', path: '/content/dam/mas/promotions/test', etag: '"etag"' };
                     const repo = makeRepo();
                     repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'parent', path: parentPath, fields: [] });
                     repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
@@ -395,21 +421,23 @@ describe('MasPromotionsEditor', () => {
                     getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
                     await flushPromises();
                     await el.updateComplete;
-                    expect(el.isDialogOpen).to.be.true;
+                    expect(action === 'Publish' ? el.promotionPublishDialog.phase === 'confirm' : el.isDialogOpen).to.be.true;
                     if (revokeAccess) setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
-                    el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+                    if (action === 'Publish') {
+                        el.promotionPublishDialog.checked = false;
+                        el.promotionPublishDialog.confirm();
+                    } else {
+                        el.renderRoot
+                            .querySelector('#promotion-unsaved-changes-dialog')
+                            .dispatchEvent(new CustomEvent('confirm'));
+                    }
                     await flushPromises();
                     expect(repo.processError.called).to.be.false;
-                    expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
                     if (action === 'Publish') {
-                        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(revokeAccess ? 0 : 1);
-                        if (!revokeAccess) {
-                            expect(repo.aem.sites.cf.fragments.publishFragments.firstCall.args[0]).to.deep.equal([
-                                promotionWithEtag,
-                                variation,
-                            ]);
-                        }
+                        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(revokeAccess ? 0 : 1);
+                        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
                     } else {
+                        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
                         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
                         expect(repo.aem.sites.cf.fragments.unpublish.callCount).to.equal(revokeAccess ? 0 : 2);
                     }
@@ -733,13 +761,12 @@ describe('MasPromotionsEditor', () => {
             expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
         });
 
-        it('labels the progress circle as "Publishing project" for a publish action', async () => {
+        it('does not cover the shared dialog with the old overlay for a publish action', async () => {
             const el = await mountEditor();
             el.promotionPublish = true;
             el.promotionPublishAction = 'publish';
             await el.updateComplete;
-            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
-            expect(progressCircle.getAttribute('label')).to.equal('Publishing project');
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
         });
 
         it('labels the progress circle as "Unpublishing project" for an unpublish action', async () => {
@@ -1228,7 +1255,7 @@ describe('MasPromotionsEditor', () => {
                 status: 'MODIFIED',
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const publish = sandbox.stub().resolves();
+            const publish = sandbox.stub().resolves({ items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }] });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -1244,6 +1271,7 @@ describe('MasPromotionsEditor', () => {
                                     }),
                                 ),
                                 publish,
+                                getWithEtag: sandbox.stub().resolves(promotion),
                             },
                         },
                     },
@@ -2359,7 +2387,9 @@ describe('MasPromotionsEditor', () => {
         async function mountSavedPromotion(promoOverrides, repoOverrides = {}) {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion(promoOverrides)));
-            const publish = sandbox.stub().resolves();
+            const publish = sandbox.stub().callsFake(async (fragment) => ({
+                items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+            }));
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -2367,6 +2397,7 @@ describe('MasPromotionsEditor', () => {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
                                 publish,
+                                getWithEtag: sandbox.stub().callsFake(async () => Store.promotions.inEdit.get()?.get()),
                                 publishFragments: sandbox.stub().resolves(),
                                 search: makeSearchStub(),
                             },
@@ -2662,7 +2693,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
 
-        it('publishes the attached promo variation together with the project when the checkbox is checked on confirm', async () => {
+        it('does not fall back to direct publishing when the checked Bulk Publish flow cannot be prepared', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
@@ -2723,18 +2754,18 @@ describe('MasPromotionsEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            const checkbox = el.promotionPublishDialog.shadowRoot.querySelector('sp-checkbox');
             expect(checkbox).to.not.be.null;
             checkbox.checked = true;
             checkbox.dispatchEvent(new Event('change'));
 
-            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            el.promotionPublishDialog.confirm();
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            expect(publishFragments.calledOnce).to.be.true;
-            const [fragments] = publishFragments.firstCall.args;
-            expect(fragments.map((fragment) => fragment.path)).to.include(promoVarPath);
+            expect(publishFragments.called).to.be.false;
+            expect(el.promotionPublishError).to.include('ioBaseUrl');
+            expect(el.promotionPublishDialog.phase).to.equal('result');
         });
     });
 

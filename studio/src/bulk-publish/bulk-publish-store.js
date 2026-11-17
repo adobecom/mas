@@ -1,5 +1,6 @@
 import Store from '../store.js';
 import { BULK_PUBLISH_STATUS } from '../constants.js';
+import { showToast } from '../utils.js';
 
 function patchProjectStore(project, fields) {
     const snapshot = structuredClone(project.get());
@@ -14,6 +15,34 @@ function patchProjectStore(project, fields) {
 const POLL_BACKOFF_FACTOR = 1.5;
 const POLL_MAX_INTERVAL_MS = 30000;
 
+function finishPublishing(project) {
+    const current = { ...Store.bulkPublishProjects.publishing.get() };
+    delete current[project.id];
+    Store.bulkPublishProjects.publishing.set(current);
+}
+
+async function monitorPublishing({ project, repository, pollIntervalMs, maxPolls, sleepFn }) {
+    const terminalStatuses = new Set([
+        BULK_PUBLISH_STATUS.PUBLISHED,
+        BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+        BULK_PUBLISH_STATUS.FAILED,
+    ]);
+    try {
+        let interval = pollIntervalMs;
+        for (let i = 0; i < maxPolls; i++) {
+            await repository.refreshFragment(project, { skipPromoMerge: true, skipReferences: true }).catch(() => {});
+            const statusField = project.get()?.fields?.find((f) => f.name === 'status');
+            const status = statusField?.values?.[0];
+            if (terminalStatuses.has(status)) return { status };
+            await sleepFn(interval);
+            interval = Math.min(interval * POLL_BACKOFF_FACTOR, POLL_MAX_INTERVAL_MS);
+        }
+        return { timedOut: true };
+    } finally {
+        finishPublishing(project);
+    }
+}
+
 export async function startPublishing({
     project,
     token,
@@ -26,6 +55,7 @@ export async function startPublishing({
     sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     includeVariations = false,
     includeCards = false,
+    waitForCompletion = true,
 }) {
     if (Store.bulkPublishProjects.publishing.get()[project.id]) return { alreadyPublishing: true };
     Store.bulkPublishProjects.publishing.set({
@@ -33,30 +63,38 @@ export async function startPublishing({
         [project.id]: true,
     });
 
-    const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
-    const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
-    const publishedBy = profile?.email ?? '';
-    const terminalStatuses = new Set([
-        BULK_PUBLISH_STATUS.PUBLISHED,
-        BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
-        BULK_PUBLISH_STATUS.FAILED,
-    ]);
+    let monitor;
     try {
-        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token, aemOdinEndpoint, includeVariations, includeCards });
-        let interval = pollIntervalMs;
-        for (let i = 0; i < maxPolls; i++) {
-            await repository.refreshFragment(project, { skipPromoMerge: true, skipReferences: true }).catch(() => {});
-            const statusField = project.get()?.fields?.find((f) => f.name === 'status');
-            const status = statusField?.values?.[0];
-            if (terminalStatuses.has(status)) return { status };
-            await sleepFn(interval);
-            interval = Math.min(interval * POLL_BACKOFF_FACTOR, POLL_MAX_INTERVAL_MS);
+        const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
+        const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
+        const publishedBy = profile?.email ?? '';
+        const acceptance = await fn({
+            ioBaseUrl,
+            projectId: project.id,
+            publishedBy,
+            token,
+            aemOdinEndpoint,
+            includeVariations,
+            includeCards,
+        });
+        if (!waitForCompletion && acceptance?.accepted !== true) {
+            throw new Error('Bulk Publish acceptance could not be confirmed. Check the project before publishing again.');
         }
-        return { timedOut: true };
+        monitor = monitorPublishing({ project, repository, pollIntervalMs, maxPolls, sleepFn });
+        if (waitForCompletion) return await monitor;
+        monitor.then(
+            (outcome) => {
+                if (outcome.timedOut)
+                    showToast(`Bulk Publish ${project.id} is still processing. Check the project.`, 'warning');
+            },
+            (error) => {
+                console.error(`Failed to track Bulk Publish ${project.id}`, error);
+                showToast(`Could not track Bulk Publish ${project.id}. Check the project.`, 'negative');
+            },
+        );
+        return { accepted: true, activationId: acceptance.activationId ?? null };
     } finally {
-        const current = { ...Store.bulkPublishProjects.publishing.get() };
-        delete current[project.id];
-        Store.bulkPublishProjects.publishing.set(current);
+        if (!monitor) finishPublishing(project);
     }
 }
 

@@ -1,4 +1,4 @@
-// Squash-merges the oldest open PR labeled "Ready to Merge" that passes every guard below (MWPW-210335).
+// Squash-merges the oldest open PR labeled "Ready to merge" that passes every guard below (MWPW-210335).
 // Run every 30 minutes on weekdays by .github/workflows/auto-merge-ready.yaml, or manually with dry_run.
 // Merging one PR makes the others BEHIND (strict up-to-date rule), so a live run merges at most one.
 //
@@ -11,7 +11,7 @@ import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const REPO = 'adobecom/mas';
-export const LABEL = 'Ready to Merge';
+export const LABEL = 'Ready to merge';
 export const MARKER = '<!-- auto-merge-ready -->';
 export const MIN_APPROVALS = 2;
 // The repo variable AUTO_MERGE_MAX_FILES overrides the default without a code change, as milo's merge-to-stage does.
@@ -286,6 +286,9 @@ function main() {
             'main',
             '--state',
             'open',
+            // Only labeled PRs: mergeStateStatus is costly, and asking it for every open PR makes GraphQL time out (502).
+            '--label',
+            LABEL,
             '--limit',
             '200',
             '--json',

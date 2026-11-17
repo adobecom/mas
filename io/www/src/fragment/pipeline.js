@@ -150,9 +150,9 @@ async function mainProcess(context) {
         };
     }
     if (!context.id) context.surface ??= apiKeySurface;
-    // MWPW-214943: the requested `type` wins over the api key's one. Without any, fields are left as authored.
-    context.type ??= apiKeyDefaults.type;
-    if (context.type !== undefined && !TYPES.includes(context.type)) {
+    // MWPW-214943: the requested `type` wins over the api key's one, html by default.
+    context.type ??= apiKeyDefaults.type ?? 'html';
+    if (!TYPES.includes(context.type)) {
         return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter 'type'` }) };
     }
     const { id, locale, offer, template, surface } = context;

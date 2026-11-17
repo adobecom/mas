@@ -23,6 +23,12 @@ import {
 
 let fetchStub;
 
+// MWPW-214943: rich text fields are served as sanitized html by default, loose text wrapped in a paragraph
+const RICH_TEXT_FIELDS = new Set(['badge', 'callout', 'shortDescription', 'description', 'prices']);
+const html = (value) => ({ value: value && !value.startsWith('<p>') ? `<p>${value}</p>` : value, mimeType: 'text/html' });
+const htmlFields = (fields) =>
+    Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, RICH_TEXT_FIELDS.has(key) ? html(value) : value]));
+
 describe('pipeline end to end', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
@@ -58,8 +64,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-y_html');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-y_html']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
@@ -118,8 +124,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA-y_html');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA-y_html']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
@@ -149,8 +155,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA-y_html');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA-y_html']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
@@ -175,8 +181,8 @@ describe('pipeline end to end', () => {
             country: 'BE',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE-y_html');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE-y_html']);
         expect(json.fragmentsIds['dictionary-id-sandbox-fr_BE']).to.equal('sandbox_fr_BE_dictionary');
     });
 
@@ -210,7 +216,7 @@ describe('pipeline end to end', () => {
             pzn: 'segment-A',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A-y_html');
     });
 
     function stubMask(fetchStub) {
@@ -252,7 +258,7 @@ describe('pipeline end to end', () => {
         expect(result.body.id).to.equal('some-fr-fr-fragment');
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday-y_html');
     });
 
     it('masks every card of a collection and keys the cache on the mask', async () => {
@@ -308,9 +314,9 @@ describe('pipeline end to end', () => {
         expect(result.body.maskId).to.be.undefined;
         for (const id of cardIds) {
             expect(result.body.references[id].value.maskId).to.equal('mask-holiday-id');
-            expect(result.body.references[id].value.fields.badge).to.equal('MASKED');
+            expect(result.body.references[id].value.fields.badge).to.deep.equal(html('MASKED'));
         }
-        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR-m_holiday');
+        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR-m_holiday-y_html');
     });
 
     it('should replace fragment placeholders with values from mask variables', async () => {
@@ -344,7 +350,7 @@ describe('pipeline end to end', () => {
 
         expect(result.statusCode).to.equal(200);
         // {{promo-label}} → {{select}} (from mask variables) → 'Select' (from dictionary)
-        expect(result.body.fields.badge.value).to.equal('Select');
+        expect(result.body.fields.badge).to.deep.equal(html('Select'));
     });
 
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
@@ -687,15 +693,43 @@ describe('pipeline end to end', () => {
         });
         fetchStub.withArgs(hydrateUrl('proj-bts')).returns(createResponse(200, hydrated));
 
-        // WCS resolves the plain, unpromoted injected offer (falls through to the default
-        // resolvedOffers:[] stub registered by setupFragmentMocks for any web_commerce_artifact call).
+        // WCS resolves the plain, unpromoted injected offer, priced apart from its substitute.
+        const wcsOffer = (osi, price) => ({
+            offerSelectorIds: [osi],
+            customerSegment: 'INDIVIDUAL',
+            marketSegments: ['COM'],
+            offerType: 'BASE',
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+            priceDetails: { price, formatString: "#,##0.00 '€'" },
+        });
+        for (const [osi, price] of [
+            ['INJECTED-OSI', 10],
+            ['SUB-INJECTED', 5],
+        ]) {
+            fetchStub
+                .withArgs(
+                    sinon.match(
+                        (url) =>
+                            typeof url === 'string' &&
+                            url.includes('web_commerce_artifact') &&
+                            new URL(url).searchParams.get('offer_selector_ids') === osi,
+                    ),
+                )
+                .returns(createResponse(200, { resolvedOffers: [wcsOffer(osi, price)] }));
+        }
         const state = new MockState();
         const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
 
         expect(result.statusCode).to.equal(200);
-        // The placeholder-injected OSI is left untouched — no substitution happened...
-        expect(result.body.fields.prices.value).to.include('data-wcs-osi="INJECTED-OSI"');
-        expect(result.body.fields.prices.value).to.not.include('SUB-INJECTED');
+        // The placeholder-injected OSI is left untouched — no substitution happened: its own offer is rendered...
+        expect(result.body.fields.prices).to.deep.equal(
+            html(
+                '<span is="inline-price"><span class="price"><span class="price-integer">10.00</span>' +
+                    '<span class="price-currency-space">\u00a0</span><span class="price-currency-symbol">€</span>' +
+                    '<span class="price-recurrence">/mo</span></span></span>',
+            ),
+        );
         // ...no promo code was applied...
         expect(result.body.fields.promoCode).to.be.undefined;
         // ...and only the plain, unpromoted offer is in the WCS cache.
@@ -761,8 +795,8 @@ describe('pipeline end to end', () => {
             // Content unchanged: en_US request stays on en_US (AU is not a region of en_US).
             expect(result.body.path).to.equal('/content/dam/mas/acom-cc/en_US/card');
             // baseKey only in base, surfaceKey wins at surface baseline, label wins at region overlay, regionKey overlay-only.
-            expect(result.body.fields.description).to.equal('base-only/cc-surface/au-label/au-region');
-            const json = JSON.parse(state.store['req-acom-cc-card-us-en_US-AU']);
+            expect(result.body.fields.description).to.deep.equal(html('base-only/cc-surface/au-label/au-region'));
+            const json = JSON.parse(state.store['req-acom-cc-card-us-en_US-AU-y_html']);
             expect(json.fragmentsIds).to.include({
                 'dictionary-id-acom-en_US': 'acom_en_US_dictionary',
                 'dictionary-id-acom-cc-en_US': 'acom-cc_en_US_dictionary',
@@ -806,10 +840,10 @@ describe('pipeline end to end', () => {
             expect(result.statusCode).to.equal(200);
             // Content en_GB → en_AU: the en_AU regional variation is merged in (badge override applied).
             expect(result.body.variationId).to.equal('var-au');
-            expect(result.body.fields.badge.value).to.equal('AU exclusive');
+            expect(result.body.fields.badge).to.deep.equal(html('AU exclusive'));
             // Placeholders base on en_GB (the request's own default language), then acom-cc/en_GB, then acom-cc/en_AU.
-            expect(result.body.fields.description).to.equal('gb-base-only/gb-cc-surface/au-label/au-region');
-            const json = JSON.parse(state.store['req-acom-cc-card-gb-en_GB-AU']);
+            expect(result.body.fields.description).to.deep.equal(html('gb-base-only/gb-cc-surface/au-label/au-region'));
+            const json = JSON.parse(state.store['req-acom-cc-card-gb-en_GB-AU-y_html']);
             expect(json.fragmentsIds).to.include({
                 'dictionary-id-acom-en_GB': 'acom_en_GB_dictionary',
                 'dictionary-id-acom-cc-en_GB': 'acom-cc_en_GB_dictionary',
@@ -973,6 +1007,10 @@ describe('pipeline end to end', () => {
             M2M: { commitment: 'MONTH', term: 'MONTHLY' },
         };
         const price = (osi) => `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
+        const renderedPrice = (planType) =>
+            '<span is="inline-price" data-template="price"><span class="price"><span class="price-currency-symbol">US$</span>' +
+            `<span class="price-integer">22.99</span><span class="price-recurrence">${planType === 'PUF' ? '/yr' : '/mo'}</span>` +
+            '</span></span>';
         // one card per market segment & plan type, each overriding its own fields over the baselines
         const CARDS = [
             { segment: 'COM', planType: 'ABM', overrides: { badge: 'Best value' } },
@@ -1017,6 +1055,7 @@ describe('pipeline end to end', () => {
                     marketSegments: [segment],
                     offerType: 'BASE',
                     ...PLAN_TYPES[planType],
+                    priceDetails: { price: 22.99, formatString: "'US$'#,##0.00" },
                 },
             };
         });
@@ -1090,19 +1129,22 @@ describe('pipeline end to end', () => {
                 expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
                 // the plans baseline sets its own icon: the offer baseline's alt text, describing its icon, is dropped
                 expect(card.fields.mnemonicAlt, label).to.be.undefined;
-                expect(card.fields, label).to.deep.include({
-                    // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
-                    variant: 'plans',
-                    cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
-                    mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
-                    description: FRAGMENT_BASELINE.fields.description,
-                    shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
-                    ctas: FRAGMENT_BASELINE.fields.ctas,
-                    // card's own fields
-                    osi,
-                    prices: price(osi),
-                    ...overrides,
-                });
+                expect(card.fields, label).to.deep.include(
+                    htmlFields({
+                        // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
+                        variant: 'plans',
+                        cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
+                        mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
+                        description: FRAGMENT_BASELINE.fields.description,
+                        shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
+                        ctas: FRAGMENT_BASELINE.fields.ctas,
+                        // card's own fields
+                        osi,
+                        // rendered from the mocked WCS offer, kept as markup in html
+                        prices: renderedPrice(planType),
+                        ...overrides,
+                    }),
+                );
                 // baselines' variations never leak into cards
                 expect(card.fields.variations, label).to.be.undefined;
                 expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([
@@ -1243,17 +1285,19 @@ describe('pipeline end to end', () => {
                 const { offerBaseline, fragmentBaseline } = product;
                 expect(card.offerBaselineId, label).to.equal(offerBaseline.id);
                 expect(card.fragmentBaselineId, label).to.equal(fragmentBaseline.id);
-                expect(card.fields, label).to.deep.include({
-                    // offer baseline: the plans baseline defines no icon
-                    mnemonicIcon: [offerBaseline.fields.icons[0]],
-                    mnemonicAlt: [offerBaseline.fields.name],
-                    variant: 'plans',
-                    cardTitle: fragmentBaseline.fields.cardTitle,
-                    description: fragmentBaseline.fields.description,
-                    ctas: fragmentBaseline.fields.ctas,
-                    osi,
-                    ...overrides,
-                });
+                expect(card.fields, label).to.deep.include(
+                    htmlFields({
+                        // offer baseline: the plans baseline defines no icon
+                        mnemonicIcon: [offerBaseline.fields.icons[0]],
+                        mnemonicAlt: [offerBaseline.fields.name],
+                        variant: 'plans',
+                        cardTitle: fragmentBaseline.fields.cardTitle,
+                        description: fragmentBaseline.fields.description,
+                        ctas: fragmentBaseline.fields.ctas,
+                        osi,
+                        ...overrides,
+                    }),
+                );
                 expect(card.fields.variations, label).to.be.undefined;
                 for (const [otherPlanType, otherOverrides] of Object.entries(PLAN_OVERRIDES)) {
                     if (otherPlanType === planType) continue;

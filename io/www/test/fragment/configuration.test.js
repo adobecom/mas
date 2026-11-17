@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { getApiKeySurface, loadConfiguration, resetCache, validateApiKey } from '../../src/fragment/utils/configuration.js';
+import { getApiKeyDefaults, loadConfiguration, resetCache, validateApiKey } from '../../src/fragment/utils/configuration.js';
 import { MockState } from './mocks/MockState.js';
 
 const HARDCODED_PROD_WCS = { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' };
@@ -125,16 +125,34 @@ describe('validateApiKey', () => {
     });
 });
 
-describe('getApiKeySurface', () => {
+describe('getApiKeyDefaults', () => {
     const apiKeySurfaces = { AdobeExpressWeb: 'express', '/^CreativeCloud_v\\d+_\\d+$/': 'ccd' };
 
-    it('maps literal and regex api keys to their surface', () => {
-        expect(getApiKeySurface({ api_key: 'AdobeExpressWeb', apiKeySurfaces })).to.equal('express');
-        expect(getApiKeySurface({ api_key: 'CreativeCloud_v6_4', apiKeySurfaces })).to.equal('ccd');
+    it('maps literal and regex api keys to their legacy surface', () => {
+        expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb', apiKeySurfaces })).to.deep.equal({ surface: 'express' });
+        expect(getApiKeyDefaults({ api_key: 'CreativeCloud_v6_4', apiKeySurfaces })).to.deep.equal({ surface: 'ccd' });
     });
 
-    it('returns undefined for unmapped api keys or without configuration', () => {
-        expect(getApiKeySurface({ api_key: 'other', apiKeySurfaces })).to.be.undefined;
-        expect(getApiKeySurface({ api_key: 'AdobeExpressWeb' })).to.be.undefined;
+    it('returns no defaults for unmapped api keys or without configuration', () => {
+        expect(getApiKeyDefaults({ api_key: 'other', apiKeySurfaces })).to.deep.equal({});
+        expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb' })).to.deep.equal({});
+    });
+
+    it('defaults the commerce server key to json on sandbox', () => {
+        expect(getApiKeyDefaults({ api_key: 'unified_checkout_server_v3' })).to.deep.equal({
+            surface: 'sandbox',
+            type: 'json',
+        });
+    });
+
+    it('merges apiKeyDefaults over the hardcoded and legacy surface ones', () => {
+        const apiKeyDefaults = { '/^unified_checkout_server_v\\d+$/': { type: 'text' }, AdobeExpressWeb: { surface: 'acom' } };
+        expect(getApiKeyDefaults({ api_key: 'unified_checkout_server_v3', apiKeyDefaults })).to.deep.equal({
+            surface: 'sandbox',
+            type: 'text',
+        });
+        expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb', apiKeySurfaces, apiKeyDefaults })).to.deep.equal({
+            surface: 'acom',
+        });
     });
 });

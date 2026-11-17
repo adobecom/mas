@@ -12,6 +12,9 @@ describe('request metadata key', () => {
     it('keys a request without id by its offer, template & surface', async () => {
         const key = await requestKey({ offer: 'some-osi', template: 'plans', surface: 'acom', locale: 'en_US' });
         expect(key).to.equal('req-offer-en_US-o_some-osi-t_plans-s_acom');
+        expect(
+            await requestKey({ offer: 'some-osi', template: 'plans', surface: 'acom', locale: 'en_US', type: 'json' }),
+        ).to.equal('req-offer-en_US-o_some-osi-t_plans-s_acom-y_json');
     });
 
     it('keeps an offer override of a fragment apart from the fragment itself', async () => {

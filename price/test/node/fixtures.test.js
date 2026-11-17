@@ -52,8 +52,8 @@ it('only omits segment rows whose legacy golden output equals their TEAM represe
     }
 });
 
-it('executes exactly 460 distinct price fixtures without losing the 854-case characterization corpus', () => {
-    assert.equal(cases.length, 854);
-    assert.equal(parityCases.length, 460);
-    assert.equal(parityIds.size, 460);
+it('executes exactly 460 distinct price fixtures without losing the 932-case characterization corpus', () => {
+    assert.equal(cases.length, 932);
+    assert.equal(parityCases.length, 502);
+    assert.equal(parityIds.size, 502);
 });

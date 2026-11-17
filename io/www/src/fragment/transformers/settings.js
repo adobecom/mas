@@ -379,25 +379,30 @@ const addPlaceholders = (target, templates) => {
     target.placeholders = { ...target.placeholders, ...templates };
 };
 
-// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer);
-// pro.js places the resolved strings client-side.
-function applyEduPlaceholders(body) {
-    const fields = body?.fields;
-    if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
+const supportsEdu = (variant, fields) => variant === 'pro' && fields?.size === 'edu';
+
+// Edu "whats-included" chrome tokens (sub-label + disclaimer); pro.js places the resolved strings client-side.
+// The card's own hideEduDisclaimer wins, falling back to the collection's.
+const eduTemplatesFor = (body) => (target) => {
+    if (!(target.settings?.hideEduDisclaimer ?? body.settings?.hideEduDisclaimer)) return PLACEHOLDER_TEMPLATES.edu;
     const { eduDisclaimer, ...withoutDisclaimer } = PLACEHOLDER_TEMPLATES.edu;
-    addPlaceholders(body, body.settings?.hideEduDisclaimer ? withoutDisclaimer : PLACEHOLDER_TEMPLATES.edu);
-}
+    return withoutDisclaimer;
+};
 
 // A collection card is hydrated from its own reference, so it carries the templates too.
-function addPlaceholdersToCards(body, supports, templates) {
+// `templates` is an object, or a function returning the templates for a given target.
+// With bodyRequiresSupportedCard, a collection without any supported card gets nothing.
+function addPlaceholdersToCards(body, supports, templates, { bodyRequiresSupportedCard = false } = {}) {
+    const templatesFor = (target) => (typeof templates === 'function' ? templates(target) : templates);
     if (body?.model?.id !== COLLECTION_MODEL_ID) {
-        if (supports(body?.fields?.variant)) addPlaceholders(body, templates);
+        if (supports(body?.fields?.variant, body?.fields)) addPlaceholders(body, templatesFor(body));
         return;
     }
     const cards = Object.values(body.references ?? {})
         .map((ref) => ref?.value)
-        .filter((card) => supports(card?.fields?.variant));
-    for (const target of [body, ...cards]) addPlaceholders(target, templates);
+        .filter((card) => supports(card?.fields?.variant, card?.fields));
+    if (bodyRequiresSupportedCard && cards.length === 0) return;
+    for (const target of [body, ...cards]) addPlaceholders(target, templatesFor(target));
 }
 
 function applyPriceLiterals(fragment) {
@@ -439,7 +444,7 @@ async function settings(context) {
         }
     }
 
-    applyEduPlaceholders(body);
+    addPlaceholdersToCards(body, supportsEdu, eduTemplatesFor(body), { bodyRequiresSupportedCard: true });
     addPlaceholdersToCards(body, supportsCountdown, PLACEHOLDER_TEMPLATES.countdown);
     addPlaceholdersToCards(body, supportsWhatsIncludedToggle, PLACEHOLDER_TEMPLATES.whatsIncludedToggle);
     addPlaceholdersToCards(body, supportsLicenseLabel, PLACEHOLDER_TEMPLATES.license);

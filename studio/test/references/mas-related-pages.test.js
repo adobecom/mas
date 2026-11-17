@@ -15,7 +15,9 @@ const deferred = () => {
     return handle;
 };
 
-describe('mas-related-pages', () => {
+describe('mas-related-pages', function () {
+    this.timeout(20000);
+
     let sandbox;
     let fetchStub;
     let ioMeta;
@@ -29,8 +31,11 @@ describe('mas-related-pages', () => {
         await waitUntil(() => !text(el).includes('Loading'));
         await el.updateComplete;
     };
-    // Opening runs a Spectrum transition, which can take over a second on a loaded CI runner.
-    // Closing before it finishes strands Spectrum's focus trap, so wait until focus is inside.
+    // Opening and closing the modal each run a Spectrum transition. On the CI runner (run 41587889767)
+    // one open plus one close outlasted mocha's 5000ms, so each wait gets 8s inside a 20s suite limit and
+    // a slow step fails with its own message instead of a generic mocha timeout.
+    const modalTransition = { timeout: 8000 };
+    // Closing before it finishes opening strands Spectrum's focus trap, so wait until focus is inside.
     const openPagesDialog = async (el) => {
         el.shadowRoot.querySelector('.artifacts-view-link').focus();
         el.shadowRoot.querySelector('.artifacts-view-link').click();
@@ -38,7 +43,7 @@ describe('mas-related-pages', () => {
         await waitUntil(
             () => dialogOf(el).shadowRoot.querySelector('sp-dialog-wrapper')?.matches(':focus-within'),
             'Focus never moved into the pages dialog',
-            { timeout: 5000 },
+            modalTransition,
         );
     };
 
@@ -61,7 +66,9 @@ describe('mas-related-pages', () => {
         if (!overlay?.open) return;
         const closed = oneEvent(overlay, 'sp-closed');
         overlay.open = false;
-        await closed;
+        // sp-closed waits on animation frames, which a starved CI runner can withhold past the hook
+        // timeout. The fixture teardown that follows disconnects the overlay either way.
+        await Promise.race([closed, aTimeout(1000)]);
     });
 
     describe('rendering', () => {

@@ -982,6 +982,8 @@ sp-progress-circle.preview {
     border: 0;
     border-radius: 12px;
     padding: 20px;
+    box-sizing: border-box;
+    max-width: 508px;
     margin-bottom: 24px;
 }
 

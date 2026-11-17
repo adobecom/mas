@@ -1,9 +1,6 @@
-// Squash-merges the oldest open PR labeled "Ready to Merge" that passes every guard below (MWPW-210335).
-// Run every 30 minutes on weekdays by .github/workflows/auto-merge-ready.yaml, or manually with dry_run.
-// Merging one PR makes the others BEHIND (strict up-to-date rule), so a live run merges at most one.
-//
-// Usage (needs a checkout with full history and `gh` authenticated with the workflow token):
-//   [DRY_RUN=true] [GITHUB_REPOSITORY=adobecom/mas] node .github/scripts/auto-merge-ready.mjs
+// Squash-merges the oldest open PR labeled "Ready to merge" that passes every guard below.
+// Merging one PR puts the others behind main, so a live run merges at most one.
+// Usage: [DRY_RUN=true] [GITHUB_REPOSITORY=adobecom/mas] node .github/scripts/auto-merge-ready.mjs
 
 import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
@@ -11,10 +8,10 @@ import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const REPO = 'adobecom/mas';
-export const LABEL = 'Ready to Merge';
+export const LABEL = 'Ready to merge';
 export const MARKER = '<!-- auto-merge-ready -->';
 export const MIN_APPROVALS = 2;
-// The repo variable AUTO_MERGE_MAX_FILES overrides the default without a code change, as milo's merge-to-stage does.
+// The repo variable AUTO_MERGE_MAX_FILES overrides this.
 export const DEFAULT_MAX_CHANGED_FILES = 29;
 
 export function maxChangedFiles(value) {
@@ -25,7 +22,6 @@ export function maxChangedFiles(value) {
 const BLOCKING_LABELS = ['do not merge', 'under milo validation', 'rcp-restricted'];
 const RESTRICTED_PREFIXES = ['io/', 'web-components/', '.github/'];
 const PASSING_CONCLUSIONS = ['success', 'neutral', 'skipped'];
-// Review states that say nothing about approval.
 const NEUTRAL_REVIEW_STATES = ['COMMENTED', 'PENDING'];
 // Only reviewers who can approve under the ruleset; anyone can leave an APPROVED review on a public repo.
 const TRUSTED_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
@@ -68,7 +64,6 @@ export function failingChecks({ checkRuns, statuses }) {
     return [...runs, ...failed].sort();
 }
 
-// Each reviewer's latest non-comment review, when it is an approval.
 export function currentApprovals(reviews) {
     const latest = new Map();
     const submitted = reviews
@@ -242,7 +237,6 @@ function skip(repo, number, reason, dryRun) {
     return { outcome: `skipped: ${reason}` };
 }
 
-// `merged` is true only when the PR was actually merged.
 function handle(repo, pr, { dryRun, maxFiles }) {
     const load = loaders(repo, pr);
     const reason = skipReason(pr, load, maxFiles);
@@ -251,7 +245,7 @@ function handle(repo, pr, { dryRun, maxFiles }) {
     return merge(repo, pr, load.files());
 }
 
-// Evaluates candidates in order and stops evaluating after the first merge. A dry run merges nothing, so it evaluates all.
+// Stops after the first merge. A dry run merges nothing, so it evaluates every candidate.
 export function sweep(candidates, handlePr) {
     const rows = [];
     const purgeFailures = [];
@@ -286,6 +280,9 @@ function main() {
             'main',
             '--state',
             'open',
+            // mergeStateStatus for every open PR makes GraphQL time out (502).
+            '--label',
+            LABEL,
             '--limit',
             '200',
             '--json',

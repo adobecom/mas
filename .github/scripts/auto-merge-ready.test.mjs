@@ -40,7 +40,7 @@ const approvals = {
 const readyPr = (overrides = {}) => ({
     number: 1,
     isDraft: false,
-    labels: [{ name: 'Ready to Merge' }],
+    labels: [{ name: 'Ready to merge' }],
     headRefOid: 'head',
     changedFiles: 2,
     mergeStateStatus: 'CLEAN',
@@ -63,7 +63,7 @@ test('draft is skipped', () => {
 
 test('blocking labels are skipped', () => {
     for (const name of ['do not merge', 'UNDER MILO VALIDATION', 'RCP-restricted']) {
-        const pr = readyPr({ labels: [{ name: 'Ready to Merge' }, { name }] });
+        const pr = readyPr({ labels: [{ name: 'Ready to merge' }, { name }] });
         assert.equal(skipReason(pr, loadOf()), `labeled "${name}"`);
     }
 });
@@ -201,7 +201,7 @@ test('only the exact label selects candidates, oldest PR first', () => {
     const prs = [
         readyPr({ number: 9 }),
         readyPr({ number: 3, labels: [{ name: 'ready to merge' }] }),
-        readyPr({ number: 5, labels: [{ name: 'Ready to Merge ' }] }),
+        readyPr({ number: 5, labels: [{ name: 'Ready to merge ' }] }),
         readyPr({ number: 2 }),
     ];
     assert.deepEqual(
@@ -225,7 +225,7 @@ test('the summary starts with the mode', () => {
     const rows = [{ number: 4, outcome: 'would merge' }];
     assert.match(summary({ dryRun: true, rows }), /^Mode: dry run/);
     assert.match(summary({ dryRun: false, rows }), /^Mode: live\n\n\| PR/);
-    assert.match(summary({ dryRun: false, rows: [] }), /No open PR is labeled "Ready to Merge"/);
+    assert.match(summary({ dryRun: false, rows: [] }), /No open PR is labeled "Ready to merge"/);
 });
 
 test('the purge failure names the PR and the exact retry command', () => {

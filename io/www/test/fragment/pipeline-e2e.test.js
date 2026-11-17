@@ -1135,7 +1135,7 @@ describe('pipeline end to end', () => {
         // The placeholder-injected OSI is left untouched — no substitution happened: its own offer is rendered...
         expect(result.body.fields.prices).to.deep.equal(
             html(
-                '<span is="inline-price"><span class="price"><span class="price-integer">10.00</span>' +
+                '<span><span class="price"><span class="price-integer">10.00</span>' +
                     '<span class="price-currency-space">\u00a0</span><span class="price-currency-symbol">€</span>' +
                     '<span class="price-recurrence">/mo</span></span></span>',
             ),
@@ -1418,7 +1418,7 @@ describe('pipeline end to end', () => {
         };
         const price = (osi) => `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
         const renderedPrice = (planType) =>
-            '<span is="inline-price" data-template="price"><span class="price"><span class="price-currency-symbol">US$</span>' +
+            '<span data-template="price"><span class="price"><span class="price-currency-symbol">US$</span>' +
             `<span class="price-integer">22.99</span><span class="price-recurrence">${planType === 'PUF' ? '/yr' : '/mo'}</span>` +
             '</span></span>';
         // one card per market segment & plan type, each overriding its own fields over the baselines

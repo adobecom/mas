@@ -30,9 +30,11 @@ emitted per `type`:
 
 Vocabulary: `paragraph`, `header` (`style` `h1`…`h6`), `unordered-list`, `ordered-list`, `list-item`, `line-break`,
 `link` (`data: { href, target }`, `https:`, `mailto:` & `tel:` only, unwrapped otherwise), `text` with `bold`, `italic`,
-`underline` & `strikethrough` variants, and `inline-price` (`data: { template }`, `format`), a rendered price kept as a
-tree of `span` nodes (`data: { class }`, other attributes, hidden spans and non `span` elements dropped) for consumers to
-style it as adobe.com does (`<span is="inline-price" data-template>…</span>` in html). Outside prices, `span`, `div`,
+`underline` & `strikethrough` variants, and `span` (`data: { class }` or `{ template }`, `format`): a rendered price is
+kept as its tree of `span` nodes for consumers to style it as adobe.com does, in a wrapper keeping only its
+`data-template` (`<span data-template="price"><span class="price …">…</span></span>` in html; `is="inline-price"` being
+a client hook); other attributes, hidden spans and non `span` elements are dropped.
+Outside prices, `span`, `div`,
 `sup`, `sub`, `small` are unwrapped (`price-strikethrough` spans as `strikethrough`), as are unknown elements (logged); hidden (`.disabled`, `sr-only`) and unsafe (`script`, `style`,
 `iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
 dropped and logged as errors.

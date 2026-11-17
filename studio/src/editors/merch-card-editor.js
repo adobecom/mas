@@ -1690,9 +1690,12 @@ class MerchCardEditor extends LitElement {
                     gap: 8px;
                 }
 
-                .add-section-trigger,
-                .add-section-button {
+                .add-section-trigger {
                     display: block;
+                    width: 100%;
+                }
+
+                .add-section-button {
                     width: 100%;
                 }
 

@@ -106,6 +106,93 @@ describe('getSettings', () => {
         expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
+    describe('Orion stage testing', () => {
+        let meta;
+        let baseHref;
+        const config = { commerce: { allowOverride: 'true' } };
+
+        beforeEach(() => {
+            const url = new URL(href);
+            url.search = '';
+            baseHref = url.href;
+            meta = document.createElement('meta');
+            meta.name = 'mas.orion';
+            document.head.append(meta);
+            window.history.replaceState(
+                {},
+                '',
+                `${baseHref}?commerce.env=stage`,
+            );
+        });
+
+        afterEach(() => {
+            meta.remove();
+        });
+
+        for (const value of ['on', 'true', 'ON', 'True', 'oN', 'tRuE']) {
+            it(`enables Orion through "${value}" metadata on stage`, () => {
+                meta.content = value;
+                expect(getSettings(config, mockService).orion).to.be.true;
+            });
+
+            it(`enables Orion through "${value}" query parameter on stage`, () => {
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?commerce.env=stage&mas.orion=${value}`,
+                );
+                expect(getSettings(config, mockService).orion).to.be.true;
+            });
+        }
+
+        for (const value of ['off', 'false', '', 'other']) {
+            it(`does not enable Orion through "${value}"`, () => {
+                meta.content = value;
+                expect(getSettings(config, mockService).orion).not.to.be.true;
+            });
+        }
+
+        for (const value of ['off', 'OFF', 'FaLsE', '']) {
+            it(`lets "${value}" query parameter override enabled metadata`, () => {
+                meta.content = 'ON';
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?commerce.env=stage&mas.orion=${value}`,
+                );
+                expect(getSettings(config, mockService).orion).not.to.be.true;
+            });
+        }
+
+        it('supports kebab-case metadata used by existing parameter helpers', () => {
+            meta.name = 'mas-orion';
+            meta.content = 'true';
+            expect(getSettings(config, mockService).orion).to.be.true;
+        });
+
+        for (const value of ['true', 'ON', 'True']) {
+            it(`does not enable Orion in production through "${value}"`, () => {
+                meta.content = value;
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?mas.orion=${value}`,
+                );
+                expect(getSettings(config, mockService).orion).not.to.be.true;
+            });
+        }
+
+        it('respects the existing commerce environment override permission', () => {
+            meta.content = 'on';
+            expect(getSettings({}, mockService).orion).not.to.be.true;
+        });
+
+        it('does not enable Orion from session storage', () => {
+            window.sessionStorage.setItem('mas.orion', 'true');
+            expect(getSettings(config, mockService).orion).not.to.be.true;
+        });
+    });
+
     describe('aupSelect', () => {
         let meta;
 

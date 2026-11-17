@@ -92,7 +92,7 @@ describe('serialize transformer', () => {
         expect(prices.value).to.equal('<p><s>US$39/mo</s> US$29</p>');
     });
 
-    it('keeps the sanitized markup of rendered prices in html only', async () => {
+    it('keeps the sanitized tree of rendered prices in json & html', async () => {
         const strikethrough = `<span is="inline-price" data-template="strikethrough" data-wcs-osi="osi">${PRICE.split(' <span class="price">')[0]}</span>`;
         const price =
             '<span is="inline-price" onclick="steal()"><span class="price"><!-- c --><span class="price-currency-symbol">US$</span>' +
@@ -104,17 +104,34 @@ describe('serialize transformer', () => {
                 '<span class="price-recurrence">/mo</span></span></span> Pay <strong><span is="inline-price"><span class="price">' +
                 '<span class="price-currency-symbol">US$</span>2&lt;9<span>/mo</span></span></span></strong> now</p>',
         );
+        const text = (value) => ({ nodeType: 'text', value });
+        const span = (className, ...content) => ({
+            nodeType: 'span',
+            ...(className && { data: { class: className } }),
+            content,
+        });
         expect((await run('json', { prices: structuredClone(prices) })).prices.json[0].content).to.deep.equal([
-            { nodeType: 'text', value: 'US$39/mo', format: { variants: ['strikethrough'] } },
-            { nodeType: 'text', value: ' Pay ' },
-            { nodeType: 'text', value: 'US$2<9/mo', format: { variants: ['bold'] } },
-            { nodeType: 'text', value: ' now' },
+            {
+                nodeType: 'inline-price',
+                data: { template: 'strikethrough' },
+                content: [
+                    span(
+                        'price price-strikethrough',
+                        span('price-currency-symbol', text('US$')),
+                        span('price-integer', text('39')),
+                        span('price-recurrence', text('/mo')),
+                    ),
+                ],
+            },
+            text(' Pay '),
+            {
+                nodeType: 'inline-price',
+                content: [span('price', span('price-currency-symbol', text('US$')), text('2<9'), span(undefined, text('/mo')))],
+                format: { variants: ['bold'] },
+            },
+            text(' now'),
         ]);
         expect((await run('text', { prices: structuredClone(prices) })).prices.value).to.equal('US$39/mo Pay US$2<9/mo now');
-        const plain = html('<p>Pay <span is="inline-price"><span class="price">US$9</span></span> now</p>');
-        expect((await run('json', { prices: plain })).prices.json[0].content).to.deep.equal([
-            { nodeType: 'text', value: 'Pay US$9 now' },
-        ]);
     });
 
     it('flattens to text, one line per block', async () => {
@@ -125,7 +142,7 @@ describe('serialize transformer', () => {
 
     it('groups loose inline content in paragraphs and drops empty blocks', async () => {
         const { description } = await run('json', {
-            description: '  loose <b>text</b><p> </p><div>unwrapped</div><p><a href="tel:123">call</a><br></p>',
+            description: '  loose <b>text</b><p> </p><div>unwrapped</div><p><a href="tel:123">ca<br>ll</a><br></p>',
         });
         expect(description.json).to.deep.equal([
             {

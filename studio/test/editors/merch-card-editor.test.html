@@ -1924,11 +1924,71 @@
 
                         const expectedGridOrder = [
                             'variant',
-                            'cardName',
+                            'size',
                             'fragment-title-group',
                             'fragment-description-group',
                             'fragment-enable-baselines-group',
                         ];
+
+                        const sectionTitleFor = (editor, el) => {
+                            const preceding = [...editor.querySelectorAll('.section-title')].filter(
+                                (heading) => heading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
+                            return preceding.at(-1).textContent.trim();
+                        };
+
+                        it('groups a plans card into the redesigned sections', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'section-order-plans',
+                            );
+                            await editor.toggleFields();
+                            expect(
+                                [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                            ).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                "What's included",
+                                "What's included",
+                                'Footer rows',
+                                'Custom fields',
+                                'Options and settings',
+                            ]);
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#planType'))).to.equal(
+                                'Price and Promo',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#secureLabel'))).to.equal(
+                                'Call to action',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#mnemonics'))).to.equal(
+                                'Card header',
+                            );
+                        });
+
+                        it('keeps the Visuals heading visible when only backgroundImage or backgrounds is visible', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'visuals-bg',
+                            );
+                            await editor.toggleFields();
+                            const visualsFields = editor.constructor.SECTION_FIELDS.Visuals;
+                            const heading = [...editor.querySelectorAll('.section-title')].find(
+                                (h) => h.textContent.trim() === 'Visuals',
+                            );
+                            for (const visible of ['backgroundImage', 'backgrounds']) {
+                                for (const id of visualsFields) {
+                                    const el = editor.querySelector(`#${id}`);
+                                    if (el) el.style.display = id === visible ? 'block' : 'none';
+                                }
+                                editor.toggleSectionHeadings();
+                                expect(heading.style.display).to.equal('block');
+                            }
+                        });
 
                         it('keeps the General info fields in order without a gap', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'no-locready-order');

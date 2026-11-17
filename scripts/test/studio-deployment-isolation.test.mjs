@@ -42,7 +42,6 @@ test('MASA action keeps raw HTTP, immutable inputs and its own preflight handler
         'MASA_API_ENABLED',
         'MASA_API_SERVICE_TOKEN',
         'MASA_IDENTITY_PRIVATE_KEY_B64',
-        'MASA_PILOT_USERS',
         'MASA_GATEWAY_CLIENT_SECRET',
         'MASA_GATEWAY_AUTH_CODE',
         'MASA_GATEWAY_API_KEY',

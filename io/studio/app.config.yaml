@@ -179,7 +179,6 @@ application:
                             MASA_IDENTITY_PRIVATE_KEY_B64: $MASA_IDENTITY_PRIVATE_KEY_B64
                             MASA_API_ISSUER: $MASA_API_ISSUER
                             MASA_API_AUDIENCE: $MASA_API_AUDIENCE
-                            MASA_PILOT_USERS: $MASA_PILOT_USERS
                             MASA_READ_SURFACES: $MASA_READ_SURFACES
                             MASA_STUDIO_ORIGINS: $MASA_STUDIO_ORIGINS
                             MASA_IMS_ENVIRONMENT: $MASA_IMS_ENVIRONMENT

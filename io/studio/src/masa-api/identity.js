@@ -3,7 +3,7 @@ import { requestJson } from './client.js';
 
 const denied = () => new AdapterError(401, 'invalid-studio-identity', 'A current Studio IMS access token is required.');
 
-/** Match mas-agent's gateway: remote validation, verified client/type/user_id, then explicit internal pilot admission. */
+/** Match mas-agent's gateway: remote validation, then the verified client/type/user_id. Every Studio client user is admitted. */
 export async function verifyIdentity(headers, config, fetchImpl, signal) {
     const authorization = headers.authorization;
     if (typeof authorization !== 'string' || !/^Bearer [A-Za-z0-9_.-]{1,8192}$/.test(authorization)) throw denied();
@@ -39,7 +39,5 @@ export async function verifyIdentity(headers, config, fetchImpl, signal) {
         throw denied();
     }
     if (claims?.type !== 'access_token' || claims.client_id !== config.imsClientId || !validId(claims.user_id)) throw denied();
-    if (!config.pilotUsers.includes(claims.user_id))
-        throw new AdapterError(403, 'caller-not-allowed', 'This Studio user is not admitted to the MASA pilot.');
     return { subject: claims.user_id, token };
 }

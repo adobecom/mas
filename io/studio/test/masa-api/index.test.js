@@ -6,7 +6,7 @@ const nativeFetch = globalThis.fetch;
 
 const keys = generateKeyPairSync('ed25519');
 const origin = 'https://studio.example.test';
-const subject = 'pilot-user@AdobeID';
+const subject = 'studio-user@AdobeID';
 const timestamp = Date.parse('2026-10-19T12:00:00Z');
 const sessionId = 'ses_11111111-1111-4111-8111-111111111111';
 const investigationId = 'inv_22222222-2222-4222-8222-222222222222';
@@ -22,7 +22,6 @@ const config = {
     MASA_IDENTITY_PRIVATE_KEY_B64: Buffer.from(keys.privateKey.export({ type: 'pkcs8', format: 'pem' })).toString('base64'),
     MASA_API_ISSUER: 'studio-test',
     MASA_API_AUDIENCE: 'masa-test',
-    MASA_PILOT_USERS: subject,
     MASA_READ_SURFACES: 'acom,sandbox',
     MASA_STUDIO_ORIGINS: origin,
     MASA_IMS_ENVIRONMENT: 'prod',
@@ -181,7 +180,7 @@ describe('Studio MASA Runtime adapter', function () {
         }
     });
 
-    it('fails closed on missing credentials, unsafe endpoints, wildcard admission and wrong signing keys', async () => {
+    it('fails closed on missing credentials, unsafe endpoints, wildcard scopes and wrong signing keys', async () => {
         const wrongKey = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({
             type: 'pkcs8',
             format: 'pem',
@@ -191,7 +190,6 @@ describe('Studio MASA Runtime adapter', function () {
             { MASA_API_BASE_URL: 'http://control.example.test' },
             { MASA_MEDIA_BASE_URL: 'https://media.example.test/path' },
             { MASA_STUDIO_ORIGINS: '*' },
-            { MASA_PILOT_USERS: '*' },
             { MASA_READ_SURFACES: 'all' },
             { MASA_IMS_ENVIRONMENT: 'unknown' },
             { MASA_IDENTITY_PRIVATE_KEY_B64: Buffer.from(wrongKey).toString('base64') },
@@ -431,12 +429,27 @@ describe('Studio MASA Runtime adapter', function () {
         assert.equal(tokenRequests.length, 1);
     });
 
-    it('rejects remotely invalid, wrong-client, wrong-type, sub-only and unadmitted identities before MASA', async () => {
+    it('admits every verified Studio client user without an admission list', async () => {
+        const h = harness();
+        const response = await h.handler(
+            params(undefined, {
+                __ow_headers: {
+                    origin,
+                    'content-type': 'application/json',
+                    authorization: `Bearer ${token({ user_id: 'another-user@OtherOrg' })}`,
+                },
+            }),
+        );
+        assert.equal(response.statusCode, 200);
+        const [, payload] = h.backendCalls()[0].init.headers['X-Masa-User-Assertion'].split('.');
+        assert.equal(JSON.parse(Buffer.from(payload, 'base64url')).sub, 'another-user@OtherOrg');
+    });
+
+    it('rejects remotely invalid, wrong-client, wrong-type and sub-only identities before MASA', async () => {
         for (const claims of [
             { client_id: 'other-client' },
             { type: 'id_token' },
             { user_id: undefined, sub: subject },
-            { user_id: 'not-admitted@AdobeID' },
             { user_id: 'has whitespace' },
         ]) {
             const h = harness();
@@ -449,7 +462,7 @@ describe('Studio MASA Runtime adapter', function () {
                     },
                 }),
             );
-            assert.ok([401, 403].includes(response.statusCode));
+            assert.equal(response.statusCode, 401);
             assert.equal(h.backendCalls().length, 0);
         }
         for (const ims of [() => json({ valid: false }), () => json({ valid: true }, 401), () => json({ valid: true }, 503)]) {

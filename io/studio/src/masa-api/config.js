@@ -69,7 +69,6 @@ export function loadConfig(params) {
             serviceToken: params.MASA_API_SERVICE_TOKEN,
             issuer: params.MASA_API_ISSUER,
             audience: params.MASA_API_AUDIENCE,
-            pilotUsers: list(params.MASA_PILOT_USERS, 100, (value) => value !== '*' && validId(value)),
             surfaces: list(
                 params.MASA_READ_SURFACES,
                 32,

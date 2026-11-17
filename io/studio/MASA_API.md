@@ -9,8 +9,9 @@ knowledge and labels the answer. Studio keeps every write; Slack uses its own ga
 ## Identity and configuration
 
 The Runtime action remotely validates the IMS access token on **every control request**, then checks the
-verified token's `type=access_token`, `client_id` and `user_id`. Only an explicitly admitted pilot subject
-can reach MASA. It signs `user_id`, not `sub`, display name or email, in a short-lived Ed25519 assertion.
+verified token's `type=access_token`, `client_id` and `user_id`. Every user of the configured Studio IMS
+client can reach MASA; there is no per-user list. It signs `user_id`, not `sub`, display name or email, in
+a short-lived Ed25519 assertion.
 The assertion binds the configured issuer/audience, conversation, shared internal read surfaces, exact
 HTTP method/path/body hash, idempotency key and a fresh nonce. MASA independently validates ownership
 and current admission. Cancellation first reads the job and checks its session binding.
@@ -23,7 +24,7 @@ service token goes in `authorization-target`, which the gateway moves into MASA'
 gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and `Content-Type` through unchanged,
 strip its route prefix so MASA receives `/v1/...`, and keep the body byte-for-byte, or the assertion fails.
 
-The pilot shares MASA's internal read policy; Studio editing permissions do not become a fragment-level
+Studio users share MASA's internal read policy; Studio editing permissions do not become a fragment-level
 read ACL.
 
 Provision the following **action inputs** through protected deployment configuration. Values are never
@@ -41,7 +42,6 @@ and [OpenWhisk raw web actions](https://github.com/apache/openwhisk/blob/master/
 | `MASA_API_SERVICE_TOKEN`               | MASA's `STUDIO_API_SERVICE_TOKEN`; 43–256 URL-safe characters                                                                  |
 | `MASA_IDENTITY_PRIVATE_KEY_B64`        | Base64 of a PEM Ed25519 private key; MASA loads its public half from `STUDIO_API_IDENTITY_PUBLIC_KEY_PATH`                     |
 | `MASA_API_ISSUER`, `MASA_API_AUDIENCE` | Match MASA's `STUDIO_API_ISSUER` and `STUDIO_API_AUDIENCE`                                                                     |
-| `MASA_PILOT_USERS`                     | Comma-separated verified IMS `user_id` values, 1–100; match the admitted MASA pilot cohort                                     |
 | `MASA_READ_SURFACES`                   | Comma-separated shared internal surfaces, e.g. `acom,ccd`; must be admitted by `STUDIO_API_SURFACES`                           |
 | `MASA_STUDIO_ORIGINS`                  | Exact browser origins, 1–8, also admitted by `STUDIO_API_MEDIA_ORIGINS`; HTTPS except HTTP localhost/127.0.0.1 for development |
 | `MASA_IMS_ENVIRONMENT`                 | `prod` or `stage`; match `STUDIO_API_MEDIA_IMS_ENVIRONMENT`                                                                    |

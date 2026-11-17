@@ -12,7 +12,7 @@ this action sits behind mas/io/fragment in CDN and treats multiple odin related 
 
 that each stand behind so called transformers. To optimize calls make to odin, the sequence is based on promises created at init time and sometimes depending on each other. The pipeline order is:
 
-`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → render → serialize`
+`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → render → aup → serialize`
 
 Grouped and promo variations tagged with both geography and an audience require both to match.
 Geography-only and audience-only variations remain supported.
@@ -38,6 +38,24 @@ Outside prices, `span`, `div`,
 `sup`, `sub`, `small` are unwrapped (`price-strikethrough` spans as `strikethrough`), as are unknown elements (logged); hidden (`.disabled`, `sr-only`) and unsafe (`script`, `style`,
 `iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
 dropped and logged as errors.
+
+## aup transformer (MWPW-214840)
+
+Mock of the AUP response mapping of the M@S & AUP integration architecture (§4.4.1), only active for api keys whose
+`apiKeyDefaults` set `mapping: "aup"` (hardcoded for `unified_checkout_server_v3`; a `mapping` request parameter is
+ignored), with a `type`, on cards (collections are left as delivered). It runs after render and replaces the body with:
+`fragment`, `template`, `analyticsId` (`mas:product_code/` tag), `offerId`, `osi`, `productArrangementCode` (cached
+WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgroundColor, borderColor }`, from
+`merch-badge` attributes or the card's color fields, documented defaults otherwise), `mnemonics`, `description`,
+`shortDescription`, `promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,
+target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src` from the cached WCS offers),
+`features` (the in-card what's included list), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
+`perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`. Text-bearing
+values are emitted per `type` with serialize (`json` nodes, `html` or `text` strings).
+
+Mock limitations: `price` is the rendered price markup, not a price object; badge colors are authored tokens, not hex;
+`features` only holds what's included; checkout urls are prod, `adobe_com` client, without the page context (`cli`
+etc. defaults); a missing cached offer leaves the url out (logged); no preview support.
 
 ## render transformer (MWPW-210316)
 
@@ -212,7 +230,7 @@ below are the members of that object
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------- |
 | `wcsConfiguration` | WCS (Web Content Service) endpoints, one per environment, e.g. `[{"wcsURL":"https://www.stage.adobe.com/web_commerce_artifact","env":"stage"}]`. The `prod` row is hardcoded in `utils/configuration.js`; you only need to list extra envs here. A state entry with `env: "prod"` overrides the hardcoded URL (handy for dev/test workspaces). | Array | ``    |
 | `apiKeys`           | Extra accepted client API keys, merged with the hardcoded baseline in `utils/configuration.js`. Entries are literal strings; wrap a value in `/.../` to match a regex pattern, e.g. `["my-test-key", "/^CreativeCloud_v\\d+_\\d+$/"]`. Unknown api_key values in the request → `401` before any downstream call. | Array |`` |
-| `apiKeyDefaults` | Request parameter defaults of an api key, e.g. `{"AdobeExpressWeb": {"surface": "express"}, "/^unified_checkout_server_v\\d+$/": {"type": "json"}}` (keys accept the same `/.../` regex form as `apiKeys`). Merged over the hardcoded ones in `utils/configuration.js` (`unified_checkout_server_v3` → `{"surface": "sandbox", "type": "json"}`) and the legacy `apiKeySurfaces`. `surface` is used when the request has neither `surface` nor `id`, a `surface` parameter conflicting with it → `404`; `type` is used when the request has none. | Object |`` |
+| `apiKeyDefaults` | Request parameter defaults of an api key, e.g. `{"AdobeExpressWeb": {"surface": "express"}, "/^unified_checkout_server_v\\d+$/": {"type": "json"}}` (keys accept the same `/.../` regex form as `apiKeys`). Merged over the hardcoded ones in `utils/configuration.js` (`unified_checkout_server_v3` → `{"surface": "sandbox", "type": "json", "mapping": "aup"}`) and the legacy `apiKeySurfaces`. `surface` is used when the request has neither `surface` nor `id`, a `surface` parameter conflicting with it → `404`; `type` is used when the request has none; `mapping` (api key only) selects a response mapping, e.g. `aup` (see aup transformer). | Object |`` |
 | `apiKeySurfaces` | Legacy, superseded by `apiKeyDefaults`: surface served by an api key, e.g. `{"AdobeExpressWeb": "express"}`. | Object |`` |
 | `debugLogs` | turns debug log on | Boolean | `false` |
 | `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500` | Array |`` |

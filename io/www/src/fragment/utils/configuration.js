@@ -13,7 +13,7 @@ const HARDCODED_API_KEYS = [
 
 // state `apiKeyDefaults` entries are merged over these
 const HARDCODED_API_KEY_DEFAULTS = {
-    unified_checkout_server_v3: { surface: 'sandbox', type: 'json' },
+    unified_checkout_server_v3: { surface: 'sandbox', type: 'json', mapping: 'aup' },
 };
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];

@@ -138,10 +138,11 @@ describe('getApiKeyDefaults', () => {
         expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb' })).to.deep.equal({});
     });
 
-    it('defaults the commerce server key to json on sandbox', () => {
+    it('defaults the commerce server key to the aup mapping in json on sandbox', () => {
         expect(getApiKeyDefaults({ api_key: 'unified_checkout_server_v3' })).to.deep.equal({
             surface: 'sandbox',
             type: 'json',
+            mapping: 'aup',
         });
     });
 
@@ -150,6 +151,7 @@ describe('getApiKeyDefaults', () => {
         expect(getApiKeyDefaults({ api_key: 'unified_checkout_server_v3', apiKeyDefaults })).to.deep.equal({
             surface: 'sandbox',
             type: 'text',
+            mapping: 'aup',
         });
         expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb', apiKeySurfaces, apiKeyDefaults })).to.deep.equal({
             surface: 'acom',

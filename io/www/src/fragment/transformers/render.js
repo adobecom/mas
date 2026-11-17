@@ -88,6 +88,20 @@ function cachedOffersOf(cache, osi, osis, country, promotionCode) {
     return { key: joinedKey, offers: cache[joinedKey]?.filter(({ offerSelectorIds }) => offerSelectorIds.includes(osi)) };
 }
 
+/** element `data-*` attributes, camel cased as in the browser's dataset */
+function datasetOf(attributes) {
+    const dataset = {};
+    for (const [name, value] of Object.entries(attributes)) {
+        if (!name.startsWith('data-')) continue;
+        dataset[name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
+    }
+    return dataset;
+}
+
+/** fragment promotion code, as inherited by its elements without one */
+const fragmentPromotionCode = (context, fragment) => fragment.fields?.promoCode ?? context.body.fields?.promoCode;
+const effectivePromotionCode = (code) => (code === PROMO_CONTEXT_CANCEL_VALUE ? '' : code);
+
 /**
  * Resolves an inline price's options from its data attributes as the browser's `collectPriceOptions`
  * does, against what the `wcs` transformer cached: final (substituted) OSIs, the element's promotion
@@ -95,17 +109,11 @@ function cachedOffersOf(cache, osi, osis, country, promotionCode) {
  * settings supply the plan type & annual defaults, the replaced price literals the labels.
  */
 function resolvePriceOptions({ context, fragment, attributes }) {
-    const dataset = {};
-    for (const [name, value] of Object.entries(attributes)) {
-        if (!name.startsWith('data-')) continue;
-        dataset[name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
-    }
+    const dataset = datasetOf(attributes);
     const settings = fragment.settings ?? context.body.settings ?? {};
     const { wcsOsi = '', promotionCode, quantity, ...rest } = dataset;
     const osis = toList(wcsOsi).filter(Boolean);
-    const codes = toList(promotionCode ?? fragment.fields?.promoCode ?? context.body.fields?.promoCode ?? '').map((code) =>
-        code === PROMO_CONTEXT_CANCEL_VALUE ? '' : code,
-    );
+    const codes = toList(promotionCode ?? fragmentPromotionCode(context, fragment) ?? '').map(effectivePromotionCode);
     const promotionCodes = osis.map((_, index) => (codes.length > 1 ? (codes[index] ?? '') : codes[0]));
     const literals = Object.fromEntries(
         Object.entries({ ...context.body.priceLiterals, ...fragment.priceLiterals }).filter(
@@ -237,4 +245,12 @@ async function process(context) {
 }
 
 export const transformer = { name: 'render', process };
-export { render, resolvePriceOptions };
+export {
+    datasetOf,
+    effectivePromotionCode,
+    fragmentPromotionCode,
+    offerCacheKey,
+    render,
+    RENDER_ENVIRONMENT,
+    resolvePriceOptions,
+};

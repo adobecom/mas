@@ -570,9 +570,9 @@ describe('inactive inline-price render transformer', () => {
         expect(console.error.firstCall.args[0]).to.include('[render]').and.include('Failed to format literal');
     });
 
-    it('registers render between corrector and serialize in the pipeline', () => {
+    it('registers render between corrector and the aup mapping in the pipeline', () => {
         const names = PIPELINE.map(({ name }) => name);
-        expect(names.slice(names.indexOf('corrector'))).to.deep.equal(['corrector', 'render', 'serialize']);
+        expect(names.slice(names.indexOf('corrector'))).to.deep.equal(['corrector', 'render', 'aup', 'serialize']);
     });
 });
 

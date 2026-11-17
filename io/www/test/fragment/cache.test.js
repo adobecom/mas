@@ -53,6 +53,9 @@ describe('request metadata key', () => {
         expect(
             await requestKey({ offer: 'some-osi', template: 'plans', surface: 'acom', locale: 'en_US', type: 'json' }),
         ).to.equal('req-.offer-en_US.o-some-osi.t-plans.s-acom.y-json');
+        expect(await requestKey({ id: 'some-id', locale: 'en_US', type: 'json', mapping: 'aup' })).to.equal(
+            'req-some-id-en_US.y-json.a-aup',
+        );
     });
 
     it('keeps an offer override of a fragment apart from the fragment itself', async () => {

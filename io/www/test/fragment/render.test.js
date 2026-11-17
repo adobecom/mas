@@ -1,11 +1,12 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { readFile } from 'node:fs/promises';
-import { transformer as render } from '../../src/fragment/transformers/render.js';
+import { render as process, resolvePriceOptions, transformer } from '../../src/fragment/transformers/render.js';
 import { PIPELINE } from '../../src/fragment/pipeline.js';
 import { buildPriceHTML } from '../../../../price/src/price.js';
 import { baseOffer, cases, instant, priceInfo } from '../../../../price/test/fixtures/cases.js';
 
+const render = { process };
 const golden = JSON.parse(await readFile(new URL('../../../../price/test/fixtures/price-html.expected.json', import.meta.url)));
 const wrapper = '<span is="inline-price" data-wcs-osi="osi-base">';
 const placeholder = `${wrapper}</span>`;
@@ -55,8 +56,8 @@ describe('inactive inline-price render transformer', () => {
     afterEach(() => sinon.restore());
 
     it('exports the standard render transformer without an upstream init', () => {
-        expect(render.name).to.equal('render');
-        expect(render).not.to.have.property('init');
+        expect(transformer.name).to.equal('render');
+        expect(transformer).not.to.have.property('init');
     });
 
     it('preserves the authored outer wrapper while replacing its contents', async () => {
@@ -554,8 +555,89 @@ describe('inactive inline-price render transformer', () => {
         expect(console.error.firstCall.args[0]).to.include('[render]').and.include('Failed to format literal');
     });
 
-    it('does not register render in the production pipeline', () => {
-        expect(PIPELINE.map(({ name }) => name)).not.to.include('render');
+    it('registers render between corrector and serialize in the pipeline', () => {
+        const names = PIPELINE.map(({ name }) => name);
+        expect(names.slice(names.indexOf('corrector'))).to.deep.equal(['corrector', 'render', 'serialize']);
+    });
+});
+
+describe('render pipeline step', () => {
+    beforeEach(() => {
+        sinon.useFakeTimers({ now: new Date(instant), toFake: ['Date'] });
+        sinon.stub(console, 'error');
+        sinon.stub(console, 'log');
+    });
+    afterEach(() => sinon.restore());
+
+    it('resolves options from inline price attributes like the browser', () => {
+        const fragment = {
+            fields: { promoCode: 'PROMO' },
+            settings: { displayPlanType: true },
+            priceLiterals: { freeLabel: 'Gratuit' },
+        };
+        const context = {
+            locale: 'fr_FR',
+            regionLocale: 'fr_CA',
+            wcsCountry: 'CA',
+            body: { priceLiterals: { recurrenceLabel: '/mois', perUnitLabel: '{{price-literal-per-unit-label}}' } },
+        };
+        const attributes = {
+            is: 'inline-price',
+            'data-wcs-osi': 'osi-a, osi-b',
+            'data-template': 'strikethrough',
+            'data-display-recurrence': 'false',
+            'data-display-tax': 'true',
+            'data-quantity': '2',
+        };
+        expect(resolvePriceOptions({ context, fragment, attributes })).to.deep.equal({
+            template: 'strikethrough',
+            country: 'CA',
+            language: 'fr',
+            wcsOsi: ['osi-a', 'osi-b'],
+            promotionCodes: ['PROMO', 'PROMO'],
+            promotionCode: 'PROMO',
+            quantity: [2],
+            literals: { recurrenceLabel: '/mois', freeLabel: 'Gratuit' },
+            displayRecurrence: false,
+            displayTax: true,
+            displayPlanType: true,
+            forceTaxExclusive: false,
+        });
+    });
+
+    it('aligns per osi promotion codes, cancel-context meaning none', () => {
+        const context = { locale: 'en_GB', body: { fields: { promoCode: 'ROOT' }, settings: { displayAnnual: '1' } } };
+        const attributes = { 'data-wcs-osi': 'osi-a,osi-b,osi-c', 'data-promotion-code': 'CODE,cancel-context' };
+        const options = resolvePriceOptions({ context, fragment: { fields: {} }, attributes });
+        expect(options).to.include({ country: 'GB', language: 'en', promotionCode: 'CODE', displayAnnual: true });
+        expect(options.promotionCodes).to.deep.equal(['CODE', '', '']);
+        const inherited = resolvePriceOptions({ context, fragment: {}, attributes: {} });
+        expect(inherited).to.include({ promotionCode: '' });
+        expect(inherited.wcsOsi).to.deep.equal([]);
+        const fragmentPromo = resolvePriceOptions({ context, fragment: {}, attributes: { 'data-wcs-osi': 'osi-a' } });
+        expect(fragmentPromo.promotionCodes).to.deep.equal(['ROOT']);
+    });
+
+    it('leaves prices unrendered without type', async () => {
+        const context = contextFor();
+        expect(await transformer.process(context)).to.equal(context);
+        expect(context.body.fields.description).to.equal(placeholder);
+    });
+
+    it('renders prices from the prod WCS cache with a type', async () => {
+        const context = { ...contextFor(), type: 'json' };
+        await transformer.process(context);
+        expect(context.body.fields.description).to.equal(
+            `${wrapper}${golden.results['US-en/INDIVIDUAL/default/regular']}</span>`,
+        );
+    });
+
+    it('logs and leaves every price unrendered when an offer is missing from the cache', async () => {
+        const context = { ...contextFor(`${placeholder}<span is="inline-price" data-wcs-osi="missing"></span>`), type: 'json' };
+        const { description } = context.body.fields;
+        expect(await transformer.process(context)).to.equal(context);
+        expect(context.body.fields.description).to.equal(description);
+        expect(console.error.calledWithMatch(sinon.match('No cached offers for missing-us-mult'))).to.be.true;
     });
 });
 

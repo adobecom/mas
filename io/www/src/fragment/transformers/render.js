@@ -1,7 +1,23 @@
 import { parseFragment } from 'parse5';
 import { applyPlanType, selectOffers, sumOffers } from '../../../../../price/src/offers.js';
 import { buildPriceHTML } from '../../../../../price/src/price.js';
+import { getCountry, getRegionalLocale } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
+
+const RENDER_ENVIRONMENT = 'prod';
+const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
+const UNRESOLVED_LITERAL = /^(\{\{)?price-literal-/;
+const BOOLEAN_OPTIONS = [
+    'displayOldPrice',
+    'displayPerUnit',
+    'displayRecurrence',
+    'displayTax',
+    'displayPlanType',
+    'displayAnnual',
+    'forceTaxExclusive',
+    'perpetual',
+    'alternativePrice',
+];
 
 const REQUIRED_OPTIONS = [
     'country',
@@ -53,9 +69,54 @@ function checkOptions(options, fail) {
     }
 }
 
+const toList = (value) => value.split(',').map((entry) => entry.trim());
+
 /**
- * Direct invocation only. The activation ticket must supply environment/options
- * and decide how retained inline-price hooks interact with browser hydration.
+ * Resolves an inline price's options from its data attributes as the browser's `collectPriceOptions`
+ * does, against what the `wcs` transformer cached: final (substituted) OSIs, the element's promotion
+ * code or else its fragment's one (`cancel-context` meaning none), the request commerce country. Card
+ * settings supply the plan type & annual defaults, the replaced price literals the labels.
+ */
+function resolvePriceOptions({ context, fragment, attributes }) {
+    const dataset = {};
+    for (const [name, value] of Object.entries(attributes)) {
+        if (!name.startsWith('data-')) continue;
+        dataset[name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
+    }
+    const settings = fragment.settings ?? context.body.settings ?? {};
+    const { wcsOsi = '', promotionCode, quantity, ...rest } = dataset;
+    const osis = toList(wcsOsi).filter(Boolean);
+    const codes = toList(promotionCode ?? fragment.fields?.promoCode ?? context.body.fields?.promoCode ?? '').map((code) =>
+        code === PROMO_CONTEXT_CANCEL_VALUE ? '' : code,
+    );
+    const promotionCodes = osis.map((_, index) => (codes.length > 1 ? (codes[index] ?? '') : codes[0]));
+    const literals = Object.fromEntries(
+        Object.entries({ ...context.body.priceLiterals, ...fragment.priceLiterals }).filter(
+            ([, literal]) => literal && !UNRESOLVED_LITERAL.test(literal),
+        ),
+    );
+    const options = {
+        ...rest,
+        country: context.wcsCountry ?? getCountry(context),
+        language: getRegionalLocale(context).split('_')[0],
+        wcsOsi: osis,
+        promotionCodes,
+        promotionCode: promotionCodes[0] ?? '',
+        quantity: quantity ? toList(quantity).map(Number) : [1],
+        literals,
+    };
+    for (const key of BOOLEAN_OPTIONS) {
+        const value = rest[key] ?? settings[key];
+        if (value != null) options[key] = ['true', '1'].includes(String(value));
+    }
+    options.displayTax ??= false;
+    options.forceTaxExclusive ??= false;
+    return options;
+}
+
+/**
+ * Renders every inline price of the root and referenced fragments from the `wcs` cache.
+ * Direct invocation requires an explicit environment & options provider.
  */
 async function render(context, { environment, resolveOptions } = {}) {
     const loggingContext = { ...context, loggedTransformer: 'render' };
@@ -146,4 +207,19 @@ async function render(context, { environment, resolveOptions } = {}) {
     return context;
 }
 
-export const transformer = { name: 'render', process: render };
+/**
+ * Pipeline step, only active with a `type` (see serialize): prices are resolved from the prod WCS cache
+ * of the response. A price that can't be rendered (e.g. offer missing from the cache) is logged by
+ * `render` and leaves every field unrendered, as delivered without a `type`.
+ */
+async function process(context) {
+    if (!context.type) return context;
+    try {
+        return await render(context, { environment: RENDER_ENVIRONMENT, resolveOptions: resolvePriceOptions });
+    } catch {
+        return context;
+    }
+}
+
+export const transformer = { name: 'render', process };
+export { render, resolvePriceOptions };

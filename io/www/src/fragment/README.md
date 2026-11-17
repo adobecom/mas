@@ -12,7 +12,7 @@ this action sits behind mas/io/fragment in CDN and treats multiple odin related 
 
 that each stand behind so called transformers. To optimize calls make to odin, the sequence is based on promises created at init time and sometimes depending on each other. The pipeline order is:
 
-`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → serialize`
+`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → render → serialize`
 
 Grouped and promo variations tagged with both geography and an audience require both to match.
 Geography-only and audience-only variations remain supported.
@@ -37,20 +37,29 @@ style it as adobe.com does (`<span is="inline-price" data-template>…</span>` i
 `iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
 dropped and logged as errors.
 
-## Inactive price-render transformer
+## render transformer (MWPW-210316)
 
-`transformers/render.js` is available for direct execution only. It is **not**
-registered in the pipeline, and does not change production responses or fetch
-offers. It imports the shared framework-free implementation directly from
+Only active with a `type` (see serialize): every inline price (`<span is="inline-price">`) of the body and its
+referenced cards is rendered in place, keeping its wrapper, from the prod WCS cache the `wcs` transformer stored in
+`body.wcs`. Options are resolved by `resolvePriceOptions` as the browser's `collectPriceOptions` does: data
+attributes (final substituted `data-wcs-osi`, `data-template`, `data-display-*`, `data-quantity`…), the element's
+promotion code or else its fragment's `promoCode` (`cancel-context` meaning none), the request commerce country and
+locale language, `displayPlanType`/`displayAnnual` card settings and the resolved price literals (price library
+defaults otherwise). A price that can't be rendered (e.g. offer missing from the cache) is logged, and leaves every
+field unrendered.
+
+`transformers/render.js` imports the shared framework-free implementation directly from
 `price/src/price.js` and `price/src/offers.js` via relative paths, following the server's existing
 cross-directory import convention. No installed price package or workspace
 symlink is required; keep the repository's `price/src/` directory alongside
 `io/www` when running or bundling the server. `parse5` remains a runtime dependency.
 
-```js
-import { transformer as render } from './transformers/render.js';
+Direct invocation, with an explicit environment and options provider:
 
-await render.process(context, {
+```js
+import { render } from './transformers/render.js';
+
+await render(context, {
     environment: 'prod', // Required; no default or cross-environment fallback.
     resolveOptions: ({ context, fragment, fieldName, valueIndex, attributes }) => {
         // The caller supplies already-resolved options for this particular price.

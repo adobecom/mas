@@ -43,14 +43,12 @@ const LINK_SCHEMES = /^(https:|mailto:|tel:)/i;
 
 const attributesOf = (node) => Object.fromEntries(node.attrs.map(({ name, value }) => [name, value]));
 const normalizeSpaces = (value) => value.replace(/[ \t\n\r\f]+/g, ' ');
-const INLINE = new Set(['text', 'link', 'line-break', 'inline-price']);
+const INLINE = new Set(['text', 'link', 'line-break', 'span']);
 const isInline = (node) => INLINE.has(node.nodeType);
-const PRICE_NODES = new Set(['inline-price', 'span']);
 const isHidden = (tag, classes) => DROPPED.has(tag) || classes.includes('disabled');
 
 /** inline text of nodes, prices included */
-const valueOf = (nodes) =>
-    nodes.map((node) => node.value ?? (PRICE_NODES.has(node.nodeType) ? valueOf(node.content) : '')).join('');
+const valueOf = (nodes) => nodes.map((node) => node.value ?? (node.nodeType === 'span' ? valueOf(node.content) : '')).join('');
 
 /** sanitized text of a node (rejected and hidden elements excluded) */
 function textOf(node, report) {
@@ -102,13 +100,14 @@ function visit(node, container, variants, report) {
         return;
     }
     if (tag === 'br') return container.push({ nodeType: 'line-break' });
+    // a rendered price: its sanitized span tree, in a wrapper keeping its template only (`is` being a client hook)
     if (attributes.is === 'inline-price') {
         const content = priceNodes(node);
         if (!valueOf(content).trim()) return;
         const template = attributes['data-template'];
         const format = variants.length ? { variants: [...new Set(variants)] } : undefined;
         return container.push({
-            nodeType: 'inline-price',
+            nodeType: 'span',
             ...(template && { data: { template } }),
             content,
             ...(format && { format }),
@@ -185,13 +184,10 @@ function toHtml(nodes) {
     return nodes
         .map((node) => {
             if (node.nodeType === 'text') return withVariants(node, escapeHtml(node.value));
-            if (node.nodeType === 'inline-price') {
-                const template = node.data?.template ? ` data-template="${escapeHtml(node.data.template)}"` : '';
-                return withVariants(node, `<span is="inline-price"${template}>${toHtml(node.content)}</span>`);
-            }
             if (node.nodeType === 'span') {
-                const className = node.data ? ` class="${escapeHtml(node.data.class)}"` : '';
-                return `<span${className}>${toHtml(node.content)}</span>`;
+                const { class: className, template } = node.data ?? {};
+                const attributes = `${className ? ` class="${escapeHtml(className)}"` : ''}${template ? ` data-template="${escapeHtml(template)}"` : ''}`;
+                return withVariants(node, `<span${attributes}>${toHtml(node.content)}</span>`);
             }
             if (node.nodeType === 'line-break') return '<br>';
             if (node.nodeType === 'link') {
@@ -209,7 +205,7 @@ function toText(nodes) {
     return nodes
         .map((node) => {
             if (node.nodeType === 'line-break') return '\n';
-            if (node.nodeType === 'inline-price') return valueOf(node.content);
+            if (node.nodeType === 'span') return valueOf(node.content);
             if (isInline(node)) return node.value;
             return `\n${toText(node.content)}\n`;
         })

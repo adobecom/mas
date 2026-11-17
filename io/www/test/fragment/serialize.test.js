@@ -92,27 +92,28 @@ describe('serialize transformer', () => {
         expect(prices.value).to.equal('<p><s>US$39/mo</s> US$29</p>');
     });
 
-    it('keeps the sanitized tree of rendered prices in json & html', async () => {
+    it('keeps the sanitized span tree of rendered prices in json & html, their wrapper with its template only', async () => {
         const strikethrough = `<span is="inline-price" data-template="strikethrough" data-wcs-osi="osi">${PRICE.split(' <span class="price">')[0]}</span>`;
         const price =
             '<span is="inline-price" onclick="steal()"><span class="price"><!-- c --><span class="price-currency-symbol">US$</span>' +
-            '<a href="/x">2&lt;9</a><span>/mo</span></span></span>';
+            '<a href="/x">2&lt;9</a><span>/mo</span></span>!</span>';
         const prices = html(`<p>${strikethrough} Pay <strong>${price}</strong> now<span is="inline-price"></span></p>`);
         expect((await run('html', { prices: structuredClone(prices) })).prices.value).to.equal(
-            '<p><span is="inline-price" data-template="strikethrough"><span class="price price-strikethrough">' +
-                '<span class="price-currency-symbol">US$</span><span class="price-integer">39</span>' +
-                '<span class="price-recurrence">/mo</span></span></span> Pay <strong><span is="inline-price"><span class="price">' +
-                '<span class="price-currency-symbol">US$</span>2&lt;9<span>/mo</span></span></span></strong> now</p>',
+            '<p><span data-template="strikethrough"><span class="price price-strikethrough"><span class="price-currency-symbol">US$</span>' +
+                '<span class="price-integer">39</span><span class="price-recurrence">/mo</span></span></span> Pay ' +
+                '<strong><span><span class="price"><span class="price-currency-symbol">US$</span>2&lt;9<span>/mo</span></span>!</span></strong>' +
+                ' now</p>',
         );
-        const text = (value) => ({ nodeType: 'text', value });
+        const text = (value, format) => ({ nodeType: 'text', value, ...(format && { format }) });
         const span = (className, ...content) => ({
             nodeType: 'span',
             ...(className && { data: { class: className } }),
             content,
         });
+        const bold = { variants: ['bold'] };
         expect((await run('json', { prices: structuredClone(prices) })).prices.json[0].content).to.deep.equal([
             {
-                nodeType: 'inline-price',
+                nodeType: 'span',
                 data: { template: 'strikethrough' },
                 content: [
                     span(
@@ -125,13 +126,16 @@ describe('serialize transformer', () => {
             },
             text(' Pay '),
             {
-                nodeType: 'inline-price',
-                content: [span('price', span('price-currency-symbol', text('US$')), text('2<9'), span(undefined, text('/mo')))],
-                format: { variants: ['bold'] },
+                ...span(
+                    undefined,
+                    span('price', span('price-currency-symbol', text('US$')), text('2<9'), span(undefined, text('/mo'))),
+                    text('!'),
+                ),
+                format: bold,
             },
             text(' now'),
         ]);
-        expect((await run('text', { prices: structuredClone(prices) })).prices.value).to.equal('US$39/mo Pay US$2<9/mo now');
+        expect((await run('text', { prices: structuredClone(prices) })).prices.value).to.equal('US$39/mo Pay US$2<9/mo! now');
     });
 
     it('flattens to text, one line per block', async () => {

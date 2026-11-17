@@ -12,10 +12,28 @@ this action sits behind mas/io/fragment in CDN and treats multiple odin related 
 
 that each stand behind so called transformers. To optimize calls make to odin, the sequence is based on promises created at init time and sometimes depending on each other. The pipeline order is:
 
-`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector`
+`fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → serialize`
 
 Grouped and promo variations tagged with both geography and an audience require both to match.
 Geography-only and audience-only variations remain supported.
+
+## serialize transformer (MWPW-214943)
+
+Only active with a `type` (request parameter or api key default, see configuration). The rich text fields of the card
+model (`badge`, `trialBadge`, `prices`, `shortDescription`, `description`, `callout`, `customFields`; not `ctas`) of the
+body and its referenced cards are parsed once with parse5 into a sanitized tree in the Odin multi-line `json` format, then
+emitted per `type`:
+
+- `json`: `{ "json": [ { "nodeType": "paragraph", "content": [ { "nodeType": "text", "value": "…", "format": { "variants": ["bold"] } } ] } ] }`,
+- `html`: `{ "value": "<p>…</p>", "mimeType": "text/html" }`, re-serialized from the sanitized tree,
+- `text`: `{ "value": "…", "mimeType": "text/plain" }`, one line per block.
+
+Vocabulary: `paragraph`, `header` (`style` `h1`…`h6`), `unordered-list`, `ordered-list`, `list-item`, `line-break`,
+`link` (`data: { href, target }`, `https:`, `mailto:` & `tel:` only, unwrapped otherwise), `text` with `bold`, `italic`,
+`underline` & `strikethrough` variants (resolved strikethrough prices included). `span`, `div`, `sup`, `sub`, `small`
+are unwrapped, as are unknown elements (logged); hidden (`.disabled`, `sr-only`) and unsafe (`script`, `style`,
+`iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
+dropped and logged as errors.
 
 ## Inactive price-render transformer
 

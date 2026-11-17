@@ -246,10 +246,10 @@ async function process(context) {
 
 export const transformer = { name: 'render', process };
 export {
+    cachedOffersOf,
     datasetOf,
     effectivePromotionCode,
     fragmentPromotionCode,
-    offerCacheKey,
     render,
     RENDER_ENVIRONMENT,
     resolvePriceOptions,

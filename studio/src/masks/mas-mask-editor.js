@@ -46,7 +46,7 @@ const FIELD_SECTIONS = [
         fields: [
             { name: 'cardTitle', label: 'Title', widget: 'rte', rte: { inline: true, link: true, mnemonic: true } },
             { name: 'subtitle', label: 'Subtitle', widget: 'text' },
-            { name: 'shortDescription', label: 'Short Description', widget: 'rte', rte: { link: true, multiline: true } },
+            { name: 'shortDescription', label: 'Pricing subtext', widget: 'rte', rte: { link: true, multiline: true } },
             { name: 'description', label: 'Description', widget: 'rte', rte: { link: true, multiline: true } },
         ],
     },

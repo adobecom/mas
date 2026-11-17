@@ -212,8 +212,34 @@ describe('MasSideNav – Copy Field', () => {
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.cardTitle).to.equal('Title');
+            expect(map.cardTitle).to.equal('Card title');
             expect(map.borderColor).to.be.undefined;
+        });
+
+        it('should expose the Figma display names', () => {
+            const names = customElements.get('mas-side-nav').FIELD_DISPLAY_NAMES;
+            expect(names.cardName).to.equal('Deep linking name');
+            expect(names.size).to.equal('Card Size');
+            expect(names.promoText).to.equal('Promo text');
+            expect(names.promoCode).to.equal('Promo code');
+            expect(names.cardTitle).to.equal('Card title');
+            expect(names.osi).to.equal('OSI');
+            expect(names.ctas).to.equal('CTAs');
+        });
+
+        it('should display shortDescription as Pricing subtext in Copy Field', () => {
+            const fragment = mockFragment([
+                { name: 'variant', values: ['plans'] },
+                { name: 'shortDescription', values: ['Per month'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const field = el.copyableFields.find((f) => f.name === 'shortDescription');
+            expect(field.displayName).to.equal('Pricing subtext');
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const labels = [...container.querySelectorAll('.field-label')].map((l) => l.textContent.trim());
+            expect(labels).to.include('Pricing subtext');
         });
 
         it('should fall back to camelToTitle for unmapped fields', () => {

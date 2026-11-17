@@ -32,6 +32,7 @@ import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
+import { transformer as serialize } from './transformers/serialize.js';
 import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
@@ -69,7 +70,19 @@ function successResponse(context, { id, hash, lastModified, body }) {
     };
 }
 
-const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
+const PIPELINE = [
+    fetchFragment,
+    defaultLanguage,
+    offer,
+    promotions,
+    mask,
+    customize,
+    settings,
+    replace,
+    wcs,
+    corrector,
+    serialize,
+];
 
 // MWPW-214943: representations of the text-bearing fields
 const TYPES = ['html', 'json', 'text'];

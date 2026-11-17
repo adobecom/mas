@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { isPublicStaticResponse, isStaticResource, VARY_HEADERS } from './static-resource-cache.js';
+import {
+    carriesCredentials,
+    isPublicStaticResponse,
+    isStaticResource,
+    UI_COOKIES,
+    VARY_HEADERS,
+} from './static-resource-cache.js';
 import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
 
 export const STATIC_HAR_URLS = /^https?:\/\/.*\.(?:js|css)(?:\?.*)?$/;
@@ -152,8 +158,10 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
                 !excluded.has(entry.request.url) &&
                 entry.request.method === 'GET' &&
                 isPublicStaticResponse(entry.response.status, responseHeaders(entry)) &&
-                !entry.request.cookies?.length &&
-                !entry.request.headers.some(({ name }) => /^(authorization|cookie)$/i.test(name)),
+                !entry.request.cookies?.some(({ name }) => !UI_COOKIES.includes(name)) &&
+                !carriesCredentials(
+                    Object.fromEntries(entry.request.headers.map(({ name, value }) => [name.toLowerCase(), value])),
+                ),
         );
         if (!har.log.entries.length) throw new Error(`Static HAR seed captured no public JS/CSS: ${name}`);
         for (const entry of har.log.entries) {

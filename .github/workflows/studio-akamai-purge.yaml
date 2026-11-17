@@ -8,6 +8,7 @@ on:
             - 'studio/**'
             - 'web-components/dist/**'
             - 'web-components/src/**'
+            - 'checkout/src/**'
             - 'io/www/src/**'
     workflow_dispatch:
         inputs:

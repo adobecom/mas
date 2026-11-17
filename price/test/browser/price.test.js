@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
-import { buildPriceHTML, selectOffers, sumOffers } from '../../src/index.js';
+import { buildPriceHTML } from '../../src/price.js';
+import { selectOffers, sumOffers } from '../../src/offers.js';
 import { parityCases as cases, instant, baseOffer } from '../fixtures/cases.js';
 
 const golden = await fetch(new URL('../fixtures/price-html.expected.json', import.meta.url)).then((response) =>

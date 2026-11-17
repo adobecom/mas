@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { describe, it, mock } from 'node:test';
-import { buildPriceHTML } from '../../src/index.js';
+import { buildPriceHTML } from '../../src/price.js';
 import { cases, parityCases, dimensions, instant, baseOffer } from '../fixtures/cases.js';
 
 const golden = JSON.parse(await readFile(new URL('../fixtures/price-html.expected.json', import.meta.url)));

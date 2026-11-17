@@ -4,6 +4,7 @@ import { MasRepository } from '../mas-repository.js';
 import '../aem/aem-tag-picker-field.js';
 import { fromAttribute, toAttribute } from '../aem/tag-path-utils.js';
 import Store from '../store.js';
+import router from '../router.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -38,7 +39,7 @@ import {
 import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
-import '../common/components/mas-search-and-filters.js';
+import { SELECTION_ENABLED_FILTERS } from '../common/components/mas-search-and-filters.js';
 import '../common/components/mas-grouped-selector.js';
 import '../common/components/mas-region-picker.js';
 import {
@@ -51,7 +52,12 @@ import {
 } from './promotion-countries.js';
 import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
-import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
+import {
+    promoVariationColumns,
+    promoVariationCells,
+    groupedVariationColumns,
+    groupedVariationCells,
+} from './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
@@ -101,9 +107,11 @@ import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions, canManagePromotions } from '../groups.js';
 import {
+    createPromotionFragment,
     duplicatePromotionProject,
     getAllAttachedPromoVariations,
     getPromotionProjectsForProbe,
+    savePromotionFragment,
 } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
@@ -135,6 +143,19 @@ const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_T
 const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
 const PROMOTION_ITEM_VARIATION_COLUMNS = promoVariationColumns.filter(({ key }) => !['actions', 'relatedPages'].includes(key));
 const PROMOTION_ITEM_VARIATION_CELLS = promoVariationCells.filter((cell) => !['Actions', 'RelatedPages'].includes(cell));
+export const PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS = [
+    { label: '', key: 'select', class: 'table-icon-cell' },
+    ...groupedVariationColumns
+        .filter(({ key }) => !['chevron', 'actions', 'relatedPages'].includes(key))
+        .flatMap((column) =>
+            column.key === 'pznTags'
+                ? [column, { label: 'Promo code', key: 'promoCode', class: 'promo-code-head-cell' }]
+                : [column],
+        ),
+];
+export const PROMOTION_ITEM_GROUPED_VARIATION_CELLS = groupedVariationCells
+    .filter((cell) => !['Actions', 'RelatedPages'].includes(cell))
+    .flatMap((cell) => (cell === 'PersonalizationTags' ? [cell, 'PromoCodeValue'] : [cell]));
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -144,11 +165,13 @@ const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.COPY,
     QUICK_ACTION.LINK,
     QUICK_ACTION.LOCK,
+    QUICK_ACTION.HISTORY,
     QUICK_ACTION.DELETE,
 ];
 
 const PROMOTION_QUICK_ACTION_ICON_OVERRIDES = {
     [QUICK_ACTION.SAVE]: { icon: SAVE_SVG, title: 'Save' },
+    [QUICK_ACTION.HISTORY]: { icon: 'sp-icon-history', title: 'Version history' },
     [QUICK_ACTION.DUPLICATE]: { icon: CLONE_SVG, title: 'Duplicate' },
 
     [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
@@ -960,7 +983,8 @@ class MasPromotionsEditor extends LitElement {
                 if (tag) await this.#deletePromotionTag(tag);
                 return;
             }
-            const newPromotion = await this.repository.createFragment(
+            const newPromotion = await createPromotionFragment(
+                this.repository,
                 this.#buildPromotionFragmentPayload(this.fragment.getFieldValue('title')),
                 false,
             );
@@ -1045,7 +1069,7 @@ class MasPromotionsEditor extends LitElement {
         showToast('Saving project...');
         let saved;
         try {
-            saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
+            saved = await savePromotionFragment(this.repository, this.fragmentStore, { withToast: false, refetchEtag: false });
         } catch (error) {
             showToast(error.message || 'Failed to save project.', 'negative');
             return;
@@ -1228,7 +1252,9 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.UNPUBLISH);
         }
         if (!this.canEdit) {
-            PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
+            for (const action of PROMOTION_QUICK_ACTIONS) {
+                if (action !== QUICK_ACTION.HISTORY || this.loadingPromotion || !this.fragment?.id) disabled.add(action);
+            }
             return disabled;
         }
         const publishOptions = this.#promotionPublishOptions;
@@ -1237,6 +1263,7 @@ class MasPromotionsEditor extends LitElement {
             return disabled;
         }
         if (this.isNewPromotion) {
+            disabled.add(QUICK_ACTION.HISTORY);
             if (this.isCreated) disabled.add(QUICK_ACTION.SAVE);
             disabled.add(QUICK_ACTION.DUPLICATE);
             disabled.add(QUICK_ACTION.PUBLISH);
@@ -1250,6 +1277,7 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.SAVE);
         }
         if (!this.fragment?.id) {
+            disabled.add(QUICK_ACTION.HISTORY);
             disabled.add(QUICK_ACTION.COPY);
             disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
@@ -1498,6 +1526,7 @@ class MasPromotionsEditor extends LitElement {
                 .type=${tab.value}
                 .searchQuery=${tab.value === host.selectedTab ? host.searchQuery : ''}
                 .searchOnly=${false}
+                .enabledFilters=${SELECTION_ENABLED_FILTERS}
                 .promotionSurfaceOptions=${promotionSurfaceOptions}
                 .promotionSurface=${surfacePickerValue ?? ''}
                 .externalProductFilter=${true}
@@ -1835,6 +1864,8 @@ class MasPromotionsEditor extends LitElement {
                     .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
                     .variationColumns=${PROMOTION_ITEM_VARIATION_COLUMNS}
                     .variationCells=${PROMOTION_ITEM_VARIATION_CELLS}
+                    .groupedVariationColumns=${PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS}
+                    .groupedVariationCells=${PROMOTION_ITEM_GROUPED_VARIATION_CELLS}
                     .hideVariationExpand=${true}
                     .restrictImportSurface=${this.promotionPickerSurfaces}
                     .validateImportFragment=${this.#validatePromotionImportFragment}
@@ -2205,6 +2236,7 @@ class MasPromotionsEditor extends LitElement {
                       @copy=${this.#handleCopyPromotionLink}
                       @link=${this.#handleCopyVariationsList}
                       @lock=${this.#handleLockPromotion}
+                      @history=${router.navigateToPage(PAGE_NAMES.PROMOTIONS_HISTORY)}
                       @delete=${this.#handleDeletePromotion}
                   ></mas-quick-actions>`
                 : nothing}

@@ -13,9 +13,10 @@
         "build:bundle:dev": "npm run build:bundle sourcemap",
         "watch": "node ./watch.mjs",
         "dev": "node ./watch.mjs --serve",
-        "test:watch": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test": "wtr --config ./web-test-runner.config.mjs --coverage",
-        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
+        "test:build": "node --test test/build/*.test.mjs",
+        "test:watch": "npm run test:build && wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
+        "test": "npm run test:build && wtr --config ./web-test-runner.config.mjs --coverage",
+        "test:ci": "npm run test:build && wtr --config ./web-test-runner.config.mjs --coverage",
         "libs": "npm run build:bundle && (cd .. && aem up --port 3030)"
     },
     "devDependencies": {

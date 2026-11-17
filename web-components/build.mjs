@@ -1,6 +1,9 @@
 import { writeFileSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { build } from 'esbuild';
+import {
+    assertNoSharedModules,
+    createSharedCommerce,
+} from './build/shared-commerce.mjs';
 
 const outfolder = './dist';
 
@@ -18,28 +21,123 @@ const defaults = {
 // Read the price-literals.js file content
 const priceLiteralsContent = readFileSync('./price-literals.json', 'utf-8');
 
-// commerce.js
-const { metafile } = await build({
+const sharedCommerce = createSharedCommerce({
+    resolveDir: process.cwd(),
+    entryPoint: './src/commerce.js',
+    modules: {
+        constants: {
+            source: './src/constants.js',
+            exports: [
+                'EVENT_AEM_ERROR',
+                'EVENT_AEM_LOAD',
+                'EVENT_MAS_ERROR',
+                'EVENT_MAS_READY',
+                'EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE',
+                'EVENT_MERCH_CARD_ACTION_MENU_TOGGLE',
+                'EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED',
+                'EVENT_MERCH_CARD_QUANTITY_CHANGE',
+                'EVENT_MERCH_OFFER_SELECT_READY',
+                'EVENT_MERCH_QUANTITY_SELECTOR_CHANGE',
+                'EVENT_TYPE_RESOLVED',
+                'FF_DEFAULTS',
+                'HEADLESS_STYLE_CTA_VARIANTS',
+                'MARK_DURATION_SUFFIX',
+                'MARK_START_SUFFIX',
+                'MERCH_CARD_LOAD_TIMEOUT',
+                'SELECTOR_MAS_CHECKOUT_LINK',
+                'SELECTOR_MAS_ELEMENT',
+                'SELECTOR_MAS_INLINE_PRICE',
+                'TEMPLATE_PRICE_LEGAL',
+                'TRIAL_ANALYTICS_IDS',
+                'TRIAL_TO_BUY_CTA_ANALYTICS_IDS',
+            ],
+        },
+        utils: {
+            source: './src/utils.js',
+            exports: [
+                'clearForegroundTimeout',
+                'createTag',
+                'debounce',
+                'getHeadlessCtaVariant',
+                'getOuterHeight',
+                'getService',
+                'hydrateHeadlessCta',
+                'isMobileOrTablet',
+                'printMeasure',
+                'setForegroundTimeout',
+                'toRelativeAssetUrl',
+            ],
+        },
+        masElement: {
+            source: './src/mas-element.js',
+            exports: ['createMasElement'],
+        },
+        utilities: {
+            source: './src/utilities.js',
+            exports: ['toPromotionCodes'],
+        },
+        uptLink: {
+            source: './src/upt-link.js',
+            exports: ['UptLink'],
+        },
+        imageMarkup: {
+            source: './src/image-markup.js',
+            exports: [
+                'extractBackgroundUrl',
+                'rewriteImageUrlsForProd',
+                'sanitizePictureMarkup',
+            ],
+        },
+        planType: {
+            source: './src/plan-type-text.js',
+            exports: ['hostOsi'],
+        },
+        context: {
+            source: './src/mas-context.js',
+            exports: [
+                'applyContextPromotionCode',
+                'applyDisplayAnnualDefault',
+                'applyHideStPriceLabels',
+                'mergePriceLiterals',
+                'registerContextOptionsProviders',
+            ],
+        },
+        log: {
+            source: './src/log.js',
+            exports: ['Log'],
+        },
+    },
+});
+
+// Link both sides before replacing either published bundle.
+const commerce = await build({
     ...defaults,
     alias: {
         react: 'test/mocks/react.js',
     },
-    entryPoints: ['./src/commerce.js'],
+    stdin: sharedCommerce.entry,
     outfile: `${outfolder}/commerce.js`,
     metafile: true,
+    write: false,
     platform: 'browser',
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
 });
-writeFileSync(`commerce.json`, JSON.stringify(metafile));
-
-// merch-card.js imports these modules from ./commerce.js instead of bundling
-// its own copies, so the page loads and runs one instance of each.
-const commerceModules = new Set(
-    Object.keys(metafile.inputs).map((file) => resolve(file)),
-);
-const commerceExports = metafile.outputs['dist/commerce.js'].exports;
+const card = await build({
+    ...defaults,
+    entryPoints: ['./src/merch-card.js'],
+    outfile: `${outfolder}/merch-card.js`,
+    metafile: true,
+    write: false,
+    plugins: [rewriteImportsToLibsFolder(), sharedCommerce.plugin],
+});
+assertNoSharedModules(commerce.metafile, card.metafile);
+for (const file of [...commerce.outputFiles, ...card.outputFiles]) {
+    writeFileSync(file.path, file.contents);
+}
+writeFileSync('commerce.json', JSON.stringify(commerce.metafile));
+writeFileSync('merch-card.json', JSON.stringify(card.metafile));
 
 // mas.js
 await build({
@@ -78,7 +176,6 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildMerchCard(),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -105,52 +202,6 @@ async function buildLitComponent(name) {
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
     }
-}
-
-async function buildMerchCard() {
-    const outfile = `${outfolder}/merch-card.js`;
-    await build({
-        ...defaults,
-        entryPoints: ['./src/merch-card.js'],
-        external: ['lit'],
-        outfile,
-        plugins: [rewriteImportsToLibsFolder(), importFromCommerce()],
-    });
-    const imported = [
-        ...readFileSync(outfile, 'utf-8').matchAll(
-            /import\s*\{([^}]*)\}\s*from\s*"\.\/commerce\.js"/g,
-        ),
-    ].flatMap(([, names]) =>
-        names.split(',').map((name) => name.trim().split(/\s+as\s+/)[0]),
-    );
-    const missing = [...new Set(imported)].filter(
-        (name) => !commerceExports.includes(name),
-    );
-    if (missing.length) {
-        throw new Error(
-            `merch-card.js imports ${missing.join(', ')} from ./commerce.js: export them from src/commerce.js`,
-        );
-    }
-}
-
-function importFromCommerce() {
-    return {
-        name: 'import-from-commerce',
-        setup(build) {
-            build.onResolve({ filter: /.*/ }, async (args) => {
-                if (args.kind === 'entry-point' || args.pluginData?.resolved)
-                    return;
-                const { path } = await build.resolve(args.path, {
-                    kind: args.kind,
-                    importer: args.importer,
-                    resolveDir: args.resolveDir,
-                    pluginData: { resolved: true },
-                });
-                if (!commerceModules.has(path)) return;
-                return { path: './commerce.js', external: true };
-            });
-        },
-    };
 }
 
 function rewriteImportsToLibsFolder() {

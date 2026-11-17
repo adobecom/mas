@@ -66,6 +66,18 @@ the evergreen mas.js is located at /web-components/dist/mas.js
 npm run build
 ```
 
+`commerce.js` owns the shared card helpers declared in `build.mjs`. Each boundary
+entry identifies its source module and exports; generated source-qualified
+bindings keep identically named helpers distinct. The card build links through
+those bindings in the existing relative `./commerce.js`, with no new chunk.
+Esbuild rejects missing bindings, and build metadata rejects shared code bundled
+on both sides. Both bundles are compiled before either output is replaced.
+
+Deploy the bundles together and invalidate or expire cached `commerce.js` before
+serving cards that need new exports. A browser can retain the old commerce bundle
+for `max-age=7200`; an incompatible cached bundle prevents the new card module
+from loading.
+
 #### Build documentation
 
 ```sh
@@ -85,6 +97,9 @@ Run all tests:
 ```sh
 npm run test
 ```
+
+`npm run test:build` runs the shared-boundary regression tests and rebuilds the
+bundles used by the browser integration tests.
 
 Run a specific test:
 

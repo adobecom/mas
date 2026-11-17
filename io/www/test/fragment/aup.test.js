@@ -98,6 +98,13 @@ describe('aup transformer', () => {
                 ],
             },
         ]);
+        expect(
+            (
+                await map({
+                    addon: '<merch-addon>Add <span is="inline-price"><span class="disabled">/yr</span></span></merch-addon>',
+                })
+            ).addon.label,
+        ).to.equal('Add');
         expect(body.addon).to.deep.equal({
             background: 'grey',
             label: 'Add Stock',
@@ -261,7 +268,7 @@ describe('aup transformer', () => {
     });
 
     it('maps an empty card', async () => {
-        const body = await map({ addon: '<merch-addon disabled></merch-addon>', whatsIncluded: '' });
+        const body = await map({ addon: '{{disabled}}', whatsIncluded: '' });
         expect(body).to.include({ template: undefined, analyticsId: undefined, osi: undefined, badge: null, addon: null });
         expect(body.mnemonics).to.deep.equal([]);
         expect(body.ctas).to.deep.equal([]);

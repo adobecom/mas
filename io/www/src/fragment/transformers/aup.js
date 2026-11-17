@@ -156,7 +156,8 @@ function whatsIncludedOf(html, { value }) {
 }
 
 function addonOf(html, confirmation, { text, value }) {
-    if (!html || /disabled/.test(html)) return null;
+    // as hydrate's, on the text: rendered prices carry `disabled` classes
+    if (!html || /disabled/.test(text(html))) return null;
     const [element] = elementsOf(html);
     const isAddon = element?.tagName === 'merch-addon';
     const offers = elementsOf(html)

@@ -359,7 +359,7 @@ describe('pipeline corner cases', () => {
         expect(mapped.statusCode).to.equal(200);
         expect(mapped.body).to.include({ template: 'plans' });
         expect(mapped.body).not.to.have.property('fields');
-        expect(Object.keys(state.store)).to.include('req-some-en-us-fragment-en_US-y_html-a_aup');
+        expect(Object.keys(state.store)).to.include('req-some-en-us-fragment-en_US.y-html.a-aup');
         resetCache();
         const unmapped = await getFragment({
             id: 'some-en-us-fragment',

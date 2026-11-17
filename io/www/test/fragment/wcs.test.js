@@ -212,6 +212,18 @@ describe('wcs typical cases', function () {
         delete context.body.fields.promoCode;
     });
 
+    it("requests WCS with the api key's wcsApiKey when set", async function () {
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('api_key=wcs_key')))
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.wcsApiKey = 'wcs_key';
+        context = await wcs.process(context);
+        delete context.wcsApiKey;
+        expect(Object.keys(context.body.wcs.prod)).not.to.be.empty;
+        expect(fetchStub.getCalls().some(({ args: [url] }) => String(url).includes('api_key=testing_wcs'))).to.be.false;
+    });
+
     it('falls back to the top-level fragment promoCode for a bare markup OSI with no matching reference', async function () {
         fetchStub
             .withArgs(

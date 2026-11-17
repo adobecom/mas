@@ -340,7 +340,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     url.searchParams.set('country', wcsContext.country);
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
-    url.searchParams.set('api_key', wcsContext.context.api_key);
+    url.searchParams.set('api_key', wcsContext.context.wcsApiKey ?? wcsContext.context.api_key);
     if (wcsContext.serveLatest) {
         url.searchParams.set('serveLatest', 'true');
     }

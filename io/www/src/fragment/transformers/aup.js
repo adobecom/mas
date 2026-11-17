@@ -6,7 +6,7 @@ import { CheckoutWorkflowStep, Landscape, PROVIDER_ENVIRONMENT } from '../../../
 import { is3in1Modal } from '../../../../../checkout/src/decisions.js';
 import { CARD_MODEL_ID, getCountry } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
-import { datasetOf, effectivePromotionCode, fragmentPromotionCode, offerCacheKey, RENDER_ENVIRONMENT } from './render.js';
+import { cachedOffersOf, datasetOf, effectivePromotionCode, fragmentPromotionCode, RENDER_ENVIRONMENT } from './render.js';
 import { serializeValue } from './serialize.js';
 
 /**
@@ -76,8 +76,7 @@ function cachedOffers(osis, promotionCode, { context, report }) {
     const country = context.wcsCountry ?? getCountry(context);
     const offers = [];
     for (const osi of osis) {
-        const key = offerCacheKey(osi, country, promotionCode);
-        const cached = cache[key];
+        const { key, offers: cached } = cachedOffersOf(cache, osi, osis, country, promotionCode);
         if (!cached?.length) {
             report(`no cached offers for ${key}`);
             return undefined;

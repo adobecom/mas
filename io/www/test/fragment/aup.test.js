@@ -156,7 +156,7 @@ describe('aup transformer', () => {
         const wcs = {
             prod: {
                 'OSI-PRO-us-mult-promo': offersFor('OSI-PRO'),
-                'OSI-ADDON-us-mult-promo': offersFor('OSI-ADDON'),
+                'OSI-PRO,OSI-ADDON-us-mult-promo': [...offersFor('OSI-ADDON'), ...offersFor('OSI-PRO')],
             },
         };
         const body = await map(fields, { wcs });

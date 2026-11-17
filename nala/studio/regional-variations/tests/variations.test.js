@@ -473,27 +473,13 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect((await studio.getCard(data.cardid)).locator(plans.cardCTA)).toContainText(original.ctaLabel);
                 }),
             () =>
-                test.step('field: OSI — edit, verify OSI and tags, click restore, verify original', async () => {
+                test.step('field: OSI — verify read-only and inherited from parent', async () => {
                     await expect(await editor.OSI).toBeVisible();
-                    await expect(await editor.tags).toBeVisible();
-                    await editor.OSIButton.click();
-                    await ost.backButton.click();
-                    await page.waitForTimeout(2000);
-                    await expect(await ost.searchField).toBeVisible();
-                    await ost.searchField.fill(data.osi);
-                    await (await ost.nextButton).click();
-                    await expect(ost.priceUse).toBeVisible();
-                    await ost.priceUse.click();
-                    await page.waitForTimeout(400);
-                    await expect(await editor.OSI).toContainText(data.osi);
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.offerType));
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.marketSegment));
-                    await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.planType));
-                    await editor.overrideRestoreIn(editor.OSIFieldGroup).first().click();
-                    await page.waitForTimeout(300);
+                    await expect(await editor.OSI).toHaveAttribute('readonly', '');
+                    await expect(await editor.OSIButton).toBeDisabled();
                     await expect(await editor.OSI).toContainText(original.osi);
-                    await editor.overrideRestoreIn(editor.tagsFieldGroup).first().click();
-                    await page.waitForTimeout(300);
+                    await expect(await editor.overrideRestoreIn(editor.OSIFieldGroup)).toHaveCount(0);
+                    await expect(await editor.tags).toBeVisible();
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(original.osiTags.offerType));
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(original.osiTags.marketSegment));
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(original.osiTags.planType));

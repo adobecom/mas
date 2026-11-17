@@ -36,9 +36,20 @@ export class MerchMnemonicList extends LitElement {
         super();
     }
 
+    // A row icon sits next to its description, so it is decorative and must not repeat the text to screen readers.
+    #hideDecorativeIcons() {
+        const text = this.querySelector(
+            '[slot="description"]',
+        )?.textContent.trim();
+        if (!text) return;
+        this.querySelectorAll('merch-icon').forEach((icon) => {
+            icon.alt = '';
+        });
+    }
+
     render() {
         return html`
-            <slot name="icon"></slot>
+            <slot name="icon" @slotchange=${this.#hideDecorativeIcons}></slot>
             <slot name="description">${this.description}</slot>
         `;
     }

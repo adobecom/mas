@@ -82,7 +82,7 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
     - 15 min in Akamai;
     - 5 min in the browser.
 - **Hot keys only**: every request key needs its own entry, so rarely requested ones are still built on their first miss. State is limited to 200k keys and 1 GB per workspace; entries expire after 24 h without a write.
-- **Files never expire**: stored responses of keys no longer requested stay until cleaned up, which is still to be done.
+- **Files never expire**: stored responses of keys no longer requested stay until cleaned up. [MWPW-215962](https://jira.corp.adobe.com/browse/MWPW-215962) adds a scheduled cleanup.
 - **CDN fragmentation**: each site currently gets its own layer 2 copy. [WPS-36704](https://jira.corp.adobe.com/browse/WPS-36704) removes that split.
 - **Heap budget**: memory eviction relies on V8 heap samples. [MWPW-215446](https://jira.corp.adobe.com/browse/MWPW-215446) tracks a case where heap usage is underestimated.
 - **The Odin CDN is owned by Odin / AEM**: its lifetime can change without M@S being involved.

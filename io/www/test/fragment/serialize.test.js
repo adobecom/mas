@@ -92,6 +92,31 @@ describe('serialize transformer', () => {
         expect(prices.value).to.equal('<p><s>US$39/mo</s> US$29</p>');
     });
 
+    it('keeps the sanitized markup of rendered prices in html only', async () => {
+        const strikethrough = `<span is="inline-price" data-template="strikethrough" data-wcs-osi="osi">${PRICE.split(' <span class="price">')[0]}</span>`;
+        const price =
+            '<span is="inline-price" onclick="steal()"><span class="price"><!-- c --><span class="price-currency-symbol">US$</span>' +
+            '<a href="/x">2&lt;9</a><span>/mo</span></span></span>';
+        const prices = html(`<p>${strikethrough} Pay <strong>${price}</strong> now<span is="inline-price"></span></p>`);
+        expect((await run('html', { prices: structuredClone(prices) })).prices.value).to.equal(
+            '<p><span is="inline-price" data-template="strikethrough"><span class="price price-strikethrough">' +
+                '<span class="price-currency-symbol">US$</span><span class="price-integer">39</span>' +
+                '<span class="price-recurrence">/mo</span></span></span> Pay <strong><span is="inline-price"><span class="price">' +
+                '<span class="price-currency-symbol">US$</span>2&lt;9<span>/mo</span></span></span></strong> now</p>',
+        );
+        expect((await run('json', { prices: structuredClone(prices) })).prices.json[0].content).to.deep.equal([
+            { nodeType: 'text', value: 'US$39/mo', format: { variants: ['strikethrough'] } },
+            { nodeType: 'text', value: ' Pay ' },
+            { nodeType: 'text', value: 'US$2<9/mo', format: { variants: ['bold'] } },
+            { nodeType: 'text', value: ' now' },
+        ]);
+        expect((await run('text', { prices: structuredClone(prices) })).prices.value).to.equal('US$39/mo Pay US$2<9/mo now');
+        const plain = html('<p>Pay <span is="inline-price"><span class="price">US$9</span></span> now</p>');
+        expect((await run('json', { prices: plain })).prices.json[0].content).to.deep.equal([
+            { nodeType: 'text', value: 'Pay US$9 now' },
+        ]);
+    });
+
     it('flattens to text, one line per block', async () => {
         const { description, prices } = await run('text', { description: html(RICH), prices: html(`<p>${PRICE}</p>`) });
         expect(description).to.deep.equal({ value: 'Get 20+ apps,\nsee terms & us\none\ntwo\nTitle', mimeType: 'text/plain' });

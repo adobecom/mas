@@ -29,6 +29,15 @@ runTests(async () => {
         it('should display merch mnemonic list', async () => {
             expect(document.querySelector('merch-mnemonic-list')).to.exist;
         });
+        it('should render row icons as decorative', async () => {
+            const list = document.querySelector('merch-mnemonic-list');
+            await list.updateComplete;
+            const icon = list.querySelector('merch-icon');
+            await icon.updateComplete;
+            expect(
+                icon.shadowRoot.querySelector('img').getAttribute('alt'),
+            ).to.equal('');
+        });
         it('should hide empty heading slot', async () => {
             const el = document.createElement('merch-whats-included');
             const heading = document.createElement('div');

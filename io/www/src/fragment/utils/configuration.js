@@ -8,7 +8,13 @@ const HARDCODED_API_KEYS = [
     'unified_checkout_client_v3',
     'concierge-conversation-service',
     'acom-bc-service',
+    'unified_checkout_server_v3',
 ];
+
+// state `apiKeyDefaults` entries are merged over these
+const HARDCODED_API_KEY_DEFAULTS = {
+    unified_checkout_server_v3: { surface: 'sandbox', type: 'json' },
+};
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];
 
@@ -88,14 +94,22 @@ export function validateApiKey(context) {
     return { statusCode: 200 };
 }
 
+const findApiKeyEntry = (api_key, config) =>
+    Object.entries(config ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])))?.[1];
+
 /**
- * Surface bound to the request api key by the `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`),
- * most api keys serving a single surface (ADR CONT-0001).
- * @returns {string|undefined}
+ * Request parameter defaults bound to the request api key by the `apiKeyDefaults` configuration
+ * (`{ [apiKey or /regex/]: { surface, type } }`), most api keys serving a single surface (ADR CONT-0001).
+ * The legacy `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`) is still honoured during the rollout.
+ * @returns {{ surface?: string, type?: string }}
  */
-export function getApiKeySurface({ api_key, apiKeySurfaces }) {
-    const entry = Object.entries(apiKeySurfaces ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])));
-    return entry?.[1];
+export function getApiKeyDefaults({ api_key, apiKeyDefaults, apiKeySurfaces }) {
+    const surface = findApiKeyEntry(api_key, apiKeySurfaces);
+    return {
+        ...(surface && { surface }),
+        ...findApiKeyEntry(api_key, HARDCODED_API_KEY_DEFAULTS),
+        ...findApiKeyEntry(api_key, apiKeyDefaults),
+    };
 }
 
 export function resetCache() {

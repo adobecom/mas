@@ -329,6 +329,28 @@ describe('pipeline corner cases', () => {
         expect(fetchStub.called).to.be.false;
     });
 
+    it('should 400 on an unknown type', async () => {
+        const result = await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', type: 'xml', state: new MockState() });
+        expect(result.statusCode).to.equal(400);
+        expect(result.body.message).to.equal("invalid parameter 'type'");
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it("keys the request metadata on the requested type, or the api key's one", async () => {
+        setupFragmentMocks(fetchStub, {});
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({ apiKeyDefaults: { 'wcms-commerce-ims-ro-user-milo': { type: 'text' } } }),
+        );
+        expect((await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', state })).statusCode).to.equal(200);
+        expect((await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', type: 'json', state })).statusCode).to.equal(
+            200,
+        );
+        const keys = Object.keys(state.store).filter((key) => key.startsWith('req-'));
+        expect(keys).to.include.members(['req-some-en-us-fragment-en_US-y_text', 'req-some-en-us-fragment-en_US-y_json']);
+    });
+
     it('should 400 when api_key param is missing', async () => {
         const result = await action({
             id: 'some-en-us-fragment',

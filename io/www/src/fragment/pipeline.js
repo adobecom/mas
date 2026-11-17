@@ -9,7 +9,7 @@ import {
     storeRequestMetadata,
 } from './utils/cache.js';
 import {
-    getApiKeySurface,
+    getApiKeyDefaults,
     loadConfiguration,
     resetCache as resetConfiguration,
     validateApiKey,
@@ -72,6 +72,9 @@ function successResponse(context, { id, hash, lastModified, body }) {
 }
 
 const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
+
+// MWPW-214943: representations of the text-bearing fields
+const TYPES = ['html', 'json', 'text'];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -250,7 +253,8 @@ async function refreshInBackground(context, requestKey, refresh) {
 async function mainProcess(context, refresh) {
     // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
     // A requested surface conflicting with the api key's (here) or the fragment's (fetchFragment) one is a 404.
-    const apiKeySurface = getApiKeySurface(context);
+    const apiKeyDefaults = getApiKeyDefaults(context);
+    const apiKeySurface = apiKeyDefaults.surface;
     context.requestedSurface = context.surface;
     if (context.surface && apiKeySurface && context.surface !== apiKeySurface) {
         return {
@@ -259,6 +263,11 @@ async function mainProcess(context, refresh) {
         };
     }
     if (!context.id) context.surface ??= apiKeySurface;
+    // MWPW-214943: the requested `type` wins over the api key's one. Without any, fields are left as authored.
+    context.type ??= apiKeyDefaults.type;
+    if (context.type !== undefined && !TYPES.includes(context.type)) {
+        return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter 'type'` }) };
+    }
     const { id, locale, offer, template, surface } = context;
     // without a fragment id, the offer baseline is resolved from `offer`, `template` & `surface`.
     if (!locale || (!id && !(offer && template && surface))) {

@@ -375,11 +375,18 @@
                         await field.updateComplete;
                         expect(field.value).to.equal(disclaimer);
 
-                        for (const value of ['<p>Aucun remboursement apr\u00e8s 14 jours.</p>', '']) {
+                        // The fixture parent has a callout, so clearing stores an intentional empty override.
+                        for (const [value, stored] of [
+                            [
+                                '<p>Aucun remboursement apr\u00e8s 14 jours.</p>',
+                                '<p>Aucun remboursement apr\u00e8s 14 jours.</p>',
+                            ],
+                            ['', EXPLICIT_EMPTY_SENTINEL],
+                        ]) {
                             field.value = value;
                             field.dispatchEvent(new Event('change', { bubbles: true }));
                             await editor.updateComplete;
-                            expect(fragmentStore.get().getFieldValue('callout')).to.equal(value);
+                            expect(fragmentStore.get().getFieldValue('callout')).to.equal(stored);
                         }
                     });
 

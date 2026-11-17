@@ -16,12 +16,15 @@ export const SEARCH_TOOL_NAME = 'emit_search';
 export const ENVELOPE_TOOL_CHOICE = { type: 'tool', name: ENVELOPE_TOOL_NAME };
 
 /** Offer the envelope + typed search tools and let the model pick one. */
-export const ROUTING_TOOL_CHOICE = { type: 'any' };
+const ROUTING_TOOL_CHOICE = { type: 'any' };
+
+const MASA_HAND_OFF =
+    'Use ASK_MASA, with empty slots and no user_message, to find, list, show or count cards or fragments, and for how-to questions and questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting; never answer them in user_message. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
 
 export function buildEnvelopeTool({ masa = false } = {}) {
-    // Card search has its own typed tool (emit_search). Keeping search_cards out
-    // of the envelope enum forces the model to the typed schema for any card
-    // search, so a template or variation type can never land in a freeform slot.
+    // search_cards never rides the envelope. Without MASA the typed emit_search
+    // tool owns card search, so a template or variation type can never land in
+    // a freeform slot; with MASA the ASK_MASA hand-off owns it.
     const intentNames = [
         ...INTENTS.map((intent) => intent.name).filter((name) => name !== 'search_cards'),
         ...getMetaIntents({ masa }),
@@ -35,11 +38,7 @@ export function buildEnvelopeTool({ masa = false } = {}) {
                     ? 'clarifications and off-topic replies. '
                     : 'clarifications, answers to questions, and anything that is not an operation. '
             }` +
-            `To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.${
-                masa
-                    ? ' Use ASK_MASA, with empty slots and no user_message, for how-to questions and questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting; never answer them in user_message. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.'
-                    : ''
-            }`,
+            `${masa ? MASA_HAND_OFF : 'To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.'}`,
         input_schema: {
             type: 'object',
             properties: {
@@ -80,6 +79,16 @@ export function buildEnvelopeTool({ masa = false } = {}) {
             required: ['intent', 'slots', 'confidence'],
         },
     };
+}
+
+/**
+ * The tools one free-routing turn offers. With MASA, card search is a hand-off,
+ * so the envelope alone is forced and no card search runs in Studio.
+ */
+export function buildRoutingTools({ masa = false } = {}) {
+    return masa
+        ? { tools: [buildEnvelopeTool({ masa })], toolChoice: ENVELOPE_TOOL_CHOICE }
+        : { tools: [buildEnvelopeTool(), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE };
 }
 
 /**

@@ -52,7 +52,13 @@ import {
     SESSION_CAPACITY_MESSAGE,
 } from './mas-chat/masa-ask.js';
 import { typingIndicator } from './mas-chat/typing-indicator.js';
-import { isMasaAvailable, rememberFailure, resetMasaAvailability, isUserInputError } from './mas-chat/masa-availability.js';
+import {
+    isMasaAvailable,
+    rememberFailure,
+    resetMasaAvailability,
+    isUserInputError,
+    isRefusal,
+} from './mas-chat/masa-availability.js';
 import { getInvestigationSession, isRunning } from './mas-chat/investigation-session.js';
 
 /**
@@ -683,7 +689,11 @@ export class MasChat extends LitElement {
         }
 
         this.addUserMessage(message, context);
+        await this.runTurn(message, context);
+    }
 
+    /** Answer a message that is already in the thread. */
+    async runTurn(message, context) {
         const turn = this.beginTurn();
         const work = this.captureWork();
         this.isLoading = true;
@@ -1291,6 +1301,7 @@ export class MasChat extends LitElement {
             conversationId: this.currentSessionId,
             question,
             history: this.conversationHistory,
+            turn: this.#turn,
         };
         const latest = this.messages.at(-1);
         const earlier = latest?.role === 'user' && latest.content === question ? this.messages.slice(0, -1) : this.messages;
@@ -1332,8 +1343,9 @@ export class MasChat extends LitElement {
 
     /**
      * A busy conversation offers to cancel the running question; a cancelled
-     * question stays cancelled; an input error is shown on the message; any
-     * other failure is answered by ai-chat without MASA, under the label.
+     * question stays cancelled; an input error is shown on the message; a
+     * refusal hands the turn back to Studio; any other failure is answered by
+     * ai-chat without MASA, under the label.
      */
     async settleMasaFailure(ask, error) {
         if (error.code === 'masa-conversation-busy') {
@@ -1352,7 +1364,14 @@ export class MasChat extends LitElement {
             this.replaceMasaMessage(ask, (message) => ({ ...message, failure: error.message || error.code }));
             return;
         }
+        const wasAvailable = isMasaAvailable();
         if (rememberFailure(error)) this.clearAllImages();
+        if (wasAvailable && isRefusal(error) && this.canRerun(ask)) {
+            this.messages = this.messages.filter((message) => message.id !== ask.id);
+            this.conversationHistory = ask.history;
+            await this.runTurn(ask.question);
+            return;
+        }
         const reason = MASA_UNFINISHED_CODES.includes(error.code) ? { reason: 'unfinished' } : {};
         this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true, ...reason } }));
         try {
@@ -1377,6 +1396,11 @@ export class MasChat extends LitElement {
                 failure: `Sorry, I encountered an error: ${fallbackError.message}`,
             }));
         }
+    }
+
+    /** The turn that asked can run again only while this chat still shows it and no newer turn has started. */
+    canRerun(ask) {
+        return this.isConnected && this.currentSessionId === ask.conversationId && this.#turn === ask.turn;
     }
 
     /**
@@ -1579,7 +1603,13 @@ export class MasChat extends LitElement {
         }
 
         if (action === 'dispatch') {
+            const answersSlotPrompt = Boolean(this.pendingSearchIntent);
             this.pendingSearchIntent = null;
+            // A card search is MASA's to answer; a reply to the surface prompt finishes the search Studio began.
+            if (classified.dispatch.operationName === 'search_cards' && !answersSlotPrompt && isMasaAvailable()) {
+                void this.askMasaInThread(message);
+                return true;
+            }
             await this.executeOperation({
                 type: 'studio_operation',
                 operationName: classified.dispatch.operationName,

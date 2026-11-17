@@ -20,11 +20,24 @@ describe('prompt-builder', () => {
         expect(prompt).to.include('ASK_USER');
     });
 
-    it('routes knowledge questions to ASK_MASA when MASA is available', () => {
+    it('routes knowledge questions and card search to ASK_MASA when MASA is available', () => {
         expect(buildPrompt({ masa: true })).to.include(
-            'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA.',
+            'Hand every knowledge or troubleshooting question, and every request to find, list, show or count cards or fragments, to ASK_MASA instead of answering or searching yourself; card operations and the release flow never use ASK_MASA.',
         );
         expect(buildPrompt()).to.not.include('ASK_MASA');
+    });
+
+    it('leaves card search out of the prompt when MASA is available', () => {
+        const prompt = buildPrompt({ masa: true });
+        expect(prompt).to.not.include('emit_search');
+        expect(prompt).to.not.include('`search_cards`');
+        expect(prompt).to.match(/`get_card`.*\[req: id\]/);
+    });
+
+    it('keeps the card search guide when MASA is not offered', () => {
+        const prompt = buildPrompt();
+        expect(prompt).to.include('CARD SEARCH — to find, list, show, or count cards or fragments, call the emit_search tool');
+        expect(prompt).to.include('`search_cards` (read-only)');
     });
 
     it('does not tell the model to answer MAS questions itself when MASA is available', () => {
@@ -45,7 +58,7 @@ describe('prompt-builder', () => {
 
     it('describes ASK_MASA among the meta intents when MASA is available', () => {
         expect(buildPrompt({ masa: true })).to.include(
-            '- ASK_MASA — hand a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.',
+            '- ASK_MASA — hand a card search or a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.',
         );
     });
 

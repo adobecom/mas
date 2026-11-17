@@ -710,24 +710,35 @@ describe('ai-chat/index main handler', () => {
         const writeUp =
             'I created this placeholder with a key inside it. The key is an RTE placeholder with a link. The paragraph tag around it breaks the sentence. As can be seen in this fragment: https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0';
 
-        it('never hands card search to MASA', async () => {
-            sendStub.resolves({
-                success: true,
-                message: null,
-                toolUse: { name: 'emit_search', input: { query: 'photoshop', surface: 'acom' } },
-                usage: { inputTokens: 1, outputTokens: 1 },
-            });
-            const messages = [
-                'find photoshop cards in acom',
-                'show me plans cards for en_US',
-                '0123456789abcdef0123456789ABCDEF',
-                'F2F0A049-4B13-4592-9A1C-A0E6C962E21B',
-                'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE',
-            ];
-            for (const message of messages) {
+        it('offers no card search tool when the request carries masa', async () => {
+            sendStub.resolves(askMasa());
+            await main(makeParams({ message: 'find photoshop cards in acom', masa: true }));
+            const { tools, toolChoice } = sendStub.firstCall.args[5];
+            expect(tools.map((tool) => tool.name)).to.deep.equal(['emit_envelope']);
+            expect(toolChoice).to.deep.equal({ type: 'tool', name: 'emit_envelope' });
+        });
+
+        it('keeps the card search tool when the request did not offer MASA', async () => {
+            sendStub.resolves(askMasa());
+            await main(makeParams({ message: 'find photoshop cards in acom' }));
+            const { tools, toolChoice } = sendStub.firstCall.args[5];
+            expect(tools.map((tool) => tool.name)).to.deep.equal(['emit_envelope', 'emit_search']);
+            expect(toolChoice).to.deep.equal({ type: 'any' });
+        });
+
+        it('hands a card search to MASA when the model still picks search_cards', async () => {
+            for (const message of ['find photoshop cards in acom', 'Can you find Photoshop cards in acom?']) {
+                sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
                 const result = await main(makeParams({ message, masa: true }));
-                expect(result.body.envelope?.intent, message).to.not.equal('ASK_MASA');
+                expect(result.body.envelope.intent, message).to.equal('ASK_MASA');
+                expect(result.body.operationName, message).to.equal(undefined);
             }
+        });
+
+        it('fetches a bare fragment ID itself when MASA is offered', async () => {
+            const result = await main(makeParams({ message: 'F2F0A049-4B13-4592-9A1C-A0E6C962E21B', masa: true }));
+            expect(result.body.envelope.intent).to.equal('get_card');
+            expect(sendStub.called).to.equal(false);
         });
 
         it('returns ASK_MASA without an answer when the model hands off', async () => {
@@ -773,17 +784,6 @@ describe('ai-chat/index main handler', () => {
             expect(JSON.parse(recorded.content).intent).to.equal('ASK_MASA');
         });
 
-        it('hands a write-up to MASA when the model calls emit_search', async () => {
-            sendStub.resolves({
-                success: true,
-                message: null,
-                toolUse: { name: 'emit_search', input: { query: 'placeholder', surface: 'acom' } },
-                usage: { inputTokens: 1, outputTokens: 1 },
-            });
-            const result = await main(makeParams({ message: writeUp, masa: true }));
-            expect(result.body.envelope.intent).to.equal('ASK_MASA');
-        });
-
         it('hands a long single-sentence report to MASA', async () => {
             sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
             const message = `${'the card shows the wrong thing '.repeat(7)}${REPORTED_ID}`;
@@ -791,10 +791,10 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.envelope.intent).to.equal('ASK_MASA');
         });
 
-        it('logs the write-up guard', async () => {
+        it('logs the hand-off guard', async () => {
             sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
             await main(makeParams({ message: writeUp, masa: true }));
-            const logged = console.log.getCalls().some((call) => String(call.args[0]).includes('masa-write-up-guard'));
+            const logged = console.log.getCalls().some((call) => String(call.args[0]).includes('masa-hand-off-guard'));
             expect(logged).to.equal(true);
         });
 
@@ -821,21 +821,15 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.envelope.intent).to.equal('get_card');
         });
 
-        it('keeps a short question-shaped search on search_cards', async () => {
-            sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
-            const result = await main(makeParams({ message: 'Can you find Photoshop cards in acom?', masa: true }));
-            expect(result.body.envelope.intent).to.equal('search_cards');
-        });
-
         it('keeps a multi-sentence lookup with a polite lead-in on the model choice', async () => {
             for (const message of [
-                'Hi! Find photoshop cards',
-                'Please show me plans cards in acom. Only grouped.',
-                `Copy the link for card ${REPORTED_ID}. Thanks`,
+                `Hi! Find card ${REPORTED_ID}`,
+                `Please show me card ${REPORTED_ID}. Only the en_US one.`,
+                `Get card ${REPORTED_ID}. Thanks`,
             ]) {
-                sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
+                sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
                 const result = await main(makeParams({ message, masa: true }));
-                expect(result.body.envelope.intent, message).to.equal('search_cards');
+                expect(result.body.envelope.intent, message).to.equal('get_card');
             }
         });
 
@@ -847,18 +841,11 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.confirmationRequired).to.equal(true);
         });
 
-        it('keeps search_cards for a multi-sentence message that starts with a lookup verb', async () => {
-            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
-            const message = 'Show me plans cards in acom. Only the grouped ones.';
-            const result = await main(makeParams({ message, masa: true }));
-            expect(result.body.envelope.intent).to.equal('search_cards');
-        });
-
         it('treats a leading lookup verb case-insensitively', async () => {
-            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
-            const message = 'FIND plans cards in acom. Only the grouped ones.';
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message = `SHOW me card ${REPORTED_ID}. I want to check its CTA.`;
             const result = await main(makeParams({ message, masa: true }));
-            expect(result.body.envelope.intent).to.equal('search_cards');
+            expect(result.body.envelope.intent).to.equal('get_card');
         });
 
         it('leaves quoted text with a colon to the model', async () => {

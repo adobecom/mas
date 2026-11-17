@@ -22,6 +22,13 @@ const searchEnvelope = {
     message: 'Searching cards',
     envelope: { intent: 'search_cards', slots: { query: 'photoshop' }, confidence: 0.9 },
 };
+const cardEnvelope = {
+    type: 'message',
+    message: 'Fetching the card',
+    envelope: { intent: 'get_card', slots: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }, confidence: 0.9 },
+};
+const OSI = 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M';
+const OSI_SEARCH = `find cards with osi ${OSI}`;
 const builtIn = { type: 'message', message: 'Built-in answer about prices.' };
 const LABEL = "Answered from Studio's built-in knowledge, MASA unavailable";
 const HOW_TO = 'How do I publish a card?';
@@ -198,11 +205,133 @@ describe('MasChat hands questions to MASA in one conversation', () => {
 
     it('keeps card actions working while MASA answers', async () => {
         const execute = sinon.stub(el, 'executeOperation').resolves();
+        ai.callsFake(async (params) => (params.message === QUESTION ? askMasaEnvelope : cardEnvelope));
         await send(QUESTION);
-        await send('show photoshop cards');
+        await send('get the photoshop card');
         expect(execute.calledOnce).to.be.true;
-        expect(execute.firstCall.args[0]).to.include({ operationName: 'search_cards' });
+        expect(execute.firstCall.args[0]).to.include({ operationName: 'get_card' });
         expect(masaMessages()[0]).to.include({ recordId: null, fallback: null, failure: null });
+    });
+
+    describe('a card search the router recognises', () => {
+        let execute;
+
+        beforeEach(() => {
+            execute = sinon.stub(el, 'executeOperation').resolves();
+        });
+
+        it('goes to MASA without asking ai-chat', async () => {
+            await send(OSI_SEARCH, {});
+            expect(masa.firstCall.args[0]).to.include({ question: OSI_SEARCH });
+            expect(execute.called).to.be.false;
+            expect(chatCalls()).to.have.length(0);
+            expect(el.isLoading).to.equal(false);
+        });
+
+        it('runs in Studio once MASA is known to be unavailable', async () => {
+            rememberFailure(new MasaClientError('caller-not-allowed', 'Not in the pilot'));
+            await send(OSI_SEARCH, {});
+            expect(execute.firstCall.args[0].operationParams).to.include({ osi: OSI });
+            expect(masa.called).to.be.false;
+        });
+
+        it('runs in Studio when it answers the surface prompt', async () => {
+            el.pendingSearchIntent = {
+                intent: 'title-search',
+                slots: { query: 'Photoshop', locale: 'en_US', titleSearch: true },
+                confidence: 0.8,
+                missingSlot: { slot: 'surface', prompt: 'Which surface should I search?' },
+                dispatch: null,
+            };
+            await send('acom', {});
+            expect(execute.firstCall.args[0].operationParams).to.include({ query: 'Photoshop', surface: 'acom' });
+            expect(masa.called).to.be.false;
+        });
+    });
+
+    describe('when MASA turns the question away', () => {
+        const NOT_ADMITTED = new MasaClientError('caller-not-allowed', 'Not in the pilot');
+
+        beforeEach(() => {
+            ai.callsFake(async (params) => {
+                if (params.requestType) return {};
+                if (params.masa === false || !isMasaAvailable()) return builtIn;
+                return askMasaEnvelope;
+            });
+        });
+
+        it('answers the turn in Studio under the built-in label', async () => {
+            masa.rejects(NOT_ADMITTED);
+            await send(QUESTION);
+            await thread.firstCall.returnValue;
+            expect(masaMessages()).to.have.length(0);
+            expect(el.messages.at(-1)).to.include({ role: 'assistant', content: builtIn.message });
+            expect(el.messages.at(-1).builtIn).to.deep.equal({ conversationId: el.currentSessionId, question: QUESTION });
+            expect(el.messages.filter((message) => message.role === 'user')).to.have.length(1);
+        });
+
+        it('asks ai-chat again as an ordinary turn, with the history from before the hand-off', async () => {
+            masa.rejects(NOT_ADMITTED);
+            el.conversationHistory = [{ role: 'user', content: 'earlier' }];
+            await send(QUESTION);
+            await thread.firstCall.returnValue;
+            expect(chatCalls()).to.have.length(2);
+            expect(chatCalls()[1].args[0]).to.deep.include({
+                message: QUESTION,
+                conversationHistory: [{ role: 'user', content: 'earlier' }],
+                intentHint: null,
+            });
+            expect(chatCalls()[1].args[1]).to.equal(undefined);
+        });
+
+        it("runs Studio's own search for a card search the router recognises", async () => {
+            const execute = sinon.stub(el, 'executeOperation').resolves();
+            masa.rejects(NOT_ADMITTED);
+            await send(OSI_SEARCH, {});
+            await thread.firstCall.returnValue;
+            expect(execute.calledOnce).to.be.true;
+            expect(execute.firstCall.args[0].operationParams).to.include({ osi: OSI });
+            expect(masaMessages()).to.have.length(0);
+        });
+
+        it('keeps the labelled fallback when a newer turn has started', async () => {
+            const answer = deferred();
+            masa.returns(answer.promise);
+            await send(QUESTION);
+            el.beginTurn();
+            answer.reject(NOT_ADMITTED);
+            await thread.firstCall.returnValue;
+            expect(masaMessages()[0].fallback).to.deep.equal({ content: builtIn.message });
+            expect(chatCalls().at(-1).args[0]).to.include({ intentHint: 'documentation', masa: false });
+        });
+
+        it('keeps the labelled fallback when the chat shows another conversation', async () => {
+            const answer = deferred();
+            masa.returns(answer.promise);
+            await send(QUESTION);
+            const asked = el.currentSessionId;
+            el.currentSessionId = sessionManager.createSession().id;
+            answer.reject(NOT_ADMITTED);
+            await thread.firstCall.returnValue;
+            expect(chatCalls().at(-1).args[0]).to.include({ intentHint: 'documentation', masa: false });
+            expect(sessionManager.getSession(asked).messages.find((message) => message.type === 'masa').fallback).to.deep.equal(
+                { content: builtIn.message },
+            );
+        });
+
+        it('asks MASA once more at most when the Studio turn hands off again', async () => {
+            ai.callsFake(async (params) => {
+                if (params.requestType) return {};
+                return params.masa === false ? builtIn : askMasaEnvelope;
+            });
+            masa.rejects(NOT_ADMITTED);
+            await send(QUESTION);
+            await thread.firstCall.returnValue;
+            await thread.secondCall.returnValue;
+            expect(masa.callCount).to.equal(2);
+            expect(masaMessages()).to.have.length(1);
+            expect(masaMessages()[0].fallback).to.deep.equal({ content: builtIn.message });
+        });
     });
 
     it('falls back with a label when MASA cannot answer', async () => {

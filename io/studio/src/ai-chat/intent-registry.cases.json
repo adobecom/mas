@@ -497,23 +497,23 @@
             "note": "With masa: true a question about recent changes hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
         },
         {
-            "id": "masa-search-can-you-find",
-            "intent_under_test": "search_cards",
+            "id": "masa-search-find-plans",
+            "intent_under_test": "ASK_MASA",
             "masa": true,
             "context": {
                 "flow": null,
                 "lastOperation": null,
                 "workingSet": []
             },
-            "user_message": "Can you find Photoshop cards in acom?",
+            "user_message": "find all plans cards in acom",
             "expect": {
-                "intent": "search_cards"
+                "intent": "ASK_MASA"
             },
-            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+            "note": "With masa: true card search is handed to MASA; Studio runs its own search only when MASA is not offered."
         },
         {
             "id": "masa-search-which-cards-quoted",
-            "intent_under_test": "search_cards",
+            "intent_under_test": "ASK_MASA",
             "masa": true,
             "context": {
                 "flow": null,
@@ -522,28 +522,28 @@
             },
             "user_message": "Which cards have 'Premium tier' in them?",
             "expect": {
-                "intent": "search_cards"
+                "intent": "ASK_MASA"
             },
-            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+            "note": "With masa: true card search is handed to MASA; Studio runs its own search only when MASA is not offered."
         },
         {
-            "id": "masa-search-could-you-show",
-            "intent_under_test": "search_cards",
+            "id": "masa-search-catalog-product",
+            "intent_under_test": "ASK_MASA",
             "masa": true,
             "context": {
                 "flow": null,
                 "lastOperation": null,
                 "workingSet": []
             },
-            "user_message": "Could you show me the plans cards for express?",
+            "user_message": "show me the catalog cards for Photoshop",
             "expect": {
-                "intent": "search_cards"
+                "intent": "ASK_MASA"
             },
-            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+            "note": "With masa: true card search is handed to MASA; Studio runs its own search only when MASA is not offered."
         },
         {
             "id": "masa-search-any-grouped",
-            "intent_under_test": "search_cards",
+            "intent_under_test": "ASK_MASA",
             "masa": true,
             "context": {
                 "flow": null,
@@ -552,24 +552,24 @@
             },
             "user_message": "Are there any catalog cards with grouped variations?",
             "expect": {
-                "intent": "search_cards"
+                "intent": "ASK_MASA"
             },
-            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+            "note": "With masa: true card search is handed to MASA; Studio runs its own search only when MASA is not offered."
         },
         {
-            "id": "masa-search-what-cards-template",
-            "intent_under_test": "search_cards",
+            "id": "masa-search-promo",
+            "intent_under_test": "ASK_MASA",
             "masa": true,
             "context": {
                 "flow": null,
                 "lastOperation": null,
                 "workingSet": []
             },
-            "user_message": "What cards use the fries template?",
+            "user_message": "search for a black friday promo card for me in acom",
             "expect": {
-                "intent": "search_cards"
+                "intent": "ASK_MASA"
             },
-            "note": "With masa: true a question-shaped card search still routes to emit_search, never ASK_MASA (design §1: card search never goes to MASA)."
+            "note": "With masa: true card search is handed to MASA; Studio runs its own search only when MASA is not offered."
         },
         {
             "id": "masa-off-after-hand-off",

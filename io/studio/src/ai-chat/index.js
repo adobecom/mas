@@ -29,7 +29,7 @@ import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
 import { ALL_KNOWLEDGE_CHUNKS, MASA_KNOWLEDGE_REVISION } from './knowledge-chunks.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
-import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { buildRoutingTools, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
 import { getFlowForIntent, getIntent } from './intent-registry.js';
@@ -614,9 +614,7 @@ async function main(params) {
             !isCardCreation &&
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
-        let toolOptions = nativeEnvelopeEligible
-            ? { thinking, tools: [buildEnvelopeTool({ masa }), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
-            : { thinking };
+        let toolOptions = nativeEnvelopeEligible ? { thinking, ...buildRoutingTools({ masa }) } : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare
         // identifier, classify it by shape and emit the correct operation
@@ -884,15 +882,10 @@ async function main(params) {
             }
 
             let finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
-            if (
-                masa &&
-                isMasaWriteUp(message) &&
-                getIntent(finalEnvelope?.intent)?.category === 'read-only' &&
-                !getFlowForIntent(finalEnvelope.intent)
-            ) {
+            if (masa && isMasaWork(finalEnvelope?.intent, message)) {
                 console.log(
                     JSON.stringify({
-                        phase: 'masa-write-up-guard',
+                        phase: 'masa-hand-off-guard',
                         req: requestId,
                         intent: finalEnvelope.intent,
                     }),
@@ -1369,6 +1362,16 @@ const startsWithLookup = (sentence) => LOOKUP_VERB_RE.test(sentence.trim().repla
 function isMasaWriteUp(message) {
     if (message.split(SENTENCE_SPLIT_RE).some(startsWithLookup)) return false;
     return WRITE_UP_SENTENCE_RE.test(message) || message.trim().split(/\s+/).length > WRITE_UP_MAX_WORDS;
+}
+
+/**
+ * With MASA offered, the model's own choice still belongs to MASA when it is a
+ * card search (the search tool is not offered, but the intent stays registered)
+ * or a read-only lookup picked for a write-up.
+ */
+function isMasaWork(intent, message) {
+    if (intent === 'search_cards') return true;
+    return isMasaWriteUp(message) && getIntent(intent)?.category === 'read-only' && !getFlowForIntent(intent);
 }
 
 /**

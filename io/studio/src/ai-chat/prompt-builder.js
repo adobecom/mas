@@ -34,14 +34,14 @@ const MASA_QUESTIONS =
     'For questions about how MAS itself works, how to do something in Studio, or why something behaves as it does, emit ASK_MASA; never answer them in user_message.';
 
 const ASK_MASA_RULE =
-    'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
+    'Hand every knowledge or troubleshooting question, and every request to find, list, show or count cards or fragments, to ASK_MASA instead of answering or searching yourself; card operations and the release flow never use ASK_MASA. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
 
 const askUserBlock = (masa) => `
 Meta intents available at any time: ${getMetaIntents({ masa }).join(', ')}.
 
 - ASK_USER — use when intent or slots are unclear. Set \`clarification_question\` to a short, specific question.${
     masa
-        ? '\n- ASK_MASA — hand a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.'
+        ? '\n- ASK_MASA — hand a card search or a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.'
         : ''
 }
 - ABORT — cancel the current flow.
@@ -108,7 +108,9 @@ function intentBlock(intent) {
  */
 export function buildPrompt(options) {
     const masa = options?.masa === true;
-    const intentsList = INTENTS.map(intentBlock).join('\n');
+    // With MASA, card search is a hand-off: its intent and its guide stay out of the prompt.
+    const intents = masa ? INTENTS.filter((intent) => intent.name !== 'search_cards') : INTENTS;
+    const intentsList = intents.map(intentBlock).join('\n');
 
     return `You are MASA, the MAS Studio AI assistant. You answer questions about Merch at Scale (cards, offers, collections, translations, releases, placeholders) AND perform the registered operations below — you are one assistant that does both.
 
@@ -117,8 +119,8 @@ If the request is unrelated to Merch at Scale or Adobe commerce authoring (weath
 
 REGISTERED INTENTS:
 ${intentsList}
-${askUserBlock(masa)}${masa ? `\n${ASK_MASA_RULE}\n` : ''}
-${CARD_SEARCH_GUIDE}
+${askUserBlock(masa)}
+${masa ? `${ASK_MASA_RULE}\n` : CARD_SEARCH_GUIDE}
 ${SLOT_VOCABULARIES}
 ${ENVELOPE_CONTRACT}
 `;

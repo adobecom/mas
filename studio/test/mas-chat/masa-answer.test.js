@@ -316,10 +316,93 @@ describe('MASA answer in the thread', () => {
         const el = await mountAnswer(controller);
         expect(el.shadowRoot.querySelector('.finding').textContent).to.contain('different offer');
         const opened = new Promise((resolve) => el.addEventListener('open-card', resolve, { once: true }));
-        el.shadowRoot.querySelector('li sp-action-button').click();
+        el.shadowRoot.querySelector('.list tr sp-action-button').click();
         const event = await opened;
         expect(event.detail.fragment.id).to.equal(cardId);
         expect(event.bubbles && event.composed).to.equal(true);
+    });
+
+    describe('a list of cards', () => {
+        const cards = {
+            heading: 'Author cards: acom en_US',
+            total: 28,
+            artifactId: 'art_33333333-3333-4333-8333-333333333333',
+            items: [
+                { id: cardId, title: 'Photoshop', detail: 'plans · en_US · PUBLISHED · BFCM26' },
+                { id: 'not-a-card', title: 'Illustrator', detail: 'catalog · en_US · DRAFT · NONE' },
+            ],
+        };
+        const csv = [{ id: cards.artifactId, filename: 'results.csv', available: true }];
+        const mountList = async (list, artifacts = csv) => {
+            const controller = makeController({ history: [record()] });
+            controller.session = lease();
+            controller.records[0].lists = [list];
+            controller.records[0].artifacts = artifacts;
+            return mountAnswer(controller);
+        };
+        const rows = (el) =>
+            [...el.shadowRoot.querySelectorAll('.list tbody tr')].map((row) =>
+                [...row.cells].map((cell) => cell.textContent.trim()),
+            );
+
+        it('is a table with a row per card and a column per part of its detail', async () => {
+            const el = await mountList(cards);
+            expect(el.shadowRoot.querySelector('.list h3').textContent).to.equal(cards.heading);
+            expect(rows(el)).to.deep.equal([
+                ['Photoshop', 'plans', 'en_US', 'PUBLISHED', 'BFCM26', 'Open'],
+                ['Illustrator', 'catalog', 'en_US', 'DRAFT', 'NONE', ''],
+            ]);
+        });
+
+        it('keeps each detail whole when the cards do not share the same parts', async () => {
+            const items = [
+                { id: 'offer-1', title: 'Firefly Pro Plus', detail: 'headless · en_US · DRAFT' },
+                { id: 'offer-2', title: 'Firefly Pro', detail: 'en_US · PUBLISHED' },
+            ];
+            const el = await mountList({ heading: 'Cards', items });
+            expect(rows(el)).to.deep.equal([
+                ['Firefly Pro Plus', 'headless · en_US · DRAFT'],
+                ['Firefly Pro', 'en_US · PUBLISHED'],
+            ]);
+        });
+
+        it('names each row by its card title', async () => {
+            const el = await mountList(cards);
+            const headers = [...el.shadowRoot.querySelectorAll('.list tbody th[scope="row"]')];
+            expect(headers.map((header) => header.textContent.trim())).to.deep.equal(['Photoshop', 'Illustrator']);
+        });
+
+        it('says which card each Open button opens', async () => {
+            const el = await mountList(cards);
+            expect(el.shadowRoot.querySelector('.list sp-action-button').getAttribute('label')).to.equal('Open Photoshop');
+        });
+
+        it('says how many are shown and where the rest are when the list is cut short', async () => {
+            const el = await mountList(cards);
+            expect(el.shadowRoot.querySelector('.list .placeholder').textContent.trim()).to.equal(
+                'Showing 2 of 28. The CSV below has them all.',
+            );
+        });
+
+        it('does not point at a CSV that is no longer attached', async () => {
+            const el = await mountList(cards, []);
+            expect(el.shadowRoot.querySelector('.list .placeholder').textContent.trim()).to.equal('Showing 2 of 28.');
+        });
+
+        it('says nothing about a count when every item is shown', async () => {
+            const el = await mountList({ ...cards, total: 2 });
+            expect(el.shadowRoot.querySelector('.list .placeholder')).to.be.null;
+        });
+
+        it('has no Open column when no item is a card', async () => {
+            const el = await mountList({ heading: 'Offers', items: [{ id: 'offer-1', title: 'Photoshop ABM', detail: 'US' }] });
+            expect(rows(el)).to.deep.equal([['Photoshop ABM', 'US']]);
+        });
+
+        it('shows the item ID when an item has no title or detail', async () => {
+            const el = await mountList({ heading: 'Cards', items: [{ id: cardId }] });
+            expect(rows(el)).to.deep.equal([[cardId, 'Open']]);
+        });
     });
 
     it('renders points as a bulleted list in the finding', async () => {

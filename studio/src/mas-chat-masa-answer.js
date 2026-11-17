@@ -7,6 +7,9 @@ import { parseAnswerMarkdown } from './utils/markdown-parser.js';
 const STATUS_AFTER_MS = 15000;
 const LONG_WAIT_AFTER_MS = 120000;
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
+const CARD_ID = /^[0-9a-f-]{36}$/i;
+/** MASA joins the facts about a listed item (variant, locale, status…) with this separator. */
+const DETAIL_SEPARATOR = ' · ';
 
 /** One MASA answer in the conversation thread: live job progress, the finding, or the labelled fallback. */
 export class MasChatMasaAnswer extends MasaSessionElement {
@@ -142,6 +145,17 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         th {
             background: var(--spectrum-gray-100, #f8f8f8);
             font-weight: 600;
+        }
+        .list {
+            display: grid;
+            gap: 8px;
+        }
+        .list .table-wrap {
+            margin: 0;
+        }
+        .list th {
+            background: none;
+            font-weight: normal;
         }
         img {
             max-width: 100%;
@@ -301,6 +315,42 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         );
     }
 
+    /** A list MASA found, as a table: a row per item, a column per part of its detail, and a button that opens a card. */
+    listTemplate({ heading, items, total, artifactId }, artifacts = []) {
+        const parts = items.map((item) => item.detail?.split(DETAIL_SEPARATOR) ?? []);
+        const aligned = parts.every((row) => row.length === parts[0].length);
+        const details = aligned ? parts : items.map((item) => [item.detail]);
+        const columns = aligned ? parts[0].length : 1;
+        const hasCards = items.some((item) => CARD_ID.test(item.id));
+        const csvNote = artifacts.some(({ id }) => id === artifactId) ? ' The CSV below has them all.' : '';
+        const openCell = (item, title) =>
+            html`<td>
+                ${CARD_ID.test(item.id)
+                    ? html`<sp-action-button size="s" label="Open ${title}" @click=${() => this.openCard(item)}
+                          >Open</sp-action-button
+                      >`
+                    : nothing}
+            </td>`;
+        return html`<div class="list">
+            <h3>${heading}</h3>
+            <div class="table-wrap">
+                <table>
+                    <tbody>
+                        ${items.map((item, row) => {
+                            const title = item.title ?? item.id;
+                            return html`<tr>
+                                <th scope="row">${title}</th>
+                                ${Array.from({ length: columns }, (part, column) => html`<td>${details[row][column]}</td>`)}
+                                ${hasCards ? openCell(item, title) : nothing}
+                            </tr>`;
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            ${total > items.length ? html`<p class="placeholder">Showing ${items.length} of ${total}.${csvNote}</p>` : nothing}
+        </div>`;
+    }
+
     renderRecord(record) {
         const controller = this.activeController;
         const active = controller.session?.status === 'active' && controller.session.id === record.sessionId;
@@ -314,25 +364,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         ${record.status === 'failed' || record.status === 'interrupted'
             ? html`<p>MASA could not finish this answer. You can ask a new question.</p>`
             : nothing}
-        ${(record.lists ?? []).map(
-            (list) =>
-                html`<div>
-                    <h3>${list.heading}</h3>
-                    <ul>
-                        ${list.items.map(
-                            (item) =>
-                                html`<li>
-                                    ${item.title ?? item.id} ${item.detail ?? ''}
-                                    ${/^[0-9a-f-]{36}$/i.test(item.id)
-                                        ? html`<sp-action-button @click=${() => this.openCard(item)}
-                                              >Open in Studio</sp-action-button
-                                          >`
-                                        : nothing}
-                                </li>`,
-                        )}
-                    </ul>
-                </div>`,
-        )}
+        ${(record.lists ?? []).map((list) => this.listTemplate(list, record.artifacts))}
         ${(record.artifacts ?? []).map((artifact) => {
             const download = controller.downloads.get(artifact.id);
             return html`<div class="actions">

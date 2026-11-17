@@ -1,12 +1,13 @@
-const UNAVAILABLE_CODES = new Set([
-    'connection-unavailable',
+const REFUSAL_CODES = [
     'caller-not-allowed',
     'surface-not-allowed',
     'investigations-disabled',
     'masa-disabled',
     'masa-not-configured',
     'studio-origin-denied',
-]);
+];
+
+const UNAVAILABLE_CODES = new Set(['connection-unavailable', ...REFUSAL_CODES]);
 
 const USER_INPUT_CODES = new Set(['invalid-question', 'question-too-large', 'invalid-image']);
 
@@ -22,6 +23,11 @@ export function rememberFailure(error) {
     if (!UNAVAILABLE_CODES.has(error.code)) return false;
     unavailable = true;
     return true;
+}
+
+/** MASA answered that it takes no questions here: it accepted nothing, so Studio can answer the turn itself. */
+export function isRefusal(error) {
+    return REFUSAL_CODES.includes(error.code);
 }
 
 /** Clears the memory, used by the "Ask MASA again" action. */

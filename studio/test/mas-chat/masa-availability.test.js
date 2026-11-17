@@ -5,6 +5,7 @@ import {
     rememberFailure,
     resetMasaAvailability,
     isUserInputError,
+    isRefusal,
 } from '../../src/mas-chat/masa-availability.js';
 
 const REMEMBERED_CODES = [
@@ -81,6 +82,15 @@ describe('masa-availability', () => {
         expect(error.code).to.equal('masa-not-configured');
         expect(rememberFailure(error)).to.be.true;
         expect(isMasaAvailable()).to.be.false;
+    });
+
+    it('counts every remembered failure except a dropped connection as a refusal', () => {
+        const refused = REMEMBERED_CODES.filter((code) => isRefusal(new MasaClientError(code, '')));
+        expect(refused).to.deep.equal(REMEMBERED_CODES.filter((code) => code !== 'connection-unavailable'));
+    });
+
+    it('does not count a failure MASA may recover from as a refusal', () => {
+        expect(NOT_REMEMBERED_CODES.filter((code) => isRefusal(new MasaClientError(code, '')))).to.deep.equal([]);
     });
 
     it('Ask MASA again clears the memory', () => {

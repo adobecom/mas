@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 
 let buildEnvelopeTool;
+let buildRoutingTools;
 let ENVELOPE_TOOL_NAME;
 let ENVELOPE_TOOL_CHOICE;
 let INTENTS;
@@ -10,6 +11,7 @@ describe('ai-chat/tool-definitions', () => {
     before(async () => {
         const mod = await import('../../src/ai-chat/tool-definitions.js');
         buildEnvelopeTool = mod.buildEnvelopeTool;
+        buildRoutingTools = mod.buildRoutingTools;
         ENVELOPE_TOOL_NAME = mod.ENVELOPE_TOOL_NAME;
         ENVELOPE_TOOL_CHOICE = mod.ENVELOPE_TOOL_CHOICE;
         const registry = await import('../../src/ai-chat/intent-registry.js');
@@ -82,6 +84,28 @@ describe('ai-chat/tool-definitions', () => {
         const { user_message: userMessage } = buildEnvelopeTool({ masa: true }).input_schema.properties;
         expect(userMessage.description).to.not.include('documentation answers');
         expect(buildEnvelopeTool().input_schema.properties.user_message.description).to.include('documentation answers');
+    });
+
+    it('hands card search to ASK_MASA when MASA is available', () => {
+        const { description } = buildEnvelopeTool({ masa: true });
+        expect(description).to.include(
+            'Use ASK_MASA, with empty slots and no user_message, to find, list, show or count cards',
+        );
+        expect(description).to.not.include('emit_search');
+    });
+
+    it('offers the envelope and the typed search, free to pick, when MASA is not offered', () => {
+        const { tools, toolChoice } = buildRoutingTools();
+        expect(tools.map((tool) => tool.name)).to.deep.equal(['emit_envelope', 'emit_search']);
+        expect(tools[0].description).to.include('call emit_search');
+        expect(toolChoice).to.deep.equal({ type: 'any' });
+    });
+
+    it('forces the envelope alone when MASA is available, so no card search runs in Studio', () => {
+        const { tools, toolChoice } = buildRoutingTools({ masa: true });
+        expect(tools.map((tool) => tool.name)).to.deep.equal(['emit_envelope']);
+        expect(tools[0].input_schema.properties.intent.enum).to.include('ASK_MASA');
+        expect(toolChoice).to.deep.equal(ENVELOPE_TOOL_CHOICE);
     });
 
     it('keeps ASK_USER for answers to questions when MASA is not offered', () => {

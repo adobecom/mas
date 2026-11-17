@@ -175,7 +175,7 @@
                     document.querySelector('#interactive').addEventListener('open-card', event, { once: true });
                     parts
                         .flatMap((part) => [...part.shadowRoot.querySelectorAll('sp-action-button')])
-                        .find((button) => button.textContent === 'Open in Studio')
+                        .find((button) => button.textContent.trim() === 'Open')
                         .click();
                     expect(event.firstCall.args[0].detail.fragment.id).to.equal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
                 });

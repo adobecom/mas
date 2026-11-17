@@ -242,12 +242,21 @@ export default class MasFragmentEditor extends LitElement {
         @media (min-width: 1201px) {
             #editor-content:not(.compare-chart-content):not(.full-width-content) {
                 grid-template-rows: minmax(0, 1fr);
+                margin-block: -32px;
+                padding-bottom: 0;
             }
 
             #editor-content:not(.compare-chart-content):not(.full-width-content) > #form-column,
             #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column {
                 min-height: 0;
                 overflow-y: auto;
+                padding-block: 32px;
+                box-sizing: border-box;
+            }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #form-column {
+                padding-left: 8px;
+                margin-left: -8px;
             }
 
             #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > * {

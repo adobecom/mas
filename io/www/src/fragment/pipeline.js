@@ -2,6 +2,7 @@ import { createTimeoutPromise, mark, measureTiming, VALID_PARAMETER_VALUE_REGEX 
 import {
     clearRequestCaches,
     extractContextFromMetadata,
+    getFilesClient,
     getRequestMetadata,
     getStoredResponse,
     rereadRequestMetadata,
@@ -104,9 +105,10 @@ async function main(params) {
             message: 'Preview mode is not supported in this pipeline',
         };
     }
-    /* c8 ignore next 3*/
+    /* c8 ignore next 4*/
     if (!context.state) {
         context.state = await stateLib.init();
+        context.files = getFilesClient(context);
     }
     try {
         const now = mark(context, 'config-check');
@@ -279,7 +281,7 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
         if (transformer.init) {
             //we fork context to avoid init to override any context property
             const initContext = {
-                ...structuredClone({ ...context, state: undefined }),
+                ...structuredClone({ ...context, state: undefined, files: undefined }),
                 state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,

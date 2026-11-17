@@ -2,6 +2,7 @@ import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log, logError } from './log.js';
 import { createSwrCache } from './swr-cache.js';
+import filesLib from '@adobe/aio-lib-files';
 // Escaped as in URLs, with `.` instead of `%` (State keys only allow letters, digits, `-`, `_` and `.`): in a key, `.`
 // is then either an escape (followed by 2 uppercase hex digits) or the start of a tagged parameter (lowercase tag).
 const escapeKeyValue = (value) =>
@@ -19,39 +20,98 @@ const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template
     return [fragment, ...parameters].join('');
 };
 
-// Memory copies of the State values, re-read from State at most every minute or so per container.
+// Memory copies of the stored values, re-read from State and Files at most every minute or so per container.
 const MEMORY_TTL = 60 * 1000;
 // A stored response refreshed less than this ago is served as is; an older one is rebuilt.
 const RESPONSE_MAX_AGE = 5 * 60 * 1000;
 // While a rebuild is in progress, an older stored response is still served, up to this age; beyond it requests wait.
 const STALE_MAX_AGE = 15 * 60 * 1000;
-// State values are limited to 1 MB.
+// Larger responses are neither stored nor kept in memory (most are under 20 KB).
 const MAX_STORED_RESPONSE_LENGTH = 900 * 1024;
+// A Files read or write taking longer is given up: a miss rather than a slow response.
+const FILES_TIMEOUT = 500;
+const TIMED_OUT = Symbol('timed out');
 
 const metadataCache = createSwrCache({ name: 'request-metadata', ttl: MEMORY_TTL, maxEntries: 20000 });
 const responseCache = createSwrCache({ name: 'response', ttl: MEMORY_TTL, maxEntries: 20000 });
 
 const getResponseKey = (requestKey) => requestKey.replace(/^req-/, 'res-');
 
+const getResponsePath = (responseKey) => `fragment-cache/${responseKey}.json`;
+
 const readState = async (key, context) => (await getJsonFromState(key, context)).json;
 
 // Preview (Studio) and `instant` (time travelling) requests neither use the memory copies nor the stored response.
 const usesStoredResponse = ({ preview, instant }) => !preview && !instant;
 
+let files;
+let filesInit;
+
 /**
- * Reads the request metadata (`req-` key) and the stored response (`res-` key, a `{ hash, body }`
- * pair where `body` is the brotli + base64 encoded response) in parallel, from memory or State.
- * `fromState` tells whether both were just read from State rather than taken from the memory copies.
+ * Returns the Files client once initialised, `undefined` until then: its first initialisation in a container takes
+ * a couple of seconds, which requests do not wait for (their stored responses are then just not read nor written).
+ */
+function getFilesClient(context) {
+    filesInit ??= filesLib
+        .init()
+        .then((client) => (files = client))
+        .catch((error) => {
+            logError(`failed to initialise Files: ${error.message}`, context);
+            filesInit = undefined;
+        });
+    return files;
+}
+
+async function withFilesTimeout(promise, label, context) {
+    let timer;
+    const timeout = new Promise((resolve) => (timer = setTimeout(resolve, FILES_TIMEOUT, TIMED_OUT)));
+    mark(context, label);
+    const result = await Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    measureTiming(context, label);
+    if (result === TIMED_OUT) throw new Error(`timed out after ${FILES_TIMEOUT}ms`);
+    return result;
+}
+
+/** Reads a stored response from Files; best effort: a missing, failed or slow read is a miss. */
+async function readStoredResponse(responseKey, context) {
+    if (!context.files) return null;
+    try {
+        const content = await withFilesTimeout(context.files.read(getResponsePath(responseKey)), 'res-files-read', context);
+        return JSON.parse(content.toString());
+    } catch (error) {
+        if (error.code !== 'ERROR_FILE_NOT_EXISTS') logError(`failed to read ${responseKey}: ${error.message}`, context);
+        return null;
+    }
+}
+
+/** Writes a stored response to Files; best effort, as for State. */
+async function writeStoredResponse(responseKey, response, context) {
+    if (!context.files) return;
+    try {
+        await withFilesTimeout(
+            context.files.write(getResponsePath(responseKey), JSON.stringify(response)),
+            'res-files-write',
+            context,
+        );
+    } catch (error) {
+        logError(`failed to store ${responseKey}: ${error.message}`, context);
+    }
+}
+
+/**
+ * Reads the request metadata (`req-` key, from State) and the stored response (`res-` key, from Files, a `{ hash, body }`
+ * pair where `body` is the brotli + base64 encoded response) in parallel, from memory or storage.
+ * `fromState` tells whether both were just read from storage rather than taken from the memory copies.
  */
 async function getRequestMetadata(context) {
     const requestKey = getRequestMetadataKey(context);
     const responseKey = getResponseKey(requestKey);
     const shared = usesStoredResponse(context);
     const read = {};
-    const load = (key) => async () => (read[key] = await readState(key, context));
+    const load = (key, reader) => async () => (read[key] = await reader(key, context));
     const [cachedMetadata, cachedResponse] = await Promise.all([
-        shared ? metadataCache.get(context, requestKey, load(requestKey)) : readState(requestKey, context),
-        shared ? responseCache.get(context, responseKey, load(responseKey)) : null,
+        shared ? metadataCache.get(context, requestKey, load(requestKey, readState)) : readState(requestKey, context),
+        shared ? responseCache.get(context, responseKey, load(responseKey, readStoredResponse)) : null,
     ]);
     if (cachedMetadata) {
         log(`found cached metadata for ${requestKey} -> ${JSON.stringify(cachedMetadata)}`, context);
@@ -61,14 +121,14 @@ async function getRequestMetadata(context) {
 }
 
 /**
- * Re-reads the request metadata and the stored response from State, bypassing (and updating) the memory copies:
+ * Re-reads the request metadata and the stored response from storage, bypassing (and updating) the memory copies:
  * another container may have refreshed them since this one copied them. Best effort: a failed read returns nulls.
  */
 async function rereadRequestMetadata(context, requestKey) {
     const responseKey = getResponseKey(requestKey);
     const [cachedMetadata, cachedResponse] = await Promise.all([
         readState(requestKey, context),
-        readState(responseKey, context),
+        readStoredResponse(responseKey, context),
     ]).catch((error) => {
         logError(`failed to re-read ${requestKey}: ${error.message}`, context);
         return [null, null];
@@ -134,7 +194,7 @@ async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, {
     if (shared && cachedResponse?.hash !== hash && body?.length <= MAX_STORED_RESPONSE_LENGTH) {
         const response = { hash, body };
         responseCache.set(context, getResponseKey(requestKey), response);
-        writes.push(putInState(context, getResponseKey(requestKey), response, 'res-state-put'));
+        writes.push(writeStoredResponse(getResponseKey(requestKey), response, context));
     }
     await Promise.all(writes);
     return { lastModified, hash };
@@ -143,10 +203,13 @@ async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, {
 function clearRequestCaches() {
     metadataCache.clear();
     responseCache.clear();
+    files = undefined;
+    filesInit = undefined;
 }
 
 export {
     STALE_MAX_AGE,
+    getFilesClient,
     getRequestMetadata,
     rereadRequestMetadata,
     getStoredResponse,

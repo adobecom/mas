@@ -12,6 +12,7 @@ import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 import { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl } from './promotions.test.js';
@@ -49,9 +50,11 @@ describe('pipeline end to end', () => {
             path: 'someFragment',
         });
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_FR',
         });
         expect(result.statusCode).to.equal(200);
@@ -60,8 +63,9 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR', 'res-some-en-us-fragment-fr_FR']);
-        const stored = JSON.parse(state.store['res-some-en-us-fragment-fr_FR']);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
+        const stored = JSON.parse(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
         expect(stored.hash).to.equal(EXPECTED_BODY_HASH);
         expect(JSON.parse(zlib.brotliDecompressSync(Buffer.from(stored.body, 'base64')))).to.deep.equal(result.body);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
@@ -176,12 +180,13 @@ describe('pipeline end to end', () => {
                 lastModified: RANDOM_OLD_DATE,
                 refreshedAt,
             });
-            state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
                 hash: 'old-hash',
                 body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
             });
             const output = sinon.stub(console, 'log');
-            const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+            const request = { id: 'some-en-us-fragment', state, files, locale: 'fr_FR' };
             let results;
             try {
                 results = await Promise.all([getFragment(request), getFragment(request)]);
@@ -210,16 +215,17 @@ describe('pipeline end to end', () => {
 
     describe('re-reading State before rebuilding', () => {
         const requestKey = 'req-some-en-us-fragment-fr_FR';
-        const responseKey = 'res-some-en-us-fragment-fr_FR';
+        const responsePath = 'fragment-cache/res-some-en-us-fragment-fr_FR.json';
         const metadata = (age) => ({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() - age });
-        const request = (state) => ({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
+        let files;
+        const request = (state) => ({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
         const fragmentFetches = () =>
             fetchStub.getCalls().filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
-        // State holds a response refreshed `age` ago, and this container has a memory copy of it
+        // State and Files hold a response refreshed `age` ago, and this container has a memory copy of it
         const storedState = async (age, body = '{"stored":true}') => {
             const state = new MockState();
             state.store[requestKey] = JSON.stringify(metadata(age));
-            state.store[responseKey] = JSON.stringify({
+            files.store[responsePath] = JSON.stringify({
                 hash: 'old-hash',
                 body: zlib.brotliCompressSync(body).toString('base64'),
             });
@@ -238,6 +244,7 @@ describe('pipeline end to end', () => {
         };
 
         beforeEach(() => {
+            files = new MockFiles();
             setupFragmentMocks(fetchStub, {
                 id: 'some-en-us-fragment',
                 path: 'someFragment',
@@ -271,6 +278,7 @@ describe('pipeline end to end', () => {
                 .returns(createResponse(500, {}));
             const state = await storedState(10 * 60 * 1000);
             state.store = {};
+            files.store = {};
             const result = await getFragment(request(state));
             expect(result.statusCode).to.equal(200);
             expect(result.body).to.deep.equal({ stored: true });
@@ -293,10 +301,11 @@ describe('pipeline end to end', () => {
             const state = new MockState();
             state.store[requestKey] = JSON.stringify(metadata(6 * 60 * 1000));
             const get = sinon.spy(state, 'get');
+            const read = sinon.spy(files, 'read');
             const result = await getFragment(request(state));
             expect(result.body).to.deep.include(EXPECTED_BODY);
             expect(get.getCalls().filter(({ args }) => args[0] === requestKey)).to.have.lengthOf(1);
-            expect(get.getCalls().filter(({ args }) => args[0] === responseKey)).to.have.lengthOf(1);
+            expect(read.getCalls().filter(({ args }) => args[0] === responsePath)).to.have.lengthOf(1);
         });
     });
 
@@ -349,12 +358,13 @@ describe('pipeline end to end', () => {
                 lastModified: RANDOM_OLD_DATE,
                 refreshedAt,
             });
-            state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
                 hash: 'old-hash',
                 body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
             });
             const output = sinon.stub(console, 'log');
-            const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+            const request = { id: 'some-en-us-fragment', state, files, locale: 'fr_FR' };
             let results;
             try {
                 results = await Promise.all([getFragment(request), getFragment(request)]);
@@ -417,9 +427,11 @@ describe('pipeline end to end', () => {
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_CA',
         });
         expect(result.statusCode).to.equal(200);
@@ -429,7 +441,8 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA', 'res-some-en-us-fragment-fr_CA']);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_CA.json']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
@@ -446,9 +459,11 @@ describe('pipeline end to end', () => {
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_FR',
             country: 'CA',
         });
@@ -459,10 +474,8 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store)).to.have.members([
-            'req-some-en-us-fragment-fr_FR-CA',
-            'res-some-en-us-fragment-fr_FR-CA',
-        ]);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR-CA']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR-CA.json']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');

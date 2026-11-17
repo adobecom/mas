@@ -1,11 +1,15 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import filesLib from '@adobe/aio-lib-files';
 import {
     clearRequestCaches,
+    getFilesClient,
     getRequestMetadata,
     getStoredResponse,
+    rereadRequestMetadata,
     storeRequestMetadata,
 } from '../../src/fragment/utils/cache.js';
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 
 const requestKey = async (params) => (await getRequestMetadata({ state: new MockState(), ...params })).requestKey;
@@ -61,12 +65,15 @@ describe('stored response', () => {
         refreshedAt: Date.now(),
         ...props,
     });
+    const RESPONSE_PATH = 'fragment-cache/res-some-id-en_US.json';
     let state;
+    let files;
     let clock;
 
     beforeEach(() => {
         clearRequestCaches();
         state = new MockState();
+        files = new MockFiles();
         clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
     });
 
@@ -75,7 +82,8 @@ describe('stored response', () => {
     });
 
     const store = (context, cachedMetadata, hash, options) =>
-        storeRequestMetadata({ state, id: 'some-id', locale: 'en_US', ...context }, KEY, cachedMetadata, hash, options);
+        storeRequestMetadata({ state, files, id: 'some-id', locale: 'en_US', ...context }, KEY, cachedMetadata, hash, options);
+    const read = (context) => getRequestMetadata({ state, files, id: 'some-id', locale: 'en_US', measures: [], ...context });
 
     it('serves a recently refreshed body matching the metadata hash', () => {
         expect(getStoredResponse(metadata(), { hash: 'h1', body: 'b1' })).to.equal('b1');
@@ -90,13 +98,54 @@ describe('stored response', () => {
         expect(getStoredResponse(metadata({ refreshedAt: undefined }), { hash: 'h1', body: 'b1' })).to.be.null;
     });
 
-    it('stores metadata and body under separate keys, then reads them back from memory', async () => {
+    it('stores metadata in State and body in Files, then reads them back from memory', async () => {
         await store({}, null, 'h1', { body: 'b1' });
         expect(JSON.parse(state.store[KEY])).to.include({ hash: 'h1', refreshedAt: Date.now() });
-        expect(JSON.parse(state.store['res-some-id-en_US'])).to.deep.equal({ hash: 'h1', body: 'b1' });
+        expect(Object.keys(state.store)).to.deep.equal([KEY]);
+        expect(JSON.parse(files.store[RESPONSE_PATH])).to.deep.equal({ hash: 'h1', body: 'b1' });
         state.store = {};
-        const { cachedMetadata, cachedResponse } = await getRequestMetadata({ state, id: 'some-id', locale: 'en_US' });
+        files.store = {};
+        const { cachedMetadata, cachedResponse } = await read();
         expect(getStoredResponse(cachedMetadata, cachedResponse)).to.equal('b1');
+    });
+
+    it('reads the stored body from Files', async () => {
+        state.store[KEY] = JSON.stringify(metadata());
+        files.store[RESPONSE_PATH] = JSON.stringify({ hash: 'h1', body: 'b1' });
+        const { cachedMetadata, cachedResponse, fromState } = await read();
+        expect(getStoredResponse(cachedMetadata, cachedResponse)).to.equal('b1');
+        expect(fromState).to.be.true;
+        files.store[RESPONSE_PATH] = JSON.stringify({ hash: 'h2', body: 'b2' });
+        expect((await rereadRequestMetadata({ state, files }, KEY)).cachedResponse).to.deep.equal({ hash: 'h2', body: 'b2' });
+    });
+
+    it('treats a failed Files read as a miss', async () => {
+        state.store[KEY] = JSON.stringify(metadata());
+        files.read = sinon.stub().rejects(new Error('503'));
+        const { cachedMetadata, cachedResponse } = await read();
+        expect(cachedMetadata.hash).to.equal('h1');
+        expect(cachedResponse).to.be.null;
+    });
+
+    it('gives up a slow Files read or write', async () => {
+        clock.restore();
+        clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        files.read = () => new Promise(() => {});
+        files.write = sinon.stub().returns(new Promise(() => {}));
+        const reading = read();
+        await clock.tickAsync(500);
+        expect((await reading).cachedResponse).to.be.null;
+        const storing = store({ measures: [] }, null, 'h1', { body: 'b1' });
+        await clock.tickAsync(500);
+        expect((await storing).hash).to.equal('h1');
+        expect(files.write.calledOnce).to.be.true;
+    });
+
+    it('neither reads nor writes the body without a Files client', async () => {
+        await store({ files: undefined }, null, 'h1', { body: 'b1' });
+        expect(Object.keys(state.store)).to.deep.equal([KEY]);
+        clearRequestCaches();
+        expect((await read({ files: undefined })).cachedResponse).to.be.null;
     });
 
     it('only refreshes the metadata when the hash is unchanged', async () => {
@@ -112,36 +161,61 @@ describe('stored response', () => {
         expect(lastModified.getTime()).to.equal(Date.now());
     });
 
-    it('does not store a body exceeding the State value limit', async () => {
+    it('does not store a body exceeding the stored response limit', async () => {
         await store({}, null, 'h1', { body: 'x'.repeat(900 * 1024 + 1) });
-        expect(Object.keys(state.store)).to.deep.equal([KEY]);
+        expect(files.store).to.deep.equal({});
     });
 
     it('writes nothing for instant requests', async () => {
         const { hash } = await store({ instant: '2026-01-01' }, null, 'h1', { body: 'b1' });
         expect(hash).to.equal('h1');
         expect(state.store).to.deep.equal({});
+        expect(files.store).to.deep.equal({});
     });
 
     it('keeps preview requests away from memory and the stored response', async () => {
         const preview = { preview: { url: 'https://preview' } };
         await store(preview, null, 'h1', { body: 'b1' });
         expect(Object.keys(state.store)).to.deep.equal([KEY]);
-        const { cachedMetadata, cachedResponse } = await getRequestMetadata({
-            state,
-            id: 'some-id',
-            locale: 'en_US',
-            ...preview,
-        });
+        expect(files.store).to.deep.equal({});
+        const { cachedMetadata, cachedResponse } = await read(preview);
         expect(cachedMetadata.hash).to.equal('h1');
         expect(cachedResponse).to.be.null;
     });
 
-    it('does not fail when State rejects a write', async () => {
+    it('does not fail when State or Files rejects a write', async () => {
         state.put = sinon.stub().rejects(new Error('429'));
+        files.write = sinon.stub().rejects(new Error('503'));
         const context = { measures: [] };
         const { hash } = await store(context, null, 'h1', { body: 'b1' });
         expect(hash).to.equal('h1');
-        expect(state.put.calledTwice).to.be.true;
+        expect(state.put.calledOnce).to.be.true;
+        expect(files.write.calledOnce).to.be.true;
+    });
+});
+
+describe('Files client', () => {
+    afterEach(() => {
+        sinon.restore();
+        clearRequestCaches();
+    });
+
+    it('is only returned once initialised, which is started once', async () => {
+        const client = new MockFiles();
+        const init = sinon.stub(filesLib, 'init').resolves(client);
+        expect(getFilesClient({})).to.be.undefined;
+        expect(getFilesClient({})).to.be.undefined;
+        await init.returnValues[0];
+        expect(getFilesClient({})).to.equal(client);
+        expect(init.calledOnce).to.be.true;
+    });
+
+    it('is initialised again after a failed initialisation', async () => {
+        const init = sinon.stub(filesLib, 'init').rejects(new Error('no credentials'));
+        expect(getFilesClient({})).to.be.undefined;
+        await init.returnValues[0].catch(() => {});
+        await Promise.resolve();
+        expect(getFilesClient({})).to.be.undefined;
+        expect(init.calledTwice).to.be.true;
     });
 });

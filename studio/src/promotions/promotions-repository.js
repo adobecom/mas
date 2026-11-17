@@ -178,18 +178,27 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
  * (or persisted) list right away and revalidates it in the background once it is older than
  * PROMOTIONS_LIST_MAX_AGE. Concurrent callers share a single load.
  * With `fresh`, a stale list is revalidated before returning, for callers whose result is cached as authoritative.
+ * A caller that joins a load started by another caller retries with its own loader when that load left the
+ * list missing or stale, since the other caller's loader may swallow the failure this caller needs to see.
  * @param {() => Promise<void>} loadPromotions
  * @param {{ fresh?: boolean }} [options]
  * @returns {Promise<Array<Object>>}
  */
 export const getPromotionProjectsForProbe = (() => {
     let promotionProjectsLoad;
-    return async (loadPromotions, { fresh = false } = {}) => {
+    const isFetched = () =>
+        Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META) || readPromotionProjectsFromStore().length > 0;
+    const isStale = () => {
         const list = Store.promotions.list.data;
-        const fetched = list.hasMeta(PROMOTIONS_LIST_FETCHED_META) || readPromotionProjectsFromStore().length > 0;
-        const stale =
+        return (
             list.hasMeta(PROMOTIONS_LIST_FETCHED_AT_META) &&
-            Date.now() - list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META) > PROMOTIONS_LIST_MAX_AGE;
+            Date.now() - list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META) > PROMOTIONS_LIST_MAX_AGE
+        );
+    };
+    return async (loadPromotions, { fresh = false } = {}) => {
+        const fetched = isFetched();
+        const stale = isStale();
+        const joined = Boolean(promotionProjectsLoad);
         if (!fetched || stale) {
             promotionProjectsLoad ??= Promise.resolve(loadPromotions()).finally(() => {
                 promotionProjectsLoad = null;
@@ -197,6 +206,7 @@ export const getPromotionProjectsForProbe = (() => {
         }
         if (!fetched || (stale && fresh)) {
             await promotionProjectsLoad;
+            if (joined && (!isFetched() || isStale())) await loadPromotions();
         } else if (stale) {
             // Nobody awaits a background refresh, so its failure must not surface as an unhandled rejection.
             promotionProjectsLoad.catch((error) => console.warn('Background promotions refresh failed:', error?.message));
@@ -386,7 +396,7 @@ export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, l
     const promoTagId = getPromotionTagFromFragment(fragment);
     if (!promoTagId) return;
 
-    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    const projects = await getPromotionProjectsForProbe(loadPromotions, { fresh: true });
     const project = findProjectByTag(projects, promoTagId);
     const attachedFragmentPaths = getAttachedFragmentPaths(project);
     const defaultFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(

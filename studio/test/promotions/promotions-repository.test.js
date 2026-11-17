@@ -178,6 +178,48 @@ describe('promotions-repository', () => {
             expect(await getPromotionProjectsForProbe(loadPromotions, { fresh: true })).to.deep.equal([fresh]);
             Store.promotions.list.data.removeMeta('fetchedAt');
         });
+
+        it('surfaces the failure to a fresh caller that joined a refresh whose loader swallowed it', async () => {
+            const stale = { id: 'promo-1', tags: [] };
+            Store.promotions.list.data.set([{ get: () => stale }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            const error = new Error('network');
+            const swallowingLoader = sandbox.stub().resolves();
+            const rethrowingLoader = sandbox.stub().rejects(error);
+
+            const background = getPromotionProjectsForProbe(swallowingLoader);
+            let failure;
+            try {
+                await getPromotionProjectsForProbe(rethrowingLoader, { fresh: true });
+            } catch (caught) {
+                failure = caught;
+            }
+            await background;
+            Store.promotions.list.data.removeMeta('fetchedAt');
+            expect(swallowingLoader.calledOnce).to.be.true;
+            expect(rethrowingLoader.calledOnce).to.be.true;
+            expect(failure).to.equal(error);
+        });
+
+        it('does not reload for a joining caller once the shared refresh succeeded', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const project = { id: 'promo-1', tags: [] };
+            const firstLoader = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([{ get: () => project }]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const joiningLoader = sandbox.stub().resolves();
+
+            const [first, second] = await Promise.all([
+                getPromotionProjectsForProbe(firstLoader),
+                getPromotionProjectsForProbe(joiningLoader),
+            ]);
+            expect(first).to.deep.equal([project]);
+            expect(second).to.deep.equal([project]);
+            expect(joiningLoader.called).to.be.false;
+        });
     });
 
     describe('persisted promotions list', () => {
@@ -578,6 +620,47 @@ describe('promotions-repository', () => {
             };
 
             await assertPromoVariationGeoTagsValid(aem, variationFragment, ['mas:pzn/country/fr'], () => Promise.resolve());
+        });
+
+        it('validates against revalidated project geos when the list is stale', async () => {
+            const projectWithGeos = (geos) => ({
+                get: () => ({
+                    getFieldValues: (name) => {
+                        if (name === 'tags') return [promoTag];
+                        if (name === 'geos') return geos;
+                        return [];
+                    },
+                }),
+            });
+            Store.promotions.list.data.set([projectWithGeos(['mas:pzn/country/fr'])]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => setTimeout(resolve));
+                Store.promotions.list.data.set([projectWithGeos(['mas:pzn/country/us'])]);
+                Store.promotions.list.data.setMeta('fetchedAt', Date.now());
+            });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(variationFragment),
+                            getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
+                            search: makeSearchStub({ [promoFolder]: [] }),
+                        },
+                    },
+                },
+            };
+
+            let failure;
+            try {
+                await assertPromoVariationGeoTagsValid(aem, variationFragment, ['mas:pzn/country/fr'], loadPromotions);
+            } catch (error) {
+                failure = error;
+            }
+            Store.promotions.list.data.removeMeta('fetchedAt');
+            expect(loadPromotions.calledOnce).to.be.true;
+            expect(failure?.message).to.include('mas:pzn/country/fr');
         });
     });
 

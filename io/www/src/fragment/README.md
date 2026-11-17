@@ -25,12 +25,14 @@ body and its referenced cards are parsed once with parse5 into a sanitized tree 
 emitted per `type`:
 
 - `json`: `{ "json": [ { "nodeType": "paragraph", "content": [ { "nodeType": "text", "value": "…", "format": { "variants": ["bold"] } } ] } ] }`,
-- `html`: `{ "value": "<p>…</p>", "mimeType": "text/html" }`, re-serialized from the sanitized tree,
+- `html`: `{ "value": "<p>…</p>", "mimeType": "text/html" }`, re-serialized from the sanitized tree; rendered prices
+  keep their markup (`<span is="inline-price" data-template>` and its spans, with their classes only; hidden and
+  `sr-only` ones dropped) for consumers to style them,
 - `text`: `{ "value": "…", "mimeType": "text/plain" }`, one line per block.
 
 Vocabulary: `paragraph`, `header` (`style` `h1`…`h6`), `unordered-list`, `ordered-list`, `list-item`, `line-break`,
 `link` (`data: { href, target }`, `https:`, `mailto:` & `tel:` only, unwrapped otherwise), `text` with `bold`, `italic`,
-`underline` & `strikethrough` variants (resolved strikethrough prices included). `span`, `div`, `sup`, `sub`, `small`
+`underline` & `strikethrough` variants (resolved strikethrough prices included, in json & text). `span`, `div`, `sup`, `sub`, `small`
 are unwrapped, as are unknown elements (logged); hidden (`.disabled`, `sr-only`) and unsafe (`script`, `style`,
 `iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
 dropped and logged as errors.

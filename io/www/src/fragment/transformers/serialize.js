@@ -43,13 +43,32 @@ const LINK_SCHEMES = /^(https:|mailto:|tel:)/i;
 
 const attributesOf = (node) => Object.fromEntries(node.attrs.map(({ name, value }) => [name, value]));
 const normalizeSpaces = (value) => value.replace(/[ \t\n\r\f]+/g, ' ');
-const isInline = (node) => node.nodeType === 'text' || node.nodeType === 'link' || node.nodeType === 'line-break';
+const INLINE = new Set(['text', 'link', 'line-break', 'inline-price']);
+const isInline = (node) => INLINE.has(node.nodeType);
+const isHidden = (tag, classes) => DROPPED.has(tag) || classes.includes('disabled');
 
 /** sanitized text of a node (rejected and hidden elements excluded) */
 function textOf(node, report) {
     const nodes = [];
     for (const child of node.childNodes) visit(child, nodes, [], report);
-    return nodes.map(({ value = '' }) => value).join('');
+    return flatten(nodes)
+        .map(({ value = '' }) => value)
+        .join('');
+}
+
+/** sanitized markup of a rendered price: its spans with their classes only, other elements unwrapped */
+function priceHtml(node) {
+    return node.childNodes
+        .map((child) => {
+            if (child.nodeName === '#text') return escapeHtml(child.value);
+            if (!child.tagName) return '';
+            const { class: className } = attributesOf(child);
+            if (isHidden(child.tagName, (className ?? '').split(/\s+/))) return '';
+            const inner = priceHtml(child);
+            if (child.tagName !== 'span') return inner;
+            return `<span${className ? ` class="${escapeHtml(className)}"` : ''}>${inner}</span>`;
+        })
+        .join('');
 }
 
 function pushText(container, value, variants) {
@@ -68,7 +87,7 @@ function visit(node, container, variants, report) {
     const tag = node.tagName;
     const attributes = attributesOf(node);
     const classes = (attributes.class ?? '').split(/\s+/);
-    if (DROPPED.has(tag) || classes.includes('disabled')) return;
+    if (isHidden(tag, classes)) return;
     if (REJECTED.has(tag) || attributes.is === 'checkout-link' || (tag === 'a' && attributes['data-wcs-osi'])) {
         return report(`rejected <${tag}${attributes.is ? ` is="${attributes.is}"` : ''}>`, true);
     }
@@ -82,6 +101,16 @@ function visit(node, container, variants, report) {
         return;
     }
     if (tag === 'br') return container.push({ nodeType: 'line-break' });
+    // a rendered price: its text in json & text, its sanitized markup in html (internal node, see flatten)
+    if (attributes.is === 'inline-price') {
+        const content = [];
+        children(content);
+        if (!content.length) return;
+        const template = attributes['data-template'] ? ` data-template="${escapeHtml(attributes['data-template'])}"` : '';
+        const html = `<span is="inline-price"${template}>${priceHtml(node)}</span>`;
+        const format = variants.length ? { variants: [...new Set(variants)] } : undefined;
+        return container.push({ nodeType: 'inline-price', html, content, ...(format && { format }) });
+    }
     if (VARIANTS[tag]) return children(container, [...variants, VARIANTS[tag]]);
     if (tag === 'a') {
         const href = attributes.href?.trim();
@@ -138,6 +167,28 @@ function toNodes(html, report) {
     return trimBlocks(groupRoot(nodes));
 }
 
+function pushNode(container, node) {
+    const last = container.at(-1);
+    if (node.nodeType === 'text' && last?.nodeType === 'text' && JSON.stringify(last.format) === JSON.stringify(node.format)) {
+        container[container.length - 1] = { ...last, value: last.value + node.value };
+        return;
+    }
+    container.push(node);
+}
+
+/** Odin nodes: prices replaced by their text nodes, merged with their neighbours */
+function flatten(nodes) {
+    const flat = [];
+    for (const node of nodes) {
+        if (node.nodeType === 'inline-price') {
+            for (const child of flatten(node.content)) pushNode(flat, child);
+            continue;
+        }
+        pushNode(flat, node.content ? { ...node, content: flatten(node.content) } : node);
+    }
+    return flat;
+}
+
 const escapeHtml = (value) =>
     value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const HTML_VARIANTS = { bold: 'strong', italic: 'em', underline: 'u', strikethrough: 's' };
@@ -146,10 +197,10 @@ const HTML_BLOCKS = { paragraph: 'p', 'unordered-list': 'ul', 'ordered-list': 'o
 function toHtml(nodes) {
     return nodes
         .map((node) => {
-            if (node.nodeType === 'text') {
+            if (node.nodeType === 'text' || node.nodeType === 'inline-price') {
                 return (node.format?.variants ?? []).reduce(
                     (html, variant) => `<${HTML_VARIANTS[variant]}>${html}</${HTML_VARIANTS[variant]}>`,
-                    escapeHtml(node.value),
+                    node.html ?? escapeHtml(node.value),
                 );
             }
             if (node.nodeType === 'line-break') return '<br>';
@@ -168,6 +219,7 @@ function toText(nodes) {
     return nodes
         .map((node) => {
             if (node.nodeType === 'line-break') return '\n';
+            if (node.nodeType === 'inline-price') return toText(node.content);
             if (isInline(node)) return node.value;
             return `\n${toText(node.content)}\n`;
         })
@@ -175,7 +227,7 @@ function toText(nodes) {
 }
 
 const EMITTERS = {
-    json: { format: (nodes) => nodes },
+    json: { format: flatten },
     html: { format: toHtml, mimeType: 'text/html' },
     text: {
         format: (nodes) =>

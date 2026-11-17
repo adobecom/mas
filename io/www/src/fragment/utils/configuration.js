@@ -13,7 +13,13 @@ const HARDCODED_API_KEYS = [
 
 // state `apiKeyDefaults` entries are merged over these
 const HARDCODED_API_KEY_DEFAULTS = {
-    unified_checkout_server_v3: { surface: 'sandbox', type: 'json', mapping: 'aup' },
+    // MWPW-214840: WCS rejects the commerce server key (403), its artifacts are requested with milo's.
+    unified_checkout_server_v3: {
+        surface: 'sandbox',
+        type: 'json',
+        mapping: 'aup',
+        wcsApiKey: 'wcms-commerce-ims-ro-user-milo',
+    },
 };
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];

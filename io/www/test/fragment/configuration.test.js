@@ -143,6 +143,7 @@ describe('getApiKeyDefaults', () => {
             surface: 'sandbox',
             type: 'json',
             mapping: 'aup',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-milo',
         });
     });
 
@@ -152,6 +153,7 @@ describe('getApiKeyDefaults', () => {
             surface: 'sandbox',
             type: 'text',
             mapping: 'aup',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-milo',
         });
         expect(getApiKeyDefaults({ api_key: 'AdobeExpressWeb', apiKeySurfaces, apiKeyDefaults })).to.deep.equal({
             surface: 'acom',

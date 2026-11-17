@@ -159,6 +159,7 @@ async function mainProcess(context) {
     }
     // MWPW-214840: the response mapping is bound to the api key only.
     context.mapping = apiKeyDefaults.mapping;
+    context.wcsApiKey = apiKeyDefaults.wcsApiKey;
     const { id, locale, offer, template, surface } = context;
     // without a fragment id, the offer baseline is resolved from `offer`, `template` & `surface`.
     if (!locale || (!id && !(offer && template && surface))) {

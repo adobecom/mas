@@ -19,7 +19,7 @@ Geography-only and audience-only variations remain supported.
 
 ## serialize transformer (MWPW-214943)
 
-Only active with a `type` (request parameter or api key default, see configuration). The rich text fields of the card
+Runs with the effective `type` (request parameter, else api key default, see configuration, else `html`). The rich text fields of the card
 model (`badge`, `trialBadge`, `prices`, `shortDescription`, `description`, `callout`, `customFields`; not `ctas`) of the
 body and its referenced cards are parsed once with parse5 into a sanitized tree in the Odin multi-line `json` format, then
 emitted per `type`:
@@ -39,7 +39,7 @@ dropped and logged as errors.
 
 ## render transformer (MWPW-210316)
 
-Only active with a `type` (see serialize): every inline price (`<span is="inline-price">`) of the body and its
+Runs with the effective `type` (see serialize, `html` by default): every inline price (`<span is="inline-price">`) of the body and its
 referenced cards is rendered in place, keeping its wrapper, from the prod WCS cache the `wcs` transformer stored in
 `body.wcs`. Options are resolved by `resolvePriceOptions` as the browser's `collectPriceOptions` does: data
 attributes (final substituted `data-wcs-osi`, `data-template`, `data-display-*`, `data-quantity`…), the element's
@@ -158,7 +158,7 @@ You can see the full flow on below diagram:
 
 See ADR [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md).
 
-Request parameters: `locale` (required), `id`, `offer` (an OSI for now), `template` (a card variant), `surface`, `type` (`html` | `json` | `text`, defaulting to the api key's, `apiKeyDefaults` configuration; any other value → `400`). Without `type`, text-bearing fields are returned as authored.
+Request parameters: `locale` (required), `id`, `offer` (an OSI for now), `template` (a card variant), `surface`, `type` (`html` | `json` | `text`, defaulting to the api key's, `apiKeyDefaults` configuration, then to `html`; any other value → `400`). Text-bearing fields are always returned sanitized, see serialize.
 
 Surface resolution: the `surface` parameter is the source of truth, then the surface of the `id` fragment, then the api key's (`apiKeyDefaults` configuration). A `surface` parameter different from the api key's or the fragment's surface returns `404`.
 

@@ -27,6 +27,12 @@ import {
 
 let fetchStub;
 
+// MWPW-214943: rich text fields are served as sanitized html by default, loose text wrapped in a paragraph
+const RICH_TEXT_FIELDS = new Set(['badge', 'callout', 'shortDescription', 'description', 'prices']);
+const html = (value) => ({ value: value && !value.startsWith('<p>') ? `<p>${value}</p>` : value, mimeType: 'text/html' });
+const htmlFields = (fields) =>
+    Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, RICH_TEXT_FIELDS.has(key) ? html(value) : value]));
+
 describe('pipeline end to end', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
@@ -63,12 +69,12 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR']);
-        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
-        const stored = JSON.parse(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR.y-html']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json']);
+        const stored = JSON.parse(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json']);
         expect(stored.hash).to.equal(EXPECTED_BODY_HASH);
         expect(JSON.parse(zlib.brotliDecompressSync(Buffer.from(stored.body, 'base64')))).to.deep.equal(result.body);
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR.y-html']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
@@ -115,14 +121,16 @@ describe('pipeline end to end', () => {
         const [miss, ...others] = summary('cache miss');
         expect(others).to.be.empty;
         expect(miss).to.match(
-            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache miss req-some-en-us-fragment-fr_FR \| timings \(time and duration\) .*main-fetch-fragment t:.*d:[\d.]+$/,
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache miss req-some-en-us-fragment-fr_FR\.y-html \| timings \(time and duration\) .*main-fetch-fragment t:.*d:[\d.]+$/,
         );
         const hits = summary('cache hit');
         expect(hits).to.have.lengthOf(3);
         expect(hits[0]).to.match(
-            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\)$/,
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR\.y-html \(refreshed \d+s ago\)$/,
         );
-        expect(hits[1]).to.match(/-> 304 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\)$/);
+        expect(hits[1]).to.match(
+            /-> 304 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR\.y-html \(refreshed \d+s ago\)$/,
+        );
         expect(hits[1]).not.to.include('timings');
     });
 
@@ -159,7 +167,7 @@ describe('pipeline end to end', () => {
         const lines = output.getCalls().map(({ args }) => args[0]);
         expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
         expect(lines.find((line) => line.includes('cache joined'))).to.match(
-            /-> 304 in [\d.]+ms \| cache joined req-some-en-us-fragment-fr_FR$/,
+            /-> 304 in [\d.]+ms \| cache joined req-some-en-us-fragment-fr_FR\.y-html$/,
         );
     });
 
@@ -176,13 +184,13 @@ describe('pipeline end to end', () => {
                 .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
                 .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(500, {})), 30)));
             const state = new MockState();
-            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            state.store['req-some-en-us-fragment-fr_FR.y-html'] = JSON.stringify({
                 hash: 'old-hash',
                 lastModified: RANDOM_OLD_DATE,
                 refreshedAt,
             });
             const files = new MockFiles();
-            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json'] = JSON.stringify({
                 hash: 'old-hash',
                 body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
             });
@@ -209,7 +217,7 @@ describe('pipeline end to end', () => {
             expect(lines.filter((line) => line.includes('cache stale-error'))).to.have.lengthOf(1);
             expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
             expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
-                /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\)$/,
+                /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR\.y-html \(refreshed 10m\d+s ago, rebuild failed with 50\d\)$/,
             );
         });
     }
@@ -231,9 +239,9 @@ describe('pipeline end to end', () => {
                 body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
             });
             const state = new MockState();
-            state.store['req-some-en-us-fragment-fr_FR'] = metadata;
+            state.store['req-some-en-us-fragment-fr_FR.y-html'] = metadata;
             const files = new MockFiles();
-            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = response;
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json'] = response;
             const output = sinon.stub(console, 'log');
             let result;
             try {
@@ -245,19 +253,19 @@ describe('pipeline end to end', () => {
                 .getCalls()
                 .map(({ args }) => args[0])
                 .find((line) => line.includes('pipeline completed'));
-            expect(state.store['req-some-en-us-fragment-fr_FR']).to.equal(metadata);
-            expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']).to.equal(response);
+            expect(state.store['req-some-en-us-fragment-fr_FR.y-html']).to.equal(metadata);
+            expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json']).to.equal(response);
             expect(result.statusCode).to.equal(200);
             if (fallback) {
                 expect(result.body).to.deep.equal({ stale: true });
                 expect(summary).to.match(
-                    /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild degraded by dictionary acom\/fr_FR\)/,
+                    /cache stale-error req-some-en-us-fragment-fr_FR\.y-html \(refreshed 10m\d+s ago, rebuild degraded by dictionary acom\/fr_FR\)/,
                 );
                 return;
             }
             expect(result.body.id).to.equal('some-fr-fr-fragment');
             expect(summary).to.match(
-                /cache miss req-some-en-us-fragment-fr_FR \(degraded by dictionary acom\/fr_FR, not stored\)/,
+                /cache miss req-some-en-us-fragment-fr_FR\.y-html \(degraded by dictionary acom\/fr_FR, not stored\)/,
             );
         });
     }
@@ -269,13 +277,13 @@ describe('pipeline end to end', () => {
             .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 300)));
         const state = new MockState();
         await state.put('configuration', '{"networkConfig":{"mainTimeout":200,"retries":1}}');
-        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+        state.store['req-some-en-us-fragment-fr_FR.y-html'] = JSON.stringify({
             hash: 'old-hash',
             lastModified: RANDOM_OLD_DATE,
             refreshedAt: Date.now() - 6 * 60 * 1000,
         });
         const files = new MockFiles();
-        files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+        files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json'] = JSON.stringify({
             hash: 'old-hash',
             body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
         });
@@ -290,17 +298,17 @@ describe('pipeline end to end', () => {
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.equal({ stale: true });
         expect(output.getCalls().find(({ args }) => args[0].includes('pipeline completed')).args[0]).to.match(
-            /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 6m\d+s ago, rebuild timed out\)/,
+            /cache stale-error req-some-en-us-fragment-fr_FR\.y-html \(refreshed 6m\d+s ago, rebuild timed out\)/,
         );
-        expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+        expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR.y-html']).hash).to.equal(EXPECTED_BODY_HASH);
     });
 
     describe('re-reading State before rebuilding', () => {
-        const requestKey = 'req-some-en-us-fragment-fr_FR';
-        const responsePath = 'fragment-cache/res-some-en-us-fragment-fr_FR.json';
+        const requestKey = 'req-some-en-us-fragment-fr_FR.y-html';
+        const responsePath = 'fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json';
         const metadata = (age) => ({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() - age });
         let files;
-        const request = (state) => ({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+        const request = (state) => ({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR', type: 'html' });
         const fragmentFetches = () =>
             fetchStub.getCalls().filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
         // State and Files hold a response refreshed `age` ago, and this container has a memory copy of it
@@ -348,7 +356,7 @@ describe('pipeline end to end', () => {
             const hits = lines.filter((line) => line.includes('cache hit'));
             expect(hits).to.have.lengthOf(2);
             expect(hits[0]).to.match(
-                /-> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\)$/,
+                /-> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR\.y-html \(refreshed \d+s ago, re-read from State\)$/,
             );
             // the memory copy was updated by the re-read
             expect(hits[1]).not.to.include('re-read from State');
@@ -435,13 +443,13 @@ describe('pipeline end to end', () => {
                 .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
                 .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
             const state = new MockState();
-            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            state.store['req-some-en-us-fragment-fr_FR.y-html'] = JSON.stringify({
                 hash: 'old-hash',
                 lastModified: RANDOM_OLD_DATE,
                 refreshedAt,
             });
             const files = new MockFiles();
-            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.y-html.json'] = JSON.stringify({
                 hash: 'old-hash',
                 body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
             });
@@ -469,7 +477,7 @@ describe('pipeline end to end', () => {
             expect(second.headers.ETag).to.equal('old-hash');
             const stale = lines.find((line) => line.includes('cache stale'));
             expect(stale).to.match(
-                /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\)$/,
+                /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR\.y-html \(.*, rebuild in progress\)$/,
             );
             expect(stale).to.match(detail);
         });
@@ -523,9 +531,9 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA']);
-        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_CA.json']);
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA.y-html']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_CA.y-html.json']);
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA.y-html']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
@@ -556,9 +564,9 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR-CA']);
-        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR-CA.json']);
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR-CA.y-html']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR-CA.y-html.json']);
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA.y-html']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
@@ -583,8 +591,8 @@ describe('pipeline end to end', () => {
             country: 'BE',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE.y-html');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE.y-html']);
         expect(json.fragmentsIds['dictionary-id-sandbox-fr_BE']).to.equal('sandbox_fr_BE_dictionary');
     });
 
@@ -618,7 +626,7 @@ describe('pipeline end to end', () => {
             pzn: 'segment-A',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.p-segment-A');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.p-segment-A.y-html');
     });
 
     function stubMask(fetchStub) {
@@ -660,7 +668,7 @@ describe('pipeline end to end', () => {
         expect(result.body.id).to.equal('some-fr-fr-fragment');
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.m-black-friday');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.m-black-friday.y-html');
     });
 
     it('masks every card of a collection and keys the cache on the mask', async () => {
@@ -716,9 +724,9 @@ describe('pipeline end to end', () => {
         expect(result.body.maskId).to.be.undefined;
         for (const id of cardIds) {
             expect(result.body.references[id].value.maskId).to.equal('mask-holiday-id');
-            expect(result.body.references[id].value.fields.badge).to.equal('MASKED');
+            expect(result.body.references[id].value.fields.badge).to.deep.equal(html('MASKED'));
         }
-        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR.m-holiday');
+        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR.m-holiday.y-html');
     });
 
     it('should replace fragment placeholders with values from mask variables', async () => {
@@ -752,7 +760,7 @@ describe('pipeline end to end', () => {
 
         expect(result.statusCode).to.equal(200);
         // {{promo-label}} → {{select}} (from mask variables) → 'Select' (from dictionary)
-        expect(result.body.fields.badge.value).to.equal('Select');
+        expect(result.body.fields.badge).to.deep.equal(html('Select'));
     });
 
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
@@ -1095,15 +1103,43 @@ describe('pipeline end to end', () => {
         });
         fetchStub.withArgs(hydrateUrl('proj-bts')).returns(createResponse(200, hydrated));
 
-        // WCS resolves the plain, unpromoted injected offer (falls through to the default
-        // resolvedOffers:[] stub registered by setupFragmentMocks for any web_commerce_artifact call).
+        // WCS resolves the plain, unpromoted injected offer, priced apart from its substitute.
+        const wcsOffer = (osi, price) => ({
+            offerSelectorIds: [osi],
+            customerSegment: 'INDIVIDUAL',
+            marketSegments: ['COM'],
+            offerType: 'BASE',
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+            priceDetails: { price, formatString: "#,##0.00 '€'" },
+        });
+        for (const [osi, price] of [
+            ['INJECTED-OSI', 10],
+            ['SUB-INJECTED', 5],
+        ]) {
+            fetchStub
+                .withArgs(
+                    sinon.match(
+                        (url) =>
+                            typeof url === 'string' &&
+                            url.includes('web_commerce_artifact') &&
+                            new URL(url).searchParams.get('offer_selector_ids') === osi,
+                    ),
+                )
+                .returns(createResponse(200, { resolvedOffers: [wcsOffer(osi, price)] }));
+        }
         const state = new MockState();
         const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
 
         expect(result.statusCode).to.equal(200);
-        // The placeholder-injected OSI is left untouched — no substitution happened...
-        expect(result.body.fields.prices.value).to.include('data-wcs-osi="INJECTED-OSI"');
-        expect(result.body.fields.prices.value).to.not.include('SUB-INJECTED');
+        // The placeholder-injected OSI is left untouched — no substitution happened: its own offer is rendered...
+        expect(result.body.fields.prices).to.deep.equal(
+            html(
+                '<span is="inline-price"><span class="price"><span class="price-integer">10.00</span>' +
+                    '<span class="price-currency-space">\u00a0</span><span class="price-currency-symbol">€</span>' +
+                    '<span class="price-recurrence">/mo</span></span></span>',
+            ),
+        );
         // ...no promo code was applied...
         expect(result.body.fields.promoCode).to.be.undefined;
         // ...and only the plain, unpromoted offer is in the WCS cache.
@@ -1169,8 +1205,8 @@ describe('pipeline end to end', () => {
             // Content unchanged: en_US request stays on en_US (AU is not a region of en_US).
             expect(result.body.path).to.equal('/content/dam/mas/acom-cc/en_US/card');
             // baseKey only in base, surfaceKey wins at surface baseline, label wins at region overlay, regionKey overlay-only.
-            expect(result.body.fields.description).to.equal('base-only/cc-surface/au-label/au-region');
-            const json = JSON.parse(state.store['req-acom-cc-card-us-en_US-AU']);
+            expect(result.body.fields.description).to.deep.equal(html('base-only/cc-surface/au-label/au-region'));
+            const json = JSON.parse(state.store['req-acom-cc-card-us-en_US-AU.y-html']);
             expect(json.fragmentsIds).to.include({
                 'dictionary-id-acom-en_US': 'acom_en_US_dictionary',
                 'dictionary-id-acom-cc-en_US': 'acom-cc_en_US_dictionary',
@@ -1214,10 +1250,10 @@ describe('pipeline end to end', () => {
             expect(result.statusCode).to.equal(200);
             // Content en_GB → en_AU: the en_AU regional variation is merged in (badge override applied).
             expect(result.body.variationId).to.equal('var-au');
-            expect(result.body.fields.badge.value).to.equal('AU exclusive');
+            expect(result.body.fields.badge).to.deep.equal(html('AU exclusive'));
             // Placeholders base on en_GB (the request's own default language), then acom-cc/en_GB, then acom-cc/en_AU.
-            expect(result.body.fields.description).to.equal('gb-base-only/gb-cc-surface/au-label/au-region');
-            const json = JSON.parse(state.store['req-acom-cc-card-gb-en_GB-AU']);
+            expect(result.body.fields.description).to.deep.equal(html('gb-base-only/gb-cc-surface/au-label/au-region'));
+            const json = JSON.parse(state.store['req-acom-cc-card-gb-en_GB-AU.y-html']);
             expect(json.fragmentsIds).to.include({
                 'dictionary-id-acom-en_GB': 'acom_en_GB_dictionary',
                 'dictionary-id-acom-cc-en_GB': 'acom-cc_en_GB_dictionary',
@@ -1381,6 +1417,10 @@ describe('pipeline end to end', () => {
             M2M: { commitment: 'MONTH', term: 'MONTHLY' },
         };
         const price = (osi) => `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
+        const renderedPrice = (planType) =>
+            '<span is="inline-price" data-template="price"><span class="price"><span class="price-currency-symbol">US$</span>' +
+            `<span class="price-integer">22.99</span><span class="price-recurrence">${planType === 'PUF' ? '/yr' : '/mo'}</span>` +
+            '</span></span>';
         // one card per market segment & plan type, each overriding its own fields over the baselines
         const CARDS = [
             { segment: 'COM', planType: 'ABM', overrides: { badge: 'Best value' } },
@@ -1425,6 +1465,7 @@ describe('pipeline end to end', () => {
                     marketSegments: [segment],
                     offerType: 'BASE',
                     ...PLAN_TYPES[planType],
+                    priceDetails: { price: 22.99, formatString: "'US$'#,##0.00" },
                 },
             };
         });
@@ -1498,19 +1539,22 @@ describe('pipeline end to end', () => {
                 expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
                 // the plans baseline sets its own icon: the offer baseline's alt text, describing its icon, is dropped
                 expect(card.fields.mnemonicAlt, label).to.be.undefined;
-                expect(card.fields, label).to.deep.include({
-                    // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
-                    variant: 'plans',
-                    cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
-                    mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
-                    description: FRAGMENT_BASELINE.fields.description,
-                    shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
-                    ctas: FRAGMENT_BASELINE.fields.ctas,
-                    // card's own fields
-                    osi,
-                    prices: price(osi),
-                    ...overrides,
-                });
+                expect(card.fields, label).to.deep.include(
+                    htmlFields({
+                        // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
+                        variant: 'plans',
+                        cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
+                        mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
+                        description: FRAGMENT_BASELINE.fields.description,
+                        shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
+                        ctas: FRAGMENT_BASELINE.fields.ctas,
+                        // card's own fields
+                        osi,
+                        // rendered from the mocked WCS offer, kept as markup in html
+                        prices: renderedPrice(planType),
+                        ...overrides,
+                    }),
+                );
                 // baselines' variations never leak into cards
                 expect(card.fields.variations, label).to.be.undefined;
                 expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([
@@ -1651,17 +1695,19 @@ describe('pipeline end to end', () => {
                 const { offerBaseline, fragmentBaseline } = product;
                 expect(card.offerBaselineId, label).to.equal(offerBaseline.id);
                 expect(card.fragmentBaselineId, label).to.equal(fragmentBaseline.id);
-                expect(card.fields, label).to.deep.include({
-                    // offer baseline: the plans baseline defines no icon
-                    mnemonicIcon: [offerBaseline.fields.icons[0]],
-                    mnemonicAlt: [offerBaseline.fields.name],
-                    variant: 'plans',
-                    cardTitle: fragmentBaseline.fields.cardTitle,
-                    description: fragmentBaseline.fields.description,
-                    ctas: fragmentBaseline.fields.ctas,
-                    osi,
-                    ...overrides,
-                });
+                expect(card.fields, label).to.deep.include(
+                    htmlFields({
+                        // offer baseline: the plans baseline defines no icon
+                        mnemonicIcon: [offerBaseline.fields.icons[0]],
+                        mnemonicAlt: [offerBaseline.fields.name],
+                        variant: 'plans',
+                        cardTitle: fragmentBaseline.fields.cardTitle,
+                        description: fragmentBaseline.fields.description,
+                        ctas: fragmentBaseline.fields.ctas,
+                        osi,
+                        ...overrides,
+                    }),
+                );
                 expect(card.fields.variations, label).to.be.undefined;
                 for (const [otherPlanType, otherOverrides] of Object.entries(PLAN_OVERRIDES)) {
                     if (otherPlanType === planType) continue;

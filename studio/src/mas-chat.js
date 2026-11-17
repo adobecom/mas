@@ -692,7 +692,7 @@ export class MasChat extends LitElement {
         // Images only mean something to MASA, so a message carrying them skips
         // ai-chat. The ask does not end the turn; this path does.
         if (getInvestigationSession(this.currentSessionId).images.length) {
-            void this.askMasaInThread(message, { images: true });
+            void this.askMasaInThread(message);
             if (this.isCurrentWork(work)) {
                 this.isLoading = false;
                 this.loadingLabel = '';
@@ -1285,7 +1285,7 @@ export class MasChat extends LitElement {
      * when the answer, or the labelled fallback, lands — even after later
      * Studio turns or a switch to another conversation. Never rejects.
      */
-    async askMasaInThread(question, { images = false } = {}) {
+    async askMasaInThread(question) {
         const ask = {
             id: crypto.randomUUID(),
             conversationId: this.currentSessionId,
@@ -1319,7 +1319,7 @@ export class MasChat extends LitElement {
                 context,
                 onRecord: (recordId) => {
                     ask.recordId = recordId;
-                    if (images) this.clearImages(ask.session);
+                    this.clearImages(ask.session);
                     this.replaceMasaMessage(ask, (message) => ({ ...message, recordId }));
                 },
             });
@@ -1522,7 +1522,7 @@ export class MasChat extends LitElement {
         const { question } = event.detail;
         this.showPromptSuggestions = false;
         this.addUserMessage(question);
-        void this.askMasaInThread(question, { images: true });
+        void this.askMasaInThread(question);
     }
 
     /** "Cancel it" on the busy message cancels the conversation's running MASA question. */

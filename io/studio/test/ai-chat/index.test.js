@@ -827,6 +827,18 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.envelope.intent).to.equal('search_cards');
         });
 
+        it('keeps a multi-sentence lookup with a polite lead-in on the model choice', async () => {
+            for (const message of [
+                'Hi! Find photoshop cards',
+                'Please show me plans cards in acom. Only grouped.',
+                `Copy the link for card ${REPORTED_ID}. Thanks`,
+            ]) {
+                sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
+                const result = await main(makeParams({ message, masa: true }));
+                expect(result.body.envelope.intent, message).to.equal('search_cards');
+            }
+        });
+
         it('leaves a state-changing intent in a multi-sentence message unchanged', async () => {
             sendStub.resolves(modelPicks('update_card', { id: REPORTED_ID, fields: { title: 'New' } }));
             const message = `Please update card ${REPORTED_ID}. Set the title to New.`;

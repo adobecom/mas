@@ -44,9 +44,23 @@ describe('ai-chat/mas-agent knowledge import', () => {
         expect(() => validateCorpus({ ...corpus, chunks: [{ ...corpus.chunks[0], text: '' }] })).to.throw('no text');
     });
 
-    it('requires an author export without replacing a previous snapshot', () => {
+    it('requires an author export when no snapshot exists', () => {
+        const result = spawnSync(process.execPath, [script], { env, encoding: 'utf8' });
+        expect(result.status).to.equal(1);
+        expect(result.stderr).to.include('A mas-agent author export is required');
+    });
+
+    it('reuses an existing snapshot when no export is configured', () => {
         writeFileSync(output, 'previous validated snapshot');
         const result = spawnSync(process.execPath, [script], { env, encoding: 'utf8' });
+        expect(result.status).to.equal(0);
+        expect(result.stderr).to.include('reusing the existing');
+        expect(readFileSync(output, 'utf8')).to.equal('previous validated snapshot');
+    });
+
+    it('requires an author export for a pinned digest without replacing a previous snapshot', () => {
+        writeFileSync(output, 'previous validated snapshot');
+        const result = spawnSync(process.execPath, [script, '--expected-sha256', 'abc'], { env, encoding: 'utf8' });
         expect(result.status).to.equal(1);
         expect(result.stderr).to.include('A mas-agent author export is required');
         expect(readFileSync(output, 'utf8')).to.equal('previous validated snapshot');

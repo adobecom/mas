@@ -4,10 +4,13 @@ import { requestJson } from './client.js';
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 const unavailable = () => new AdapterError(503, 'masa-gateway-unavailable', 'The MASA gateway is unavailable. Retry later.', 5);
 
-/** Cache the iPaaS service token IMS issues for the gateway client's permanent authorization code. */
+/**
+ * Cache the iPaaS service token IMS issues for the gateway client's permanent authorization code.
+ * `invalidate` drops it after the gateway rejects it (revocation, secret or auth-code rotation).
+ */
 export function createGatewayToken() {
     let cached = null;
-    return async (config, fetchImpl, signal, now) => {
+    const get = async (config, fetchImpl, signal, now) => {
         if (cached && now() < cached.expiresAt - REFRESH_MARGIN_MS) return cached.token;
         const { imsOrigin, clientId, clientSecret, authCode } = config.gateway;
         let response;
@@ -36,4 +39,8 @@ export function createGatewayToken() {
         cached = { token, expiresAt: now() + Number(expiresIn) * 1000 };
         return token;
     };
+    const invalidate = () => {
+        cached = null;
+    };
+    return { get, invalidate };
 }

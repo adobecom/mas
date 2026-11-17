@@ -33,8 +33,11 @@ const markdown = (typographer) =>
 
 const md = markdown(true);
 
-/** MASA answers quote code and flags, which typographic quotes and dashes would change. */
-const answerMd = markdown(false);
+/**
+ * MASA answers quote code and flags, which typographic quotes and dashes would change.
+ * Images stay links: an LLM answer must not make the browser fetch an arbitrary URL on render.
+ */
+const answerMd = markdown(false).disable('image');
 
 /** Plain text: everything is escaped and kept literal; only URLs become links and line breaks are kept. */
 const plain = openLinksInNewTab(new MarkdownIt('zero', { breaks: true, linkify: true }).enable(['linkify', 'newline']));

@@ -604,7 +604,7 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         await group.updateComplete;
         const send = sinon.spy(el, 'handleSendMessage');
         group.querySelector('.chat-option-pill').click();
-        expect(thread.calledOnceWith('How do I publish it?', { images: true })).to.equal(true);
+        expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
         expect(send.called).to.equal(false);
         expect(el.messages.at(-2)).to.include({ role: 'user', content: 'How do I publish it?' });
         expect(el.messages.at(-1)).to.include({ type: 'masa', question: 'How do I publish it?' });
@@ -616,6 +616,16 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         session.images = [{ id: 'img1', name: 'a.png' }];
         masa.callsFake(async ({ onRecord }) => onRecord('inv_22222222-2222-4222-8222-222222222222'));
         el.dispatchEvent(new CustomEvent('masa-follow-up', { detail: { question: 'Next?' }, bubbles: true, composed: true }));
+        await thread.firstCall.returnValue;
+        expect(clear.calledOnceWith(session)).to.equal(true);
+    });
+
+    it('clears attached images once MASA accepts an "Ask MASA again" question', async () => {
+        const session = getInvestigationSession(el.currentSessionId);
+        const clear = sinon.stub(el, 'clearImages');
+        session.images = [{ id: 'img1', name: 'a.png' }];
+        masa.callsFake(async ({ onRecord }) => onRecord('inv_22222222-2222-4222-8222-222222222222'));
+        el.dispatchEvent(new CustomEvent('masa-retry', { detail: { question: QUESTION } }));
         await thread.firstCall.returnValue;
         expect(clear.calledOnceWith(session)).to.equal(true);
     });

@@ -4,6 +4,7 @@ import { MasaClient, MasaClientError } from './masa-client.js';
 export const MAX_IMAGES = 3;
 export const MAX_IMAGE_BYTES = 5000000;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+export const UPLOAD_BLOCKED_MESSAGE = 'MASA cannot take images right now. Attach the image again in a moment.';
 export const isRunning = (record) => ['queued', 'running'].includes(record.status);
 
 const sessions = new Map();
@@ -177,7 +178,13 @@ export class InvestigationSession extends EventTarget {
         const closedSession = ['session-unavailable', 'session-expired', 'session-ended', 'session-scope-changed'].includes(
             error.code,
         );
-        if (closedSession || [401, 403].includes(error.status)) this.clearMedia();
+        const identityRejected = [401, 403].includes(error.status);
+        if (closedSession || identityRejected) this.clearMedia();
+        // tick() stops polling for good once identity is rejected, so settle running asks now: they get the labelled fallback.
+        if (identityRejected) {
+            for (const record of this.records.filter(isRunning))
+                Object.assign(record, { status: 'interrupted', failure: error.code });
+        }
         if (closedSession) {
             this.session = { ...this.session, status: 'expired' };
             this.pending = null;
@@ -265,7 +272,9 @@ export class InvestigationSession extends EventTarget {
 
     /**
      * Uploads run one at a time; those waiting or running count toward the image limit and show as uploading.
-     * Resolves with the error for a file refused up front, since a running upload may clear `error` meanwhile.
+     * An upload waits out another task (submission, renewal, restore, download) like a submission does.
+     * Resolves with the error for a file refused up front or while the session is ending or backing off,
+     * since a running upload may clear `error` meanwhile.
      */
     async addImage(file) {
         const rejection = this.imageRejection(file);
@@ -278,16 +287,19 @@ export class InvestigationSession extends EventTarget {
         const entry = { id: crypto.randomUUID(), name: file.name };
         this.uploads = [...this.uploads, entry];
         this.notify();
-        const run = this.uploadChain.then(() =>
-            this.perform(async () => {
+        const run = this.uploadChain.then(async () => {
+            while (this.busy) await this.inFlight;
+            if (this.blocked) return this.error ?? new MasaClientError('masa-conversation-busy', UPLOAD_BLOCKED_MESSAGE);
+            await this.perform(async () => {
                 await this.ensureSession();
                 this.uploadIntent = { file, key: crypto.randomUUID() };
                 await this.completeUpload();
-            }),
-        );
+            });
+            return undefined;
+        });
         this.uploadChain = run.catch(() => {});
         try {
-            await run;
+            return await run;
         } finally {
             this.uploads = this.uploads.filter((upload) => upload !== entry);
             this.notify();
@@ -582,9 +594,22 @@ export async function endConversationInvestigations(conversationId) {
     sessions.delete(conversationId);
 }
 
-/** Explicit Studio sign-out waits for lease revocation; ordinary drawer/tab closure does not cancel work. */
+export const RELEASE_TIMEOUT_MS = 5000;
+
+/**
+ * Best-effort lease release for local-only actions (sign-out, conversation delete).
+ * A MASA or IMS failure, or a slow reply, never blocks them; MASA's idle timeout reclaims the lease.
+ */
+export async function releaseConversationInvestigations(conversationId) {
+    const ending = endConversationInvestigations(conversationId).catch((error) => {
+        if (!(error instanceof MasaClientError)) throw error;
+    });
+    await Promise.race([ending, new Promise((resolve) => setTimeout(resolve, RELEASE_TIMEOUT_MS))]);
+    sessions.delete(conversationId);
+}
+
 export async function endAllInvestigations() {
-    for (const { id } of sessionManager.listSessions()) await endConversationInvestigations(id);
+    await Promise.all(sessionManager.listSessions().map(({ id }) => releaseConversationInvestigations(id)));
 }
 
 /**

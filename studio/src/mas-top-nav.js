@@ -5,7 +5,7 @@ import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
-import { extractLocaleFromPath, debounce, showToast } from './utils.js';
+import { extractLocaleFromPath, debounce } from './utils.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
@@ -52,14 +52,7 @@ class MasTopNav extends LitElement {
     }
     async signOut() {
         const { endAllInvestigations } = await import('./mas-chat/investigation-session.js');
-        const { MasaClientError } = await import('./mas-chat/masa-client.js');
-        try {
-            await endAllInvestigations();
-        } catch (error) {
-            if (!(error instanceof MasaClientError)) throw error;
-            showToast('Could not end the MASA session. Retry sign out when the connection is restored.', 'negative');
-            return;
-        }
+        await endAllInvestigations();
         window.adobeIMS.signOut();
     }
 

@@ -62,7 +62,18 @@ export function createHandler({
             operationName = operation.input.operation;
             const signal = AbortSignal.timeout(requestMs);
             const identity = await verifyIdentity(requestHeaders, config, fetchImpl, signal);
-            const options = { fetchImpl, signal, now, gatewayToken: await gatewayToken(config, fetchImpl, signal, now) };
+            const options = { fetchImpl, signal, now, gatewayToken: await gatewayToken.get(config, fetchImpl, signal, now) };
+            // A gateway 401 never reached MASA, so one retry with a fresh token cannot duplicate work.
+            const call = async (request) => {
+                try {
+                    return await callMasa(config, identity, request, options);
+                } catch (error) {
+                    if (error.code !== 'masa-gateway-rejected') throw error;
+                    gatewayToken.invalidate();
+                    options.gatewayToken = await gatewayToken.get(config, fetchImpl, signal, now);
+                    return callMasa(config, identity, request, options);
+                }
+            };
             // Check the session binding before cancelling: ownership alone could refer to a legacy
             // session-less job or another session in the same conversation.
             if (operationName === 'investigation.cancel') {
@@ -73,9 +84,9 @@ export function createHandler({
                     body: '',
                     key: null,
                 };
-                projectResult((await callMasa(config, identity, inspect, options)).result, inspect, config);
+                projectResult((await call(inspect)).result, inspect, config);
             }
-            const response = await callMasa(config, identity, operation, options);
+            const response = await call(operation);
             const body = { formatVersion: 1, requestId, result: projectResult(response.result, operation, config) };
             if (response.retryAfter) headers['Retry-After'] = String(response.retryAfter);
             if (Buffer.byteLength(JSON.stringify({ statusCode: response.status, headers, body })) > LIMITS.responseBytes) {

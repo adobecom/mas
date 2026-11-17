@@ -8,13 +8,14 @@
  *   node scripts/fetch-masa-knowledge.mjs [--file <knowledge-author.json>] [--expected-sha256 <hash>]
  *
  * MAS_AGENT_KNOWLEDGE_TOKEN reads adobecom/mas-agent releases. --file or MAS_AGENT_KNOWLEDGE_FILE
- * reads a local author export instead. A valid, nonempty source is always required. Failed
+ * reads a local author export instead. Without either, an existing module is reused for local test
+ * runs (never when a digest is pinned); otherwise a valid, nonempty source is required. Failed
  * refreshes leave the previous module intact. The optional digest pins deployment to the exact
  * export that passed tests, even if knowledge-latest changes.
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -100,6 +101,11 @@ async function main() {
     });
     const token = process.env.MAS_AGENT_KNOWLEDGE_TOKEN;
     const file = values.file || process.env.MAS_AGENT_KNOWLEDGE_FILE;
+    const expected = values['expected-sha256'];
+    if (!file && !token && !expected && existsSync(OUT_FILE)) {
+        console.warn('no mas-agent export configured; reusing the existing src/ai-chat/masa-knowledge.js');
+        return;
+    }
     if (!file && !token) {
         throw new Error(
             'A mas-agent author export is required: set MAS_AGENT_KNOWLEDGE_TOKEN or MAS_AGENT_KNOWLEDGE_FILE, or pass --file. The previous snapshot has not been changed.',
@@ -107,8 +113,11 @@ async function main() {
     }
     const source = file ? readFileSync(file, 'utf8') : await download(token);
     const sha256 = createHash('sha256').update(source).digest('hex');
-    const expected = values['expected-sha256'];
-    if (expected && expected !== sha256) throw new Error('the knowledge export changed since validation; rerun the refresh');
+    if (expected && expected !== sha256) {
+        throw new Error(
+            'knowledge-latest changed after the tests job validated it; rerun the workflow to test and deploy the new export',
+        );
+    }
     const corpus = JSON.parse(source);
     const chunks = validateCorpus(corpus);
     const temporary = `${OUT_FILE}.${process.pid}.tmp`;

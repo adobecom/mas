@@ -389,7 +389,7 @@ export class MasChatMessage extends LitElement {
     }
 
     /** A MASA answer sits in the same assistant bubble, mascot included, as any other reply. */
-    renderMasaAnswer() {
+    get masaAnswer() {
         const { conversationId, question, recordId, fallback, failure } = this.message;
         return html`
             <div class=${this.messageClass}>
@@ -411,7 +411,7 @@ export class MasChatMessage extends LitElement {
     }
 
     /** An answer given while MASA is unavailable says so and offers "Ask MASA again". */
-    renderBuiltInNotice() {
+    get builtInNotice() {
         const { conversationId, question } = this.message.builtIn;
         return html`<mas-chat-masa-answer
             .conversationId=${conversationId}
@@ -422,7 +422,7 @@ export class MasChatMessage extends LitElement {
 
     render() {
         if (!this.message) return nothing;
-        if (this.message.type === 'masa') return this.renderMasaAnswer();
+        if (this.message.type === 'masa') return this.masaAnswer;
 
         const {
             role,
@@ -523,7 +523,7 @@ export class MasChatMessage extends LitElement {
                                               isUser ? linkifyText(decodeEditorEntities(content)) : parseMarkdown(content),
                                           )}
                                       </div>
-                                      ${this.message.builtIn ? this.renderBuiltInNotice() : nothing}
+                                      ${this.message.builtIn ? this.builtInNotice : nothing}
                                       ${this.showSuggestions
                                           ? html`<mas-prompt-suggestions></mas-prompt-suggestions>`
                                           : nothing}

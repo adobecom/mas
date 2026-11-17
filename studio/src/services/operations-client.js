@@ -215,14 +215,18 @@ export async function executeStudioOperation(operationName, operationParams) {
         case 'list_products':
         case 'search_products': {
             const products = Array.isArray(result.products) ? result.products : [];
+            const truncated = result.total > products.length;
             return {
                 success: true,
                 operation: operationName,
                 products,
                 count: products.length,
+                total: result.total ?? products.length,
                 message:
                     result.message ||
-                    `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
+                    (truncated
+                        ? `Showing ${products.length} of ${result.total} products. Narrow the search to see the rest.`
+                        : `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`),
                 rawResult: result,
             };
         }

@@ -1353,16 +1353,21 @@ async function main(params) {
 
 const WRITE_UP_SENTENCE_RE = /[.!?]\s+\S/;
 const WRITE_UP_MAX_WORDS = 30;
-const LOOKUP_VERB_RE = /^\s*(find|show|search|list|get|open)\b/i;
+const SENTENCE_SPLIT_RE = /(?<=[.!?])\s+/;
+const LEAD_IN_RE = /^(?:(?:hi|hello|hey|please|thanks|thank you|ok|okay|could you|can you|would you)\b[\s,!.]*)+/i;
+const LOOKUP_VERB_RE = /^(find|show|search|list|get|open|copy)\b/i;
+
+const startsWithLookup = (sentence) => LOOKUP_VERB_RE.test(sentence.trim().replace(LEAD_IN_RE, ''));
 
 /**
  * A multi-sentence or long message is a problem report, not a lookup, so a
  * model-chosen read-only operation must not run on it. Mirrors the client
- * router's isConversational thresholds; a leading lookup verb is an explicit
- * command and keeps the model's read-only intent.
+ * router's isConversational thresholds; a lookup verb starting any sentence
+ * (after a greeting or "please") is an explicit command and keeps the model's
+ * read-only intent.
  */
 function isMasaWriteUp(message) {
-    if (typeof message !== 'string' || LOOKUP_VERB_RE.test(message)) return false;
+    if (message.split(SENTENCE_SPLIT_RE).some(startsWithLookup)) return false;
     return WRITE_UP_SENTENCE_RE.test(message) || message.trim().split(/\s+/).length > WRITE_UP_MAX_WORDS;
 }
 

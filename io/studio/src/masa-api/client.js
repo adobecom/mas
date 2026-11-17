@@ -66,8 +66,20 @@ export async function requestJson(url, options, fetchImpl, maxBytes) {
     }
     options.signal.throwIfAborted();
     const raw = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
-    return { status: response.status, headers: response.headers, raw, body: JSON.parse(raw) };
+    return { status: response.status, headers: response.headers, raw, body: parseBody(raw) };
 }
+
+/** A gateway error page (HTML 429/503) still carries the status and Retry-After callers need. */
+function parseBody(raw) {
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+/** Gateway pages without a MASA code: keep the back-off status instead of a generic 502. */
+const GATEWAY_STATUS_CODES = { 429: 'request-rate-limit', 503: 'service-busy' };
 
 /**
  * Sign the exact route/body/key with fresh replay protection for every attempt. The iPaaS gateway
@@ -133,6 +145,15 @@ export async function callMasa(config, identity, operation, { fetchImpl, signal,
         const code = response.body?.error?.code;
         if (PUBLIC_CODES.has(code) && MESSAGES[response.status])
             throw new AdapterError(response.status, code, MESSAGES[response.status], retryAfter);
+        if (response.status === 401)
+            throw new AdapterError(502, 'masa-gateway-rejected', 'The MASA gateway rejected the Studio service token.');
+        if (!code && GATEWAY_STATUS_CODES[response.status])
+            throw new AdapterError(
+                response.status,
+                GATEWAY_STATUS_CODES[response.status],
+                MESSAGES[response.status],
+                retryAfter,
+            );
         throw new AdapterError(502, 'masa-unavailable', 'MASA rejected the backend request.', retryAfter);
     }
     if (

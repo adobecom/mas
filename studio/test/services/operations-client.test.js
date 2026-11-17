@@ -276,6 +276,19 @@ describe('mcp-client', () => {
             expect(result.message).to.include('2');
         });
 
+        it('reports a capped product list as partial', async () => {
+            const products = Array.from({ length: 50 }, (value, index) => ({ code: `p${index}` }));
+            fetchStub.resolves({
+                ok: true,
+                json: () => Promise.resolve({ products, count: 50, total: 120 }),
+            });
+
+            const result = await executeStudioOperation('list_products', {});
+
+            expect(result.total).to.equal(120);
+            expect(result.message).to.equal('Showing 50 of 120 products. Narrow the search to see the rest.');
+        });
+
         it('maps search_cards with cards property', async () => {
             const cards = [{ id: '1', title: 'Card A' }];
             fetchStub.resolves({

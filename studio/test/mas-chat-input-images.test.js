@@ -249,7 +249,7 @@ describe('mas-chat images', () => {
         addImageFake(session);
         await el.handleAttachImages({ detail: { files: [file()] } });
         await el.handleSendMessage({ detail: { message: QUESTION, context: {} } });
-        expect(thread.calledOnceWithExactly(QUESTION, { images: true })).to.equal(true);
+        expect(thread.calledOnceWithExactly(QUESTION)).to.equal(true);
         expect(ai.called).to.equal(false);
         expect(masa.calledOnce).to.equal(true);
     });

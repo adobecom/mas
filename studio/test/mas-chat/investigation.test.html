@@ -28,9 +28,12 @@
             import {
                 getInvestigationSession,
                 endConversationInvestigations,
+                releaseConversationInvestigations,
+                RELEASE_TIMEOUT_MS,
             } from '../../src/mas-chat/investigation-session.js';
             import {
                 InvestigationSession,
+                UPLOAD_BLOCKED_MESSAGE,
                 findingText,
                 investigationHistory,
             } from '../../src/mas-chat/investigation-session.js';
@@ -188,6 +191,22 @@
                     await current.submit('Check this card', 'Studio page');
                     expect(calls.at(-1)[2].attachmentIds).to.deep.equal([imageId]);
                     expect(current.records[0].status).to.equal('queued');
+                });
+                it('waits out a running task before uploading an image', async () => {
+                    let release;
+                    const busyTask = current.perform(() => new Promise((resolve) => (release = resolve)));
+                    const uploading = current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                    release();
+                    await busyTask;
+                    expect(await uploading).to.equal(undefined);
+                    expect(current.images).to.have.length(1);
+                });
+                it('reports an image it cannot upload while the session is ending', async () => {
+                    current.ending = true;
+                    const error = await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                    expect(error.message).to.equal(UPLOAD_BLOCKED_MESSAGE);
+                    expect(current.images).to.have.length(0);
+                    expect(current.uploads).to.have.length(0);
                 });
                 it('rejects oversized or unsupported images before creating a session', async () => {
                     await current.addImage(new File([new Uint8Array(5000001)], 'large.png', { type: 'image/png' }));
@@ -477,27 +496,53 @@
                     expect(textOf(parts)).to.contain('earlier view are unavailable');
                     expect(parts.some((part) => part.shadowRoot.querySelector('img'))).to.equal(false);
                 });
-                it('revokes known leases before explicit sign-out, and keeps credentials on failure', async () => {
+                it('revokes known leases before explicit sign-out', async () => {
+                    const owned = getInvestigationSession(sessionManager.createSession().id);
+                    owned.session = lease();
+                    const control = sinon.stub(owned.client, 'control').resolves({ result: { ...lease(), status: 'ended' } });
+                    const signOut = await signOutFromNav();
+                    expect(control.calledOnce).to.equal(true);
+                    expect(signOut.calledOnce).to.equal(true);
+                });
+                for (const [label, error] of [
+                    ['MASA is unavailable', new MasaClientError('connection-unavailable', 'Offline')],
+                    ['the IMS token is rejected', new MasaClientError('invalid-studio-identity', 'Expired', 401)],
+                    ['MASA is rate limiting', new MasaClientError('rate-limited', 'Slow down', 429, 3600)],
+                ]) {
+                    it(`signs out when lease revocation fails because ${label}`, async () => {
+                        const owned = getInvestigationSession(sessionManager.createSession().id);
+                        owned.session = lease();
+                        sinon.stub(owned.client, 'control').rejects(error);
+                        const signOut = await signOutFromNav();
+                        expect(signOut.calledOnce).to.equal(true);
+                    });
+                }
+                it('stops waiting for a hung lease revocation after the release timeout', async () => {
+                    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
+                    try {
+                        const chat = sessionManager.createSession();
+                        const owned = getInvestigationSession(chat.id);
+                        owned.session = lease();
+                        sinon.stub(owned.client, 'control').returns(new Promise(() => {}));
+                        let released = false;
+                        const releasing = releaseConversationInvestigations(chat.id).then(() => (released = true));
+                        await clock.tickAsync(RELEASE_TIMEOUT_MS - 1);
+                        expect(released).to.equal(false);
+                        await clock.tickAsync(1);
+                        await releasing;
+                        expect(released).to.equal(true);
+                    } finally {
+                        clock.restore();
+                    }
+                });
+                it('deletes a conversation even when lease revocation fails', async () => {
                     const chat = sessionManager.createSession();
                     const owned = getInvestigationSession(chat.id);
                     owned.session = lease();
-                    const end = sinon.stub(owned.client, 'control');
-                    end.onCall(0).rejects(new MasaClientError('connection-unavailable', 'Offline'));
-                    end.onCall(1).resolves({ result: { ...lease(), status: 'ended' } });
-                    const originalIMS = window.adobeIMS;
-                    const signOut = sinon.spy();
-                    window.adobeIMS = { signOut };
-                    try {
-                        const nav = document.createElement('mas-top-nav');
-                        await nav.signOut();
-                        expect(signOut.called).to.equal(false);
-                        expect(owned.session.status).to.equal('active');
-                        await nav.signOut();
-                        expect(signOut.calledOnce).to.equal(true);
-                        expect(owned.session.status).to.equal('ended');
-                    } finally {
-                        window.adobeIMS = originalIMS;
-                    }
+                    sinon.stub(owned.client, 'control').rejects(new MasaClientError('invalid-studio-identity', 'Expired', 401));
+                    await releaseConversationInvestigations(chat.id);
+                    sessionManager.deleteSession(chat.id);
+                    expect(sessionManager.getSession(chat.id)).to.equal(null);
                 });
                 it('signs out after an explicit end while MASA is unavailable', async () => {
                     const owned = getInvestigationSession(sessionManager.createSession().id);
@@ -622,6 +667,11 @@
                     expect(current.images).to.have.length(0);
                     expect(current.session.status).to.equal('expired');
                     expect(current.records[0].status).to.equal('interrupted');
+                });
+                it('settles a running question when polling is rejected with 401', async () => {
+                    current.records = [record('running')];
+                    current.fail(new MasaClientError('invalid-studio-identity', 'Sign in again', 401));
+                    expect(current.records[0]).to.include({ status: 'interrupted', failure: 'invalid-studio-identity' });
                 });
                 it('clears media and stops automatic polling when identity is rejected', async () => {
                     await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));

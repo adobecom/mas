@@ -373,6 +373,41 @@ describe('Studio MASA Runtime adapter', function () {
         }
     });
 
+    it('drops a gateway token the gateway rejects and retries once with a fresh one', async () => {
+        let attempt = 0;
+        const h = harness({
+            backend: () =>
+                ++attempt === 1 ? new Response('Unauthorized', { status: 401 }) : json({ formatVersion: 1, result: session() }),
+        });
+        const response = await h.handler(params());
+        assert.equal(response.statusCode, 200);
+        assert.equal(h.calls.filter(({ url }) => url.includes('/ims/token/')).length, 2);
+        assert.equal(h.backendCalls().length, 2);
+    });
+
+    it('stops after one retry when the gateway keeps rejecting a fresh token', async () => {
+        const h = harness({ backend: () => new Response('Unauthorized', { status: 401 }) });
+        const response = await h.handler(params());
+        assert.equal(response.statusCode, 502);
+        assert.equal(response.body.error.code, 'masa-gateway-rejected');
+        assert.equal(h.backendCalls().length, 2);
+    });
+
+    it('keeps the status and Retry-After of a non-JSON gateway error page', async () => {
+        for (const [status, code] of [
+            [429, 'request-rate-limit'],
+            [503, 'service-busy'],
+        ]) {
+            const h = harness({
+                backend: () => new Response('<html>busy</html>', { status, headers: { 'Retry-After': '30' } }),
+            });
+            const response = await h.handler(params());
+            assert.equal(response.statusCode, status);
+            assert.equal(response.body.error.code, code);
+            assert.equal(response.headers['Retry-After'], '30');
+        }
+    });
+
     it('keeps the gateway token across warm Runtime invocations', async () => {
         const { main } = await import('../../src/masa-api/index.js');
         const tokenRequests = [];

@@ -25,7 +25,7 @@ jobs:
         # pull_request_target runs this workflow from main, never the PR's code. The PR is only compared with git.
         if: >-
             github.repository_owner == 'adobecom' && (github.event_name != 'pull_request_target' ||
-            (github.event.pull_request.base.ref == 'main' && github.event.label.name == 'Ready to Merge'))
+            (github.event.pull_request.base.ref == 'main' && github.event.label.name == 'Ready to merge'))
         # Runs must not overlap: a merge makes every other PR BEHIND. Job-level, so runs skipped for other labels
         # never displace a pending run.
         concurrency:

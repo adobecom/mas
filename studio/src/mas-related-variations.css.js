@@ -10,6 +10,8 @@ export const styles = [
 
         .related-variations-container {
             width: 600px;
+            max-width: 100%;
+            box-sizing: border-box;
             margin-top: 16px;
 
             .related-variations-title {

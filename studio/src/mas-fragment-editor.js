@@ -257,6 +257,13 @@ export default class MasFragmentEditor extends LitElement {
             #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > #preview-wrapper {
                 max-height: none;
             }
+
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-variations,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-artifacts,
+            #editor-content:not(.compare-chart-content):not(.full-width-content) > #preview-column > mas-related-pages {
+                width: 100%;
+                max-width: 600px;
+            }
         }
 
         #preview-wrapper {

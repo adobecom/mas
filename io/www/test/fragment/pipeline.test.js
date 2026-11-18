@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import filesLib from '@adobe/aio-lib-files';
-import { main as action, getFilesClient, resetCache } from '../../src/fragment/pipeline.js';
+import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
 import { mockDictionary } from './replace.test.js';
@@ -666,32 +665,6 @@ describe('caching headers', () => {
         expect(result.statusCode).to.equal(504);
         expect(result.headers).to.have.property('Cache-Control');
         expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
-    });
-});
-
-describe('Files client', () => {
-    afterEach(() => {
-        sinon.restore();
-        resetCache();
-    });
-
-    it('is only returned once initialised, which is started once', async () => {
-        const client = new MockFiles();
-        const init = sinon.stub(filesLib, 'init').resolves(client);
-        expect(getFilesClient({})).to.be.undefined;
-        expect(getFilesClient({})).to.be.undefined;
-        await init.returnValues[0];
-        expect(getFilesClient({})).to.equal(client);
-        expect(init.calledOnce).to.be.true;
-    });
-
-    it('is initialised again after a failed initialisation', async () => {
-        const init = sinon.stub(filesLib, 'init').rejects(new Error('no credentials'));
-        expect(getFilesClient({})).to.be.undefined;
-        await init.returnValues[0].catch(() => {});
-        await Promise.resolve();
-        expect(getFilesClient({})).to.be.undefined;
-        expect(init.calledTwice).to.be.true;
     });
 });
 

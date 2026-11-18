@@ -20,7 +20,7 @@ import crypto from 'crypto';
 import v8 from 'v8';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
-import filesLib from '@adobe/aio-lib-files';
+import { getFilesClient, resetFilesClient } from './utils/files-client.js';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
 import { transformer as defaultLanguage } from './transformers/defaultLanguage.js';
@@ -49,31 +49,11 @@ const formatAge = (ms) => {
     return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
 };
 
-let files;
-let filesInit;
-
-/**
- * Returns the Files client once initialised, `undefined` until then: its first initialisation in a container takes
- * a couple of seconds, which requests do not wait for (their stored responses are then just not read nor written).
- * Initialised here rather than in `utils/cache.js`, which Studio also loads in the browser.
- */
-function getFilesClient(context) {
-    filesInit ??= filesLib
-        .init()
-        .then((client) => (files = client))
-        .catch((error) => {
-            logError(`failed to initialise Files: ${error.message}`, context);
-            filesInit = undefined;
-        });
-    return files;
-}
-
 function resetCache() {
     resetConfiguration();
     clearRequestCaches();
     resetMemoryLog();
-    files = undefined;
-    filesInit = undefined;
+    resetFilesClient();
 }
 
 /** 200 (or 304 when not modified since `If-Modified-Since`) response for an already encoded body. */
@@ -351,4 +331,4 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
     return { id: context.body?.id, hash, lastModified, body };
 }
 
-export { main, resetCache, getFilesClient, PIPELINE };
+export { main, resetCache, PIPELINE };

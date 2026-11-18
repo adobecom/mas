@@ -1,9 +1,16 @@
 import { init } from './common.js';
 import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import {
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
+} from '../src/constants.js';
 
 export function getPreviewSettings(fragment) {
-    const { surface } = fragment.path.match(PATH_TOKENS).groups;
+    const surface = fragment.path?.match(PATH_TOKENS)?.groups?.surface;
+    if (!surface) {
+        throw new RangeError('Fragment path is missing or invalid.');
+    }
     return {
         spectrum:
             surface === 'ccd' || fragment.fields.variant?.startsWith('ccd-')
@@ -70,25 +77,28 @@ export async function renderPreview(preview, container, status) {
         fragment.addEventListener(
             'aem:load',
             (event) => {
-                const modelId = {
-                    'merch-card':
-                        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
-                    'merch-card-collection':
-                        'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-                }[preview.localName];
-                if (fragment.rawData.model.id === modelId) {
+                try {
+                    const modelId = {
+                        'merch-card': CARD_MODEL_ID,
+                        'merch-card-collection': COLLECTION_MODEL_ID,
+                    }[preview.localName];
+                    if (fragment.rawData.model.id !== modelId) {
+                        throw new RangeError(
+                            'Selected content type does not match this fragment.',
+                        );
+                    }
                     preview.setAttribute(
                         'spectrum',
                         getPreviewSettings(fragment.rawData).spectrum,
                     );
-                    return;
+                } catch (error) {
+                    if (!(error instanceof RangeError)) throw error;
+                    event.stopImmediatePropagation();
+                    hasError = true;
+                    status.textContent = error.message;
+                    preview.remove();
+                    resolve(false);
                 }
-                event.stopImmediatePropagation();
-                hasError = true;
-                status.textContent =
-                    'Selected content type does not match this fragment.';
-                preview.remove();
-                resolve(false);
             },
             { capture: true, once: true },
         );

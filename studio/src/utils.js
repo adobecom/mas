@@ -597,7 +597,7 @@ export function previewFragmentOnPage(fragment) {
             'fragment-id': fragment.id,
             'content-type': type,
             locale,
-            theme: 'light',
+            theme: surface === 'ccd' ? 'darkest' : 'light',
             ...(fragment.status !== STATUS_PUBLISHED && { 'mas.preview': 'on' }),
         });
         window.open(url.href, '_blank');

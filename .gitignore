@@ -64,16 +64,6 @@ masStudio-*.json
 
 
 # Worktree documentation (per-ticket, not committed); ADRs are versioned
-docs/
-!/web-components/docs/
-/web-components/docs/*
-!/web-components/docs/mas-preview.html
-!/web-components/docs/mas-preview.js
-!/web-components/docs/mas-preview.css
-!/nala/docs/
-/nala/docs/*
-!/nala/docs/preview/
-!/docs/
 /docs/*
 !/docs/decisions/
 # But the AI assistant ships its documentation knowledge as runtime source —

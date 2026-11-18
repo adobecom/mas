@@ -242,6 +242,24 @@ describe('preview loading', () => {
     });
 
     for (const type of ['merch-card', 'merch-card-collection']) {
+        for (const path of [undefined, null, '/invalid/path']) {
+            it(`shows an error for ${type} with invalid path ${path}`, async () => {
+                const preview = preparePreview(type);
+                const fragment = preview.querySelector('aem-fragment');
+                fragment.rawData.path = path;
+                const hydrate = sinon.spy();
+                fragment.addEventListener('aem:load', hydrate);
+
+                await renderPreview(preview, container, status);
+
+                expect(status.textContent).to.equal(
+                    'Fragment path is missing or invalid.',
+                );
+                expect(container.children).to.have.length(0);
+                expect(hydrate.called).to.be.false;
+            });
+        }
+
         it(`clears the loading message for a successfully loaded ${type}`, async () => {
             const preview = preparePreview(type);
 

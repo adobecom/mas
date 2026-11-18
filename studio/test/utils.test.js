@@ -76,7 +76,7 @@ describe('previewFragmentOnPage', () => {
                 'fragment-id': fragment.id,
                 'content-type': 'merch-card',
                 locale: 'fr_FR',
-                theme: 'light',
+                theme: surface === 'ccd' ? 'darkest' : 'light',
             });
         });
     }
@@ -91,6 +91,7 @@ describe('previewFragmentOnPage', () => {
         const params = new URL(open.firstCall.args[0]).searchParams;
         expect(params.get('content-type')).to.equal('merch-card-collection');
         expect(params.get('mas.preview')).to.equal('on');
+        expect(params.get('theme')).to.equal('darkest');
     });
 
     it('does not change routing for surfaces outside this ticket', () => {

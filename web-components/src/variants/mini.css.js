@@ -32,3 +32,12 @@ merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
 `;
+
+export const SHADOW_CSS = `
+    :host([variant='mini']) {
+        min-width: 209px;
+        min-height: 103px;
+        background-color: var(--spectrum-background-base-color);
+        border: 1px solid var(--consonant-merch-card-border-color, #dadada);
+    }
+`;

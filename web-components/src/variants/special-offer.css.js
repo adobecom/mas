@@ -3,7 +3,7 @@ import {
     DESKTOP_UP,
     LARGE_DESKTOP,
     MOBILE_LANDSCAPE,
-} from '../media.js';
+} from '../constants.js';
 export const CSS = `
 :root {
   --consonant-merch-card-special-offers-width: 302px;
@@ -95,4 +95,40 @@ merch-card[variant="special-offers"] .price-plan-type {
     grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='special-offers']) {
+        min-height: 439px;
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #eaeaea) border-box;
+        border: 1px solid transparent;
+    }
+
+    :host([variant='special-offers']) {
+        width: var(--consonant-merch-card-special-offers-width);
+    }
+
+    :host([variant='special-offers'].center) {
+        text-align: center;
+    }
+
+    :host(
+        [variant='special-offers'][border-color='spectrum-yellow-300-special-offers']
+    ) {
+        border-color: var(--spectrum-yellow-300-special-offers);
+    }
+
+    :host(
+        [variant='special-offers'][border-color='spectrum-gray-300-special-offers']
+    ) {
+        border-color: var(--spectrum-gray-300-special-offers);
+    }
+
+    :host(
+        [variant='special-offers'][border-color='spectrum-green-900-special-offers']
+    ) {
+        border-color: var(--spectrum-green-900-special-offers);
+    }
 `;

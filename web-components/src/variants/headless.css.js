@@ -1,5 +1,3 @@
-import { css, unsafeCSS } from 'lit';
-
 /**
  * Variant names sharing the "headless" label + value row styling (no card chrome).
  * Add new headless-family variants here so the global overrides below reach them.
@@ -79,78 +77,80 @@ ${familyClassSelector('.headless-cta-item:not(:last-child)::after')} {
  * Marquee Headless, FAQ Headless, Sticky Banner/Blade Headless, ...) render with identical
  * styling by construction instead of relying on copy-pasted CSS staying in sync.
  */
-export function headlessRowStyle(variantName) {
-    const variant = unsafeCSS(variantName);
-    return css`
-        :host([variant='${variant}']) {
-            border: none;
-            background: transparent;
-            box-shadow: none;
-        }
-        :host([variant='${variant}']) .headless {
-            display: flex;
-            flex-direction: column;
-            padding: var(--consonant-merch-spacing-xs, 8px);
-        }
-        :host([variant='${variant}']) .headless-row {
-            display: flex;
-            gap: var(--consonant-merch-spacing-xs, 8px);
-            padding: var(--consonant-merch-spacing-xxs, 4px) 0;
-        }
-        :host([variant='${variant}']) .headless-label {
-            flex-shrink: 0;
-            font-weight: 600;
-            min-width: 8em;
-        }
-        :host([variant='${variant}']) .headless-value {
-            flex: 1;
-        }
-        :host([variant='${variant}']) .headless-value::slotted(*) {
-            display: inline;
-        }
-        :host([variant='${variant}'])
-            .headless-value[data-slot='footer']::slotted(div) {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: var(--consonant-merch-spacing-xs, 8px);
-        }
-        :host([variant='${variant}']) .headless-section {
-            font-size: 0.75em;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--spectrum-gray-600);
-            padding-top: 4px;
-        }
-        :host([variant='${variant}']) .headless-backgrounds-toggle {
-            margin-left: var(--consonant-merch-spacing-xs, 8px);
-            font-size: 0.75em;
-            color: var(--spectrum-blue-700);
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        :host([variant='${variant}']) .headless-backgrounds-detail {
-            flex-direction: column;
-            padding-left: var(--consonant-merch-spacing-l, 24px);
-        }
-        :host([variant='${variant}']) .headless-backgrounds-detail.hidden {
-            display: none;
-        }
-        :host([variant='${variant}']) .headless-backgrounds-detail-row {
-            display: flex;
-            gap: var(--consonant-merch-spacing-xs, 8px);
-            padding: var(--consonant-merch-spacing-xxs, 4px) 0;
-        }
-        :host([variant='${variant}'])
-            .headless-backgrounds-detail-row
-            .headless-value
-            img {
-            width: 100%;
-            max-height: var(--consonant-merch-card-bg-img-height);
-            object-fit: contain;
-        }
-    `;
-}
+const headlessRowStyle = (variant) => `
+    :host([variant='${variant}']) {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+    :host([variant='${variant}']) .headless {
+        display: flex;
+        flex-direction: column;
+        padding: var(--consonant-merch-spacing-xs, 8px);
+    }
+    :host([variant='${variant}']) .headless-row {
+        display: flex;
+        gap: var(--consonant-merch-spacing-xs, 8px);
+        padding: var(--consonant-merch-spacing-xxs, 4px) 0;
+    }
+    :host([variant='${variant}']) .headless-label {
+        flex-shrink: 0;
+        font-weight: 600;
+        min-width: 8em;
+    }
+    :host([variant='${variant}']) .headless-value {
+        flex: 1;
+    }
+    :host([variant='${variant}']) .headless-value::slotted(*) {
+        display: inline;
+    }
+    :host([variant='${variant}'])
+        .headless-value[data-slot='footer']::slotted(div) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--consonant-merch-spacing-xs, 8px);
+    }
+    :host([variant='${variant}']) .headless-section {
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--spectrum-gray-600);
+        padding-top: 4px;
+    }
+    :host([variant='${variant}']) .headless-backgrounds-toggle {
+        margin-left: var(--consonant-merch-spacing-xs, 8px);
+        font-size: 0.75em;
+        color: var(--spectrum-blue-700);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    :host([variant='${variant}']) .headless-backgrounds-detail {
+        flex-direction: column;
+        padding-left: var(--consonant-merch-spacing-l, 24px);
+    }
+    :host([variant='${variant}']) .headless-backgrounds-detail.hidden {
+        display: none;
+    }
+    :host([variant='${variant}']) .headless-backgrounds-detail-row {
+        display: flex;
+        gap: var(--consonant-merch-spacing-xs, 8px);
+        padding: var(--consonant-merch-spacing-xxs, 4px) 0;
+    }
+    :host([variant='${variant}'])
+        .headless-backgrounds-detail-row
+        .headless-value
+        img {
+        width: 100%;
+        max-height: var(--consonant-merch-card-bg-img-height);
+        object-fit: contain;
+    }
+`;
+
+export const HEADLESS_SHADOW_CSS = headlessRowStyle('headless');
+export const MARQUEE_SHADOW_CSS = headlessRowStyle('marquee');
+export const FAQ_SHADOW_CSS = headlessRowStyle('faq');
+export const BANNER_BLADE_SHADOW_CSS = headlessRowStyle('banner-blade');

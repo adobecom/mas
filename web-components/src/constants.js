@@ -282,3 +282,21 @@ export const SUPPORTED_COUNTRIES = [
     'YE',
     'ZA',
 ];
+
+// Media queries shared by CSS (*.css.js) and matchMedia (media.js).
+export const SPECTRUM_MOBILE_LANDSCAPE = '(max-width: 700px)';
+export const MOBILE_LANDSCAPE = '(max-width: 767px)';
+export const TABLET_DOWN = '(max-width: 1199px)';
+export const TABLET_UP = '(min-width: 768px)';
+export const DESKTOP_UP = '(min-width: 1200px)';
+export const LARGE_DESKTOP = '(min-width: 1600px)';
+export const C2_DESKTOP_UP = '(min-width: 1280px)';
+export const XL_DESKTOP_UP = '(min-width: 1440px)';
+
+// Row heights pro.js publishes on pro cards and its shadow CSS consumes.
+export const PRO_TOP_CARD_HEIGHT_PROP =
+    '--consonant-merch-card-pro-top-card-height';
+export const PRO_MNEMONIC_HEIGHT_PROP =
+    '--consonant-merch-card-pro-mnemonic-height';
+export const PRO_NAME_DESCRIPTION_HEIGHT_PROP =
+    '--consonant-merch-card-pro-name-description-height';

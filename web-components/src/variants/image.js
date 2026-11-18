@@ -1,6 +1,6 @@
 import { VariantLayout } from './variant-layout.js';
-import { html, css } from 'lit';
-import { CSS } from './image.css.js';
+import { html } from 'lit';
+import { CSS, SHADOW_CSS } from './image.css.js';
 
 export const IMAGE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -76,27 +76,5 @@ export class Image extends VariantLayout {
                   `}`;
     }
 
-    static variantStyle = css`
-        :host([variant='image']) {
-            min-height: 330px;
-            width: var(--consonant-merch-card-image-width);
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
-        }
-
-        :host([variant='image']) ::slotted([slot='badge']) {
-            position: absolute;
-            top: 16px;
-            right: 0px;
-        }
-
-        :host-context([dir='rtl'])
-            :host([variant='image'])
-            ::slotted([slot='badge']) {
-            left: 0px;
-            right: initial;
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

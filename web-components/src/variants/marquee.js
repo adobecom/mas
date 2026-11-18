@@ -1,6 +1,6 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS, headlessRowStyle } from './headless.css.js';
+import { CSS, MARQUEE_SHADOW_CSS } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
@@ -89,5 +89,5 @@ export class Marquee extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('marquee');
+    static variantStyle = MARQUEE_SHADOW_CSS;
 }

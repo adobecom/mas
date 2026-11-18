@@ -1,7 +1,8 @@
-import { html, LitElement, css, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { debounce, updateHash, paramsToHash } from '../utils.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
+import { styles } from './merch-sidenav-list.css.js';
 
 export class MerchSidenavList extends LitElement {
     static properties = {
@@ -24,37 +25,7 @@ export class MerchSidenavList extends LitElement {
         },
     };
 
-    static styles = css`
-        :host {
-            display: block;
-            contain: content;
-            margin-top: var(--merch-sidenav-list-gap);
-        }
-
-        :host h2 {
-            color: var(--merch-sidenav-list-title-color);
-            font-size: var(--merch-sidenav-list-title-font-size);
-            font-weight: var(--merch-sidenav-list-title-font-weight);
-            padding: var(--merch-sidenav-list-title-padding);
-            line-height: var(--merch-sidenav-list-title-line-height);
-            margin: 0;
-            text-transform: uppercase;
-        }
-
-        :host(:dir(rtl)) h2 {
-            text-align: right;
-        }
-
-        .right {
-            position: absolute;
-            inset-inline-end: 0;
-        }
-
-        :host(:dir(rtl)) .right {
-            right: initial;
-            left: 0;
-        }
-    `;
+    static styles = unsafeCSS(styles);
 
     constructor() {
         super();

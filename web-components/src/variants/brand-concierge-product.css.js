@@ -81,3 +81,23 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] .price-plan-ty
     margin-inline-start: 0;
 }
 `;
+
+export const SHADOW_CSS = `
+    :host([variant='brand-concierge-product']) {
+        font-weight: 400;
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #dadada) border-box;
+        border: 1px solid transparent;
+    }
+
+    :host([variant='brand-concierge-product']) .body {
+        padding: 16px;
+        gap: 8px;
+    }
+
+    :host([variant='brand-concierge-product']) footer {
+        padding: 0px 16px 16px;
+        gap: 8px;
+    }
+`;

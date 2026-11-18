@@ -80,6 +80,7 @@ Other top-level areas include `io/www/` (a Node.js >=22 service), `nala/` (Playw
 - Only use per-item render functions when iterating over a list.
 - Use Adobe Spectrum Web Components (`@spectrum-web-components/*`) for UI primitives. Do not reinvent what Spectrum provides.
 - CSS via `static styles` and CSS custom properties — avoid inline styles. Use `styleMap`/`classMap` for dynamic styles.
+- In `web-components/src`, keep CSS in `*.css.js` modules that export only CSS strings (no Lit `css`, no DOM access); the build minifies them. Lit components wrap them with `unsafeCSS()`.
 - Dispatch custom events (not callbacks) for child-to-parent communication.
 - In Lit components, use `willUpdate()` for derived state — avoid computing in `render()`.
 

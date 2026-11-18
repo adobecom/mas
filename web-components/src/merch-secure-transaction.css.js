@@ -1,8 +1,7 @@
-import { css } from 'lit';
 // TODO: a11y, r12s (responsiveness, if needed)
-import { DESKTOP_UP, TABLET_UP } from './media.js';
+import { DESKTOP_UP, TABLET_UP } from './constants.js';
 
-export const styles = css`
+export const styles = `
     #label {
         align-items: center;
         cursor: pointer;

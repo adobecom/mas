@@ -1,4 +1,4 @@
-import { html, LitElement, css, unsafeCSS, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
@@ -27,6 +27,7 @@ import {
     cardFilterTags,
     isExcluded,
 } from './tag-groups.js';
+import { styles, headerStyles } from './merch-card-collection.css.js';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
@@ -833,48 +834,7 @@ export class MerchCardCollection extends LitElement {
         this.sidenav?.showModal(e);
     }
 
-    static styles = css`
-        #footer {
-            grid-column: 1 / -1;
-            justify-self: stretch;
-            color: var(--merch-color-grey-80);
-            order: 1000;
-        }
-
-        :host(.product-pricing) #footer {
-            display: flex;
-            justify-content: center;
-            /* 24px below the last row, less the grid gap and the padding. */
-            margin-top: calc(24px - 8px - 4px);
-            /* Room for the button's focus ring, which an ancestor would clip. */
-            padding-block: 4px;
-        }
-
-        /* Same look as the outlined product-pricing CTAs. */
-        :host(.product-pricing) .show-more {
-            box-sizing: border-box;
-            min-height: 40px;
-            padding: 8px 22px;
-            border: 2px solid #000;
-            border-radius: 999px;
-            background: transparent;
-            color: #000;
-            font: inherit;
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 18px;
-            cursor: pointer;
-        }
-
-        :host(.product-pricing) .show-more:focus-visible {
-            outline: 2px solid #3b63fb;
-            outline-offset: 2px;
-        }
-
-        sp-theme {
-            display: contents;
-        }
-    `;
+    static styles = unsafeCSS(styles);
 }
 
 MerchCardCollection.SortOrder = SORT_ORDER;
@@ -1152,124 +1112,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         `;
     }
 
-    static styles = css`
-        :host {
-            --merch-card-collection-header-max-width: var(
-                --merch-card-collection-card-width
-            );
-            --merch-card-collection-header-margin-bottom: 32px;
-            --merch-card-collection-header-column-gap: 8px;
-            --merch-card-collection-header-row-gap: 16px;
-            --merch-card-collection-header-columns: auto auto;
-            --merch-card-collection-header-areas: 'search search' 'filter sort'
-                'result result';
-            --merch-card-collection-header-search-max-width: unset;
-            --merch-card-collection-header-search-min-height: 44px;
-            --merch-card-collection-header-filter-height: 44px;
-            --merch-card-collection-header-filter-font-size: 16px;
-            --merch-card-collection-header-filter-padding: 15px;
-            --merch-card-collection-header-sort-height: var(
-                --merch-card-collection-header-filter-height
-            );
-            --merch-card-collection-header-sort-font-size: var(
-                --merch-card-collection-header-filter-font-size
-            );
-            --merch-card-collection-header-sort-padding: var(
-                --merch-card-collection-header-filter-padding
-            );
-            --merch-card-collection-header-result-font-size: 14px;
-        }
-
-        sp-theme {
-            font-size: inherit;
-        }
-
-        #header {
-            display: grid;
-            column-gap: var(--merch-card-collection-header-column-gap);
-            row-gap: var(--merch-card-collection-header-row-gap);
-            align-items: center;
-            grid-template-columns: var(--merch-card-collection-header-columns);
-            grid-template-areas: var(--merch-card-collection-header-areas);
-            margin-bottom: var(--merch-card-collection-header-margin-bottom);
-            max-width: var(--merch-card-collection-header-max-width);
-        }
-
-        #header:empty {
-            margin-bottom: 0;
-        }
-
-        #search {
-            grid-area: search;
-        }
-
-        #search sp-search {
-            max-width: var(--merch-card-collection-header-search-max-width);
-            width: 100%;
-            min-height: var(--merch-card-collection-header-search-min-height);
-        }
-
-        #filter {
-            grid-area: filter;
-            --mod-actionbutton-edge-to-text: var(
-                --merch-card-collection-header-filter-padding
-            );
-            --mod-actionbutton-height: var(
-                --merch-card-collection-header-filter-height
-            );
-        }
-
-        #filter slot[name='filtersText'] {
-            font-size: var(--merch-card-collection-header-filter-font-size);
-        }
-
-        #sort {
-            grid-area: sort;
-            --mod-actionbutton-edge-to-text: var(
-                --merch-card-collection-header-sort-padding
-            );
-            --mod-actionbutton-height: var(
-                --merch-card-collection-header-sort-height
-            );
-        }
-
-        #sort [slot='label-only'] {
-            font-size: var(--merch-card-collection-header-sort-font-size);
-        }
-
-        #result {
-            grid-area: result;
-            font-size: var(--merch-card-collection-header-result-font-size);
-        }
-
-        #result[type='search'][quantity='none'] {
-            font-size: inherit;
-        }
-
-        #custom {
-            grid-area: custom;
-        }
-
-        /* tablets */
-        @media screen and ${unsafeCSS(TABLET_UP)} {
-            :host {
-                --merch-card-collection-header-max-width: auto;
-                --merch-card-collection-header-columns: 1fr fit-content(100%)
-                    fit-content(100%);
-                --merch-card-collection-header-areas: 'search filter sort'
-                    'result result result';
-            }
-        }
-
-        /* Laptop */
-        @media screen and ${unsafeCSS(DESKTOP_UP)} {
-            :host {
-                --merch-card-collection-header-columns: 1fr fit-content(100%);
-                --merch-card-collection-header-areas: 'result sort';
-                --merch-card-collection-header-result-font-size: inherit;
-            }
-        }
-    `;
+    static styles = unsafeCSS(headerStyles);
 
     get placeholderKeys() {
         return [

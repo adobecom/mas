@@ -1,6 +1,4 @@
-import { css } from 'lit';
-
-const styles = css`
+export const styles = `
     :host {
         --consonant-plan-modal-includes: hidden;
     }
@@ -130,5 +128,3 @@ const styles = css`
         }
     }
 `;
-
-export default styles;

@@ -1,4 +1,4 @@
-import { TABLET_UP, DESKTOP_UP, MOBILE_LANDSCAPE } from '../media.js';
+import { TABLET_UP, DESKTOP_UP, MOBILE_LANDSCAPE } from '../constants.js';
 export const CSS = `
 :root {
   --consonant-merch-card-segment-width: 378px;
@@ -139,4 +139,17 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='segment']) {
+        min-height: 214px;
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #dadada) border-box;
+        border: 1px solid transparent;
+    }
+    :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
+        max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+    }
 `;

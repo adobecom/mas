@@ -1,6 +1,6 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS, headlessRowStyle } from './headless.css.js';
+import { CSS, BANNER_BLADE_SHADOW_CSS } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
@@ -77,5 +77,5 @@ export class BannerBlade extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('banner-blade');
+    static variantStyle = BANNER_BLADE_SHADOW_CSS;
 }

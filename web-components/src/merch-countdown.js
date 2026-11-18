@@ -1,8 +1,9 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import {
     COUNTDOWN_UNIT_PAIR,
     isUnresolvedCountdownToken,
 } from './countdown.js';
+import { styles } from './merch-countdown.css.js';
 
 const MINUTE = 60000;
 /** Classes an author can put on the sentinel link; each has a color rule in the styles below. */
@@ -85,18 +86,7 @@ export class MerchCountdown extends LitElement {
         text: { state: true },
     };
 
-    static styles = css`
-        /* Default inherits the description color; authors pick one of these in the RTE. */
-        :host(.spectrum-green-900) {
-            color: var(--spectrum-green-900, #05834e);
-        }
-        :host(.spectrum-red-700) {
-            color: var(--spectrum-red-700, #eb1000);
-        }
-        :host([hidden]) {
-            display: none;
-        }
-    `;
+    static styles = unsafeCSS(styles);
 
     #timer;
 

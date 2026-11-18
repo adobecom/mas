@@ -1,4 +1,4 @@
-import { TABLET_UP, DESKTOP_UP } from '../media.js';
+import { TABLET_UP, DESKTOP_UP } from '../constants.js';
 export const CSS = `
 :root {
   --consonant-merch-card-image-width: 300px;
@@ -64,4 +64,28 @@ export const CSS = `
       grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-image-width));
   }
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='image']) {
+        min-height: 330px;
+        width: var(--consonant-merch-card-image-width);
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #dadada) border-box;
+        border: 1px solid transparent;
+    }
+
+    :host([variant='image']) ::slotted([slot='badge']) {
+        position: absolute;
+        top: 16px;
+        right: 0px;
+    }
+
+    :host-context([dir='rtl'])
+        :host([variant='image'])
+        ::slotted([slot='badge']) {
+        left: 0px;
+        right: initial;
+    }
 `;

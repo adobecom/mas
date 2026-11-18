@@ -5,11 +5,9 @@ import {
     TABLET_UP,
     TABLET_DOWN,
     MOBILE_LANDSCAPE,
-} from './media.js';
+} from './constants.js';
 
-const styles = document.createElement('style');
-
-styles.innerHTML = `
+export const CSS = `
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
@@ -1200,4 +1198,3 @@ merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:fir
   display: inline;
 }
 `;
-document.head.appendChild(styles);

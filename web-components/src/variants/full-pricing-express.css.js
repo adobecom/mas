@@ -1,4 +1,4 @@
-import { DESKTOP_UP } from '../media.js';
+import { DESKTOP_UP } from '../constants.js';
 
 export const CSS = `
 :root {
@@ -639,4 +639,320 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
         min-height: var(--consonant-merch-card-full-pricing-express-description-row-11-height);
     }
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='full-pricing-express']) {
+        /* CSS Variables */
+        --merch-card-full-pricing-express-width: 437px;
+        --merch-card-full-pricing-express-mobile-width: 303px;
+        --merch-card-full-pricing-express-padding: 24px;
+        --merch-card-full-pricing-express-padding-mobile: 20px;
+        --merch-card-full-pricing-express-section-gap: 24px;
+        --express-custom-gray-500: #8f8f8f;
+        --express-custom-gray-400: #d5d5d5;
+        --express-custom-price-border: #e0e2ff;
+
+        /* Price container specific */
+        --merch-card-full-pricing-express-price-bg: #f8f8f8;
+        --merch-card-full-pricing-express-price-radius: 8px;
+
+        /* Typography - matching simplified-pricing-express */
+        --merch-card-full-pricing-express-trial-badge-font-size: 12px;
+        --merch-card-full-pricing-express-trial-badge-font-weight: 700;
+        --merch-card-full-pricing-express-trial-badge-line-height: 15.6px;
+        --merch-card-full-pricing-express-price-font-size: 28px;
+        --merch-card-full-pricing-express-price-line-height: 36.4px;
+        --merch-card-full-pricing-express-price-font-weight: 700;
+        --merch-card-full-pricing-express-cta-font-size: 18px;
+        --merch-card-full-pricing-express-cta-font-weight: 700;
+        --merch-card-full-pricing-express-cta-line-height: 23.4px;
+
+        /* Accent color */
+        --spectrum-express-accent: #5258e4;
+        --spectrum-express-indigo-300: #d3d5ff;
+        --spectrum-express-white: #ffffff;
+
+        /* Gradient definitions (reused) */
+        --gradient-purple-blue: linear-gradient(
+            96deg,
+            #b539c8 0%,
+            #7155fa 66%,
+            #3b63fb 100%
+        );
+        --gradient-firefly-spectrum: linear-gradient(
+            96deg,
+            #d73220 0%,
+            #d92361 33%,
+            #7155fa 100%
+        );
+
+        width: var(--merch-card-full-pricing-express-width);
+        max-width: var(--merch-card-full-pricing-express-width);
+        background: transparent;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+        box-sizing: border-box;
+        position: relative;
+    }
+
+    /* Badge wrapper styling (same as simplified) */
+    :host([variant='full-pricing-express']) .badge-wrapper {
+        padding: 4px 12px;
+        border-radius: 8px 8px 0 0;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 20.8px;
+        color: var(--spectrum-gray-800);
+        position: relative;
+        min-height: 23px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :host([variant='full-pricing-express']) .icons {
+        display: flex;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--spectrum-black);
+    }
+
+    /* Card content styling */
+    :host([variant='full-pricing-express']) .card-content {
+        border-radius: 8px;
+        padding: var(--merch-card-full-pricing-express-padding);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    :host([variant='full-pricing-express']) .card-content > * {
+        position: relative;
+    }
+
+    /* Regular border styling */
+    :host([variant='full-pricing-express']:not([gradient-border='true']))
+        .card-content {
+        background: var(--spectrum-gray-50);
+        border: 1px solid #d5d5d5;
+    }
+
+    /* When badge exists, adjust card content border radius */
+    :host([variant='full-pricing-express']:has([slot='badge']:not(:empty)))
+        .card-content {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    /* When badge exists with regular border, ensure top border */
+    :host(
+            [variant='full-pricing-express']:not(
+                    [gradient-border='true']
+                ):has([slot='badge']:not(:empty))
+        )
+        .card-content {
+        border-top: 1px solid
+            var(
+                --consonant-merch-card-border-color,
+                var(--spectrum-gray-100)
+            );
+    }
+
+    /* When badge has content, ensure seamless connection */
+    :host([variant='full-pricing-express']:has([slot='badge']:not(:empty)))
+        .badge-wrapper {
+        margin-bottom: -2px;
+    }
+
+    /* Gradient border styling (reused from simplified) */
+    :host([variant='full-pricing-express'][gradient-border='true'])
+        .badge-wrapper {
+        border: none;
+        margin-bottom: -6px;
+        padding-bottom: 6px;
+    }
+
+    :host([variant='full-pricing-express'][gradient-border='true'])
+        .badge-wrapper
+        ::slotted(*) {
+        color: white;
+    }
+
+    :host([variant='full-pricing-express'][gradient-border='true'])
+        .card-content {
+        border: 1px solid transparent;
+        padding: calc(var(--merch-card-full-pricing-express-padding) + 1px);
+        border-radius: 8px;
+        background-origin: border-box;
+        background-clip: padding-box, border-box;
+    }
+
+    /* Gradient backgrounds */
+    :host(
+            [variant='full-pricing-express'][border-color='gradient-purple-blue']
+        )
+        .badge-wrapper {
+        background: var(--gradient-purple-blue);
+    }
+    :host(
+            [variant='full-pricing-express'][border-color='gradient-purple-blue']
+        )
+        .card-content {
+        background-image: linear-gradient(
+                var(--spectrum-express-white, #ffffff),
+                var(--spectrum-express-white, #ffffff)
+            ),
+            var(--gradient-purple-blue);
+    }
+
+    :host(
+            [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
+        )
+        .badge-wrapper {
+        background: var(--gradient-firefly-spectrum);
+    }
+    :host(
+            [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
+        )
+        .card-content {
+        background-image: linear-gradient(
+                var(--spectrum-express-white, #ffffff),
+                var(--spectrum-express-white, #ffffff)
+            ),
+            var(--gradient-firefly-spectrum);
+    }
+
+    /* Header styling */
+    :host([variant='full-pricing-express']) .header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    :host([variant='full-pricing-express']) [slot='heading-xs'] {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 23.4px;
+        color: var(--spectrum-gray-800);
+    }
+
+    /* Icons/Mnemonics styling */
+    :host([variant='full-pricing-express']) [slot='icons'] {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    :host([variant='full-pricing-express']) .icons ::slotted(merch-icon) {
+        --mod-img-width: auto;
+        --mod-img-height: 18px;
+        align-self: flex-end;
+    }
+
+    :host([variant='full-pricing-express'])
+        .icons
+        ::slotted(merch-icon:nth-of-type(2)) {
+        --mod-img-height: 14px;
+        height: 14px;
+    }
+
+    /* Description sections */
+    :host([variant='full-pricing-express']) .description {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Price container with background */
+    :host([variant='full-pricing-express']) .price-container {
+        background: var(--merch-card-full-pricing-express-price-bg);
+        padding: 24px 16px;
+        border-radius: var(--merch-card-full-pricing-express-price-radius);
+        border: 1px solid var(--express-custom-price-border);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: visible;
+        margin-bottom: var(--merch-card-full-pricing-express-section-gap);
+        justify-content: center;
+        align-items: center;
+        min-height: var(
+            --consonant-merch-card-full-pricing-express-price-container-height
+        );
+    }
+
+    :host([variant='full-pricing-express']) [slot='callout-content'] {
+        font-size: 12px;
+        font-weight: 400;
+        font-style: normal;
+        line-height: 18px;
+        color: var(--spectrum-gray-800);
+        text-align: center;
+        background: transparent;
+    }
+
+    /* CTA styling */
+    :host([variant='full-pricing-express']) .cta,
+    :host([variant='full-pricing-express']) .cta ::slotted(*) {
+        width: 100%;
+        display: block;
+    }
+
+    /* Mobile and tablet styles */
+    @media (max-width: 1199px) {
+        :host([variant='full-pricing-express']) {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        :host([variant='full-pricing-express']) .card-content {
+            padding: 24px 16px;
+        }
+
+        :host([variant='full-pricing-express'][gradient-border='true'])
+            .card-content {
+            padding: 26px 18px;
+        }
+
+        :host([variant='full-pricing-express']) .short-description {
+            padding: 24px 0;
+        }
+    }
+
+    /* Tablet and desktop - fixed heights for alignment */
+    @media (min-width: 768px) {
+        :host([variant='full-pricing-express']) .card-content {
+            height: 100%;
+        }
+
+        :host([variant='full-pricing-express']) .description {
+            flex: 1;
+        }
+
+        :host([variant='full-pricing-express']) .cta {
+            margin-bottom: 24px;
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-cta-height
+            );
+        }
+
+        :host([variant='full-pricing-express']) .short-description {
+            margin-bottom: 24px;
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-short-description-height
+            );
+        }
+
+        :host([variant='full-pricing-express']) .header {
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-header-height
+            );
+        }
+    }
 `;

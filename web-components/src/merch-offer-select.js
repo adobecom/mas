@@ -1,32 +1,14 @@
-import { css, html, LitElement } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
 import {
     EVENT_MERCH_OFFER_READY,
     EVENT_MERCH_OFFER_SELECT_READY,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_OFFER_SELECTED,
 } from './constants.js';
+import { styles } from './merch-offer-select.css.js';
 
 class MerchOfferSelect extends LitElement {
-    static styles = css`
-        :host {
-            display: inline-block;
-        }
-
-        :host .horizontal {
-            display: flex;
-            flex-direction: row;
-        }
-
-        fieldset {
-            display: contents;
-        }
-
-        :host([variant='subscription-options']) {
-            display: flex;
-            flex-direction: column;
-            gap: var(--consonant-merch-spacing-xs);
-        }
-    `;
+    static styles = unsafeCSS(styles);
 
     static properties = {
         offers: { type: Array },

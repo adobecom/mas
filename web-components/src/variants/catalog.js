@@ -1,8 +1,8 @@
 import { VariantLayout } from './variant-layout.js';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { isMobileOrTablet } from '../utils.js';
 import { EVENT_MERCH_CARD_ACTION_MENU_TOGGLE } from '../constants.js';
-import { CSS } from './catalog.css.js';
+import { CSS, SHADOW_CSS } from './catalog.css.js';
 
 export const CATALOG_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -234,28 +234,5 @@ export class Catalog extends VariantLayout {
         this.card.removeEventListener('keydown', this.handleKeyDown);
     }
 
-    static variantStyle = css`
-        :host([variant='catalog']) {
-            min-height: 330px;
-            width: var(--consonant-merch-card-catalog-width);
-        }
-
-        .body .catalog-badge {
-            display: flex;
-            height: fit-content;
-            flex-direction: column;
-            width: fit-content;
-            max-width: 140px;
-            border-radius: 5px;
-            position: relative;
-            top: 0;
-            margin-left: var(--consonant-merch-spacing-xxs);
-            box-sizing: border-box;
-        }
-
-        :host([variant='catalog']) .action-menu:dir(rtl) {
-            right: initial;
-            left: 16px;
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

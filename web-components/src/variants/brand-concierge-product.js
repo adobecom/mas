@@ -1,10 +1,10 @@
 import { VariantLayout } from './variant-layout';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
-import { CSS } from './brand-concierge-product.css.js';
+import { CSS, SHADOW_CSS } from './brand-concierge-product.css.js';
 
 export const BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -82,23 +82,5 @@ export class BrandConciergeProduct extends VariantLayout {
             <slot></slot>`;
     }
 
-    static variantStyle = css`
-        :host([variant='brand-concierge-product']) {
-            font-weight: 400;
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
-        }
-
-        :host([variant='brand-concierge-product']) .body {
-            padding: 16px;
-            gap: 8px;
-        }
-
-        :host([variant='brand-concierge-product']) footer {
-            padding: 0px 16px 16px;
-            gap: 8px;
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

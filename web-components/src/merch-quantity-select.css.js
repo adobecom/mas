@@ -1,6 +1,4 @@
-import { css } from 'lit';
-
-export const styles = css`
+export const styles = `
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);

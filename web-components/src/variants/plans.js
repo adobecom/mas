@@ -1,6 +1,6 @@
 import { VariantLayout } from './variant-layout';
-import { html, css, nothing } from 'lit';
-import { CSS } from './plans.css.js';
+import { html, nothing } from 'lit';
+import { CSS, SHADOW_CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
@@ -407,118 +407,7 @@ export class Plans extends VariantLayout {
             <slot></slot>`;
     }
 
-    static variantStyle = css`
-        :host([variant^='plans']) {
-            min-height: 273px;
-            --merch-card-plans-min-width: 244px;
-            --merch-card-plans-padding: 15px;
-            --merch-card-plans-subtitle-display: contents;
-            --merch-card-plans-heading-min-height: 23px;
-            --merch-color-green-promo: #05834e;
-            --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
-            font-weight: 400;
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
-        }
-
-        :host([variant^='plans']) .slot-placeholder {
-            display: none;
-        }
-
-        :host([variant='plans-education']) {
-            min-height: unset;
-        }
-
-        :host([variant='plans-education']) ::slotted(h3[slot='heading-s']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-
-        :host([variant='plans-education']) ::slotted([slot='subtitle']) {
-            font-size: var(--consonant-merch-card-heading-xxxs-font-size);
-            line-height: var(--consonant-merch-card-heading-xxxs-line-height);
-            font-style: italic;
-            font-weight: 400;
-        }
-
-        :host([variant='plans-education']) .divider {
-            border: 0;
-            border-top: 1px solid #e8e8e8;
-            margin-top: 8px;
-            margin-bottom: 8px;
-        }
-
-        :host([variant='plans']) slot[name='subtitle'] {
-            display: var(--merch-card-plans-subtitle-display);
-            min-height: 18px;
-            margin-top: 8px;
-            margin-bottom: -8px;
-        }
-
-        :host([variant='plans']) ::slotted([slot='heading-xs']) {
-            min-height: var(--merch-card-plans-heading-min-height);
-        }
-
-        :host([variant^='plans']) .body {
-            min-width: var(--merch-card-plans-min-width);
-            padding: var(--merch-card-plans-padding);
-        }
-
-        :host([variant='plans'][size]) .body {
-            max-width: none;
-        }
-
-        :host([variant^='plans']) ::slotted([slot='addon']) {
-            margin-top: auto;
-            padding-top: 8px;
-        }
-
-        :host([variant^='plans']) footer ::slotted([slot='addon']) {
-            margin: 0;
-            padding: 0;
-        }
-
-        :host([variant='plans']) .wide-footer #stock-checkbox {
-            margin-top: 0;
-        }
-
-        :host([variant='plans']) #stock-checkbox {
-            margin-top: 8px;
-            gap: 9px;
-            color: rgb(34, 34, 34);
-            line-height: var(--consonant-merch-card-detail-xs-line-height);
-            padding-top: 4px;
-            padding-bottom: 5px;
-        }
-
-        :host([variant='plans']) #stock-checkbox > span {
-            border: 2px solid rgb(109, 109, 109);
-            width: 12px;
-            height: 12px;
-        }
-
-        :host([variant^='plans']) footer {
-            padding: var(--merch-card-plans-padding);
-            padding-top: 1px;
-        }
-
-        :host([variant='plans']) .secure-transaction-label {
-            color: rgb(80, 80, 80);
-            line-height: var(--consonant-merch-card-detail-xs-line-height);
-        }
-
-        :host([variant='plans']) ::slotted([slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-
-        :host([variant='plans']) #badge {
-            border-radius: 4px 0 0 4px;
-            font-weight: 400;
-            line-height: 21px;
-            padding: 2px 10px 3px;
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 
     static collectionOptions = {
         customHeaderArea: (collection) => {

@@ -1,32 +1,8 @@
-import { html, css, LitElement } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
+import { styles } from './merch-mnemonic-list.css.js';
 
 export class MerchMnemonicList extends LitElement {
-    static styles = css`
-        :host {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 8px;
-            margin-right: 16px;
-            align-items: center;
-        }
-
-        ::slotted([slot='icon']) {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: max-content;
-        }
-
-        ::slotted([slot='description']) {
-            font-size: 14px;
-            line-height: 21px;
-            margin: 0;
-        }
-
-        :host .hidden {
-            display: none;
-        }
-    `;
+    static styles = unsafeCSS(styles);
 
     static properties = {
         description: { type: String, attribute: true },

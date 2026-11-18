@@ -1,6 +1,6 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
-import styles from './plans-modal.css.js';
+import { styles } from './plans-modal.css.js';
 import { MOBILE_LANDSCAPE } from './media.js';
 
 export default class PlansModal extends LitElement {
@@ -156,7 +156,7 @@ export default class PlansModal extends LitElement {
         this.shadowRoot.querySelector('sp-theme').append(overlay);
     }
 
-    static styles = [styles];
+    static styles = [unsafeCSS(styles)];
 }
 
 customElements.define('plans-modal', PlansModal);

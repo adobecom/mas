@@ -789,6 +789,7 @@ class CardOverlay {
         const cardData = this.overlays.get(fragmentId)?.cardData;
         const key = this.cacheKey(cardData?.sourceFragmentId, cardData?.locale, cardData?.country);
         this.fragmentDataCache.delete(key);
+        window.MASSources?.resetBudget();
         this.loadFragmentDetails(fragmentId);
     }
 

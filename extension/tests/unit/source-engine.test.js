@@ -524,3 +524,71 @@ test('a swapped field whose stamped variation left it is labeled by its replacem
     const e = resolveField(stamps, { ...F.inputs, requestedData: F.groupedData });
     assert.deepEqual([e.source, e.ioMerged], ['grouped', false]);
 });
+
+const OFFER_BASELINE = 'b0b0b0b0-1111-4222-8333-444455556666';
+const SEGMENT_BASELINE = 'c1c1c1c1-1111-4222-8333-444455556666';
+const BASELINED_CARD = { ...CARD, variationId: null, promoProject: null, promoVariationProject: null };
+
+function baselinedInputs(requestedExtra, cardRaw) {
+    const requestedData = {
+        id: AUTHORED,
+        fields: { cardTitle: 'Title', description: 'From a baseline' },
+        ...requestedExtra,
+    };
+    return { ...F.inputs, requestedData, cardRaw };
+}
+
+test('a field the card leaves empty and a baseline supplies is attributed to the baseline', () => {
+    const inputs = baselinedInputs({ offerBaselineId: OFFER_BASELINE }, { id: AUTHORED, fields: { cardTitle: 'Title' } });
+    const entries = resolveCard(BASELINED_CARD, inputs, { variant: 'plans' });
+    assert.deepEqual(plain(entries.map((e) => [e.field, e.source, e.supplierId])), [
+        ['cardTitle', 'default', AUTHORED],
+        ['description', 'baseline', OFFER_BASELINE],
+    ]);
+});
+
+test('a field the card authors stays the default card when a baseline is present', () => {
+    const inputs = baselinedInputs(
+        { offerBaselineId: OFFER_BASELINE },
+        { id: AUTHORED, fields: { cardTitle: 'Title', description: 'Own' } },
+    );
+    const entries = resolveCard(BASELINED_CARD, inputs, { variant: 'plans' });
+    assert.deepEqual(plain(entries.map((e) => e.source)), ['default', 'default']);
+});
+
+test('a field the card clears with the explicit-empty sentinel is not attributed to a baseline', () => {
+    const inputs = baselinedInputs(
+        { offerBaselineId: OFFER_BASELINE },
+        { id: AUTHORED, fields: { cardTitle: 'Title', description: '<explicit_empty/>' } },
+    );
+    const entries = resolveCard(BASELINED_CARD, inputs, { variant: 'plans' });
+    assert.equal(entries[1].source, 'default');
+});
+
+test('several baselines leave the supplier layer unnamed', () => {
+    const inputs = baselinedInputs(
+        { offerBaselineId: OFFER_BASELINE, fragmentSegmentBaselineId: SEGMENT_BASELINE },
+        { id: AUTHORED, fields: { cardTitle: 'Title' } },
+    );
+    const [, entry] = resolveCard(BASELINED_CARD, inputs, { variant: 'plans' });
+    assert.deepEqual(plain([entry.source, entry.supplierId, entry.reason]), [
+        'baseline',
+        null,
+        `Supplied by one of the baselines: offer ${OFFER_BASELINE.slice(0, 8)}, segment ${SEGMENT_BASELINE.slice(0, 8)}`,
+    ]);
+});
+
+test('a baselined card whose own fields are unavailable is unknown, not default', () => {
+    const inputs = baselinedInputs({ fragmentBaselineId: OFFER_BASELINE }, null);
+    const [entry] = resolveCard(BASELINED_CARD, inputs, { variant: 'plans' });
+    assert.deepEqual(plain([entry.source, entry.reason]), ['unknown', 'Baseline layers apply; card fields unavailable']);
+});
+
+test('an exhausted fetch budget is named in the unavailable reason', () => {
+    const [entry] = resolveCard(
+        { ...BASELINED_CARD, variationId: PROMO_VAR },
+        { ...F.inputs, variationData: null, requestedData: { fields: { cardTitle: 'T' } }, budgetSpent: true },
+        { variant: 'plans' },
+    );
+    assert.equal(entry.reason, 'Variation fields unavailable (page fetch limit reached, Refresh to retry)');
+});

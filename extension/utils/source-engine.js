@@ -10,6 +10,14 @@
     const MEP_HINT = 'Swapped by MEP — add ?mep to the URL to see which manifest';
     const MEP_MANIFEST_UNKNOWN = 'Swapped by MEP — manifest unknown';
     const UNAVAILABLE = 'Variation fields unavailable';
+    const BUDGET_NOTE = ' (page fetch limit reached, Refresh to retry)';
+    const BASELINE_LAYERS = [
+        ['offerBaselineId', 'offer'],
+        ['fragmentBaselineId', 'fragment'],
+        ['fragmentSegmentBaselineId', 'segment'],
+    ];
+    // Card identity fields: IO never takes them from a baseline.
+    const CARD_OWN_FIELDS = ['osi', 'locReady', 'originalId', 'enableBaselines'];
     const DEFAULT_CARD = { source: 'default', label: 'Default card' };
     const UNKNOWN = { source: 'unknown', label: 'Unknown' };
     const NOT_SWAPPED = { swapped: false, authoredId: null, manifestId: null };
@@ -71,6 +79,10 @@
         return Boolean(mepState?.swaps?.some(({ replacementId }) => findSwap(mepState, { requestedId: replacementId, field })));
     }
 
+    function unavailable(budgetSpent) {
+        return budgetSpent ? `${UNAVAILABLE}${BUDGET_NOTE}` : UNAVAILABLE;
+    }
+
     function hasFields(data) {
         const fields = data?.fields;
         return Boolean(fields) && typeof fields === 'object' && !Array.isArray(fields);
@@ -118,8 +130,8 @@
     };
 
     // What the IO-merged variation did to this field, or null when the field was left to the parent.
-    function mergedVariation(stamps, variationData, variant) {
-        if (!hasFields(variationData)) return { ...UNKNOWN, reason: UNAVAILABLE };
+    function mergedVariation(stamps, variationData, variant, budgetSpent) {
+        if (!hasFields(variationData)) return { ...UNKNOWN, reason: unavailable(budgetSpent) };
         const { mirror, mep, parser } = deps();
         const name = mep.normalizeField(stamps.field);
         // attributeFields knows which variant arrays IO concatenates with the parent ('combined').
@@ -136,16 +148,54 @@
         return { ...describe(type, audiences, project), reason, ioMerged: true, promotion };
     }
 
-    function contentSource(stamps, { variationData = null, requestedData = null, variant, mepState = null }, swap) {
-        const merged = stamps.variationId ? mergedVariation(stamps, variationData, variant) : null;
+    // IO layers the baselines under the card before any variation, so a field the card itself leaves
+    // empty may come from one. The card's raw record tells which fields it authors.
+    function baselineSource(stamps, requestedData, cardRaw) {
+        const { mirror, mep } = deps();
+        const name = mep.normalizeField(stamps.field);
+        const layers = BASELINE_LAYERS.filter(([key]) => requestedData?.[key]).map(([key, kind]) => ({
+            kind,
+            id: requestedData[key],
+        }));
+        if (!layers.length || !name || CARD_OWN_FIELDS.includes(name)) return null;
+        if (!hasFields(cardRaw)) return { ...UNKNOWN, reason: 'Baseline layers apply; card fields unavailable' };
+        const value = cardRaw.fields[name];
+        const authored =
+            mirror.fieldContribution(value) === 'set' || JSON.stringify(value ?? null).includes(mirror.EXPLICIT_EMPTY_SENTINEL);
+        if (authored) return null;
+        const named = layers.map(({ kind, id }) => `${kind} ${id8(id)}`).join(', ');
+        const [only] = layers;
+        return {
+            source: 'baseline',
+            label: 'Baseline',
+            reason:
+                layers.length === 1
+                    ? `Supplied by the ${only.kind} baseline ${id8(only.id)}`
+                    : `Supplied by one of the baselines: ${named}`,
+            baselineId: layers.length === 1 ? only.id : null,
+        };
+    }
+
+    function contentSource(stamps, inputs, swap) {
+        const {
+            variationData = null,
+            requestedData = null,
+            cardRaw = null,
+            variant,
+            mepState = null,
+            budgetSpent = false,
+        } = inputs;
+        const merged = stamps.variationId ? mergedVariation(stamps, variationData, variant, budgetSpent) : null;
         if (swap.swapped) {
             const reason = swapReason(swap, mepState);
             if (merged) return { ...merged, reason: `${reason}; ${merged.reason}` };
-            if (!hasFields(requestedData)) return { ...UNKNOWN, reason: `${reason}; ${UNAVAILABLE}` };
+            if (!hasFields(requestedData)) return { ...UNKNOWN, reason: `${reason}; ${unavailable(budgetSpent)}` };
             const { type, audiences, promotionName } = deps().parser.classifyVariation(requestedData);
             return { ...describe(type, audiences, promotionName), reason, promotion: promotionOf(type, promotionName) };
         }
         if (merged) return merged;
+        const baseline = baselineSource(stamps, requestedData, cardRaw);
+        if (baseline) return baseline;
         return {
             ...DEFAULT_CARD,
             reason: stamps.variationId ? 'Inherited from default card — variation left it empty' : 'No variation applied',
@@ -153,10 +203,14 @@
     }
 
     // Without the mask's fields there is no telling whether the mask replaced this field.
-    function withMask(content, stamps, maskData) {
+    function withMask(content, stamps, maskData, budgetSpent) {
         if (!stamps.maskId) return content;
         const maskId8 = id8(stamps.maskId);
-        if (!hasFields(maskData)) return { ...UNKNOWN, reason: `${content.reason}; Mask ${maskId8} fields unavailable` };
+        if (!hasFields(maskData))
+            return {
+                ...UNKNOWN,
+                reason: `${content.reason}; Mask ${maskId8} fields unavailable${budgetSpent ? BUDGET_NOTE : ''}`,
+            };
         const { mirror, mep } = deps();
         const contribution = mirror.fieldContribution(maskData.fields[mep.normalizeField(stamps.field)]);
         if (contribution === 'inherit') return content;
@@ -196,13 +250,18 @@
         if (!swap.swapped && !stamps.requestedId && hasFieldSwap(inputs.mepState, stamps.field)) {
             return { ...UNKNOWN, reason: 'Could not match this element to an MEP swap' };
         }
-        return withRegionalNote(withMask(contentSource(stamps, inputs, swap), stamps, inputs.maskData), stamps, inputs);
+        return withRegionalNote(
+            withMask(contentSource(stamps, inputs, swap), stamps, inputs.maskData, inputs.budgetSpent),
+            stamps,
+            inputs,
+        );
     }
 
     // The fragment whose content the field shows: the IO-merged variation, else the resolved locale.
     // Studio cannot open a mask by id, so a masked field links nowhere.
     function supplierOf(content, stamps, requestedId) {
         if (content.source === 'mask') return null;
+        if (content.source === 'baseline') return content.baselineId;
         return content.ioMerged ? stamps.variationId : (stamps.resolvedId ?? requestedId);
     }
 
@@ -290,7 +349,7 @@
 
     function mapSwapSteps(group, mepState) {
         const { normalizeField } = deps().mep;
-        return groupBy(groupSwaps(group, mepState), (swap) => swap.replacementId).map((swaps) => {
+        return groupBy(groupSwaps(group, mepState), (swap) => `${swap.replacementId}|${swap.manifestId ?? ''}`).map((swaps) => {
             const [first] = swaps;
             const fields = swaps.map((swap) => normalizeField(swap.field));
             return swapStep(fields, first.replacementId, first.manifestId);

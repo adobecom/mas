@@ -5,6 +5,7 @@
     // Fragment fields merch-card renders under another mapping name, or without a mapping entry.
     const FIELD_ALIASES = { cardTitle: 'title' };
     const FIXED_SLOTS = { mnemonicIcon: { tag: 'merch-icon', slot: 'icons' } };
+    const PRICE_MARKER = '[is="inline-price"], [data-wcs-osi]';
     const NAME_PATTERN = /^[a-z][\w-]*$/i;
     // variant -> the page bridge's pending reply and its resolver
     const slotRequests = new Map();
@@ -87,11 +88,22 @@
         return typeof value === 'string' && NAME_PATTERN.test(value);
     }
 
+    function holdsPrice(element) {
+        return Boolean(element.querySelector?.(PRICE_MARKER));
+    }
+
+    // Some variants (catalog) render the title and the price as separate elements of one slot.
+    function pricesShareSlot(slots, tag, slot) {
+        return slots.prices?.slot === slot && (slots.prices.tag ?? '') === tag;
+    }
+
     // The page supplies tag and slot, so neither reaches a selector unless it is a plain name.
     function fieldElements(card, field, slots) {
         const { tag = '', slot } = FIXED_SLOTS[field] ?? slots[FIELD_ALIASES[field] ?? field] ?? {};
         if (!isName(slot) || (tag !== '' && !isName(tag))) return [];
-        return [...card.querySelectorAll(`:scope > ${tag}[slot="${slot}"]`)];
+        const elements = [...card.querySelectorAll(`:scope > ${tag}[slot="${slot}"]`)];
+        if (!pricesShareSlot(slots, tag, slot)) return elements;
+        return elements.filter((element) => holdsPrice(element) === (field === 'prices'));
     }
 
     // Each rendered field gets its own source; a card whose fields cannot be located keeps one outline.

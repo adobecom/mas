@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { SOURCES, renderSourceLegend } = require('../../utils/source-legend.js');
 
 test('the legend covers every source the engine labels', () => {
-    assert.deepEqual([...SOURCES].sort(), ['default', 'failed', 'grouped', 'locale', 'mask', 'promo', 'unknown']);
+    assert.deepEqual([...SOURCES].sort(), ['baseline', 'default', 'failed', 'grouped', 'locale', 'mask', 'promo', 'unknown']);
 });
 
 test('each legend swatch carries its label color and its page outline', () => {

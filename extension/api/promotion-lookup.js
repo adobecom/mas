@@ -14,17 +14,22 @@ function getValidators() {
     return null;
 }
 
+const MAX_LISTING_PAGES = 50;
+
 async function fetchPromotionProjects() {
     const projects = [];
+    const seenCursors = new Set();
     let cursor;
-    do {
+    for (let page = 0; page < MAX_LISTING_PAGES; page += 1) {
         const url = cursor ? `${PROMOTIONS_LIST_URL}&cursor=${encodeURIComponent(cursor)}` : PROMOTIONS_LIST_URL;
         const response = await fetch(url, { headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const body = await response.json();
         projects.push(...(body.items ?? []));
         cursor = body.cursor;
-    } while (cursor);
+        if (!cursor || seenCursors.has(cursor)) break;
+        seenCursors.add(cursor);
+    }
     return projects;
 }
 

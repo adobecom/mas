@@ -345,3 +345,26 @@ test('a slot name that is not a plain identifier is never used as a selector', a
     await outlines.enable();
     assert.deepEqual(cardElement.queried, [':scope > merch-icon[slot="icons"]']);
 });
+
+test('a catalog card outlines its title and its price in their own sources', async () => {
+    const slots = { catalog: { title: { tag: 'h3', slot: 'heading-xs' }, prices: { tag: 'h3', slot: 'heading-xs' } } };
+    const { outlines, cardElement } = createFixture({
+        variant: 'catalog',
+        slots,
+        cardEntries: [
+            sourceEntry('card-1', 'cardTitle', 'default', 'Default card', 'No variation applied'),
+            sourceEntry('card-1', 'prices', 'promo', 'Promo variation', 'IO applied promo'),
+        ],
+    });
+    const title = fakeElement();
+    const price = fakeElement();
+    price.querySelector = () => ({});
+    cardElement.querySelectorAll = () => [title, price];
+    await outlines.enable();
+    assert.deepEqual(
+        [title, price].map((element) =>
+            ['default', 'promo'].find((s) => element.classList.contains(`mas-ext-src-outline-${s}`)),
+        ),
+        ['default', 'promo'],
+    );
+});

@@ -257,3 +257,26 @@ test('the reply that settles a request also updates latest', async () => {
     listeners.message(messageFrom(window, stateWith('title')));
     assert.equal(await reply, MASMepState.latest());
 });
+
+test('a card-level PZN row and a CTA row sharing one replacement keep each CTA on its own row', () => {
+    const { MASMepState, state } = stateFromRows({
+        '': { action: 'replace', content: GROUPED, pzn: 'cc-lapsed', manifestId: 'card.json' },
+        'ctas[buy-now]': { action: 'replace', content: GROUPED, manifestId: 'cta.json' },
+    });
+    const manifestFor = (field) => MASMepState.findSwap(state, { requestedId: GROUPED, field })?.manifestId;
+    assert.deepEqual([manifestFor('ctas[buy-now]'), manifestFor('ctas[start-trial]')], ['cta.json', 'card.json']);
+});
+
+test('an indexed CTA is not swapped by another indexed CTA row when no card-level row exists', () => {
+    const { MASMepState, state } = stateFromRows({
+        'ctas[buy-now]': { action: 'replace', content: GROUPED, manifestId: 'cta.json' },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'ctas[start-trial]' }), null);
+});
+
+test('an unindexed ctas field still matches an indexed CTA row', () => {
+    const { MASMepState, state } = stateFromRows({
+        'ctas[buy-now]': { action: 'replace', content: GROUPED, manifestId: 'cta.json' },
+    });
+    assert.equal(MASMepState.findSwap(state, { requestedId: GROUPED, field: 'ctas' }).manifestId, 'cta.json');
+});

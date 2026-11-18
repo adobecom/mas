@@ -5,6 +5,7 @@
         { source: 'default', label: 'Default card', meaning: 'Authored card, no variation applied' },
         { source: 'grouped', label: 'Grouped variation', meaning: 'Personalized for an audience (PZN)' },
         { source: 'promo', label: 'Promotion variation', meaning: 'Promotion content' },
+        { source: 'baseline', label: 'Baseline', meaning: 'Default supplied by an offer, fragment or segment baseline' },
         { source: 'mask', label: 'Mask', meaning: 'Mask applied after the variation' },
         { source: 'locale', label: 'Locale', meaning: 'Legacy locale variation' },
         { source: 'failed', label: 'Not rendered', meaning: 'No copy in this language, not found, or failed to load' },

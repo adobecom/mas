@@ -1,8 +1,10 @@
 // Collects the source engine's inputs on demand: the page's stamps, the MEP state, and the variation,
-// mask and replacement fragments fetched through the background (cached, within the shared budget).
+// mask and replacement fragments fetched through the background (cached, within the shared budget,
+// which Refresh resets).
 (() => {
     const FETCH_BUDGET = 50;
     const SELECTOR_CARD = 'merch-card, merch-card-collection';
+    const BASELINE_KEYS = ['offerBaselineId', 'fragmentBaselineId', 'fragmentSegmentBaselineId'];
     const BARE_TYPES = ['price', 'cta'];
     const SURFACE_PATTERN = /^\/content\/dam\/mas\/([^/]+)\//;
 
@@ -12,6 +14,11 @@
     const detector = () => window.MASCardDetector;
     const engine = () => window.MASSourceEngine;
     const mep = () => window.MASMepState;
+
+    // Lets Refresh start over: cached responses stay, and only new requests spend the budget again.
+    function resetBudget() {
+        fetchCount = 0;
+    }
 
     // Shared with content.js's card-name fetches; once spent, it returns false without consuming.
     function consumeBudget(n = 1) {
@@ -101,6 +108,11 @@
         return !locales.isDefaultLocale(locale, surface);
     }
 
+    // Which fields a baseline supplies is told by the card's own unmerged record.
+    function hasBaseline(data) {
+        return BASELINE_KEYS.some((key) => data?.[key]);
+    }
+
     // A whole card always needs its requested fragment to list its fields (the card-name fetch already
     // cached it); an inline field needs it only to label a swap.
     async function collectInputs(stamps, { locale, country }, page, { wholeCard = false } = {}) {
@@ -115,7 +127,16 @@
             [stamps.variationId, stamps.maskId, requestedId].map(load),
         );
         const variationData = await unmergedVariation(stamps.variationId, variationResponse);
-        return { ...inputs, variationData, maskData, requestedData, isRegionLocale: isRegionLocale(locale, variationData) };
+        const cardRaw = hasBaseline(requestedData) ? await fetchFragment(ownId, null, null, true) : null;
+        return {
+            ...inputs,
+            variationData,
+            maskData,
+            requestedData,
+            cardRaw,
+            budgetSpent: fetchCount >= FETCH_BUDGET,
+            isRegionLocale: isRegionLocale(locale, variationData),
+        };
     }
 
     // The same element the detector anchors a field's badge to, so shown agrees with badged.
@@ -232,7 +253,7 @@
         return Promise.all([...inline, ...cards]);
     }
 
-    const MASSources = { getSourcesFor, getPageGroups, fetchFragment, consumeBudget };
+    const MASSources = { getSourcesFor, getPageGroups, fetchFragment, consumeBudget, resetBudget };
 
     if (typeof window !== 'undefined') {
         window.MASSources = MASSources;

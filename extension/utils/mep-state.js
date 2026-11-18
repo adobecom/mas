@@ -50,18 +50,15 @@
 
     function findSwap(state, { requestedId, field, resolvedId } = {}) {
         const replacementId = requestedId ?? resolvedId;
+        const forReplacement = state?.swaps.filter((entry) => entry.replacementId === replacementId) ?? [];
+        // An indexed field (ctas[start-trial]) matches only its own row; an unindexed one matches any of its indexed rows.
+        const isIndexed = normalizeField(field) !== String(field ?? '');
         const wanted = normalizeField(field);
-        let swap = state?.swaps.find(
-            (entry) => entry.replacementId === replacementId && normalizeField(entry.field) === wanted,
-        );
+        let swap =
+            forReplacement.find((entry) => entry.field === field) ??
+            (isIndexed ? null : forReplacement.find((entry) => normalizeField(entry.field) === wanted));
         if (!swap && wanted) {
-            swap = state?.swaps.find(
-                (entry) =>
-                    entry.replacementId === replacementId &&
-                    entry.field === '' &&
-                    entry.pzn &&
-                    !entry.excludedFields?.includes(field),
-            );
+            swap = forReplacement.find((entry) => entry.field === '' && entry.pzn && !entry.excludedFields?.includes(field));
         }
         return swap ? { authoredId: swap.authoredId, manifestId: swap.manifestId } : null;
     }

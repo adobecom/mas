@@ -103,3 +103,16 @@ test('a failed listing opens the promotions list', async () => {
     const { lookup } = lookupWith([null]);
     assert.deepEqual(await lookup.linkRequest({ promotionTitle: 'GlobalIntroPricingHPandGNAV' }), { view: 'promotions' });
 });
+
+test('a listing whose cursor repeats stops instead of looping', async () => {
+    const calls = stubFetch(Array.from({ length: 5 }, () => ({ items: [], cursor: 'same' })));
+    await fetchPromotionProjects();
+    assert.ok(calls.length <= 2);
+});
+
+test('a listing that never ends stops at the page cap', async () => {
+    let page = 0;
+    const calls = stubFetch(Array.from({ length: 500 }, () => ({ items: [], cursor: `c${page++}` })));
+    await fetchPromotionProjects();
+    assert.ok(calls.length <= 50);
+});

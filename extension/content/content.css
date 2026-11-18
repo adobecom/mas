@@ -632,6 +632,11 @@
     color: #4c1d95;
 }
 
+.mas-ext-src-baseline {
+    background: #fef9c3;
+    color: #713f12;
+}
+
 .mas-ext-src-mask {
     background: #e0f2fe;
     color: #0c4a6e;
@@ -717,6 +722,11 @@
     color: #d9ccf2;
 }
 
+.mas-ext-panel.spectrum--dark .mas-ext-src-baseline {
+    background: #3f3510;
+    color: #fde68a;
+}
+
 .mas-ext-panel.spectrum--dark .mas-ext-src-mask {
     background: #0c3350;
     color: #bde3f8;
@@ -750,6 +760,10 @@
 
 .mas-ext-src-outline-locale {
     outline: 2px solid #7c3aed;
+}
+
+.mas-ext-src-outline-baseline {
+    outline: 2px dotted #ca8a04;
 }
 
 .mas-ext-src-outline-mask {

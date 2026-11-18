@@ -502,3 +502,17 @@ test('a field whose content span has no box is hidden even when its parent has o
     const [group] = await sources.getPageGroups();
     assert.deepEqual(plain(group.entries), []);
 });
+
+test('an exhausted budget is named in the unknown reason', async () => {
+    const { sources } = loadSources(homepage());
+    sources.consumeBudget(50);
+    const result = await sources.getSourcesFor('field-2');
+    assert.match(result.entries.find((e) => e.field === 'shortDescription').reason, /fetch limit/);
+});
+
+test('resetting the budget lets fetches through again', () => {
+    const { sources } = loadSources(homepage());
+    sources.consumeBudget(50);
+    sources.resetBudget();
+    assert.equal(sources.consumeBudget(), true);
+});

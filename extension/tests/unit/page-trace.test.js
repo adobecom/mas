@@ -163,3 +163,18 @@ test('a swapped field whose stamped variation left it gets no IO step', () => {
         `MEP swaps description, ctas → 369630bd (${MANIFEST})`,
     ]);
 });
+
+test('swaps of one replacement from different manifests each keep their own manifest', () => {
+    const mepState = {
+        preview: true,
+        swaps: [
+            { authoredId: AUTHORED, field: 'description', replacementId: GROUPED, manifestId: 'desc.json' },
+            { authoredId: AUTHORED, field: 'shortDescription', replacementId: GROUPED, manifestId: 'short.json' },
+        ],
+    };
+    const steps = stepsFor(CARD, [], mepState);
+    assert.deepEqual(steps.slice(1), [
+        `MEP swaps description → ${GROUPED.slice(0, 8)} (desc.json)`,
+        `MEP swaps shortDescription → ${GROUPED.slice(0, 8)} (short.json)`,
+    ]);
+});

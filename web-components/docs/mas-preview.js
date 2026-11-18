@@ -90,6 +90,19 @@ export async function renderPreview(preview, container, status) {
         status.textContent = '';
 }
 
+export function setupCopyUrl(button, status) {
+    let timeout;
+    button.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(location.href);
+        clearTimeout(timeout);
+        status.textContent = 'URL copied.';
+        timeout = setTimeout(() => {
+            if (status.textContent === 'URL copied.')
+                status.textContent = '';
+        }, 3000);
+    });
+}
+
 export async function initPreview() {
     await Promise.all(
         ['sp-picker', 'sp-textfield', 'sp-button', 'sp-theme'].map((tag) =>
@@ -132,10 +145,7 @@ export async function initPreview() {
         }
         location.assign(url.href);
     });
-    document.getElementById('copy-url').addEventListener('click', async () => {
-        await navigator.clipboard.writeText(location.href);
-        status.textContent = 'URL copied.';
-    });
+    setupCopyUrl(document.getElementById('copy-url'), status);
 
     const theme = params.get('theme') ?? 'light';
     if (!['light', 'dark', 'darkest'].includes(theme)) {

@@ -1,8 +1,10 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import {
     createPreview,
     getPreviewSettings,
     renderPreview,
+    setupCopyUrl,
 } from '../docs/mas-preview.js';
 import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 
@@ -283,6 +285,58 @@ describe('preview loading', () => {
     });
 });
 
+describe('preview copy confirmation', () => {
+    let button;
+    let status;
+    let clock;
+    let writeText;
+
+    beforeEach(() => {
+        button = document.createElement('button');
+        status = document.createElement('p');
+        clock = sinon.useFakeTimers();
+        writeText = sinon.stub(navigator.clipboard, 'writeText').resolves();
+        setupCopyUrl(button, status);
+    });
+
+    afterEach(() => {
+        writeText.restore();
+        clock.restore();
+    });
+
+    it('confirms copying the current URL and clears the message after three seconds', async () => {
+        button.click();
+        await clock.tickAsync(0);
+
+        expect(writeText.calledOnceWithExactly(location.href)).to.be.true;
+        expect(status.textContent).to.equal('URL copied.');
+        await clock.tickAsync(2999);
+        expect(status.textContent).to.equal('URL copied.');
+        await clock.tickAsync(1);
+        expect(status.textContent).to.equal('');
+    });
+
+    it('restarts the confirmation duration when the URL is copied again', async () => {
+        button.click();
+        await clock.tickAsync(2000);
+        button.click();
+        await clock.tickAsync(1000);
+
+        expect(status.textContent).to.equal('URL copied.');
+        await clock.tickAsync(2000);
+        expect(status.textContent).to.equal('');
+    });
+
+    it('preserves an error displayed before the confirmation expires', async () => {
+        button.click();
+        await clock.tickAsync(0);
+        status.textContent = 'Cannot load fragment.';
+        await clock.tickAsync(3000);
+
+        expect(status.textContent).to.equal('Cannot load fragment.');
+    });
+});
+
 describe('preview validation field', () => {
     let fixture;
     let styles;
@@ -314,6 +368,22 @@ describe('preview validation field', () => {
 
     afterEach(() => {
         fixture?.remove();
+    });
+
+    it('reserves status space so copying and clearing do not move the preview', () => {
+        fixture = document.createElement('main');
+        const status = document.createElement('p');
+        status.id = 'status';
+        const preview = document.createElement('div');
+        preview.id = 'preview';
+        fixture.append(status, preview);
+        document.body.append(fixture);
+        const initialTop = preview.getBoundingClientRect().top;
+
+        status.textContent = 'URL copied.';
+        expect(preview.getBoundingClientRect().top).to.equal(initialTop);
+        status.textContent = '';
+        expect(preview.getBoundingClientRect().top).to.equal(initialTop);
     });
 
     it('keeps the warning inside the fragment field and vertically centered', async () => {

@@ -1,4 +1,8 @@
 export const CSS = `
+:root {
+    --fuchsia: #FDE9FF;
+}
+
     merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
         letter-spacing: normal;
         margin-bottom: 16px;

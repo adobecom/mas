@@ -7,6 +7,41 @@ import {
 } from '../constants.js';
 
 export const CSS = `
+merch-card[variant="plans-v2"] [slot='badge'] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+}
+
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] p {
+    font-size: var(--consonant-merch-card-body-xxl-font-size);
+    line-height: var(--consonant-merch-card-body-l-line-height);
+}
+
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+}
+
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual span,
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-m-font-size);
+    font-weight: 400;
+}
+
+merch-card[variant="plans-v2"][annualized] [slot="heading-m"] span.price.price-annual:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    position: relative;
+    top: calc(-1 * var(--consonant-merch-spacing-xxxs));
+}
+
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;

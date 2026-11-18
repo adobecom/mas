@@ -111,15 +111,8 @@ export const CSS = `
     --consonant-merch-card-heading-xxxs-color: #131313;
     --consonant-merch-card-body-xxs-color: #292929;
 
-    /* ccd colors */
-    --ccd-gray-200-light: #E6E6E6;
-    --ccd-gray-800-dark: #222;
-    --ccd-gray-700-dark: #464646;
-    --ccd-gray-600-light: #6D6D6D;
-
     /* ah colors */
     --ah-gray-500: #717171;
-    --fuchsia: #FDE9FF;
 
     /* plans colors */
     --spectrum-yellow-300-plans: #F5C700;
@@ -133,10 +126,7 @@ export const CSS = `
     --spectrum-green-900: #05834E;
     --spectrum-red-700: #EB1000;
 
-    /* special-offers colors */
-    --spectrum-yellow-300-special-offers: #EDCC00;
-    --spectrum-green-900-special-offers: #2D9D78;
-    --spectrum-gray-300-special-offers: #D1D1D1;
+    /* gradients */
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
     --gradient-firefly-spectrum: linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%);
 
@@ -278,11 +268,6 @@ merch-card a[is="checkout-link"].upgrade:not(:first-of-type) {
   display: none;
 }
 
-merch-card[variant="ccd-suggested"] *,
-merch-card[variant="ccd-slice"] * {
-  box-sizing: border-box;
-}
-
 merch-card * {
   padding: revert-layer;
 }
@@ -417,16 +402,6 @@ merch-card [slot='callout-content'] {
     flex-direction: column;
     margin: var(--consonant-merch-spacing-xxxs) 0px;
     gap: var(--consonant-merch-card-callout-spacing-xxs);
-}
-
-merch-card[variant='product'] [slot='badge'],
-merch-card[variant='segment'] [slot='badge'],
-merch-card[variant^='plans'] [slot='badge'],
-merch-card[variant='special-offers'] [slot='badge'] {
-    position: absolute;
-    top: 16px;
-    inset-inline-end: 0;
-    line-height: 16px;
 }
 
 merch-card [slot='callout-content'] > p {
@@ -1106,21 +1081,8 @@ merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suff
   font-weight: 400;
 }
 
-merch-card[annualized][variant="mini-compare-chart"] [slot="heading-m-price"] {
-  display: flex;
-  flex-direction: column;
-}
-
-merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
-merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"] .price-annual-suffix {
-  font-size: var(--consonant-merch-card-body-s-font-size);
-  line-height: var(--consonant-merch-card-body-s-font-size);
-  font-weight: 400;
-}
-
 merch-card[annualized] span[is='inline-price'],
-merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
-merch-card[annualized][variant="mini-compare-chart"] .card-heading [is="inline-price"][data-template="price"] {
+merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix {
   display: inline;
 }
 
@@ -1129,61 +1091,6 @@ merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price.price-strik
   color: var(--merch-color-red-strikethrough);
 }
 
-merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before,
-merch-card[annualized]:is([variant="simplified-pricing-express"], [variant="full-pricing-express"]) [slot='price'] [is="inline-price"] .price-annual-prefix:before,
-merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix:before,
-merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before,
-merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before,
-merch-card[variant^="plans"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
-    white-space: pre;
-    content: "\\A";
-}
-
-merch-card[variant^="plans"][annualized] [slot="heading-m"] p {
-  font-size: var(--consonant-merch-card-body-xxl-font-size);
-  line-height: var(--consonant-merch-card-body-l-line-height);
-}
-
-merch-card[variant^="plans"][annualized] [slot="heading-m"] p:has([data-template="strikethrough"]) {
-  font-size: var(--consonant-merch-card-body-xs-font-size);
-}
-
-merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
-merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
-merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
-    font-size: var(--consonant-merch-card-body-xs-font-size);
-    font-weight: 400;
-    font-family: var(--consonant-merch-card-pro-font-family-regular);
-    letter-spacing: 0;
-}
-
-merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
-merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price.price-annual span,
-merch-card[variant="simplified-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
-merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix,
-merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual,
-merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-suffix,
-merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
-merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual,
-merch-card[annualized]:is([variant="product"], [variant="segment"]) [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
-  font-size: var(--consonant-merch-card-body-xs-font-size);
-  font-weight: 400;
-}
-
-merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-prefix,
-merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual span,
-merch-card[variant="full-pricing-express"][annualized] [slot='price'] [is="inline-price"] .price-annual-suffix,
-merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
-merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
-merch-card[variant^="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix,
-merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
-merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual span,
-merch-card[variant="plans-v2"][annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
-  font-size: var(--consonant-merch-card-body-m-font-size);
-  font-weight: 400;
-}
-
-merch-card[variant^="plans"][annualized] [slot="heading-m"] span.price.price-annual:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal),
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-prefix,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual,
 merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suffix {
@@ -1191,10 +1098,5 @@ merch-card[annualized] [slot='heading-m'] [is="inline-price"] .price-annual-suff
   line-height: var(--consonant-merch-card-body-xs-line-height);
   position: relative;
   top: calc(-1 * var(--consonant-merch-spacing-xxxs));
-}
-
-merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child,
-merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
-  display: inline;
 }
 `;

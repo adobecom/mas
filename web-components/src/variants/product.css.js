@@ -1,6 +1,25 @@
 import { infoIconUrl } from '../info-icon.js';
 import { TABLET_UP, DESKTOP_UP, TABLET_DOWN } from '../constants.js';
 export const CSS = `
+merch-card[variant='product'] [slot='badge'] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+}
+
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
 :root {
   --consonant-merch-card-product-width: 300px;
 }

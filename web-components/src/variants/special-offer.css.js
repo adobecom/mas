@@ -5,7 +5,29 @@ import {
     MOBILE_LANDSCAPE,
 } from '../constants.js';
 export const CSS = `
+merch-card[variant='special-offers'] [slot='badge'] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+}
+
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual,
+merch-card[variant="special-offers"][annualized] [slot="heading-xs-price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
 :root {
+    --spectrum-yellow-300-special-offers: #EDCC00;
+    --spectrum-green-900-special-offers: #2D9D78;
+    --spectrum-gray-300-special-offers: #D1D1D1;
   --consonant-merch-card-special-offers-width: 302px;
 	--merch-card-collection-card-width: var(--consonant-merch-card-special-offers-width);
 }

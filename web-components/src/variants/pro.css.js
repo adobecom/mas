@@ -25,6 +25,20 @@ const TWO_TO_FOUR = ONE_TO_FOUR.slice(1);
 const THREE_FOUR = ONE_TO_FOUR.slice(2);
 
 export const CSS = `
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="pro"][annualized] [slot="heading-m"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    letter-spacing: 0;
+}
+
 :root {
     --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
     --consonant-merch-card-pro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;

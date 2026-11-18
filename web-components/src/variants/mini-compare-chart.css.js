@@ -6,6 +6,34 @@ import {
     LARGE_DESKTOP,
 } from '../constants.js';
 export const CSS = `
+merch-card[variant="mini-compare-chart"][annualized] [slot="heading-m-price"] {
+    display: flex;
+    flex-direction: column;
+}
+
+merch-card[variant="mini-compare-chart"][annualized] .card-heading [is="inline-price"] .price-annual-prefix + .price-annual,
+merch-card[variant="mini-compare-chart"][annualized] .card-heading [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-s-font-size);
+    line-height: var(--consonant-merch-card-body-s-font-size);
+    font-weight: 400;
+}
+
+merch-card[variant="mini-compare-chart"][annualized] .card-heading [is="inline-price"][data-template="price"] {
+    display: inline;
+}
+
+merch-card[variant="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant="mini-compare-chart"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-m-font-size);
+    font-weight: 400;
+}
+
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;

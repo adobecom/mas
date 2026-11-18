@@ -1,4 +1,15 @@
 export const CSS = `
+:root {
+    --ccd-gray-200-light: #E6E6E6;
+    --ccd-gray-800-dark: #222;
+    --ccd-gray-700-dark: #464646;
+    --ccd-gray-600-light: #6D6D6D;
+}
+
+merch-card[variant="ccd-suggested"] * {
+    box-sizing: border-box;
+}
+
 
   merch-card[variant="ccd-suggested"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-heading-xxs-font-size);

@@ -1,6 +1,22 @@
 import { DESKTOP_UP } from '../constants.js';
 
 export const CSS = `
+merch-card[variant="full-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="full-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="full-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual span,
+merch-card[variant="full-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-m-font-size);
+    font-weight: 400;
+}
+
+merch-card[variant="full-pricing-express"][annualized] div[slot="price"] > p:first-child {
+    display: inline;
+}
+
 :root {
     --merch-card-full-pricing-express-width: 378px;
     --merch-card-full-pricing-express-mobile-width: 365px;

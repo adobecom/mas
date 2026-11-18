@@ -6,6 +6,18 @@ import {
     LARGE_DESKTOP,
 } from '../constants.js';
 export const CSS = `
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-m-font-size);
+    font-weight: 400;
+}
+
   :root {
     --list-checked-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' width='20' height='20'%3E%3Cpath fill='%23222222' d='M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z'%3E%3C/path%3E%3C/svg%3E");
     --merch-card-collection-card-width: var(--consonant-merch-card-mini-compare-chart-mweb-width);

@@ -1,4 +1,8 @@
 export const CSS = `
+merch-card[variant="ccd-slice"] * {
+    box-sizing: border-box;
+}
+
 
 merch-card[variant="ccd-slice"] [slot='image'] img {
   overflow: hidden;

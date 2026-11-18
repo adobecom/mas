@@ -6,6 +6,22 @@ import {
 } from '../constants.js';
 
 export const CSS = `
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child {
+    display: inline;
+}
+
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }

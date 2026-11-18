@@ -185,6 +185,70 @@ describe('bulk-publish/report.js', () => {
         });
     });
 
+    it('fails a row whose AEM status is neither live nor not-live', async () => {
+        const path = `${ROOT}/card-a`;
+        const report = await run([path], { fragments: { [path]: found(path, 'ARCHIVED') } });
+        expect(report.rows[0].status).to.equal(REPORT_STATUS.FAILED);
+        expect(report.rows[0].reason).to.equal('unknown-status');
+    });
+
+    it('treats an unparseable lastResult as no reported counts', async () => {
+        const path = `${ROOT}/card-a`;
+        const project = projectFragment([path]).fragment;
+        project.fields.find((field) => field.name === 'lastResult').values = ['{not json'];
+        const report = await run([path], { fragments: { [path]: found(path, 'PUBLISHED') }, project });
+        expect(report.summary.reportedPublished).to.equal(null);
+        expect(report.summary.reportedTotal).to.equal(null);
+    });
+
+    describe('default AEM check', () => {
+        afterEach(() => sinon.restore());
+
+        it('reads each fragment from the target author endpoint when no check is injected', async () => {
+            const path = `${ROOT}/card-a`;
+            const fetch = sinon.stub(global, 'fetch').resolves({
+                ok: true,
+                status: 200,
+                json: async () => ({ items: [{ id: 'id-a', path, status: 'PUBLISHED' }] }),
+            });
+            const report = await generateReport({
+                projectId: 'p1',
+                project: projectFragment([path]).fragment,
+                odinEndpoint: 'https://author-p1-e1.adobeaemcloud.com',
+                authToken: 'test',
+                deps: { processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)) },
+            });
+            expect(fetch.firstCall.args[0]).to.include('https://author-p1-e1.adobeaemcloud.com/adobe/sites/cf/fragments?path=');
+            expect(report.rows[0].status).to.equal(REPORT_STATUS.LIVE);
+        });
+
+        it('turns a non-404 AEM error into a check-failed row', async () => {
+            const path = `${ROOT}/card-a`;
+            sinon.stub(global, 'fetch').resolves({ ok: false, status: 503 });
+            const report = await generateReport({
+                projectId: 'p1',
+                project: projectFragment([path]).fragment,
+                odinEndpoint: 'https://author-p1-e1.adobeaemcloud.com',
+                authToken: 'test',
+                deps: { processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)) },
+            });
+            expect(report.rows[0].reason).to.equal('check-failed');
+        });
+
+        it('turns a 404 into a not-found row', async () => {
+            const path = `${ROOT}/card-a`;
+            sinon.stub(global, 'fetch').resolves({ ok: false, status: 404 });
+            const report = await generateReport({
+                projectId: 'p1',
+                project: projectFragment([path]).fragment,
+                odinEndpoint: 'https://author-p1-e1.adobeaemcloud.com',
+                authToken: 'test',
+                deps: { processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)) },
+            });
+            expect(report.rows[0].reason).to.equal('not-found');
+        });
+    });
+
     it('rejects a project larger than the report limit with a 413 before checking AEM', async () => {
         const paths = Array.from({ length: MAX_REPORT_PATHS + 1 }, (value, i) => `${ROOT}/card-${i}`);
         const check = sinon.stub();

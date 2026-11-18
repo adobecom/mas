@@ -1,4 +1,8 @@
 export const CSS = `
+:root {
+    --fuchsia: #FDE9FF;
+}
+
     merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
         letter-spacing: normal;
         margin-bottom: 16px;
@@ -140,5 +144,108 @@ export const CSS = `
     .spectrum--dark merch-card[variant="ah-try-buy-widget"]:hover,
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
       --consonant-merch-card-border-color:rgb(73, 73, 73);
+    }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='ah-try-buy-widget']) {
+        --merch-card-ah-try-buy-widget-min-width: 156px;
+        --merch-card-ah-try-buy-widget-content-min-width: 132px;
+        --merch-card-ah-try-buy-widget-header-min-height: 36px;
+        --merch-card-ah-try-buy-widget-gray-background: rgba(248, 248, 248);
+        --merch-card-ah-try-buy-widget-text-color: rgba(19, 19, 19);
+        --merch-card-ah-try-buy-widget-price-line-height: 17px;
+        --merch-card-ah-try-buy-widget-outline: transparent;
+        --consonant-merch-card-border-width: 1px;
+        height: 100%;
+        min-width: var(--merch-card-ah-try-buy-widget-min-width);
+        background-color: var(
+            --merch-card-custom-background-color,
+            var(--consonant-merch-card-background-color)
+        );
+        color: var(--consonant-merch-card-heading-xxxs-color);
+        border-radius: 10px;
+        border: 1px solid
+            var(--consonant-merch-card-border-color, transparent);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 11px !important;
+        gap: 16px;
+        justify-content: space-between;
+        box-sizing: border-box !important;
+    }
+
+    :host([variant='ah-try-buy-widget'][gradient-border='true']) {
+        border: none;
+        padding: 15px !important;
+        background-origin: padding-box, border-box;
+        background-clip: padding-box, border-box;
+        background-image: linear-gradient(
+                to bottom,
+                var(
+                    --merch-card-custom-background-color,
+                    var(--consonant-merch-card-background-color)
+                ),
+                var(
+                    --merch-card-custom-background-color,
+                    var(--consonant-merch-card-background-color)
+                )
+            ),
+            linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%);
+        border: 1px solid transparent;
+    }
+
+    :host([variant='ah-try-buy-widget'][size='single']) {
+        flex-direction: row;
+    }
+
+    :host([variant='ah-try-buy-widget'][size='single'])
+        ::slotted(div[slot='cta']) {
+        display: flex;
+        flex-grow: 0;
+    }
+
+    :host([variant='ah-try-buy-widget']) .content {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        min-width: var(--merch-card-ah-try-buy-widget-content-min-width);
+        flex-basis: var(--merch-card-ah-try-buy-widget-content-min-width);
+        flex-grow: 1;
+    }
+
+    :host([variant='ah-try-buy-widget']) .header {
+        display: flex;
+        min-height: var(--merch-card-ah-try-buy-widget-header-min-height);
+        flex-direction: row;
+        align-items: center;
+        gap: var(--consonant-merch-spacing-xxs);
+        margin-bottom: 4px;
+    }
+
+    :host([variant='ah-try-buy-widget']) .price {
+        display: flex;
+        flex-grow: 1;
+    }
+
+    :host([variant='ah-try-buy-widget']) ::slotted([slot='price']) {
+        margin-left: var(--spacing-xs);
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+        font-size: var(--consonant-merch-card-detail-s-font-size);
+        font-style: italic;
+        line-height: var(--merch-card-ah-try-buy-widget-price-line-height);
+        color: var(--consonant-merch-card-heading-xxxs-color);
+    }
+
+    :host([variant='ah-try-buy-widget']) .footer {
+        display: flex;
+        width: fit-content;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex-direction: row;
+        align-self: flex-end;
     }
 `;

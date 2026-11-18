@@ -1,5 +1,5 @@
-import { LitElement } from 'lit';
-import { sizeStyles, styles } from './merch-card.css.js';
+import { LitElement, unsafeCSS } from 'lit';
+import { styles } from './merch-card.css.js';
 import './merch-icon.js';
 import './merch-gradient.js';
 import './merch-addon.js';
@@ -10,7 +10,7 @@ import {
     getCollectionOptions,
 } from './variants/variants.js';
 
-import './global.css.js';
+import { CSS as GLOBAL_CSS } from './global.css.js';
 import './merch-badge.js';
 import './merch-mnemonic-list.js';
 import './merch-whats-included.js';
@@ -46,6 +46,10 @@ import {
     mergePriceLiterals,
     registerContextOptionsProviders,
 } from './commerce.js';
+
+const globalStyles = document.createElement('style');
+globalStyles.innerHTML = GLOBAL_CSS;
+document.head.appendChild(globalStyles);
 
 const MERCH_CARD = 'merch-card';
 
@@ -231,7 +235,7 @@ export class MerchCard extends LitElement {
         priceLiterals: { type: Object },
     };
 
-    static styles = [styles, ...sizeStyles()];
+    static styles = unsafeCSS(styles);
 
     static registerVariant = registerVariant;
 

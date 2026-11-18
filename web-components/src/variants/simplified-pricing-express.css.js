@@ -3,9 +3,25 @@ import {
     TABLET_UP,
     TABLET_DOWN,
     DESKTOP_UP,
-} from '../media.js';
+} from '../constants.js';
 
 export const CSS = `
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price.price-annual span,
+merch-card[variant="simplified-pricing-express"][annualized] [slot="price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
+merch-card[variant="simplified-pricing-express"][annualized] div[slot="price"] > p:first-child {
+    display: inline;
+}
+
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -448,4 +464,416 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
       font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
   }
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='simplified-pricing-express']) {
+        --merch-card-simplified-pricing-express-width: 365px;
+        --merch-card-simplified-pricing-express-padding: 24px;
+        --merch-card-simplified-pricing-express-padding-mobile: 16px;
+        --merch-card-simplified-pricing-express-price-font-size: 22px;
+        --merch-card-simplified-pricing-express-price-font-weight: 700;
+        --merch-card-simplified-pricing-express-price-line-height: 28.6px;
+        --merch-card-simplified-pricing-express-price-currency-font-size: 22px;
+        --merch-card-simplified-pricing-express-price-currency-font-weight: 700;
+        --merch-card-simplified-pricing-express-price-currency-line-height: 28.6px;
+        --merch-card-simplified-pricing-express-price-currency-symbol-font-size: 22px;
+        --merch-card-simplified-pricing-express-price-currency-symbol-font-weight: 700;
+        --merch-card-simplified-pricing-express-price-currency-symbol-line-height: 28.6px;
+        --merch-card-simplified-pricing-express-price-recurrence-font-size: 12px;
+        --merch-card-simplified-pricing-express-price-recurrence-font-weight: 700;
+        --merch-card-simplified-pricing-express-price-recurrence-line-height: 15.6px;
+        --merch-card-simplified-pricing-express-body-xs-font-size: 14px;
+        --merch-card-simplified-pricing-express-body-xs-line-height: 18.2px;
+        --merch-card-simplified-pricing-express-price-p-font-size: 12px;
+        --merch-card-simplified-pricing-express-price-p-font-weight: 400;
+        --merch-card-simplified-pricing-express-price-p-line-height: 15.6px;
+        --merch-card-simplified-pricing-express-cta-font-size: 18px;
+        --merch-card-simplified-pricing-express-cta-font-weight: 700;
+        --merch-card-simplified-pricing-express-cta-line-height: 23.4px;
+
+        /* Gradient definitions */
+        --gradient-purple-blue: linear-gradient(
+            96deg,
+            #b539c8 0%,
+            #7155fa 66%,
+            #3b63fb 100%
+        );
+        --gradient-firefly-spectrum: linear-gradient(
+            96deg,
+            #d73220 0%,
+            #d92361 33%,
+            #7155fa 100%
+        );
+        width: var(--merch-card-simplified-pricing-express-width);
+        max-width: var(--merch-card-simplified-pricing-express-width);
+        background: transparent;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+        box-sizing: border-box;
+        position: relative;
+    }
+
+    :host([variant='simplified-pricing-express']) .badge-wrapper {
+        padding: 4px 24px;
+        border-radius: 8px 8px 0 0;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 15.6px;
+        color: var(--spectrum-gray-800);
+        position: relative;
+        min-height: 23px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :host([variant='simplified-pricing-express']) .card-content {
+        border-radius: 8px;
+        padding: var(--merch-card-simplified-pricing-express-padding);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--consonant-merch-spacing-xxs);
+        position: relative;
+    }
+
+    :host([variant='simplified-pricing-express']) .card-content > * {
+        position: relative;
+    }
+
+    :host(
+            [variant='simplified-pricing-express']:not(
+                    [gradient-border='true']
+                )
+        )
+        .card-content {
+        background: var(--spectrum-gray-50);
+        border: 1px solid
+            var(
+                --consonant-merch-card-border-color,
+                var(--spectrum-gray-100)
+            );
+    }
+
+    :host(
+            [variant='simplified-pricing-express']:has(
+                    [slot='badge']:not(:empty)
+                )
+        )
+        .card-content {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    :host(
+            [variant='simplified-pricing-express']:not(
+                    [gradient-border='true']
+                ):has([slot='badge']:not(:empty))
+        )
+        .card-content {
+        border-top: 1px solid
+            var(
+                --consonant-merch-card-border-color,
+                var(--spectrum-gray-100)
+            );
+    }
+
+    :host(
+            [variant='simplified-pricing-express']:has(
+                    [slot='badge']:not(:empty)
+                )
+        )
+        .badge-wrapper {
+        margin-bottom: -2px;
+    }
+
+    :host([variant='simplified-pricing-express'][gradient-border='true'])
+        .badge-wrapper {
+        border: none;
+        margin-bottom: -6px;
+        padding-bottom: 10px;
+    }
+
+    :host([variant='simplified-pricing-express'][gradient-border='true'])
+        .badge-wrapper
+        ::slotted(*) {
+        color: white !important;
+    }
+
+    :host([variant='simplified-pricing-express'][gradient-border='true'])
+        .card-content {
+        border: 1px solid transparent;
+        padding: calc(
+            var(--merch-card-simplified-pricing-express-padding) + 1px
+        );
+        border-radius: 8px;
+        background-origin: border-box;
+        background-clip: padding-box, border-box;
+    }
+
+    :host(
+            [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
+        )
+        .badge-wrapper {
+        background: var(--gradient-purple-blue);
+    }
+    :host(
+            [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
+        )
+        .card-content {
+        background-image: linear-gradient(
+                var(--spectrum-gray-50),
+                var(--spectrum-gray-50)
+            ),
+            var(--gradient-purple-blue);
+    }
+
+    :host(
+            [variant='simplified-pricing-express'][border-color='gradient-firefly-spectrum']
+        )
+        .badge-wrapper {
+        background: var(--gradient-firefly-spectrum);
+    }
+    :host(
+            [variant='simplified-pricing-express'][border-color='gradient-firefly-spectrum']
+        )
+        .card-content {
+        background-image: linear-gradient(
+                var(--spectrum-gray-50),
+                var(--spectrum-gray-50)
+            ),
+            var(--gradient-firefly-spectrum);
+    }
+
+    :host(
+            [variant='simplified-pricing-express'][gradient-border='true']:has(
+                    [slot='badge']:not(:empty)
+                )
+        )
+        .card-content {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    :host([variant='simplified-pricing-express']) .header {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    :host([variant='simplified-pricing-express']) [slot='heading-xs'] {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 23.4px;
+        color: var(--spectrum-gray-800);
+    }
+
+    :host([variant='simplified-pricing-express']) .description {
+        gap: 16px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :host([variant='simplified-pricing-express']) .price-container {
+        display: flex;
+        flex-direction: column;
+        margin-top: auto;
+    }
+
+    :host([variant='simplified-pricing-express']) [slot='callout-content'] {
+        font-size: 12px;
+        font-weight: 400;
+        font-style: normal;
+        line-height: 18px;
+        color: var(--spectrum-gray-800);
+        background: transparent;
+        margin-top: 2px;
+    }
+
+    /* Desktop only - Fixed heights for alignment */
+    @media (min-width: 1200px) {
+        :host([variant='simplified-pricing-express']) .card-content {
+            height: 100%;
+        }
+
+        :host([variant='simplified-pricing-express']) .header {
+            min-height: var(
+                --consonant-merch-card-simplified-pricing-express-header-height
+            );
+        }
+
+        :host([variant='simplified-pricing-express']) .description {
+            flex: 1;
+        }
+
+        :host([variant='simplified-pricing-express']) .price-container {
+            min-height: var(
+                --consonant-merch-card-simplified-pricing-express-price-container-height
+            );
+        }
+
+        :host([variant='simplified-pricing-express']) .cta {
+            flex-shrink: 0;
+            min-height: var(
+                --consonant-merch-card-simplified-pricing-express-cta-height
+            );
+        }
+    }
+
+    :host([variant='simplified-pricing-express']) .cta,
+    :host([variant='simplified-pricing-express']) .cta ::slotted(*) {
+        width: 100%;
+        display: block;
+    }
+
+    /* Mobile accordion styles */
+    :host([variant='simplified-pricing-express']) .chevron-button {
+        display: none;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.5s ease;
+    }
+
+    :host([variant='simplified-pricing-express']) .chevron-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--spectrum-gray-800);
+        transition: transform 0.5s ease;
+    }
+
+    /* Chevron rotation based on parent card's data-expanded attribute */
+    :host-context(merch-card[data-expanded='false']) .chevron-icon {
+        transform: rotate(0deg);
+    }
+    :host-context(merch-card[data-expanded='true']) .chevron-icon {
+        transform: rotate(180deg);
+    }
+
+    /* Tablet styles - full width, no accordion */
+    @media (min-width: 768px) and (max-width: 1199px) {
+        :host([variant='simplified-pricing-express']) {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        :host(
+                [variant='simplified-pricing-express'][gradient-border='true']
+            )
+            .card-content,
+        :host(
+                [variant='simplified-pricing-express']:not(
+                        [gradient-border='true']
+                    )
+            )
+            .card-content {
+            padding: var(
+                --merch-card-simplified-pricing-express-padding-mobile
+            );
+        }
+
+        /* Hide badge-wrapper on tablet except for gradient borders */
+        :host(
+                [variant='simplified-pricing-express']:not(
+                        [gradient-border='true']
+                    )
+            )
+            .badge-wrapper {
+            display: none;
+        }
+    }
+
+    /* Mobile only styles - accordion behavior */
+    @media (max-width: 767px) {
+        :host([variant='simplified-pricing-express']) {
+            width: 100%;
+            max-width: 100%;
+            min-height: auto;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+
+        :host([variant='simplified-pricing-express']) .header {
+            position: relative;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        :host([variant='simplified-pricing-express']) .chevron-button {
+            display: block;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        :host(
+                [variant='simplified-pricing-express'][gradient-border='true']
+            )
+            .card-content,
+        :host(
+                [variant='simplified-pricing-express']:not(
+                        [gradient-border='true']
+                    )
+            )
+            .card-content {
+            padding: calc(
+                var(
+                        --merch-card-simplified-pricing-express-padding-mobile
+                    ) +
+                    2px
+            );
+            transition:
+                max-height 0.5s ease-out,
+                padding 0.5s ease-out;
+        }
+
+        /* Hide badge-wrapper on mobile except for gradient borders */
+        :host(
+                [variant='simplified-pricing-express']:not(
+                        [gradient-border='true']
+                    )
+            )
+            .badge-wrapper {
+            display: none;
+        }
+
+        /* Non-gradient border collapsed state - limit card-content height */
+        :host(
+                [variant='simplified-pricing-express']:not(
+                        [gradient-border='true']
+                    )[data-expanded='false']
+            )
+            .card-content {
+            max-height: 50px;
+            overflow: hidden;
+            transition:
+                max-height 0.5s ease-out,
+                padding 0.5s ease-out;
+        }
+
+        /* Gradient border collapsed state - limit badge-wrapper height */
+        :host(
+                [variant='simplified-pricing-express'][gradient-border='true'][data-expanded='false']
+            )
+            .card-content {
+            max-height: 50px;
+            overflow: hidden;
+            padding: 16px 16px 35px 16px;
+            transition:
+                max-height 0.5s ease-out,
+                padding 0.5s ease-out;
+        }
+
+        /* Expanded state - explicit max-height for animation (CSS can't animate to 'auto') */
+        :host([variant='simplified-pricing-express'][data-expanded='true'])
+            .card-content {
+            max-height: 1000px;
+        }
+    }
 `;

@@ -1,7 +1,7 @@
 import { VariantLayout } from './variant-layout.js';
-import { css, html } from 'lit';
+import { html } from 'lit';
 import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
-import { CSS } from './mini.css.js';
+import { CSS, SHADOW_CSS } from './mini.css.js';
 
 export const MINI_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'p', slot: 'title' },
@@ -74,12 +74,5 @@ export class Mini extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='mini']) {
-            min-width: 209px;
-            min-height: 103px;
-            background-color: var(--spectrum-background-base-color);
-            border: 1px solid var(--consonant-merch-card-border-color, #dadada);
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

@@ -4,8 +4,20 @@ import {
     TABLET_UP,
     DESKTOP_UP,
     LARGE_DESKTOP,
-} from '../media.js';
+} from '../constants.js';
 export const CSS = `
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual,
+merch-card[variant="mini-compare-chart-mweb"][annualized] [slot="heading-m-price"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-m-font-size);
+    font-weight: 400;
+}
+
   :root {
     --list-checked-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' width='20' height='20'%3E%3Cpath fill='%23222222' d='M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z'%3E%3C/path%3E%3C/svg%3E");
     --merch-card-collection-card-width: var(--consonant-merch-card-mini-compare-chart-mweb-width);
@@ -747,4 +759,340 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='mini-compare-chart-mweb'])
+        slot[name='callout-content'][hidden] {
+        display: none;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        .body-main
+        > .price-wrapping {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :host([variant='mini-compare-chart-mweb']) .body {
+        padding: 0;
+    }
+
+    :host([variant='mini-compare-chart-mweb']) .body-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        gap: var(--consonant-merch-spacing-xxs);
+        padding: var(--consonant-merch-spacing-xs);
+        padding-bottom: 0;
+    }
+
+    :host([variant='mini-compare-chart-mweb']) footer {
+        margin: var(--consonant-merch-spacing-xs);
+        margin-top: 0;
+        width: auto;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        .price-wrapping
+        > slot[name='subtitle'] {
+        display: block;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        .price-wrapping
+        > slot[name='heading-m-price'] {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: flex-end;
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+        );
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        .mini-compare-chart-mweb-badge {
+        padding: 2px 10px 3px 10px;
+        font-size: var(--consonant-merch-card-body-xs-font-size);
+        line-height: var(--consonant-merch-card-body-xs-line-height);
+        border-radius: 7.11px 0 0 7.11px;
+        font-weight: 700;
+    }
+
+    :host([variant='mini-compare-chart-mweb']) footer {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-footer-height
+        );
+        padding: 0;
+        align-items: start;
+        flex-flow: column nowrap;
+    }
+
+    /* mini-compare card  */
+    :host([variant='mini-compare-chart-mweb']) .top-section {
+        padding-top: var(--consonant-merch-spacing-s);
+        padding-inline-start: var(--consonant-merch-spacing-s);
+        height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-top-section-height
+        );
+    }
+
+    :host([variant='mini-compare-chart-mweb'].bullet-list) .top-section {
+        padding-top: var(--consonant-merch-spacing-xs);
+        padding-inline-start: var(--consonant-merch-spacing-xs);
+    }
+
+    @media screen and ${TABLET_DOWN} {
+        [class*'-merch-cards']
+            :host([variant='mini-compare-chart-mweb'])
+            footer {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+    }
+
+    @media screen and ${DESKTOP_UP} {
+        :host([variant='mini-compare-chart-mweb']) footer {
+            padding: 0;
+        }
+    }
+
+    @media screen and ${TABLET_UP} {
+        :host([variant='mini-compare-chart-mweb']) .legal-disclaimer {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-callout-content-height,
+                0px
+            );
+        }
+
+        :host([variant='mini-compare-chart-mweb'])
+            .price-wrapping
+            > slot[name='subtitle'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-subtitle-height,
+                0px
+            );
+        }
+    }
+
+    :host([variant='mini-compare-chart-mweb']) slot[name='footer-rows'] {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+    }
+    /* mini-compare card heights for the slots: heading-m, body-m, heading-m-price, price-commitment, offers, promo-text, footer */
+    /* Use ::slotted() to target light DOM elements — shadow slots have display:contents so min-height is ignored on them */
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='heading-m']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-heading-m-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb']) ::slotted([slot='body-m']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-body-m-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='heading-m-price']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='body-xxs']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-body-xxs-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='price-commitment']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-price-commitment-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb']) ::slotted([slot='offers']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-offers-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='promo-text']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='quantity-select']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-quantity-select-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='heading-xs']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-heading-xs-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='subtitle']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-subtitle-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb']) ::slotted([slot='body-xs']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-body-xs-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb']) ::slotted([slot='addon']) {
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-addon-height
+        );
+    }
+    /* Shadow DOM slot min-heights — ensures empty slots reserve space for cross-card alignment */
+    :host([variant='mini-compare-chart-mweb'])
+        .body-main
+        > slot[name='heading-xs'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-heading-xs-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        .body-main
+        > slot[name='promo-text'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        .body-main
+        > slot[name='body-m'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-body-m-height
+        );
+    }
+    :host([variant='mini-compare-chart-mweb'])
+        .footer-rows-container
+        > slot[name='body-xs'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-mini-compare-chart-mweb-body-xs-height
+        );
+    }
+
+    :host([variant='mini-compare-chart-mweb']) slot[name='footer-rows'] {
+        justify-content: flex-start;
+    }
+
+    /* Border color styles */
+    :host(
+        [variant='mini-compare-chart-mweb'][border-color='spectrum-yellow-300-plans']
+    ) {
+        --consonant-merch-card-border-color: #ffd947;
+    }
+
+    :host(
+        [variant='mini-compare-chart-mweb'][border-color='spectrum-gray-300-plans']
+    ) {
+        --consonant-merch-card-border-color: #dadada;
+    }
+
+    :host(
+        [variant='mini-compare-chart-mweb'][border-color='spectrum-green-900-plans']
+    ) {
+        --consonant-merch-card-border-color: #05834e;
+    }
+
+    :host(
+        [variant='mini-compare-chart-mweb'][border-color='spectrum-red-700-plans']
+    ) {
+        --consonant-merch-card-border-color: #eb1000;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+    }
+
+    :host(
+        [variant='mini-compare-chart-mweb'][border-color='gradient-purple-blue']
+    ) {
+        --consonant-merch-card-border-color: linear-gradient(
+            135deg,
+            #9256dc,
+            #1473e6
+        );
+    }
+
+    /* Badge color styles */
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-red-700-plans) {
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-yellow-300-plans),
+    :host([variant='mini-compare-chart-mweb'])
+        #badge.spectrum-yellow-300-plans {
+        background-color: #ffd947;
+        color: #2c2c2c;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-gray-300-plans),
+    :host([variant='mini-compare-chart-mweb'])
+        #badge.spectrum-gray-300-plans {
+        background-color: #dadada;
+        color: #2c2c2c;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-gray-700-plans),
+    :host([variant='mini-compare-chart-mweb'])
+        #badge.spectrum-gray-700-plans {
+        background-color: #4b4b4b;
+        color: #ffffff;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-green-900-plans),
+    :host([variant='mini-compare-chart-mweb'])
+        #badge.spectrum-green-900-plans {
+        background-color: #05834e;
+        color: #ffffff;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted([slot='badge'].spectrum-red-700-plans),
+    :host([variant='mini-compare-chart-mweb'])
+        #badge.spectrum-red-700-plans {
+        background-color: #eb1000;
+        color: #ffffff;
+    }
+
+    :host([variant='mini-compare-chart-mweb'])
+        ::slotted(h3[slot='heading-xs']) {
+        max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+    }
+
+    :host([variant='mini-compare-chart-mweb']) .footer-rows-container {
+        background-color: #f8f8f8;
+        border-radius: 0 0 var(--consonant-merch-spacing-xxs)
+            var(--consonant-merch-spacing-xxs);
+    }
+
+    :host([variant='mini-compare-chart-mweb']) .action-area {
+        display: flex;
+        justify-content: start;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: var(--consonant-merch-spacing-xxs);
+        margin: unset;
+    }
 `;

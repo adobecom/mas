@@ -1,6 +1,6 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS, headlessRowStyle } from './headless.css.js';
+import { CSS, HEADLESS_SHADOW_CSS } from './headless.css.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
 export const HEADLESS_AEM_FRAGMENT_MAPPING = {
@@ -116,5 +116,5 @@ export class Headless extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('headless');
+    static variantStyle = HEADLESS_SHADOW_CSS;
 }

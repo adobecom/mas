@@ -1,6 +1,4 @@
-import { css } from 'lit';
-
-export const styles = css`
+export const styles = `
     :host {
         --merch-radio: rgba(82, 88, 228);
         --merch-radio-hover: rgba(64, 70, 202);

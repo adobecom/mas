@@ -1,6 +1,6 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS } from './media.css.js';
+import { CSS, SHADOW_CSS } from './media.css.js';
 
 export const MEDIA_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -47,34 +47,5 @@ export class Media extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='media']) .media-row {
-            display: flex;
-            gap: 24px;
-        }
-
-        :host([variant='media']) .text {
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        @media screen and (max-width: 600px) {
-            :host([variant='media']) .media-row {
-                flex-direction: column-reverse;
-            }
-        }
-
-        @media screen and (min-width: 600px) {
-            :host([variant='media']) .media-row {
-                gap: 32px;
-            }
-        }
-
-        @media screen and (min-width: 1200px) {
-            :host([variant='media']) .media-row {
-                gap: 40px;
-            }
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

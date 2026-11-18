@@ -1,19 +1,7 @@
 import { PLACEHOLDER_PLAN_TYPE_TEXT } from './constants.js';
+import { CSS } from './plan-type-text.css.js';
 
 const SENTENCE_TERMINATORS = ['.', '!', '?'];
-
-// Injected in both hosts (merch-card and mas-field import this module): keep the
-// marker inline within its copy, and keep it visible over the consumer's
-// `span[is='inline-price'] { visibility: hidden }` guard. Higher specificity
-// wins regardless of stylesheet order.
-const PLAN_TYPE_TEXT_STYLES = `
-merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text'] {
-    display: inline;
-}
-span[is='inline-price'][data-placeholder='plan-type-text'] {
-    visibility: visible;
-}
-`;
 
 if (
     typeof document !== 'undefined' &&
@@ -21,7 +9,7 @@ if (
 ) {
     const style = document.createElement('style');
     style.setAttribute('data-plan-type-text', '');
-    style.textContent = PLAN_TYPE_TEXT_STYLES;
+    style.textContent = CSS;
     document.head.append(style);
 }
 

@@ -1,6 +1,25 @@
 import { infoIconUrl } from '../info-icon.js';
-import { TABLET_UP, DESKTOP_UP, TABLET_DOWN } from '../media.js';
+import { TABLET_UP, DESKTOP_UP, TABLET_DOWN } from '../constants.js';
 export const CSS = `
+merch-card[variant='product'] [slot='badge'] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+}
+
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[variant="product"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -259,4 +278,58 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
     }
 }
 
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='product']) {
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #dadada) border-box;
+        border: 1px solid transparent;
+    }
+
+    :host([variant='product']) > slot:not([name='icons']) {
+        display: block;
+    }
+    :host([variant='product']) slot[name='body-xs'] {
+        min-height: var(--consonant-merch-card-product-body-xs-height);
+        display: block;
+    }
+    :host([variant='product']) slot[name='heading-xs'] {
+        min-height: var(--consonant-merch-card-product-heading-xs-height);
+        display: block;
+    }
+    :host([variant='product']) slot[name='body-xxs'] {
+        min-height: var(--consonant-merch-card-product-body-xxs-height);
+        display: block;
+    }
+    :host([variant='product']) slot[name='promo-text'] {
+        min-height: var(--consonant-merch-card-product-promo-text-height);
+        display: block;
+    }
+    :host([variant='product']) slot[name='callout-content'] {
+        min-height: var(
+            --consonant-merch-card-product-callout-content-height
+        );
+        display: block;
+    }
+    :host([variant='product']) slot[name='short-description'] {
+        display: block;
+    }
+    :host([variant='product']) slot[name='addon'] {
+        min-height: var(--consonant-merch-card-product-addon-height);
+    }
+
+    :host([variant='product']:not([id])) hr {
+        display: none;
+    }
+
+    :host([variant='product']) ::slotted(h3[slot='heading-xs']) {
+        max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+    }
+
+    :host([variant='product']) .secure-transaction-label {
+        color: rgb(80, 80, 80);
+        line-height: var(--consonant-merch-card-detail-xs-line-height);
+    }
 `;

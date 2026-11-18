@@ -1,6 +1,4 @@
-import { css } from 'lit';
-
-export const styles = css`
+export const styles = `
     :host {
         --comparison-border-radius: 8px;
         --comparison-desktop-max-width: 1200px;

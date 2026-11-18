@@ -1,5 +1,24 @@
-import { TABLET_UP, DESKTOP_UP, MOBILE_LANDSCAPE } from '../media.js';
+import { TABLET_UP, DESKTOP_UP, MOBILE_LANDSCAPE } from '../constants.js';
 export const CSS = `
+merch-card[variant='segment'] [slot='badge'] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+}
+
+merch-card[variant="segment"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix:before {
+    white-space: pre;
+    content: "\\A";
+}
+
+merch-card[variant="segment"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-prefix,
+merch-card[variant="segment"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual,
+merch-card[variant="segment"][annualized] [slot="heading-xs"] [is="inline-price"] .price-annual-suffix {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-weight: 400;
+}
+
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -139,4 +158,17 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='segment']) {
+        min-height: 214px;
+        background:
+            linear-gradient(white, white) padding-box,
+            var(--consonant-merch-card-border-color, #dadada) border-box;
+        border: 1px solid transparent;
+    }
+    :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
+        max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+    }
 `;

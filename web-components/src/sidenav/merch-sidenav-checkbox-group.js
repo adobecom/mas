@@ -1,6 +1,7 @@
-import { html, LitElement, css } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { createTag } from '../utils.js';
+import { styles } from './merch-sidenav-checkbox-group.css.js';
 
 export class MerchSidenavCheckboxGroup extends LitElement {
     static properties = {
@@ -11,20 +12,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
         value: { type: String },
     };
 
-    static styles = css`
-        :host {
-            display: block;
-            contain: content;
-            border-top: 1px solid var(--color-gray-200);
-            padding: var(--merch-sidenav-checkbox-group-padding);
-            margin-top: var(--merch-sidenav-checkbox-group-gap);
-        }
-
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-        }
-    `;
+    static styles = unsafeCSS(styles);
 
     constructor() {
         super();

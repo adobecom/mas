@@ -1,7 +1,7 @@
 import { VariantLayout } from './variant-layout';
 import { createTag } from '../commerce.js';
-import { html, css } from 'lit';
-import { CSS } from './product.css.js';
+import { html } from 'lit';
+import { CSS, SHADOW_CSS } from './product.css.js';
 import Media from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
@@ -314,57 +314,5 @@ export class Product extends VariantLayout {
         addon.planType = planType;
     }
 
-    static variantStyle = css`
-        :host([variant='product']) {
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
-        }
-
-        :host([variant='product']) > slot:not([name='icons']) {
-            display: block;
-        }
-        :host([variant='product']) slot[name='body-xs'] {
-            min-height: var(--consonant-merch-card-product-body-xs-height);
-            display: block;
-        }
-        :host([variant='product']) slot[name='heading-xs'] {
-            min-height: var(--consonant-merch-card-product-heading-xs-height);
-            display: block;
-        }
-        :host([variant='product']) slot[name='body-xxs'] {
-            min-height: var(--consonant-merch-card-product-body-xxs-height);
-            display: block;
-        }
-        :host([variant='product']) slot[name='promo-text'] {
-            min-height: var(--consonant-merch-card-product-promo-text-height);
-            display: block;
-        }
-        :host([variant='product']) slot[name='callout-content'] {
-            min-height: var(
-                --consonant-merch-card-product-callout-content-height
-            );
-            display: block;
-        }
-        :host([variant='product']) slot[name='short-description'] {
-            display: block;
-        }
-        :host([variant='product']) slot[name='addon'] {
-            min-height: var(--consonant-merch-card-product-addon-height);
-        }
-
-        :host([variant='product']:not([id])) hr {
-            display: none;
-        }
-
-        :host([variant='product']) ::slotted(h3[slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-
-        :host([variant='product']) .secure-transaction-label {
-            color: rgb(80, 80, 80);
-            line-height: var(--consonant-merch-card-detail-xs-line-height);
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

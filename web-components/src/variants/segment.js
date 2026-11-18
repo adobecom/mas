@@ -1,6 +1,6 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS } from './segment.css.js';
+import { CSS, SHADOW_CSS } from './segment.css.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
@@ -130,16 +130,5 @@ export class Segment extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='segment']) {
-            min-height: 214px;
-            background:
-                linear-gradient(white, white) padding-box,
-                var(--consonant-merch-card-border-color, #dadada) border-box;
-            border: 1px solid transparent;
-        }
-        :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

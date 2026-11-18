@@ -1,5 +1,6 @@
 import { writeFileSync, readFileSync } from 'node:fs';
-import { build } from 'esbuild';
+import { pathToFileURL } from 'node:url';
+import { build, transform } from 'esbuild';
 
 const outfolder = './dist';
 
@@ -12,6 +13,7 @@ const defaults = {
     sourcemap: process.argv.includes('sourcemap'),
     platform: 'browser',
     target: ['es2020'],
+    plugins: [minifyCss()],
 };
 
 // Read the price-literals.js file content
@@ -38,7 +40,6 @@ await build({
     ...defaults,
     entryPoints: ['./src/mas.js'],
     outfile: './dist/mas.js',
-    plugins: [],
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
@@ -50,20 +51,20 @@ Promise.all([
         ...defaults,
         stdin: { contents: '' },
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
     }),
     build({
         ...defaults,
@@ -104,7 +105,7 @@ async function buildLitComponent(name, plugins = []) {
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImportsToLibsFolder(), ...plugins],
+        plugins: [minifyCss(), rewriteImportsToLibsFolder(), ...plugins],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
@@ -120,6 +121,28 @@ function rewriteImportsToLibsFolder() {
                     path: './lit-all.min.js',
                     external: true,
                 };
+            });
+        },
+    };
+}
+
+// *.css.js modules export only CSS strings: bundle them without comments or whitespace.
+function minifyCss() {
+    return {
+        name: 'minify-css',
+        setup(build) {
+            if (!build.initialOptions.minify) return;
+            build.onLoad({ filter: /\.css\.js$/ }, async ({ path }) => {
+                const styles = await import(pathToFileURL(path));
+                let contents = '';
+                for (const [name, css] of Object.entries(styles)) {
+                    const { code } = await transform(css, {
+                        loader: 'css',
+                        minifyWhitespace: true,
+                    });
+                    contents += `export const ${name} = ${JSON.stringify(code.trim())};\n`;
+                }
+                return { contents };
             });
         },
     };

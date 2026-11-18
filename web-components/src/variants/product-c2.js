@@ -1,10 +1,10 @@
 import { VariantLayout } from './variant-layout';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import {
     TEMPLATE_PRICE_LEGAL,
     SELECTOR_MAS_INLINE_PRICE,
 } from '../constants.js';
-import { CSS } from './product-c2.css.js';
+import { CSS, SHADOW_CSS } from './product-c2.css.js';
 
 export const PRODUCT_C2_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -99,45 +99,5 @@ export class ProductC2 extends VariantLayout {
         `;
     }
 
-    static variantStyle = css`
-        :host([variant='product-c2']) {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            padding: 24px;
-            box-sizing: border-box;
-            border-radius: 12px;
-            color: #000;
-            border: none;
-        }
-
-        :host([variant='product-c2']) .body {
-            padding: 0;
-        }
-
-        :host([variant='product-c2']) .heading {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }
-
-        :host([variant='product-c2']) footer {
-            gap: 8px;
-            padding: 0;
-            justify-content: flex-start;
-        }
-
-        .body .catalog-badge {
-            display: flex;
-            height: fit-content;
-            flex-direction: column;
-            width: fit-content;
-            max-width: 140px;
-            border-radius: 5px;
-            position: relative;
-            top: 0;
-            margin-left: var(--consonant-merch-spacing-xxs);
-            box-sizing: border-box;
-        }
-    `;
+    static variantStyle = SHADOW_CSS;
 }

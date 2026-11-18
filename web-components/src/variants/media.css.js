@@ -112,3 +112,34 @@ export const CSS = `
     }
 
 `;
+
+export const SHADOW_CSS = `
+    :host([variant='media']) .media-row {
+        display: flex;
+        gap: 24px;
+    }
+
+    :host([variant='media']) .text {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    @media screen and (max-width: 600px) {
+        :host([variant='media']) .media-row {
+            flex-direction: column-reverse;
+        }
+    }
+
+    @media screen and (min-width: 600px) {
+        :host([variant='media']) .media-row {
+            gap: 32px;
+        }
+    }
+
+    @media screen and (min-width: 1200px) {
+        :host([variant='media']) .media-row {
+            gap: 40px;
+        }
+    }
+`;

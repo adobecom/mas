@@ -1,4 +1,4 @@
-import { MOBILE_LANDSCAPE, TABLET_UP, DESKTOP_UP } from '../media.js';
+import { MOBILE_LANDSCAPE, TABLET_UP, DESKTOP_UP } from '../constants.js';
 
 export const CSS = `
 :root {
@@ -155,3 +155,28 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   font-size: 15px;
   font-weight: 700;
 }`;
+
+export const SHADOW_CSS = `
+    :host([variant='catalog']) {
+        min-height: 330px;
+        width: var(--consonant-merch-card-catalog-width);
+    }
+
+    .body .catalog-badge {
+        display: flex;
+        height: fit-content;
+        flex-direction: column;
+        width: fit-content;
+        max-width: 140px;
+        border-radius: 5px;
+        position: relative;
+        top: 0;
+        margin-left: var(--consonant-merch-spacing-xxs);
+        box-sizing: border-box;
+    }
+
+    :host([variant='catalog']) .action-menu:dir(rtl) {
+        right: initial;
+        left: 16px;
+    }
+`;

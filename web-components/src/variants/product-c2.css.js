@@ -1,5 +1,5 @@
 import { infoIconUrl } from '../info-icon.js';
-import { MOBILE_LANDSCAPE, TABLET_UP } from '../media.js';
+import { MOBILE_LANDSCAPE, TABLET_UP } from '../constants.js';
 export const CSS = `
 :root {
   --consonant-merch-card-productc2-width: 370px;
@@ -173,4 +173,46 @@ merch-card[variant="product-c2"] [slot="body-xs"] {
     }
 }
 
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='product-c2']) {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 24px;
+        box-sizing: border-box;
+        border-radius: 12px;
+        color: #000;
+        border: none;
+    }
+
+    :host([variant='product-c2']) .body {
+        padding: 0;
+    }
+
+    :host([variant='product-c2']) .heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+
+    :host([variant='product-c2']) footer {
+        gap: 8px;
+        padding: 0;
+        justify-content: flex-start;
+    }
+
+    .body .catalog-badge {
+        display: flex;
+        height: fit-content;
+        flex-direction: column;
+        width: fit-content;
+        max-width: 140px;
+        border-radius: 5px;
+        position: relative;
+        top: 0;
+        margin-left: var(--consonant-merch-spacing-xxs);
+        box-sizing: border-box;
+    }
 `;

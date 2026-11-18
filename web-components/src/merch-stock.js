@@ -1,32 +1,11 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import { EVENT_MERCH_STOCK_CHANGE } from './constants.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { MOBILE_LANDSCAPE } from './media.js';
+import { styles } from './merch-stock.css.js';
 
 export class MerchStock extends LitElement {
-    static styles = [
-        css`
-            ::slotted(div) {
-                display: none;
-            }
-
-            :host(:not([plan-type])) {
-                display: none;
-            }
-
-            :host([plan-type='ABM']) ::slotted([data-plan-type='ABM']),
-            :host([plan-type='M2M']) ::slotted([data-plan-type='M2M']),
-            :host([plan-type='PUF']) ::slotted([data-plan-type='PUF']) {
-                display: block;
-            }
-
-            sp-checkbox {
-                margin: 0;
-                font-size: 12px;
-                line-height: 15px;
-            }
-        `,
-    ];
+    static styles = unsafeCSS(styles);
 
     static properties = {
         checked: { type: Boolean, attribute: 'checked', reflect: true },

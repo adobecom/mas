@@ -1,4 +1,4 @@
-import { TABLET_UP, C2_DESKTOP_UP, XL_DESKTOP_UP } from '../media.js';
+import { TABLET_UP, C2_DESKTOP_UP, XL_DESKTOP_UP } from '../constants.js';
 
 export const CSS = `
 .collection-container:has(merch-card[variant='product-pricing']) {
@@ -193,4 +193,128 @@ merch-card[variant="product-pricing"] [slot="footer"] a.outline {
 merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
     flex-basis: 100%;
 }
+`;
+
+export const SHADOW_CSS = `
+    :host([variant='product-pricing']) {
+        font-weight: 400;
+        display: flex;
+        flex-direction: column;
+        background: var(--product-frame-bg, #fff);
+        border: 1px solid var(--product-frame-border, #dadada);
+        border-radius: 16px;
+        overflow: hidden;
+        /* 4px frame = 1px border + 3px padding; host bg shows through. */
+        padding: 3px;
+        /* Fill the grid row so .spacer has slack to absorb. */
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Mnemonic + badge share one centered row on the header strip. Strip
+       background is white by default, black when framed (badge authored, see
+       product-pricing.css.js). */
+    :host([variant='product-pricing']) .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 24px 24px 32px;
+    }
+
+    :host([variant='product-pricing']) .header slot[name='icons'] {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* White content panel; the host's 4px padding exposes the frame around
+       it (and the header strip) in the framed state. */
+    :host([variant='product-pricing']) .panel {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-sizing: border-box;
+    }
+
+    :host([variant='product-pricing']) .copy {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    :host([variant='product-pricing']) slot[name='heading-s'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-product-pricing-heading-s-height
+        );
+    }
+    :host([variant='product-pricing']) slot[name='body-xs'] {
+        display: block;
+        min-height: var(
+            --consonant-merch-card-product-pricing-body-xs-height
+        );
+    }
+    :host([variant='product-pricing']) slot[name='heading-xs'] {
+        display: flex;
+        flex-direction: column;
+        /* Bottom-align so a plain price shares a baseline with a stacked
+           strikethrough price. */
+        justify-content: flex-end;
+        min-height: var(
+            --consonant-merch-card-product-pricing-price-height
+        );
+    }
+
+    /* No price authored: hide the price slot and drop the reserved row
+       height, else it leaves a blank band above the CTAs. Chrome rejects
+       :has() inside :host(), so the flag is an attribute (see flagPriceRow). */
+    :host([variant='product-pricing'][no-price]) slot[name='heading-xs'] {
+        display: none;
+    }
+
+    :host([variant='product-pricing'][no-price]) .fine {
+        min-height: 0;
+    }
+
+    :host([variant='product-pricing'][no-price]) .price-buttons {
+        gap: 0;
+    }
+
+    /* Grows so a shorter card's slack lands here, in one block, instead of
+       spread through the copy, keeping CTAs on the row's shared baseline. */
+    :host([variant='product-pricing']) .spacer {
+        flex: 1 0 24px;
+    }
+
+    :host([variant='product-pricing']) .price-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    /* Legal + short-description share this row; a card shows one. */
+    :host([variant='product-pricing']) .fine {
+        display: flex;
+        flex-direction: column;
+        min-height: var(--consonant-merch-card-product-pricing-fine-height);
+    }
+
+    :host([variant='product-pricing']) slot[name='short-description'] {
+        display: block;
+    }
+
+    :host([variant='product-pricing']) footer {
+        display: flex;
+        padding: 0;
+        gap: 4px;
+        justify-content: stretch;
+        align-items: stretch;
+        flex-wrap: nowrap;
+        /* Row-max height keeps a wrapped CTA from shifting siblings' rows. */
+        min-height: var(
+            --consonant-merch-card-product-pricing-footer-height
+        );
+    }
 `;

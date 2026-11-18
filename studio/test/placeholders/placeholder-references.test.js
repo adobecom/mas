@@ -3,13 +3,11 @@ import sinon from 'sinon';
 import {
     DICTIONARY_ENTRY_MODEL_ID,
     ROOT_PATH,
-    SURFACES,
     TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../../src/constants.js';
 import {
-    buildPlaceholderReferenceScopes,
     matchesPlaceholderKey,
     findPlaceholderReferences,
 } from '../../src/placeholders/placeholder-references.js';
@@ -21,26 +19,6 @@ function makeCursor(pages) {
 }
 
 describe('placeholder-references', () => {
-    describe('buildPlaceholderReferenceScopes', () => {
-        it('returns the surface scope plus the ACOM fallback scope', () => {
-            expect(buildPlaceholderReferenceScopes({ surface: 'sandbox', locale: 'en_US' })).to.deep.equal([
-                `${ROOT_PATH}/sandbox/en_US`,
-                `${ROOT_PATH}/${SURFACES.ACOM.name}/en_US`,
-            ]);
-        });
-
-        it('returns a single scope when the surface is already ACOM', () => {
-            expect(buildPlaceholderReferenceScopes({ surface: SURFACES.ACOM.name, locale: 'en_US' })).to.deep.equal([
-                `${ROOT_PATH}/${SURFACES.ACOM.name}/en_US`,
-            ]);
-        });
-
-        it('returns an empty array without a surface or a locale', () => {
-            expect(buildPlaceholderReferenceScopes({ surface: '', locale: 'en_US' })).to.deep.equal([]);
-            expect(buildPlaceholderReferenceScopes({ surface: 'sandbox', locale: '' })).to.deep.equal([]);
-        });
-    });
-
     describe('matchesPlaceholderKey', () => {
         it('matches {{key}} and {{ key }} but not a different key', () => {
             expect(matchesPlaceholderKey({ fields: [{ values: ['Buy {{buy-now}} now'] }] }, 'buy-now')).to.be.true;
@@ -79,11 +57,7 @@ describe('placeholder-references', () => {
             await findPlaceholderReferences(aem, { key: 'buy-now', surface: 'sandbox', locale: 'en_US' });
 
             const calls = aem.sites.cf.fragments.search.getCalls();
-            expect(calls).to.have.lengthOf(2);
-            expect(calls.map((call) => call.args[0].path)).to.have.members([
-                `${ROOT_PATH}/sandbox/en_US`,
-                `${ROOT_PATH}/${SURFACES.ACOM.name}/en_US`,
-            ]);
+            expect(calls).to.have.lengthOf(1);
             for (const call of calls) {
                 expect(call.args[0].modelIds).to.have.members([
                     TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
@@ -94,7 +68,7 @@ describe('placeholder-references', () => {
         });
 
         it('keeps items with an exact {{key}} token and filters out unrelated matches', async () => {
-            const surfaceScope = `${ROOT_PATH}/sandbox/en_US`;
+            const surfaceScope = ROOT_PATH;
             const aem = createAem((path) =>
                 path === surfaceScope
                     ? [

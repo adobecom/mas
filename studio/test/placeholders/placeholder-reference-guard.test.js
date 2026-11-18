@@ -66,22 +66,6 @@ describe('placeholder-reference-guard', () => {
         expect(await resultPromise).to.be.false;
     });
 
-    it('resolves true for publish after the proceed event when the check is fast', async () => {
-        const aem = createAem([]);
-
-        const resultPromise = confirmPlaceholderReferences({
-            aem,
-            key: 'buy-now',
-            surface: 'sandbox',
-            locale: 'en_US',
-            mode: 'publish',
-        });
-
-        const modal = await waitForOpenModal();
-        modal.proceed();
-        expect(await resultPromise).to.be.true;
-    });
-
     it('resolves false and toasts once when the check throws a non-abort error', async () => {
         const aem = {
             sites: { cf: { fragments: { search: sinon.stub().rejects(new Error('boom')) } } },

@@ -37,7 +37,7 @@ export function matchesPlaceholderKey(fragmentLike, key) {
  * @param {{ key: string, surface: string, locale: string, excludePath?: string, signal?: AbortSignal }} params
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}
  */
-export async function findPlaceholderReferences(aem, { key, surface, locale, excludePath, signal } = {}) {
+export async function findPlaceholderReferences(aem, { key, excludePath, signal } = {}) {
     const modelIds = [
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
@@ -47,7 +47,7 @@ export async function findPlaceholderReferences(aem, { key, surface, locale, exc
     const seenPaths = new Set();
 
     const cursor = await aem.sites.cf.fragments.search(
-        { ROOT_PATH, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+        { path: ROOT_PATH, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
         null,
         signal ? { signal } : undefined,
     );

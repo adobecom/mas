@@ -1,8 +1,8 @@
 (() => {
     const MILO_UTILS_PATH = /\/libs\/utils\/utils\.js$/;
-    // Milo serves its libs from the page's own origin, www/stage, or a milolibs branch host.
+    // Milo serves its libs from the page's own origin, www/stage, or an adobecom milolibs branch host.
     const MILO_HOSTS = ['www.adobe.com', 'www.stage.adobe.com', 'milo.adobe.com'];
-    const MILO_BRANCH_HOST = /^[a-z0-9_-]+--milo--[a-z0-9_-]+\.(aem|hlx)\.(live|page)$/i;
+    const MILO_BRANCH_HOST = /^[a-z0-9_-]+--milo--adobecom\.(aem|hlx)\.(live|page)$/i;
     const SCRIPT_INITIATORS = ['script', 'other'];
     const BRIDGE_SOURCE = 'mas-ext-page-bridge';
     const REQUEST_SOURCE = 'mas-ext';

@@ -59,6 +59,16 @@ test('finds the Milo utils module served from a milolibs branch', () => {
     assert.equal(findMiloUtilsUrl([script(url)], 'https://main--cc--adobecom.aem.page'), url);
 });
 
+test('a utils module from a milo branch host owned by anyone but adobecom is never imported', () => {
+    const url = 'https://mwpw-1--milo--attacker.aem.live/libs/utils/utils.js';
+    assert.equal(findMiloUtilsUrl([script(url)], 'https://main--cc--adobecom.aem.page'), null);
+});
+
+test('finds the Milo utils module served from an adobecom milo branch on hlx.page', () => {
+    const url = 'https://feature-x--milo--adobecom.hlx.page/libs/utils/utils.js';
+    assert.equal(findMiloUtilsUrl([script(url)], 'https://main--cc--adobecom.aem.page'), url);
+});
+
 test('no Milo on the page yields no utils url', () => {
     assert.equal(findMiloUtilsUrl([script('https://example.com/app.js')], PAGE), null);
 });

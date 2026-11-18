@@ -24,7 +24,7 @@ function fakeElement() {
 }
 
 // Runs popup.js against a fake popup DOM; reply decides what the tab's content script answers.
-async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {} }) {
+async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {}, unreachableTabs = [] }) {
     const elements = new Map();
     const messages = [];
     const element = (key) => {
@@ -43,6 +43,9 @@ async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {} }) 
             query: async (query) => (query.active ? [tab] : tabs),
             sendMessage: (tabId, message, callback) => {
                 messages.push({ tabId, message });
+                if (unreachableTabs.includes(tabId)) {
+                    return Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
+                }
                 const { lastError, response } = reply(message);
                 chrome.runtime.lastError = lastError;
                 callback?.(response);
@@ -126,3 +129,23 @@ for (const enabled of [false, true]) {
         assert.equal(popup.legend.hidden, !enabled);
     });
 }
+
+test('toggling Show sources still updates the other tabs when one tab has no content script', async () => {
+    const rejections = [];
+    const onRejection = (reason) => rejections.push(reason);
+    process.on('unhandledRejection', onRejection);
+    try {
+        const popup = await openPopup({ tabs: [ADOBE_TAB, { id: 2 }, { id: 3 }], reply: () => NO_CARDS, unreachableTabs: [2] });
+
+        popup.sourcesToggle.dispatch('change', { target: { checked: true } });
+        for (let tick = 0; tick < 10; tick++) await new Promise(setImmediate);
+
+        assert.deepEqual(
+            popup.messages.filter(({ message }) => message.type === 'SET_SOURCE_OUTLINES').map(({ tabId }) => tabId),
+            [1, 2, 3],
+        );
+        assert.deepEqual(rejections, []);
+    } finally {
+        process.off('unhandledRejection', onRejection);
+    }
+});

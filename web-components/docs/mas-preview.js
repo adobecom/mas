@@ -32,15 +32,29 @@ export function createPreview(params) {
     return preview;
 }
 
-function populatePicker(picker, values, selected) {
+export function populatePicker(picker, values, selected) {
     picker.replaceChildren();
     for (const value of [...new Set(values)].sort()) {
         const item = document.createElement('sp-menu-item');
-        item.value = value;
+        item.value = value || 'default';
         item.textContent = value || 'Default';
         picker.append(item);
     }
     picker.value = selected;
+}
+
+export function getPreviewUrl(controls) {
+    const url = new URL(location.href);
+    url.searchParams.delete('surface');
+    for (const control of controls) {
+        if (
+            control.value &&
+            !(control.id === 'country' && control.value === 'default')
+        )
+            url.searchParams.set(control.id, control.value.trim());
+        else url.searchParams.delete(control.id);
+    }
+    return url;
 }
 
 export async function renderPreview(preview, container, status) {
@@ -130,20 +144,13 @@ export async function initPreview() {
         populatePicker(
             country,
             ['', ...locales.map(({ country }) => country)],
-            country.value,
+            country.value || 'default',
         );
     };
     updateLocales(['ccd', 'adobe-home', 'commerce'].flatMap(getSurfaceLocales));
 
     document.getElementById('show-preview').addEventListener('click', () => {
-        const url = new URL(location.href);
-        url.searchParams.delete('surface');
-        for (const control of controls) {
-            if (control.value)
-                url.searchParams.set(control.id, control.value.trim());
-            else url.searchParams.delete(control.id);
-        }
-        location.assign(url.href);
+        location.assign(getPreviewUrl(controls).href);
     });
     setupCopyUrl(document.getElementById('copy-url'), status);
 

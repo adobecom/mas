@@ -3,10 +3,53 @@ import sinon from 'sinon';
 import {
     createPreview,
     getPreviewSettings,
+    getPreviewUrl,
+    populatePicker,
     renderPreview,
     setupCopyUrl,
 } from '../docs/mas-preview.js';
 import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
+
+describe('preview country selection', () => {
+    let country;
+    let originalUrl;
+
+    before(async () => {
+        await import('../../studio/libs/swc.js');
+    });
+
+    beforeEach(() => {
+        originalUrl = location.href;
+        const url = new URL(originalUrl);
+        url.searchParams.set('locale', 'fr_FR');
+        url.searchParams.set('country', 'DE');
+        history.replaceState(null, '', url);
+        country = document.createElement('sp-picker');
+        country.id = 'country';
+        populatePicker(country, ['', 'DE', 'FR'], 'DE');
+    });
+
+    afterEach(() => {
+        history.replaceState(null, '', originalUrl);
+    });
+
+    it('removes the country override when Default is selected', () => {
+        country.value = [...country.children].find(
+            (item) => item.textContent === 'Default',
+        ).value;
+        const url = getPreviewUrl([country]);
+
+        expect(url.searchParams.has('country')).to.be.false;
+        expect(url.searchParams.get('locale')).to.equal('fr_FR');
+    });
+
+    it('preserves an explicitly selected country', () => {
+        const url = getPreviewUrl([country]);
+
+        expect(url.searchParams.get('country')).to.equal('DE');
+        expect(url.searchParams.get('locale')).to.equal('fr_FR');
+    });
+});
 
 describe('preview', () => {
     const id = '0ef2a804-e788-4959-abb8-b4d96a18b0ef';

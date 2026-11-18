@@ -255,6 +255,34 @@ describe('bulk-edit/search: invalidSearchScopes', () => {
     });
 });
 
+describe('bulk-edit/search: badge scope', () => {
+    const getValues = (fragment, name) => {
+        const f = (fragment.fields || []).find((x) => x.name === name);
+        return f ? { values: f.values, path: `/fields/${name}` } : null;
+    };
+    const { findMatches, invalidSearchScopes, VALID_SEARCH_SCOPES } = load({ getValues });
+    const withBadge = (badge) => ({ title: '', description: '', fields: [{ name: 'badge', values: [badge] }] });
+
+    it('matches badge text for the explicit badge scope', () => {
+        expect(findMatches(withBadge('New Offer'), 'badge', 'offer', false)).to.deep.equal([
+            { field: 'badge', value: 'New Offer' },
+        ]);
+    });
+    it('matches badge text in Everywhere searches', () => {
+        expect(findMatches(withBadge('Big Sale'), '*', 'Sale', false)).to.deep.equal([{ field: 'badge', value: 'Big Sale' }]);
+    });
+    it('honours matchCase', () => {
+        expect(findMatches(withBadge('New'), 'badge', 'new', true)).to.deep.equal([]);
+    });
+    it('treats special characters literally', () => {
+        expect(findMatches(withBadge('Save 50% (today)'), 'badge', '50% (today)', false)).to.have.lengthOf(1);
+    });
+    it('lists badge as a valid scope', () => {
+        expect(invalidSearchScopes('badge')).to.deep.equal([]);
+        expect(VALID_SEARCH_SCOPES).to.include('badge');
+    });
+});
+
 describe('bulk-edit/search: normalizeLocales', () => {
     const { normalizeLocales } = load();
     it('returns null for missing or wildcard locale', () => {

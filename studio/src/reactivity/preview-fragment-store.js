@@ -14,8 +14,6 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
-import { mergeParentFields } from '../aem/variation-utils.js';
-import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
 const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
@@ -95,10 +93,6 @@ export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
     previewLocaleOverride = null;
-    /** @type {Fragment | null} merged baselines filling the empty fields of the preview */
-    baselineParent = null;
-    /** @type {string | null} variant of the baselines, deciding the arrays to merge when the card has none */
-    baselineVariant = null;
     #resolving = false;
     #resolvePending = false;
     #valueVersion = 0;
@@ -106,7 +100,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
     #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
-    /** Authored fields before resolution: `this.value` holds the resolved result, which must not be resolved again. */
+    /** Fields before resolution: `this.value` holds the resolved result, which lost the placeholder keys and inherited-setting markers. */
     #sourceFields = [];
 
     /**
@@ -286,10 +280,6 @@ export class PreviewFragmentStore extends FragmentStore {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
         body.fields = structuredClone(this.#sourceFields);
-        if (this.baselineParent) {
-            const variant = body.fields.find(({ name }) => name === 'variant')?.values[0] || this.baselineVariant;
-            mergeParentFields(body, this.baselineParent, MERGE_CONFIG[variant]?.arraysToMerge);
-        }
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 

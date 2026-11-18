@@ -36,6 +36,8 @@ All projects must be created before the promotion publish request and automatic 
 
 The result dialog provides project links in the current Studio environment instead of opening tabs. **Request accepted** does not mean AEM/Odin publishing has completed; use the existing Bulk Publish project to inspect results and perform follow-up actions. Errors also appear at the top of the promotion view.
 
+After confirming Publish, keyboard focus moves into the progress area so Escape cannot dismiss the dialog while requests are in progress.
+
 Scheduled promotions create and start these projects immediately when Publish is confirmed. Clearing the checkbox publishes only the promotion. Existing promotion permissions and Bulk Publish access rules are unchanged.
 
 ## Optional features

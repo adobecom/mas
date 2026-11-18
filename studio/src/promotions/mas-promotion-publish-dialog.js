@@ -44,6 +44,12 @@ class MasPromotionPublishDialog extends LitElement {
         this.result = null;
     }
 
+    updated(changedProperties) {
+        if (changedProperties.has('phase') && this.phase === 'submitting') {
+            this.shadowRoot.querySelector('.progress').focus();
+        }
+    }
+
     disconnectedCallback() {
         super.disconnectedCallback();
         if (this.phase === 'loading' || this.phase === 'confirm') this.#cancelled = true;

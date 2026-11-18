@@ -75,6 +75,36 @@ describe('mas-promotion-publish-dialog', () => {
         expect(element.shadowRoot.querySelector('sp-overlay').open).to.be.true;
     });
 
+    it('moves focus into progress after clicking Publish', async () => {
+        await confirmPublishing();
+
+        expect(element.shadowRoot.activeElement === element.shadowRoot.querySelector('.progress')).to.be.true;
+    });
+
+    it('keeps the in-progress modal open after clicking Publish and pressing Escape', async () => {
+        await confirmPublishing();
+
+        await sendKeys({ press: 'Escape' });
+
+        expect(element.phase).to.equal('submitting');
+        expect(element.shadowRoot.querySelector('sp-overlay').open).to.be.true;
+    });
+
+    it('keeps result links visible after Escape during the confirmation-to-progress transition', async () => {
+        await confirmPublishing();
+        await sendKeys({ press: 'Escape' });
+        element.result = {
+            promotion: { status: 'accepted' },
+            projects: [{ id: 'created-project', surface: 'nala', title: 'Sale', dispatchStatus: 'accepted' }],
+        };
+
+        element.phase = 'result';
+        await element.updateComplete;
+
+        expect(element.shadowRoot.querySelector('sp-overlay').open).to.be.true;
+        expect(element.shadowRoot.querySelector('sp-link').getBoundingClientRect().width).to.be.greaterThan(0);
+    });
+
     it('offers no confirm or cancel action while creating projects', async () => {
         element.phase = 'submitting';
         await element.updateComplete;
@@ -101,6 +131,20 @@ describe('mas-promotion-publish-dialog', () => {
         expect(element.shadowRoot.textContent).to.include('Second project creation failed');
         expect(open.called).to.be.false;
     });
+
+    async function confirmPublishing() {
+        element.phase = 'confirm';
+        await element.updateComplete;
+        await waitUntil(() => element.shadowRoot.querySelector('sp-overlay').state === 'opened', 'Confirmation should open', {
+            timeout: 1500,
+        });
+        const dialog = element.shadowRoot.querySelector('sp-dialog-wrapper');
+        const button = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+        button.focus();
+        button.click();
+        await waitUntil(() => element.phase === 'submitting', 'Publish should enter progress', { timeout: 1500 });
+        await element.updateComplete;
+    }
 
     function makeRequest() {
         const path = '/content/dam/mas/nala/fr_FR/promotions/sale/card';

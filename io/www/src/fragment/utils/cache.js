@@ -9,10 +9,26 @@ const escapeKeyValue = (value) =>
         .replace(/[.!~*'()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
         .replaceAll('%', '.');
 
-// e.g. `req-<id>-fr_FR-CA.p-edu.m-catalog`, or `req-.offer-en_US.o-<offer>.t-plans.s-acom` without a fragment id
-const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template, surface }) => {
+// e.g. `req-<id>-fr_FR-CA.p-edu.m-catalog`, or `req-.offer-en_US.o-<offer>.t-plans.s-acom` without a fragment id;
+// `-latest` follows the geo when latest Stage offers are served (`serveLatest`, with a Stage WCS configuration).
+const getRequestMetadataKey = ({
+    id,
+    locale,
+    country,
+    pzn,
+    mask,
+    offer,
+    template,
+    surface,
+    serveLatest,
+    wcsConfiguration = [],
+}) => {
     const geo = geoCacheKey(locale, country);
-    const fragment = [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country].filter(Boolean).join('-');
+    const useLatestStage =
+        (serveLatest === true || serveLatest === 'true') && wcsConfiguration.some(({ env }) => env === 'stage');
+    const fragment = [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country, useLatestStage && 'latest']
+        .filter(Boolean)
+        .join('-');
     const parameters = Object.entries({ p: pzn, m: mask, o: offer, t: template, s: surface })
         .filter(([, value]) => value)
         .map(([tag, value]) => `.${tag}-${escapeKeyValue(value)}`);

@@ -74,13 +74,13 @@ Other top-level areas include `io/www/` (a Node.js >=22 service), `nala/` (Playw
 
 ## Web Components (Lit + Adobe Spectrum)
 
-- Use Lit for all custom elements with reactive properties (`static properties`).
+- Use Lit for all custom elements with reactive properties (`static properties`), except the components `build.mjs` builds with `buildComponent` (merch-card with its variants and sub-components, merch-card-collection, merch-quantity-select). Those extend `BaseElement` (`web-components/src/base-element.js`) and must not import `lit`; the build fails if they do. Their `render()` returns a string built with its escaping `html` tag, and `bindEvents()` attaches listeners with `on()`.
 - Use `render()` for declarative templates — no imperative DOM manipulation.
 - Use getters (for example `get headerTemplate()`) for rendering HTML sections, not `renderXyz()` methods.
 - Only use per-item render functions when iterating over a list.
 - Use Adobe Spectrum Web Components (`@spectrum-web-components/*`) for UI primitives. Do not reinvent what Spectrum provides.
 - CSS via `static styles` and CSS custom properties — avoid inline styles. Use `styleMap`/`classMap` for dynamic styles.
-- In `web-components/src`, keep CSS in `*.css.js` modules that export only CSS strings (no Lit `css`, no DOM access); the build minifies them. Lit components wrap them with `unsafeCSS()`.
+- In `web-components/src`, keep CSS in `*.css.js` modules that export only CSS strings (no Lit `css`, no DOM access); the build minifies them. Lit components wrap them with `unsafeCSS()`; `BaseElement` components assign them to `static styles` directly.
 - Dispatch custom events (not callbacks) for child-to-parent communication.
 - In Lit components, use `willUpdate()` for derived state — avoid computing in `render()`.
 

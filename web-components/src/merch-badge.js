@@ -1,16 +1,15 @@
-import { LitElement, html, nothing, unsafeCSS } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { BaseElement, html, unsafeHTML } from './base-element.js';
 import { styles } from './merch-badge.css.js';
 
 const renderIcon = (iconName) => {
-    if (!iconName) return nothing;
+    if (!iconName) return '';
     if (iconName.startsWith('sp-icon-'))
         return html`${unsafeHTML(
             `<${iconName} class="badge-icon"></${iconName}>`,
         )}`;
     return html`<img src="${iconName}" class="badge-icon" />`;
 };
-export default class MerchBadge extends LitElement {
+export default class MerchBadge extends BaseElement {
     static properties = {
         color: { type: String },
         variant: { type: String },
@@ -83,7 +82,7 @@ export default class MerchBadge extends LitElement {
         </div>`;
     }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 }
 
 customElements.define('merch-badge', MerchBadge);

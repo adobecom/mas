@@ -82,6 +82,20 @@ runTests(async () => {
             const button = plansCard.querySelector('.con-button');
             expect(button.getAttribute('data-quantity')).to.equal('1');
         });
+
+        it('renders author text in the badge as text', async () => {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'catalog');
+            card.badgeColor = '#000';
+            card.badgeBackgroundColor = '#fff';
+            card.badgeText = '<img src="x" onerror="window.badgeXss=1">';
+            document.body.append(card);
+            await card.updateComplete;
+            const badge = card.shadowRoot.getElementById('badge');
+            expect(badge.textContent.trim()).to.equal(card.badgeText);
+            expect(badge.querySelector('img')).to.be.null;
+            card.remove();
+        });
     });
 
     describe('promotion project promo code bypass', () => {

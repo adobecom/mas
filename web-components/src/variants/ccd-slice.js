@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './ccd-slice.css.js';
 
 export const CCD_SLICE_AEM_FRAGMENT_MAPPING = {

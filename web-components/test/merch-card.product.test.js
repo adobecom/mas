@@ -267,20 +267,20 @@ describe('Product.renderLayout', () => {
 
     it('renders without body-xxs slot', () => {
         const result = makeLayout().renderLayout();
-        const str = JSON.stringify(result);
+        const str = String(result);
         expect(str).to.not.include('body-xxs');
     });
 
     it('renders promo-text before body-xs when promoBottom is false', () => {
         const result = makeLayout({ promoBottom: false }).renderLayout();
-        const str = JSON.stringify(result);
+        const str = String(result);
         expect(str).to.include('promo-text');
         expect(str).to.include('body-xs');
     });
 
     it('renders promo-text after body-xs when promoBottom is true', () => {
         const result = makeLayout({ promoBottom: true }).renderLayout();
-        const str = JSON.stringify(result);
+        const str = String(result);
         expect(str).to.include('promo-text');
     });
 });

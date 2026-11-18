@@ -1,4 +1,4 @@
-import { LitElement, html, unsafeCSS } from 'lit';
+import { BaseElement, html } from './base-element.js';
 import {
     COUNTDOWN_UNIT_PAIR,
     isUnresolvedCountdownToken,
@@ -76,7 +76,7 @@ export function countdownText(start, end, now, locale = 'en_US', template) {
 }
 
 /** Inline promotion countdown with a clock owned by its connected element. */
-export class MerchCountdown extends LitElement {
+export class MerchCountdown extends BaseElement {
     static properties = {
         start: { type: String },
         end: { type: String },
@@ -86,7 +86,7 @@ export class MerchCountdown extends LitElement {
         text: { state: true },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     #timer;
 

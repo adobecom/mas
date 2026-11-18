@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html, on } from '../base-element.js';
 import { extractBackgroundUrl } from '../commerce.js';
 
 // The default is desktop background.
@@ -60,16 +60,29 @@ export function makeRefreshBackgroundsDetail(getCard) {
     };
 }
 
-export function renderBackgroundsToggleButton(onClick) {
+export function renderBackgroundsToggleButton() {
     return html`
-        <button
-            type="button"
-            class="headless-backgrounds-toggle"
-            @click="${onClick}"
-        >
+        <button type="button" class="headless-backgrounds-toggle">
             See all backgrounds
         </button>
     `;
+}
+
+/** Wires the backgrounds slot and toggle a variant rendered into `root`. */
+export function bindBackgroundsPreview(
+    root,
+    { toggleBackgroundsDetail, refreshBackgroundsDetail },
+) {
+    on(
+        root.querySelector('slot[name="backgrounds"]'),
+        'slotchange',
+        refreshBackgroundsDetail,
+    );
+    on(
+        root.querySelector('.headless-backgrounds-toggle'),
+        'click',
+        toggleBackgroundsDetail,
+    );
 }
 
 function breakpointLabel(breakpoint) {

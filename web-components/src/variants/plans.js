@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, on } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
@@ -287,7 +287,7 @@ export class Plans extends VariantLayout {
     get divider() {
         return this.card.variant === 'plans-education'
             ? html`<div class="divider"></div>`
-            : nothing;
+            : '';
     }
 
     async adjustLegal() {
@@ -337,11 +337,11 @@ export class Plans extends VariantLayout {
     get stockCheckbox() {
         return this.card.checkboxLabel
             ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+                <input type="checkbox"></input>
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
-            : nothing;
+            : '';
     }
 
     get icons() {
@@ -349,7 +349,7 @@ export class Plans extends VariantLayout {
             !this.card.querySelector('[slot="icons"]') &&
             !this.card.getAttribute('id')
         )
-            return nothing;
+            return '';
         return html`<slot name="icons"></slot>`;
     }
 
@@ -382,6 +382,12 @@ export class Plans extends VariantLayout {
         }
     }
 
+    bindEvents(root) {
+        on(root.querySelector('#stock-checkbox input'), 'change', (event) =>
+            this.card.toggleStockOffer(event),
+        );
+    }
+
     renderLayout() {
         return html` ${this.badge}
             <div class="body">
@@ -411,7 +417,7 @@ export class Plans extends VariantLayout {
 
     static collectionOptions = {
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return nothing;
+            if (!collection.sidenav) return '';
             return html`<slot name="resultsText"></slot>`;
         },
         headerVisibility: {

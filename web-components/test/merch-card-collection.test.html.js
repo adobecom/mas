@@ -199,6 +199,17 @@ runTests(async () => {
             expect(sortElement).to.exist;
         });
 
+        it('keeps the search field when the result changes', async () => {
+            await renderWithSidenav();
+            const search = header.shadowRoot.querySelector('sp-search');
+            pushState({ search: 'acrobat' });
+            await delay(100);
+            expect(header.resultSlotName).to.equal('searchResultsMobileText');
+            expect(header.shadowRoot.querySelector('sp-search')).to.equal(
+                search,
+            );
+        });
+
         it('should have accessible aria-label on search input', async () => {
             await renderWithSidenav();
             const searchInput =

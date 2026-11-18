@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, on } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './pro.css.js';
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
@@ -714,24 +714,23 @@ export class Pro extends VariantLayout {
             ? 'license-select-product license-select-label'
             : 'license-select-label';
         return html`
-            <div class="license-select" ?data-open=${open}>
+            <div class="license-select" ${open ? 'data-open' : ''}>
                 ${product
                     ? html`<span id="license-select-product" hidden
                           >${product}</span
                       >`
-                    : nothing}
+                    : ''}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
-                    aria-expanded=${open ? 'true' : 'false'}
+                    aria-expanded="${open ? 'true' : 'false'}"
                     aria-controls="license-popover"
-                    aria-labelledby=${labelledBy}
-                    aria-activedescendant=${open
-                        ? `license-option-${this.licenseHighlightedIndex}`
-                        : nothing}
-                    @click=${this.toggleLicensePopover}
-                    @keydown=${this.#handleLicenseKeydown}
+                    aria-labelledby="${labelledBy}"
+                    ${open
+                        ? html`aria-activedescendant="license-option-${this
+                              .licenseHighlightedIndex}"`
+                        : ''}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
@@ -750,15 +749,14 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby=${labelledBy}
+                    aria-labelledby="${labelledBy}"
                     aria-multiselectable="false"
                     tabindex="-1"
-                    ?hidden=${!open}
+                    ${open ? '' : 'hidden'}
                 >
                     <li
                         class="license-select-popover-header"
                         aria-hidden="true"
-                        @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
                             <span class="license-select-value">${current}</span>
@@ -779,14 +777,9 @@ export class Pro extends VariantLayout {
                                     : ''}${opt === current ? ' selected' : ''}"
                                 id="license-option-${index}"
                                 role="option"
-                                aria-selected=${opt === current
+                                aria-selected="${opt === current
                                     ? 'true'
-                                    : 'false'}
-                                @click=${() => this.selectLicenseQty(opt)}
-                                @mouseenter=${() => {
-                                    this.licenseHighlightedIndex = index;
-                                    this.card.requestUpdate();
-                                }}
+                                    : 'false'}"
                             >
                                 ${opt}
                             </li>
@@ -795,6 +788,31 @@ export class Pro extends VariantLayout {
                 </ul>
             </div>
         `;
+    }
+
+    bindEvents(root) {
+        const trigger = root.querySelector('.license-select-trigger');
+        on(trigger, 'click', this.toggleLicensePopover);
+        on(trigger, 'keydown', this.#handleLicenseKeydown);
+        on(
+            root.querySelector('.license-select-popover-header'),
+            'click',
+            this.toggleLicensePopover,
+        );
+        const options = root.querySelectorAll('.license-select-option');
+        options.forEach((option, index) => {
+            const value = this.licenseOptions[index];
+            on(option, 'click', () => this.selectLicenseQty(value));
+            on(option, 'mouseenter', () => {
+                this.licenseHighlightedIndex = index;
+                this.card.requestUpdate();
+            });
+        });
+        on(
+            root.querySelector('.whats-included-toggle'),
+            'click',
+            this.toggleExpanded,
+        );
     }
 
     renderLayout() {
@@ -825,17 +843,19 @@ export class Pro extends VariantLayout {
                               ? html`<div class="callout">
                                     <slot name="callout-content"></slot>
                                 </div>`
-                              : nothing}
+                              : ''}
                       </div>`
-                    : nothing}
+                    : ''}
                 ${this.hasAddOn
                     ? html`<div
                           class="add-on"
-                          ?data-addon-grey=${this.addonBackground === 'grey'}
+                          ${this.addonBackground === 'grey'
+                              ? 'data-addon-grey'
+                              : ''}
                       >
                           <slot name="addon"></slot>
                       </div>`
-                    : nothing}
+                    : ''}
                 <footer>
                     <slot name="footer"></slot>
                 </footer>
@@ -846,9 +866,8 @@ export class Pro extends VariantLayout {
                       <button
                           class="whats-included-toggle"
                           type="button"
-                          aria-expanded=${expanded ? 'true' : 'false'}
+                          aria-expanded="${expanded ? 'true' : 'false'}"
                           aria-controls="features-zone"
-                          @click=${this.toggleExpanded}
                       >
                           <span class="whats-included-toggle-label">
                               ${this.whatsIncludedToggleLabel}
@@ -861,17 +880,17 @@ export class Pro extends VariantLayout {
                       <div
                           id="features-zone"
                           class="features-zone"
-                          ?hidden=${!expanded}
+                          ${expanded ? '' : 'hidden'}
                       >
                           <slot name="whats-included"></slot>
                       </div>
                   `
-                : nothing}
+                : ''}
             ${this.hasEduDisclaimer
                 ? html`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
                   </div>`
-                : nothing}
+                : ''}
             <slot></slot>
         `;
     }

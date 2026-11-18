@@ -1,6 +1,6 @@
 import { VariantLayout } from './variant-layout';
 import { createTag } from '../commerce.js';
-import { html } from 'lit';
+import { html } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './product.css.js';
 import Media from '../media.js';
 import {

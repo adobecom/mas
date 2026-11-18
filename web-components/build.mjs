@@ -56,12 +56,6 @@ Promise.all([
     }),
     build({
         ...defaults,
-        entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
-        outfile: `${outfolder}/merch-card-collection.js`,
-    }),
-    build({
-        ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
         plugins: [minifyCss(), rewriteImportsToLibsFolder()],
@@ -71,7 +65,7 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildLitComponent('merch-card', [
+    buildComponent('merch-card', [
         {
             name: 'external-commerce',
             setup(build) {
@@ -84,32 +78,53 @@ Promise.all([
             },
         },
     ]),
-    buildLitComponent('merch-card-collection'),
-    buildLitComponent('merch-icon'),
-    buildLitComponent('merch-quantity-select'),
+    buildComponent('merch-card-collection'),
+    buildComponent('merch-icon'),
+    buildComponent('merch-quantity-select'),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
-    buildLitComponent('merch-whats-included'),
-    buildLitComponent('merch-mnemonic-list'),
-    buildLitComponent('mas-mnemonic'),
+    buildComponent('merch-whats-included'),
+    buildComponent('merch-mnemonic-list'),
+    buildComponent('mas-mnemonic'),
     buildLitComponent('mas-compare-chart'),
 ]).catch((error) => {
     console.error(error.message);
     process.exit(1);
 });
 
-async function buildLitComponent(name, plugins = []) {
+async function buildLitComponent(name) {
     const { metafile } = await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [minifyCss(), rewriteImportsToLibsFolder(), ...plugins],
+        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
     }
+}
+
+// Components built on BaseElement: the build fails if Lit becomes reachable.
+async function buildComponent(name, plugins = []) {
+    await build({
+        ...defaults,
+        entryPoints: [`./src/${name}.js`],
+        outfile: `${outfolder}/${name}.js`,
+        plugins: [minifyCss(), noLit(), ...plugins],
+    });
+}
+
+function noLit() {
+    return {
+        name: 'no-lit',
+        setup(build) {
+            build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
+                errors: [{ text: `${importer} imports lit` }],
+            }));
+        },
+    };
 }
 
 function rewriteImportsToLibsFolder() {

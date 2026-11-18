@@ -1,7 +1,8 @@
-import { html, nothing } from 'lit';
+import { html } from '../base-element.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, MARQUEE_SHADOW_CSS } from './headless.css.js';
 import {
+    bindBackgroundsPreview,
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
     renderBackgroundsDetailRow,
@@ -57,22 +58,15 @@ export class Marquee extends VariantLayout {
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
-                                <slot
-                                    name="${slot}"
-                                    @slotchange=${slot === 'backgrounds'
-                                        ? this.refreshBackgroundsDetail
-                                        : nothing}
-                                ></slot>
+                                <slot name="${slot}"></slot>
                                 ${slot === 'backgrounds'
-                                    ? renderBackgroundsToggleButton(
-                                          this.toggleBackgroundsDetail,
-                                      )
-                                    : nothing}
+                                    ? renderBackgroundsToggleButton()
+                                    : ''}
                             </span>
                         </div>
                         ${slot === 'backgrounds'
                             ? renderBackgroundsDetailRow()
-                            : nothing}
+                            : ''}
                     `,
                 )}
                 ${this.card.secureLabel
@@ -84,9 +78,13 @@ export class Marquee extends VariantLayout {
                               </span>
                           </div>
                       `
-                    : nothing}
+                    : ''}
             </div>
         `;
+    }
+
+    bindEvents(root) {
+        bindBackgroundsPreview(root, this);
     }
 
     static variantStyle = MARQUEE_SHADOW_CSS;

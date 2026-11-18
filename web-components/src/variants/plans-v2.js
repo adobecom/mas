@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, on } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans-v2.css.js';
 import Media from '../media.js';
 import {
@@ -297,11 +297,11 @@ export class PlansV2 extends VariantLayout {
     get stockCheckbox() {
         return this.card.checkboxLabel
             ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+                <input type="checkbox"></input>
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
-            : nothing;
+            : '';
     }
 
     get hasShortDescription() {
@@ -357,7 +357,7 @@ export class PlansV2 extends VariantLayout {
     }
 
     get shortDescriptionToggle() {
-        if (!this.hasShortDescription) return nothing;
+        if (!this.hasShortDescription) return '';
 
         // Show desktop version (no toggle) for tablet and up
         if (!Media.isMobile) {
@@ -375,7 +375,6 @@ export class PlansV2 extends VariantLayout {
                 class="short-description-toggle ${this.shortDescriptionExpanded
                     ? 'expanded'
                     : ''}"
-                @click=${this.toggleShortDescription}
             >
                 <span class="toggle-label">${this.shortDescriptionLabel}</span>
                 <span
@@ -398,7 +397,7 @@ export class PlansV2 extends VariantLayout {
         return this.card.querySelector('[slot="icons"]') ||
             this.card.getAttribute('id')
             ? html`<slot name="icons"></slot>`
-            : nothing;
+            : '';
     }
 
     get secureLabelFooter() {
@@ -471,6 +470,17 @@ export class PlansV2 extends VariantLayout {
         this.visibilityObserver?.disconnect();
     }
 
+    bindEvents(root) {
+        on(root.querySelector('#stock-checkbox input'), 'change', (event) =>
+            this.card.toggleStockOffer(event),
+        );
+        on(
+            root.querySelector('.short-description-toggle'),
+            'click',
+            this.toggleShortDescription,
+        );
+    }
+
     renderLayout() {
         const size = this.card.getAttribute('size');
         const isWide = size === 'wide';
@@ -514,7 +524,7 @@ export class PlansV2 extends VariantLayout {
 
     static collectionOptions = {
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return nothing;
+            if (!collection.sidenav) return '';
             return html`<slot name="resultsText"></slot>`;
         },
         headerVisibility: {

@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html } from '../base-element.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, SHADOW_CSS } from './media.css.js';
 

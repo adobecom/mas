@@ -161,7 +161,7 @@ export function setHeapBudget(maxHeapUsed, getHeapUsed) {
  * keep an existing stale value during that backoff rather than replacing it with partial data.
  *
  * @param {{ name: string, ttl?: number, jitter?: number,
- *   previewTtl?: number, previewMemory?: boolean, maxEntries?: number,
+ *   previewTtl?: number, previewMemory?: boolean, maxEntries?: number, staleWhileRevalidate?: boolean,
  *   shouldCache?: (value: *) => (boolean | { ttl: number }) }} options
  */
 export function createSwrCache({
@@ -171,6 +171,7 @@ export function createSwrCache({
     previewTtl = ttl,
     previewMemory = false,
     maxEntries = 1000,
+    staleWhileRevalidate = true,
     shouldCache = () => true,
 }) {
     // `superseded`: keys whose pending refill must not write its value, `set` having written a newer one meanwhile
@@ -221,7 +222,7 @@ export function createSwrCache({
                 logDebug(() => `[${name}] cache hit for "${key}"`, context);
                 return entry.value;
             }
-            const stale = entry && !context.preview;
+            const stale = entry && !context.preview && staleWhileRevalidate;
             if (!backend.refills.has(memoryKey)) {
                 let pending = (async () => {
                     const value = await loader();

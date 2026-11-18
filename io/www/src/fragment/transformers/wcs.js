@@ -1,4 +1,12 @@
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, matchesGeo } from '../utils/common.js';
+import {
+    fetch,
+    getCountry,
+    getFragmentId,
+    getRegionalLocale,
+    getRequestInfos,
+    markDegraded,
+    matchesGeo,
+} from '../utils/common.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
@@ -59,6 +67,7 @@ async function buildOfferMapping(context) {
         if (response.status !== 200) return null;
         return collectMappings(response.body, response.body.references || {});
     });
+    if (!mappings) markDegraded(context, `offer mapping ${surface}`);
     logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);
     return mappings ?? [];
 }
@@ -344,6 +353,8 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     }
     const load = async () => {
         const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
+        // an unknown offer (4xx) is an authoring issue, which a rebuild would not fix
+        if (response.status >= 500 || response.status === 429) markDegraded(wcsContext.context, `wcs ${osi}`);
         return response.status === 200 ? response.body : null;
     };
     const { context } = wcsContext;

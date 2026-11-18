@@ -533,24 +533,30 @@ describe('processCTAs', async () => {
     });
 
     it('processCTAs applies the select rules to merch card CTAs', async () => {
-        const id = 'select';
-        const text = 'Select';
-        const card = mockMerchCard();
-        card.consonant = true;
-        card.priceLiterals = { buyNow: 'Buy now' };
-        await processCTAs(
-            { ctas: trialPlus(id, text) },
-            card,
-            aemFragmentMapping,
-            undefined,
-            { hideTrialCTAs: true },
-        );
-        const footer = getFooterElement(card);
-        expect(footer.children).to.have.lengthOf(1);
-        expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
-            .exist;
-        expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to.exist;
-        card.remove();
+        for (const [id, text] of [
+            ['select', 'Select'],
+            ['save-now', 'Save now'],
+            ['get-offer', 'Get offer'],
+            ['save-today', 'Save now'],
+        ]) {
+            const card = mockMerchCard();
+            card.consonant = true;
+            card.priceLiterals = { buyNow: 'Buy now' };
+            await processCTAs(
+                { ctas: trialPlus(id, text) },
+                card,
+                aemFragmentMapping,
+                undefined,
+                { hideTrialCTAs: true },
+            );
+            const footer = getFooterElement(card);
+            expect(footer.children).to.have.lengthOf(1);
+            expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
+                .exist;
+            expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to
+                .exist;
+            card.remove();
+        }
     });
 
     it('Free trial next to Learn more still becomes Buy now', async () => {
@@ -2359,6 +2365,60 @@ describe('processBadge', () => {
 
     afterEach(() => {
         sinon.restore();
+    });
+
+    // pro defines no `badge` entry in its fragment mapping, so it takes the legacy branch
+    const PRO_AEM_FRAGMENT_MAPPING = {};
+
+    it('sets border-color to black on a pro card with borderColor black and a leftover badge', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            borderColor: 'black',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal('black');
+        expect(merchCard.getAttribute('badge-text')).to.equal('Leftover');
+        expect(merchCard.getAttribute('badge-color')).to.equal('#000000');
+        expect(merchCard.getAttribute('badge-background-color')).to.equal(
+            '#F8D904',
+        );
+    });
+
+    it('keeps badge-driven border-color on a pro card with a badge and no borderColor', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+
+        const defaultCard = mockMerchCard();
+        processBadge(
+            { variant: 'pro', badge: 'Leftover' },
+            defaultCard,
+            PRO_AEM_FRAGMENT_MAPPING,
+        );
+        expect(defaultCard.getAttribute('border-color')).to.equal('#F8D904');
+        expect(defaultCard.getAttribute('badge-text')).to.equal('Leftover');
+    });
+
+    it('keeps badge-driven border-color on a badge-displaying legacy variant with no borderColor', () => {
+        const mapping = { badge: { tag: 'div' } };
+        expect(mapping.badge?.slot).to.not.be.ok;
+        const fields = {
+            variant: 'catalog',
+            badge: 'New',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+        expect(merchCard.getAttribute('badge-text')).to.equal('New');
     });
 
     it('should not append a badge when text is empty on full-pricing-express', () => {

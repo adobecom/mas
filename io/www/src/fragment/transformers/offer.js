@@ -1,4 +1,4 @@
-import { CARD_MODEL_ID, fetch } from '../utils/common.js';
+import { CARD_MODEL_ID, fetch, markDegraded } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 import { MAS_ROOT, odinFolder, PATH_TOKENS } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
@@ -88,6 +88,7 @@ async function fetchFragmentBaselines(context, surface, locale, template) {
         const keyed = items.map((item) => [item.path.slice(folder.length + 1).match(FRAGMENT_BASELINE_PATH)?.groups.key, item]);
         return { baselines: Object.fromEntries(keyed.filter(([key]) => key)) };
     });
+    if (!entry) markDegraded(context, `fragment baselines ${template}`);
     return entry?.baselines ?? {};
 }
 
@@ -130,8 +131,10 @@ function fetchOfferBaselines(context, locale) {
  * `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US, with its fields mapped to card
  * fields.
  */
-async function getOfferBaseline(context, productArrangementCode) {
-    const offerBaseline = (await fetchOfferBaselines(context, context.defaultLocale))?.[productArrangementCode];
+export async function getOfferBaseline(context, productArrangementCode) {
+    const offerBaselines = await fetchOfferBaselines(context, context.defaultLocale);
+    if (!offerBaselines) markDegraded(context, `offer baselines ${context.defaultLocale}`);
+    const offerBaseline = offerBaselines?.[productArrangementCode];
     return offerBaseline && { ...offerBaseline, fields: toCardFields(offerBaseline.fields) };
 }
 

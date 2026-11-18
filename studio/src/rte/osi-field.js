@@ -14,6 +14,7 @@ class OsiField extends LitElement {
         // off by default so bare-osi and discount-badge fields are unaffected.
         allowPromotionCode: { type: Boolean, attribute: 'allow-promotion-code' },
         suppressError: { type: Boolean, attribute: 'suppress-error' },
+        readonly: { type: Boolean, reflect: true },
     };
 
     static styles = css`
@@ -29,6 +30,7 @@ class OsiField extends LitElement {
         this.showOfferSelector = false;
         this.allowPromotionCode = false;
         this.suppressError = false;
+        this.readonly = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -74,7 +76,7 @@ class OsiField extends LitElement {
     }
 
     get #showError() {
-        return !this.value && !this.suppressError;
+        return !this.value && !this.suppressError && !this.readonly;
     }
 
     get #offerSelectorToolButton() {
@@ -83,6 +85,7 @@ class OsiField extends LitElement {
                 id="offerSelectorToolButtonOSI"
                 @click=${this.handleOpenOfferSelector}
                 title="Offer Selector Tool"
+                ?disabled=${this.readonly}
             >
                 <sp-icon-shopping-cart slot="icon" class="${this.#showError ? 'error-state' : ''}"></sp-icon-shopping-cart>
                 ${this.#showError ? html` <sp-icon-alert size="m" slot="icon" class="error-state"></sp-icon-alert> ` : nothing}
@@ -91,6 +94,7 @@ class OsiField extends LitElement {
     }
 
     handleOpenOfferSelector(event, element) {
+        if (this.readonly) return;
         if (!element && this.value) {
             element = document.createElement('span');
             if (this.allowPromotionCode) {
@@ -116,6 +120,9 @@ class OsiField extends LitElement {
                     ${this.#offerSelectorToolButton}
                 </sp-action-group>
                 <p id=${this.id}>Selected Offer: <strong>${this.value}</strong></p>
+                ${this.readonly
+                    ? html`<sp-tooltip self-managed placement="top">The OSI is managed on the parent card.</sp-tooltip>`
+                    : nothing}
             </div>
         `;
     }

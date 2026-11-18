@@ -1516,7 +1516,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, options = {}) {
-        const { withToast = true, refetchEtag = true, errorMessage = 'Failed to save fragment.' } = options;
+        const { withToast = true, refetchEtag = true, expectedEtag, errorMessage = 'Failed to save fragment.' } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1530,6 +1530,8 @@ export class MasRepository extends LitElement {
         const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
+        const previousOsi = fragment.initialValue?.fields?.find((field) => field.name === 'osi')?.values?.[0];
+        const osiChanged = !parentFragment && fragmentToSave.model?.path === CARD_MODEL_PATH && osi !== previousOsi;
 
         if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
@@ -1551,7 +1553,10 @@ export class MasRepository extends LitElement {
                     () => this.loadPromotions(),
                 );
             }
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
+            const savedFragment = await this.aem.sites.cf.fragments.save(
+                expectedEtag ? { ...fragmentToSave, etag: expectedEtag } : fragmentToSave,
+                { refetchEtag: expectedEtag ? false : refetchEtag },
+            );
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -1561,6 +1566,9 @@ export class MasRepository extends LitElement {
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
             }
+            if (osiChanged) {
+                await this.clearVariationOsiOverrides(fragment);
+            }
             Events.fragmentSaved.emit(savedFragment.id);
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
@@ -1569,6 +1577,41 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+        }
+    }
+
+    /**
+     * Variations inherit the OSI from their parent card, so when the parent OSI changes any OSI
+     * still stored on a variation is cleared to make it follow the new parent offer.
+     * @param {Fragment} fragment - The parent card whose OSI changed
+     */
+    async clearVariationOsiOverrides(fragment) {
+        const failedVariations = [];
+        try {
+            const paths = [...new Set([...fragment.getVariations(), ...(await this.getPromoVariationPaths(fragment))])];
+            await processConcurrently(
+                paths,
+                async (path) => {
+                    try {
+                        const variation = await this.aem.sites.cf.fragments.getByPath(path);
+                        const osiField = variation.fields?.find((field) => field.name === 'osi');
+                        if (!osiField?.values?.some(Boolean)) return;
+                        osiField.values = [];
+                        await this.aem.sites.cf.fragments.save(variation);
+                        fragmentCache?.remove(variation.id);
+                    } catch (error) {
+                        console.error(`Failed to update the OSI of variation ${path}:`, error);
+                        failedVariations.push(path);
+                    }
+                },
+                VARIATIONS_CONCURRENCY_LIMIT,
+            );
+        } catch (error) {
+            console.error('Failed to list the variations to update with the new OSI:', error);
+            failedVariations.push(fragment.path);
+        }
+        if (failedVariations.length) {
+            showToast('The OSI could not be updated on some variations.', 'negative');
         }
     }
 
@@ -1947,7 +1990,7 @@ export class MasRepository extends LitElement {
             paths,
             async (path) => {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path });
+                    await promotionsRepository.forceDeletePromoVariation(this, path);
                 } catch (error) {
                     console.error(`Failed to delete promo variation ${path}:`, error);
                     failedVariations.push(path);
@@ -1988,7 +2031,7 @@ export class MasRepository extends LitElement {
 
             for (const variationPath of variations) {
                 try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                    await promotionsRepository.forceDeletePromoVariation(this, variationPath);
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);

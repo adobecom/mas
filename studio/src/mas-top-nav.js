@@ -361,6 +361,19 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_HISTORY) {
+            return [
+                { label: 'Promotions', handler: handlers.promotions },
+                {
+                    label: this.promotions.inEdit.get()?.get()?.getFieldValue('title') || 'Promotion project',
+                    handler: () => {
+                        Store.promotions.inEdit.set(null);
+                        router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                    },
+                },
+                { label: 'Version history' },
+            ];
+        }
         if (this.page.value === PAGE_NAMES.SETTINGS) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
@@ -525,9 +538,15 @@ class MasTopNav extends LitElement {
                                     </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
-                                  <button class="icon-button" title="Help">
+                                  <a
+                                      class="icon-button"
+                                      title="Help"
+                                      href="https://adobe.enterprise.slack.com/archives/C02RZERR9CH"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                  >
                                       <sp-icon-help size="m"></sp-icon-help>
-                                  </button>
+                                  </a>
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>

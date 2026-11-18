@@ -26,7 +26,6 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
             await expect(await studio.placeholdersButton).toBeVisible();
-            await expect(await studio.supportButton).toBeVisible();
         });
     });
 
@@ -210,7 +209,6 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
             await expect(await studio.placeholdersButton).toBeVisible();
-            await expect(await studio.supportButton).toBeVisible();
         });
     });
 

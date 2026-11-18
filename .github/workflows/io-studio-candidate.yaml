@@ -1,5 +1,5 @@
 name: IO Studio Candidate Deploy
-# Dispatched by Piñata's io-studio-candidate gate (.pinata/scripts/deploy-candidate-io.sh)
+# Dispatched by Piñata's io-studio-candidate gate (.pinata/scripts/deploy-candidate-io.mjs)
 # with --ref <candidate branch>, before any PR exists. Deploys io/studio to the
 # dispatcher's workspace, resolved like a PR author's (resolve-aio-identity.yaml:
 # pinatacode[bot] -> the shared bot workspace on the stage Odin bucket), then
@@ -9,7 +9,7 @@ on:
     workflow_dispatch:
         inputs:
             dispatch_id:
-                description: 'Set by deploy-candidate-io.sh to find this run; ends the run name'
+                description: 'Set by deploy-candidate-io.mjs to find this run; ends the run name'
                 type: string
                 required: false
 

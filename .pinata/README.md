@@ -7,17 +7,18 @@ ecosystem package.
 
 ## What is included
 
-| File                                 | Purpose                                                                                                |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `manifest.yaml`                      | MAS identity and shared planning models.                                                               |
-| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection. |
-| `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                          |
-| `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                       |
-| `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                    |
-| `scripts/check-contract.py`          | Configuration and model-reference checks.                                                              |
-| `scripts/check-dist-sync.sh`         | Rebuild web-component bundles/docs (no drift check).                                                   |
-| `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                         |
-| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                       |
+| File                                 | Purpose                                                                                                              |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `manifest.yaml`                      | MAS identity and shared planning models.                                                                             |
+| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection.               |
+| `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                                        |
+| `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                                     |
+| `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                                  |
+| `scripts/check-contract.py`          | Configuration and model-reference checks.                                                                            |
+| `scripts/check-dist-sync.sh`         | Rebuild web-component bundles/docs (no drift check).                                                                 |
+| `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                                       |
+| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                                     |
+| `scripts/deploy-candidate-io.mjs`    | io-studio-candidate gate: dispatch the CI deploy and wait for its verdict (tests in `deploy-candidate-io.test.mjs`). |
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
@@ -29,6 +30,13 @@ The old `.config.json`, issue-triggered agent/SDLC/review workflows, demo
 `restyle-component` workflow, and `justfile` are intentionally not migrated.
 They configure separate automation, not the installed pinata-code workflow.
 No secrets, generated run history, or shared package copies belong here.
+
+## Script language
+
+Scripts with logic (parsing JSON/YAML, branching, signal handling, polling) are
+`.mjs` with `node --test` tests: dependencies are injected so they run without
+real `git`/`gh`. Shell is for thin command chains with no logic to unit-test
+(`check-dist-sync.sh`).
 
 ## Verification
 

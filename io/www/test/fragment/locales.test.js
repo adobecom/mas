@@ -21,6 +21,7 @@ import {
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
+import { computeRegionLocale } from '../../src/fragment/transformers/defaultLanguage.js';
 
 describe('locales', function () {
     describe('Lingo Phase 5 ACOM markets', function () {
@@ -643,10 +644,14 @@ describe('locales', function () {
         });
     });
 
-    describe('Express pt_BR with PT region (MWPW-214992)', () => {
-        it('express pt_BR entry lists PT as a region', () => {
-            const entry = getDefaultLocales('express').find((l) => l.lang === 'pt' && l.country === 'BR');
-            expect(entry.regions).to.deep.equal(['PT']);
+    describe('Express pt_BR resolves PT visitors to pt_PT (MWPW-214992)', () => {
+        it('keeps PT as the commerce country', () => {
+            expect(resolveCommerceCountries('express', 'pt_BR', 'PT')).to.deep.equal({ country: 'PT', wcsCountry: 'PT' });
+        });
+        it('computes pt_PT as the region locale', () => {
+            expect(
+                computeRegionLocale({ surface: 'express', locale: 'pt_BR', defaultLocale: 'pt_BR', country: 'PT' }),
+            ).to.equal('pt_PT');
         });
         it('does not change acom pt_PT resolution or the acom and ccd pt_BR entries', () => {
             expect(getDefaultLocale('acom', 'pt_PT')).to.deep.equal({ lang: 'pt', country: 'PT' });

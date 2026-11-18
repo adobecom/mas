@@ -5139,6 +5139,29 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('refreshFragment', () => {
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+        });
+
+        it('refreshes the fragment without the promo merge when the promotions list cannot be loaded', async () => {
+            const repository = createFullRepository();
+            const path = '/content/dam/mas/sandbox/en_US/my-card';
+            const fragmentStore = new FragmentStore(new Fragment({ id: 'card-1', path, fields: [] }));
+            repository.aem = createAemMock({
+                fragments: { getById: sandbox.stub().resolves({ id: 'card-1', path, etag: 'new', fields: [] }) },
+            });
+            sandbox.stub(repository, 'loadPromotions').rejects(new Error('429'));
+
+            await repository.refreshFragment(fragmentStore);
+
+            expect(fragmentStore.get().etag).to.equal('new');
+            expect(fragmentStore.get().promoVariationProbeNotNeeded, 'the merge must be retried later').to.not.be.ok;
+            expect(fragmentStore.loading).to.be.false;
+        });
+    });
+
     describe('saveFragment - promo variation geo tag validation', () => {
         const promoTag = 'mas:promotion/black-friday';
         const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';

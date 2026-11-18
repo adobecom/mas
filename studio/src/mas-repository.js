@@ -2478,9 +2478,15 @@ export class MasRepository extends LitElement {
         const id = store.get().id;
         let latest = await this.aem.sites.cf.fragments.getById(id, null, skipReferences ? { references: null } : undefined);
         if (!skipPromoMerge) {
-            latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
-                this.loadPromotions({ rethrow: true }),
-            );
+            try {
+                latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
+                    this.loadPromotions({ rethrow: true }),
+                );
+            } catch (error) {
+                // Callers refresh after a write that already succeeded: a promotions failure must not report it as failed.
+                // Left unflagged, the promo variations are merged on a later refresh.
+                console.warn('Promo variations not merged:', error?.message);
+            }
         }
 
         // Apply corrector transformer before refreshing

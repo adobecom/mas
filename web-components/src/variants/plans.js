@@ -6,8 +6,8 @@ import {
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
-    getOuterHeight,
-} from '../commerce-shared.js';
+} from '../constants.js';
+import { getOuterHeight } from '../utils.js';
 
 export const PLANS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

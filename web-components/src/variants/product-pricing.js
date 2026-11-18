@@ -4,7 +4,7 @@ import {
     EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
-} from '../commerce-shared.js';
+} from '../constants.js';
 import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 

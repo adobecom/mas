@@ -1,6 +1,6 @@
 import { html, nothing } from 'lit';
 import { getFragmentMapping } from './variants';
-import { MERCH_CARD_LOAD_TIMEOUT } from '../commerce-shared.js';
+import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 const BORDER_BOX = { box: 'border-box' };
 

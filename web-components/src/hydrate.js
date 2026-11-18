@@ -4,19 +4,22 @@ import {
     HEADLESS_STYLE_CTA_VARIANTS,
     MERCH_CARD_LOAD_TIMEOUT,
     TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
-    UptLink,
+} from './constants.js';
+import { UptLink } from './upt-link.js';
+import {
     createTag,
     getService,
     getHeadlessCtaVariant,
     hydrateHeadlessCta,
-    rewriteImageUrlsForProd,
-    sanitizePictureMarkup,
-    setForegroundTimeout,
-    clearForegroundTimeout,
-} from './commerce-shared.js';
+} from './utils.js';
 import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
 import { isCountdownLinkText } from './countdown.js';
+import {
+    rewriteImageUrlsForProd,
+    sanitizePictureMarkup,
+} from './image-markup.js';
 import { getFragmentMapping } from './variants/variants.js';
+import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';

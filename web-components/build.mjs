@@ -74,10 +74,12 @@ Promise.all([
         {
             name: 'shared-commerce',
             setup(build) {
-                build.onResolve({ filter: /\/commerce-shared\.js$/ }, () => ({
-                    path: './commerce.js',
-                    external: true,
-                }));
+                build.onResolve(
+                    {
+                        filter: /^\.\.?\/(utils|utilities|mas-element|upt-link|image-markup|plan-type-text|mas-context|log)(\.js)?$/,
+                    },
+                    () => ({ path: './commerce.js', external: true }),
+                );
             },
         },
     ]),

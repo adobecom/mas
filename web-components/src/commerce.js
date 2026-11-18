@@ -6,8 +6,6 @@ import './inline-price.js';
 import './aem-fragment.js';
 import './mas-field.js';
 
-export * from './commerce-shared.js';
-
 import { CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 import { Defaults } from './defaults.js';
 import { Log } from './log.js';
@@ -24,3 +22,33 @@ export {
     injectJsonLd,
     resolvePriceTaxFlags,
 };
+
+export {
+    clearForegroundTimeout,
+    createTag,
+    debounce,
+    getHeadlessCtaVariant,
+    getOuterHeight,
+    getService,
+    hydrateHeadlessCta,
+    isMobileOrTablet,
+    printMeasure,
+    setForegroundTimeout,
+    toRelativeAssetUrl,
+} from './utils.js';
+export { createMasElement } from './mas-element.js';
+export { toPromotionCodes } from './utilities.js';
+export { UptLink } from './upt-link.js';
+export {
+    extractBackgroundUrl,
+    rewriteImageUrlsForProd,
+    sanitizePictureMarkup,
+} from './image-markup.js';
+export { hostOsi } from './plan-type-text.js';
+export {
+    applyContextPromotionCode,
+    applyDisplayAnnualDefault,
+    applyHideStPriceLabels,
+    mergePriceLiterals,
+    registerContextOptionsProviders,
+} from './mas-context.js';

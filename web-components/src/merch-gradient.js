@@ -1,4 +1,4 @@
-import { debounce } from './commerce-shared.js';
+import { debounce } from './utils';
 
 export default class MerchGradient extends HTMLElement {
     static get observedAttributes() {

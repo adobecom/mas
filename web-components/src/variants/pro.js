@@ -8,10 +8,10 @@ import {
     EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
-    createMasElement,
-    Log,
-} from '../commerce-shared.js';
+} from '../constants.js';
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import { createMasElement } from '../mas-element.js';
+import { Log } from '../log.js';
 
 const VARIANT = 'pro';
 const log = Log.module('merch-card/pro');

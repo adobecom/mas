@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout';
 import { CSS } from './special-offer.css.js';
-import { SELECTOR_MAS_INLINE_PRICE } from '../commerce-shared.js';
+import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
 
 export const SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

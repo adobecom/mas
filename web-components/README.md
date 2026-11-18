@@ -66,7 +66,7 @@ the evergreen mas.js is located at /web-components/dist/mas.js
 npm run build
 ```
 
-`src/commerce-shared.js` is the shared source contract; only the card build maps it to the existing `./commerce.js`.
+Cards keep their direct source imports; only the card build maps shared helper modules to the existing `./commerce.js`.
 Deploy both bundles together: cached commerce (`max-age=7200`) must expire or be invalidated before cards require new exports.
 
 #### Build documentation

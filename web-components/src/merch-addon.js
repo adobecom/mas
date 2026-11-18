@@ -1,8 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import {
-    EVENT_TYPE_RESOLVED,
-    SELECTOR_MAS_INLINE_PRICE,
-} from './commerce-shared.js';
+import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 
 export default class MerchAddon extends LitElement {
     static properties = {

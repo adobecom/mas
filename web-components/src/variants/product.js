@@ -1,4 +1,5 @@
 import { VariantLayout } from './variant-layout';
+import { createTag } from '../utils.js';
 import { html, css } from 'lit';
 import { CSS } from './product.css.js';
 import Media from '../media.js';
@@ -7,8 +8,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_MAS_READY,
-    createTag,
-} from '../commerce-shared.js';
+} from '../constants.js';
 
 export const PRODUCT_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

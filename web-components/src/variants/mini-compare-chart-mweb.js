@@ -1,4 +1,5 @@
 import { html, css, unsafeCSS, nothing } from 'lit';
+import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
 import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
@@ -6,8 +7,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     TEMPLATE_PRICE_LEGAL,
-    createTag,
-} from '../commerce-shared.js';
+} from '../constants.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32;
 // Fallback list id for cards without a heading id; the counter keeps siblings

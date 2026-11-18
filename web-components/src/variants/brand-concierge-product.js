@@ -3,7 +3,7 @@ import { html, css } from 'lit';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
-} from '../commerce-shared.js';
+} from '../constants.js';
 import { CSS } from './brand-concierge-product.css.js';
 
 export const BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {

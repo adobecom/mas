@@ -719,6 +719,7 @@ describe('offer transformer', () => {
             expect(failed.body.references['card-3'].value.offerBaselineId).to.be.undefined;
             expect(failed.body.references['card-2'].value.fragmentBaselineId).to.equal('fragment-baseline-id');
             fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
+            // the degraded response was not stored: the same request is rebuilt
             const { body } = await getFragment({ id: 'collection-id', locale: 'en_US' });
             expect(body.references['card-3'].value.offerBaselineId).to.equal('offer-baseline-id');
         });

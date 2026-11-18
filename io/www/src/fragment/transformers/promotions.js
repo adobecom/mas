@@ -58,7 +58,14 @@
  *     Both dates are required: a project defining only a start or only an end exposes nothing.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { COLLECTION_MODEL_ID, fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
+import {
+    COLLECTION_MODEL_ID,
+    fetch,
+    getRequestInfos,
+    markDegraded,
+    matchesGeo,
+    isGroupedVariationFragmentPath,
+} from '../utils/common.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -127,7 +134,9 @@ async function fetchFolderProjects(context, surface) {
  * the loader caches nothing and any stale entry survives; callers coalesce that to an empty list.
  */
 async function fetchProjects(context, surface) {
-    return (await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface))) ?? [];
+    const projects = await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface));
+    if (!projects) markDegraded(context, `promotions ${surface}`);
+    return projects ?? [];
 }
 
 function toInstant(value) {
@@ -373,6 +382,7 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
         } while (cursor);
         return { variations, complete: await hydrateCollectionVariations(variations, context) };
     });
+    if (!result.complete) markDegraded(context, `promotion variations ${cacheKey}`);
     return result.variations;
 }
 
@@ -418,7 +428,10 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
             : {},
     ]);
 
-    if (!hydratedProject) return null;
+    if (!hydratedProject) {
+        markDegraded(context, `promotion project ${project.id}`);
+        return null;
+    }
     const { fragmentPaths, offerOverrides, offerSubstitutions, promoCode } = hydratedProject;
     const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
@@ -502,6 +515,7 @@ async function init(context) {
     settled.forEach((result, i) => {
         if (result.status === 'rejected') {
             logError(`Failed to hydrate promotion project ${matched[i].id}: ${result.reason}`, context);
+            markDegraded(context, `promotion project ${matched[i].id}`);
         } else if (result.value) {
             activeProjects.push(result.value);
         }

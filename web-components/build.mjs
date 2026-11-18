@@ -72,11 +72,11 @@ Promise.all([
     }),
     buildLitComponent('merch-card', [
         {
-            name: 'shared-commerce',
+            name: 'external-commerce',
             setup(build) {
                 build.onResolve(
                     {
-                        filter: /^\.\.?\/(utils|utilities|mas-element|upt-link|image-markup|plan-type-text|mas-context|log)(\.js)?$/,
+                        filter: /^\.\.?\/commerce\.js$/,
                     },
                     () => ({ path: './commerce.js', external: true }),
                 );

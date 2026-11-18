@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { build } from 'esbuild';
@@ -14,31 +15,13 @@ const options = {
     alias: { react: './test/mocks/react.js' },
 };
 
-test('cards share helper modules while constants and standalone components stay direct', async () => {
-    const shared = [
-        'utils',
-        'utilities',
-        'mas-element',
-        'upt-link',
-        'image-markup',
-        'plan-type-text',
-        'mas-context',
-        'log',
-    ];
+test('explicit commerce imports isolate shared state and standalone components', async () => {
     const [commerce, card, icon] = await Promise.all([
         build({ ...options, entryPoints: ['./src/commerce.js'] }),
         build({
             ...options,
             entryPoints: ['./src/merch-card.js'],
-            external: [
-                'lit',
-                ...shared.flatMap((name) =>
-                    ['.', '..'].flatMap((prefix) => [
-                        `${prefix}/${name}`,
-                        `${prefix}/${name}.js`,
-                    ]),
-                ),
-            ],
+            external: ['lit', './commerce.js', '../commerce.js'],
         }),
         build({
             ...options,
@@ -46,14 +29,34 @@ test('cards share helper modules while constants and standalone components stay 
             external: ['lit'],
         }),
     ]);
+    const emittedInputs = ({ metafile }) =>
+        Object.values(metafile.outputs).flatMap(({ inputs }) =>
+            Object.keys(inputs).filter(
+                (path) => inputs[path].bytesInOutput > 0,
+            ),
+        );
+    const cardInputs = emittedInputs(card);
+    const commerceInputs = emittedInputs(commerce);
+    // utils.js contributes disjoint, tree-shaken functions to these bundles.
     assert.deepEqual(
-        Object.keys(card.metafile.inputs).filter(
+        cardInputs.filter(
             (path) =>
-                path in commerce.metafile.inputs &&
-                !path.endsWith('/constants.js'),
+                commerceInputs.includes(path) &&
+                !path.endsWith('/constants.js') &&
+                path !== 'src/utils.js',
         ),
         [],
     );
+    for (const { exports } of Object.values(commerce.metafile.outputs)) {
+        for (const name of exports) {
+            assert.doesNotMatch(
+                card.outputFiles[0].text,
+                new RegExp(`\\bfunction ${name}(?:[0-9]+)?\\(`),
+                `${name} must be imported from commerce, not copied into cards`,
+            );
+        }
+    }
+    assert.doesNotMatch(commerce.outputFiles[0].text, /\bforegroundTimers\b/);
     assert('src/constants.js' in card.metafile.inputs);
     assert('src/utils.js' in icon.metafile.inputs);
     assert(!('src/mas-commerce-service.js' in card.metafile.inputs));
@@ -61,27 +64,30 @@ test('cards share helper modules while constants and standalone components stay 
     assert(!('src/plan-type-text.js' in icon.metafile.inputs));
 });
 
-test('built cards link against commerce and reject missing exports', async () => {
-    const card = {
-        ...options,
-        entryPoints: ['./dist/merch-card.js'],
-        external: ['./lit-all.min.js'],
-    };
-    await build(card);
+test('the normal mas build rejects missing explicit commerce exports', async () => {
+    const contents = readFileSync(
+        new URL('../../src/commerce.js', import.meta.url),
+        'utf8',
+    ).replace("export { hostOsi } from './plan-type-text.js';", '');
+    await build({ ...options, entryPoints: ['./src/mas.js'] });
     await assert.rejects(
         build({
-            ...card,
+            ...options,
+            entryPoints: ['./src/mas.js'],
             plugins: [
                 {
-                    name: 'missing-commerce-exports',
+                    name: 'missing-commerce-export',
                     setup(builder) {
                         builder.onLoad({ filter: /\/commerce\.js$/ }, () => ({
-                            contents: 'export {};',
+                            contents,
+                            resolveDir: fileURLToPath(
+                                new URL('../../src/', import.meta.url),
+                            ),
                         }));
                     },
                 },
             ],
         }),
-        /No matching export in "dist\/commerce.js" for import/,
+        /No matching export in "src\/commerce.js" for import "hostOsi"/,
     );
 });

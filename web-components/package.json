@@ -13,7 +13,7 @@
         "build:bundle:dev": "npm run build:bundle sourcemap",
         "watch": "node ./watch.mjs",
         "dev": "node ./watch.mjs --serve",
-        "postbuild:bundle": "node --test test/build/commerce-exports.test.mjs",
+        "prebuild:bundle": "node --test test/build/commerce-exports.test.mjs",
         "test:watch": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage",
         "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",

@@ -24,17 +24,11 @@ export {
 };
 
 export {
-    clearForegroundTimeout,
     createTag,
-    debounce,
     getHeadlessCtaVariant,
-    getOuterHeight,
     getService,
     hydrateHeadlessCta,
-    isMobileOrTablet,
     printMeasure,
-    setForegroundTimeout,
-    toRelativeAssetUrl,
 } from './utils.js';
 export { createMasElement } from './mas-element.js';
 export { toPromotionCodes } from './utilities.js';

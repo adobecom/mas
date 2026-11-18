@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { createReleaseCard } from './utils/release-cards.js';
 import { fetchProducts } from './services/product-api.js';
+import { excludeEnterprise } from './utils/enterprise-offers.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
 import { EVENT_OST_MULTI_OFFER_SELECT, PAGE_NAMES } from './constants.js';
@@ -193,7 +194,7 @@ class MasProductCatalog extends LitElement {
         this.error = null;
         try {
             const result = await fetchProducts();
-            this.products = result.products || [];
+            this.products = excludeEnterprise(result.products);
         } catch (e) {
             console.error('Failed to load products:', e);
             this.error = e.message;

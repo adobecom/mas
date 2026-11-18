@@ -220,4 +220,18 @@ describe('stored response', () => {
         expect(state.put.calledOnce).to.be.true;
         expect(files.write.calledOnce).to.be.true;
     });
+
+    it('uploads an unchanged body again until a Files write succeeds', async () => {
+        const write = files.write.bind(files);
+        files.write = sinon.stub().rejects(new Error('503'));
+        await store({ measures: [] }, null, 'h1', { body: 'b1' });
+        let { cachedMetadata, cachedResponse } = await read();
+        expect(getStoredResponse(cachedMetadata, cachedResponse)).to.equal('b1');
+        files.write = sinon.stub().callsFake(write);
+        await store({ measures: [] }, cachedMetadata, 'h1', { body: 'b1', cachedResponse });
+        expect(JSON.parse(files.store[RESPONSE_PATH])).to.deep.equal({ hash: 'h1', body: 'b1' });
+        ({ cachedMetadata, cachedResponse } = await read());
+        await store({ measures: [] }, cachedMetadata, 'h1', { body: 'b1', cachedResponse });
+        expect(files.write.calledOnce).to.be.true;
+    });
 });

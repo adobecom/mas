@@ -262,6 +262,39 @@ describe('pipeline end to end', () => {
         });
     }
 
+    it('should serve the previous stored response rather than time out when the rebuild is slow, then store the rebuild', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 300)));
+        const state = new MockState();
+        await state.put('configuration', '{"networkConfig":{"mainTimeout":200,"retries":1}}');
+        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            hash: 'old-hash',
+            lastModified: RANDOM_OLD_DATE,
+            refreshedAt: Date.now() - 6 * 60 * 1000,
+        });
+        const files = new MockFiles();
+        files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+            hash: 'old-hash',
+            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+        });
+        const output = sinon.stub(console, 'log');
+        let result;
+        try {
+            result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+            await new Promise((resolve) => setTimeout(resolve, 300));
+        } finally {
+            output.restore();
+        }
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.equal({ stale: true });
+        expect(output.getCalls().find(({ args }) => args[0].includes('pipeline completed')).args[0]).to.match(
+            /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 6m\d+s ago, rebuild timed out\)/,
+        );
+        expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+    });
+
     describe('re-reading State before rebuilding', () => {
         const requestKey = 'req-some-en-us-fragment-fr_FR';
         const responsePath = 'fragment-cache/res-some-en-us-fragment-fr_FR.json';
@@ -1105,7 +1138,7 @@ describe('pipeline end to end', () => {
         const stubSurfaceNoise = () => {
             fetchStub
                 .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom-cc/settings/index')
-                .returns(createResponse(200, {}));
+                .returns(createResponse(404, {}));
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
             fetchStub
                 .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))

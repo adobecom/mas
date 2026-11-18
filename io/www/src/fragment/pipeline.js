@@ -125,6 +125,7 @@ async function main(params) {
             const initTime = measureTiming(context, 'init', 'start').duration;
             let timeout = context.networkConfig?.mainTimeout || 5000;
             timeout = Math.max(timeout - initTime, 0);
+            context.deadline = Date.now() + timeout;
             returnValue = await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
         }
     } catch (error) {
@@ -179,6 +180,17 @@ async function main(params) {
 
 // in-progress rebuilds by request key
 const rebuilds = new Map();
+// a rebuild still running this long before main()'s deadline is given up for the previous stored response
+const DEADLINE_MARGIN = 100;
+const PAST_DEADLINE = Symbol('past deadline');
+
+async function beforeDeadline(promise, deadline) {
+    let timer;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(resolve, deadline - DEADLINE_MARGIN - Date.now(), PAST_DEADLINE);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 async function mainProcess(context) {
     // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
@@ -261,12 +273,14 @@ async function mainProcess(context) {
             rebuild.finally(() => rebuilds.delete(requestKey)).catch(() => {});
         }
     }
-    const built = await rebuild;
+    // a failed, degraded or slow rebuild falls back to the previous stored response when it is less than STALE_MAX_AGE
+    // old: a slow one is not awaited past main()'s deadline, it goes on and stores its response
+    const fallbackBody = getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
+    const built = await (fallbackBody ? beforeDeadline(rebuild, context.deadline) : rebuild);
+    if (built === PAST_DEADLINE) return storedResponse(fallbackBody, 'stale-error', ', rebuild timed out');
     const failure =
         built.statusCode >= 500 ? `failed with ${built.statusCode}` : built.degraded && `degraded by ${built.degraded}`;
-    // a failed or degraded rebuild falls back to the previous stored response when it is less than STALE_MAX_AGE old
-    const fallbackBody = failure && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
-    if (fallbackBody) return storedResponse(fallbackBody, 'stale-error', `, rebuild ${failure}`);
+    if (failure && fallbackBody) return storedResponse(fallbackBody, 'stale-error', `, rebuild ${failure}`);
     // error responses are copied: main() mutates the returned object
     if (built.statusCode) return { ...built };
     return { ...successResponse(context, built), cache, requestKey, cacheDetail: failure && `${failure}, not stored` };

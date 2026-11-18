@@ -47,9 +47,9 @@ Layers 3 and 4 live in `io/www`. They behave as follows:
     - A response is served as is while `refreshedAt` is less than 5 minutes old.
     - Beyond that, one rebuild starts per container while the previous response is served, up to 15 minutes old. Older ones wait for the rebuild.
     - Before rebuilding, the container re-reads both entries, in case another container just refreshed them.
-    - A failed rebuild (5xx) falls back to a response less than 15 minutes old.
-    - A degraded rebuild (a 200 missing data after an Odin or WCS failure: dictionary, promotions, baselines, offers, offer mapping, WCS 5xx) is not stored, and falls back the same way; otherwise it is served, and the next request rebuilds again.
-    - Every rebuild rewrites `req-`, to update `refreshedAt`. `res-` is only rewritten when the hash changed.
+    - A failed rebuild (5xx), or one still running near the request deadline, falls back to a response less than 15 minutes old; the slow rebuild goes on and stores its response.
+    - A degraded rebuild (a 200 missing data after an Odin or WCS failure: settings, dictionary, promotions, baselines, offers, offer mapping, WCS 5xx) is not stored, and falls back the same way; otherwise it is served, and the next request rebuilds again.
+    - Every rebuild rewrites `req-`, to update `refreshedAt`. `res-` is only rewritten when the hash changed, or when its previous write failed (the response then only lived in memory).
 - **Memory**, one shared LRU (least recently used) cache per container, bounded by 75% of the V8 heap:
     - copies of the stored entries, re-read at most every minute;
     - stale-while-revalidate caches of the inputs that many responses share: `dictionary`, `promotions`, `baselines`, `offers`, `offer-mapping` and `wcs-artifacts`. Each refills in the background and in a single flight per key.

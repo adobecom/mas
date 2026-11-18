@@ -82,13 +82,16 @@ async function readFiles(key, context) {
     }
 }
 
-// Same best effort as `putInState`, with a timeout: a slow write must not delay the response.
+// Same best effort as `putInState`, with a timeout: a slow write must not delay the response. Resolves to whether it
+// succeeded.
 async function putInFiles(context, key, value, label) {
-    if (!context.files) return;
+    if (!context.files) return false;
     try {
         await withFilesTimeout(context.files.write(getResponsePath(key), JSON.stringify(value)), label, context);
+        return true;
     } catch (error) {
         logError(`failed to store ${key}: ${error.message}`, context);
+        return false;
     }
 }
 
@@ -165,8 +168,9 @@ async function putInState(context, key, value, label) {
 }
 
 /**
- * Stores the request metadata with a new `refreshedAt`, and the encoded `body` when its hash changed.
- * Keeping the body under its own key spares rewriting it on every refresh.
+ * Stores the request metadata with a new `refreshedAt`, and the encoded `body` when its hash changed or its memory copy
+ * is `unsaved` (Files was not ready or the write failed). Keeping the body under its own key spares rewriting it on
+ * every refresh.
  */
 async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse } = {}) {
     const updated = cachedMetadata?.hash !== hash;
@@ -185,10 +189,15 @@ async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, {
     if (updated) log(`updating cache for ${requestKey} -> ${JSON.stringify(metadata)}`, context);
     if (shared) metadataCache.set(context, requestKey, metadata);
     const writes = [putInState(context, requestKey, metadata, 'req-state-put')];
-    if (shared && cachedResponse?.hash !== hash && body?.length <= MAX_STORED_RESPONSE_LENGTH) {
+    if (shared && (cachedResponse?.hash !== hash || cachedResponse.unsaved) && body?.length <= MAX_STORED_RESPONSE_LENGTH) {
+        const responseKey = getResponseKey(requestKey);
         const response = { hash, body };
-        responseCache.set(context, getResponseKey(requestKey), response);
-        writes.push(putInFiles(context, getResponseKey(requestKey), response, 'res-files-put'));
+        responseCache.set(context, responseKey, { ...response, unsaved: true });
+        writes.push(
+            putInFiles(context, responseKey, response, 'res-files-put').then(
+                (saved) => saved && responseCache.set(context, responseKey, response),
+            ),
+        );
     }
     await Promise.all(writes);
     return { lastModified, hash };

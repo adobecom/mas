@@ -288,6 +288,7 @@ class MasMultifield extends LitElement {
     drop(e, index) {
         e.preventDefault();
         e.target.classList.remove('dragover');
+        if (this.draggingIndex < 0) return;
         const [first, last] = [Math.min(this.draggingIndex, index), Math.max(this.draggingIndex, index)];
         if (this.value.slice(first, last + 1).some((field) => field.saved)) {
             this.draggingIndex = -1;

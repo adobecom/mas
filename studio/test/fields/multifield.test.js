@@ -135,6 +135,12 @@ describe('Multifield', () => {
         expect(el.value.map((item) => item.value)).to.deep.equal(['a', 'b', 'd', 'c']);
     });
 
+    it('ignores a drop when no drag started in the list', async () => {
+        const el = await savedRowsFixture();
+        dropOn(el, -1, 3);
+        expect(el.value.map((item) => item.value)).to.deep.equal(['a', 'b', 'c', 'd']);
+    });
+
     it('hides the add button when addAllowed is false', async () => {
         const el = await fixture(
             html`

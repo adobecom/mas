@@ -2,7 +2,6 @@ import { createTimeoutPromise, mark, measureTiming, VALID_PARAMETER_VALUE_REGEX 
 import {
     clearRequestCaches,
     extractContextFromMetadata,
-    getFilesClient,
     getRequestMetadata,
     getStoredResponse,
     rereadRequestMetadata,
@@ -21,6 +20,7 @@ import crypto from 'crypto';
 import v8 from 'v8';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
+import filesLib from '@adobe/aio-lib-files';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
 import { transformer as defaultLanguage } from './transformers/defaultLanguage.js';
@@ -49,10 +49,31 @@ const formatAge = (ms) => {
     return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
 };
 
+let files;
+let filesInit;
+
+/**
+ * Returns the Files client once initialised, `undefined` until then: its first initialisation in a container takes
+ * a couple of seconds, which requests do not wait for (their stored responses are then just not read nor written).
+ * Initialised here rather than in `utils/cache.js`, which Studio also loads in the browser.
+ */
+function getFilesClient(context) {
+    filesInit ??= filesLib
+        .init()
+        .then((client) => (files = client))
+        .catch((error) => {
+            logError(`failed to initialise Files: ${error.message}`, context);
+            filesInit = undefined;
+        });
+    return files;
+}
+
 function resetCache() {
     resetConfiguration();
     clearRequestCaches();
     resetMemoryLog();
+    files = undefined;
+    filesInit = undefined;
 }
 
 /** 200 (or 304 when not modified since `If-Modified-Since`) response for an already encoded body. */
@@ -261,15 +282,21 @@ async function mainProcess(context) {
         }
     }
     const built = await rebuild;
-    // a failed rebuild falls back to the previous stored response when it is less than STALE_MAX_AGE old
-    const fallbackBody = built.statusCode >= 500 && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
-    if (fallbackBody) return storedResponse(fallbackBody, 'stale-error', `, rebuild failed with ${built.statusCode}`);
+    const failure =
+        built.statusCode >= 500 ? `failed with ${built.statusCode}` : built.degraded && `degraded by ${built.degraded}`;
+    // a failed or degraded rebuild falls back to the previous stored response when it is less than STALE_MAX_AGE old
+    const fallbackBody = failure && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
+    if (fallbackBody) return storedResponse(fallbackBody, 'stale-error', `, rebuild ${failure}`);
     // error responses are copied: main() mutates the returned object
     if (built.statusCode) return { ...built };
-    return { ...successResponse(context, built), cache, requestKey };
+    return { ...successResponse(context, built), cache, requestKey, cacheDetail: failure && `${failure}, not stored` };
 }
 
-/** Runs the transformers and stores the result; resolves to `{ id, hash, lastModified, body }` or an error response. */
+/**
+ * Runs the transformers and stores the result; resolves to `{ id, hash, lastModified, body, degraded }` or an error
+ * response. A degraded result (see `markDegraded`) is not stored, so that the previous stored response stays and the
+ * next request rebuilds it.
+ */
 async function buildResponse(context, requestKey, cachedMetadata, cachedResponse) {
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -277,6 +304,7 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
     // those requests are done in parallel and results stored in context.promises
     const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};
+    context.degraded = new Set();
     for (const transformer of PIPELINE) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
@@ -285,6 +313,7 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
                 state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
+                degraded: context.degraded,
                 measures: context.measures,
             };
             initContext.loggedTransformer = `${transformer.name}-init`;
@@ -313,8 +342,13 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
     logDebug(() => `response body: ${responseBody}`, context);
     const hash = calculateHash(responseBody);
     const body = encode(responseBody);
+    if (context.degraded.size > 0) {
+        const degraded = [...context.degraded].join(', ');
+        logError(`not storing ${requestKey}, degraded by ${degraded}`, context);
+        return { id: context.body?.id, hash, lastModified: new Date(), body, degraded };
+    }
     const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse });
     return { id: context.body?.id, hash, lastModified, body };
 }
 
-export { main, resetCache, PIPELINE };
+export { main, resetCache, getFilesClient, PIPELINE };

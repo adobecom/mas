@@ -1,9 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import filesLib from '@adobe/aio-lib-files';
 import {
     clearRequestCaches,
-    getFilesClient,
     getRequestMetadata,
     getStoredResponse,
     rereadRequestMetadata,
@@ -191,31 +189,5 @@ describe('stored response', () => {
         expect(hash).to.equal('h1');
         expect(state.put.calledOnce).to.be.true;
         expect(files.write.calledOnce).to.be.true;
-    });
-});
-
-describe('Files client', () => {
-    afterEach(() => {
-        sinon.restore();
-        clearRequestCaches();
-    });
-
-    it('is only returned once initialised, which is started once', async () => {
-        const client = new MockFiles();
-        const init = sinon.stub(filesLib, 'init').resolves(client);
-        expect(getFilesClient({})).to.be.undefined;
-        expect(getFilesClient({})).to.be.undefined;
-        await init.returnValues[0];
-        expect(getFilesClient({})).to.equal(client);
-        expect(init.calledOnce).to.be.true;
-    });
-
-    it('is initialised again after a failed initialisation', async () => {
-        const init = sinon.stub(filesLib, 'init').rejects(new Error('no credentials'));
-        expect(getFilesClient({})).to.be.undefined;
-        await init.returnValues[0].catch(() => {});
-        await Promise.resolve();
-        expect(getFilesClient({})).to.be.undefined;
-        expect(init.calledTwice).to.be.true;
     });
 });

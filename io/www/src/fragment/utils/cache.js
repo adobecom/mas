@@ -2,7 +2,6 @@ import { getJsonFromState, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log, logError } from './log.js';
 import { createSwrCache } from './swr-cache.js';
-import filesLib from '@adobe/aio-lib-files';
 // Escaped as in URLs, with `.` instead of `%` (State keys only allow letters, digits, `-`, `_` and `.`): in a key, `.`
 // is then either an escape (followed by 2 uppercase hex digits) or the start of a tagged parameter (lowercase tag).
 const escapeKeyValue = (value) =>
@@ -44,24 +43,6 @@ const readState = async (key, context) => (await getJsonFromState(key, context))
 
 // Preview (Studio) and `instant` (time travelling) requests neither use the memory copies nor the stored response.
 const usesStoredResponse = ({ preview, instant }) => !preview && !instant;
-
-let files;
-let filesInit;
-
-/**
- * Returns the Files client once initialised, `undefined` until then: its first initialisation in a container takes
- * a couple of seconds, which requests do not wait for (their stored responses are then just not read nor written).
- */
-function getFilesClient(context) {
-    filesInit ??= filesLib
-        .init()
-        .then((client) => (files = client))
-        .catch((error) => {
-            logError(`failed to initialise Files: ${error.message}`, context);
-            filesInit = undefined;
-        });
-    return files;
-}
 
 async function withFilesTimeout(promise, label, context) {
     let timer;
@@ -200,13 +181,10 @@ async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, {
 function clearRequestCaches() {
     metadataCache.clear();
     responseCache.clear();
-    files = undefined;
-    filesInit = undefined;
 }
 
 export {
     STALE_MAX_AGE,
-    getFilesClient,
     getRequestMetadata,
     rereadRequestMetadata,
     getStoredResponse,

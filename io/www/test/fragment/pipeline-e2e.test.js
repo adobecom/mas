@@ -72,6 +72,7 @@ describe('pipeline end to end', () => {
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
+                'dictionary-id-acom-fr_FR': 'acom_fr_FR_dictionary',
                 'dictionary-id-sandbox-fr_FR': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
                 'settings-id': 'settings-id',
@@ -209,6 +210,54 @@ describe('pipeline end to end', () => {
             expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
             expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
                 /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\)$/,
+            );
+        });
+    }
+
+    for (const { title, refreshedAt, fallback } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
+    ]) {
+        it(`should not store a degraded rebuild, ${fallback ? 'but serve' : 'nor serve'} the previous stored response (${title})`, async () => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/fr_FR/dictionary/index',
+                )
+                .returns(createResponse(500, {}));
+            const metadata = JSON.stringify({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt });
+            const response = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = metadata;
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = response;
+            const output = sinon.stub(console, 'log');
+            let result;
+            try {
+                result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+            } finally {
+                output.restore();
+            }
+            const summary = output
+                .getCalls()
+                .map(({ args }) => args[0])
+                .find((line) => line.includes('pipeline completed'));
+            expect(state.store['req-some-en-us-fragment-fr_FR']).to.equal(metadata);
+            expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']).to.equal(response);
+            expect(result.statusCode).to.equal(200);
+            if (fallback) {
+                expect(result.body).to.deep.equal({ stale: true });
+                expect(summary).to.match(
+                    /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild degraded by dictionary acom\/fr_FR\)/,
+                );
+                return;
+            }
+            expect(result.body.id).to.equal('some-fr-fr-fragment');
+            expect(summary).to.match(
+                /cache miss req-some-en-us-fragment-fr_FR \(degraded by dictionary acom\/fr_FR, not stored\)/,
             );
         });
     }
@@ -455,7 +504,7 @@ describe('pipeline end to end', () => {
         });
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index',
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();

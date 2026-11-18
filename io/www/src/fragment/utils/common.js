@@ -71,6 +71,14 @@ function mark(context, label) {
     return (context.marks[label] = performance.now()?.toFixed(2));
 }
 
+/**
+ * Flags the response being built as degraded: an upstream failure left some of its data out. The pipeline then does
+ * not store it (see `buildResponse`); outside of it (e.g. Studio) there is no `degraded` set and this is a no-op.
+ */
+function markDegraded(context, reason) {
+    context.degraded?.add(reason);
+}
+
 function measureTiming(context, label, startLabel = label) {
     const measure = { label, duration: 0 };
     if (context.marks && context.marks[startLabel]) {
@@ -378,6 +386,7 @@ export {
     hasGeoTag,
     geoMatchScore,
     mark,
+    markDegraded,
     matchesGeo,
     measureTiming,
     skimFragmentFromReferences,

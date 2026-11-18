@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/editors/merch-card-editor.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 import { CARD_MODEL_PATH } from '../../src/constants.js';
 
 const customFields = (values, labels) => [
@@ -15,7 +15,7 @@ describe('merch-card-editor custom field saved state', () => {
     function makeEditor(fields, parentFields, fragmentData = {}) {
         const MerchCardEditor = customElements.get('merch-card-editor');
         const editor = new MerchCardEditor();
-        editor.fragmentStore = new FragmentStore(
+        editor.fragmentStore = generateFragmentStore(
             new Fragment({ path: '/content/dam/mas/sandbox/en_US/card', fields, ...fragmentData }),
         );
         if (parentFields) {

@@ -2259,6 +2259,62 @@
                             inside('customFields', 8);
                         });
 
+                        describe('template sections', () => {
+                            const setup = async (variant) => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: [variant] },
+                                    `template-section-${variant}`,
+                                );
+                                await editor.toggleFields();
+                                return editor;
+                            };
+                            const card = (editor, name) => editor.querySelector(`.editor-section[data-section="${name}"]`);
+                            const labelIn = (container, id) =>
+                                container.querySelector(`sp-field-group#${id} sp-field-label`).textContent.trim();
+
+                            it('groups marquee title, description and ctas in a Marquee card', async () => {
+                                const editor = await setup('marquee');
+                                const names = [...editor.querySelectorAll('.editor-section')].map((c) => c.dataset.section);
+                                expect(names.slice(0, 3)).to.deep.equal(['Card framework', 'Meta data', 'Marquee']);
+                                const marquee = card(editor, 'Marquee');
+                                expect(labelIn(marquee, 'title')).to.equal('Marquee title');
+                                expect(labelIn(marquee, 'description')).to.equal('Marquee description');
+                                expect(labelIn(marquee, 'ctas')).to.equal('Marquee CTA');
+                                for (const id of ['title', 'description', 'ctas']) {
+                                    expect(editor.querySelectorAll(`sp-field-group#${id}`)).to.have.length(1);
+                                }
+                            });
+
+                            it('groups the FAQ answers and drops callout from the optional sections', async () => {
+                                const editor = await setup('faq');
+                                const faqs = card(editor, 'FAQs');
+                                expect(labelIn(faqs, 'description')).to.equal('Answer 1');
+                                expect(labelIn(faqs, 'shortDescription')).to.equal('Answer 2');
+                                expect(labelIn(faqs, 'callout')).to.equal('Answer 3');
+                                expect(editor.hiddenSupportedSections.map((s) => s.id)).to.not.include('callout');
+                                expect(card(editor, 'Callout text')).to.be.null;
+                                expect(editor.querySelectorAll('sp-field-group#callout')).to.have.length(1);
+                            });
+
+                            it('groups banner-blade fields in a Sticky bar card', async () => {
+                                const editor = await setup('banner-blade');
+                                const sticky = card(editor, 'Sticky bar');
+                                expect(labelIn(sticky, 'title')).to.equal('Title');
+                                expect(labelIn(sticky, 'description')).to.equal('Description');
+                                expect(labelIn(sticky, 'ctas')).to.equal('CTA');
+                            });
+
+                            it('adds no template card to headless and plans cards', async () => {
+                                for (const variant of ['headless', 'plans']) {
+                                    const editor = await setup(variant);
+                                    for (const name of ['Marquee', 'FAQs', 'Sticky bar']) {
+                                        expect(card(editor, name)).to.be.null;
+                                    }
+                                    expect(editor.querySelectorAll('sp-field-group#title')).to.have.length(1);
+                                }
+                            });
+                        });
+
                         it('hides the card of a section whose fields are all hidden', async () => {
                             const { editor } = await setupTestEnvironment(
                                 { isVariation: false, variant: ['marquee'] },

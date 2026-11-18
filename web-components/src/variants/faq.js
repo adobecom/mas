@@ -17,19 +17,21 @@ export const FAQ_AEM_FRAGMENT_MAPPING = {
     description: {
         tag: 'div',
         slot: 'body-xs',
-        editorLabel: 'FAQ answer 1',
+        editorLabel: 'Answer 1',
     },
     shortDescription: {
         tag: 'p',
         slot: 'short-description',
-        editorLabel: 'FAQ answer 2',
+        editorLabel: 'Answer 2',
     },
     callout: {
         tag: 'div',
         slot: 'callout-content',
-        editorLabel: 'FAQ answer 3',
+        editorLabel: 'Answer 3',
     },
 };
+
+const labelFor = (key) => FAQ_AEM_FRAGMENT_MAPPING[key].editorLabel;
 
 /**
  * Slot name to display label for FAQ variant (label + value only, no card).
@@ -37,9 +39,9 @@ export const FAQ_AEM_FRAGMENT_MAPPING = {
  */
 const FAQ_FIELDS = [
     { slot: 'prices', label: 'Product price' },
-    { slot: 'body-xs', label: 'FAQ answer 1' },
-    { slot: 'short-description', label: 'FAQ answer 2' },
-    { slot: 'callout-content', label: 'FAQ answer 3' },
+    { slot: 'body-xs', label: labelFor('description') },
+    { slot: 'short-description', label: labelFor('shortDescription') },
+    { slot: 'callout-content', label: labelFor('callout') },
 ];
 
 export class Faq extends VariantLayout {

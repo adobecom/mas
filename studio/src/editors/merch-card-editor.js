@@ -106,8 +106,9 @@ const getOptionalSection = (id) => OPTIONAL_SECTIONS.find((section) => section.i
  * Mirrors the toggleFields rules: a section is supported when one of its mapping keys is non-empty
  * and not listed in the mapping's disabledAttributes.
  */
-export function isSectionSupported(section, mapping) {
+export function isSectionSupported(section, mapping, claimedKeys = []) {
     return section.mappingKeys.some((key) => {
+        if (claimedKeys.includes(key)) return false;
         const value = mapping?.[key];
         if (!value || (Array.isArray(value) && value.length === 0)) return false;
         return !mapping.disabledAttributes?.includes(key);
@@ -199,7 +200,16 @@ class MerchCardEditor extends LitElement {
         addedSections: { type: Object, state: true },
     };
 
+    /** Content fields a headless template groups into its own card, keyed by normalized variant. */
+    static TEMPLATE_SECTIONS = {
+        marquee: { title: 'Marquee', fields: ['title', 'description', 'ctas'] },
+        faq: { title: 'FAQs', fields: ['description', 'shortDescription', 'callout'] },
+        'banner-blade': { title: 'Sticky bar', fields: ['title', 'description', 'ctas'] },
+    };
+
     static SECTION_FIELDS = {
+        ...Object.fromEntries(Object.values(this.TEMPLATE_SECTIONS).map(({ title, fields }) => [title, fields])),
+        'Price and Promo': ['prices', 'planType', 'shortDescription', 'promoText', 'perUnitLabel'],
         Visuals: ['backgrounds', 'image'],
         'Card header': ['title', 'mnemonics'],
         'Product description': ['description', 'subtitle'],
@@ -1011,7 +1021,7 @@ class MerchCardEditor extends LitElement {
     #shownSectionKey = null;
 
     supported(id) {
-        return isSectionSupported(getOptionalSection(id), this.currentVariantMapping);
+        return isSectionSupported(getOptionalSection(id), this.currentVariantMapping, this.#templateSection?.fields);
     }
 
     #readSectionValue(name) {
@@ -1518,10 +1528,150 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    get #templateSection() {
+        return this.constructor.TEMPLATE_SECTIONS[normalizeVariantName(this.getEffectiveFieldValue('variant'))];
+    }
+
+    #claimed(field) {
+        return !!this.#templateSection?.fields.includes(field);
+    }
+
+    #templateSectionTemplate(form) {
+        const section = this.#templateSection;
+        if (!section) return nothing;
+        const renderers = {
+            title: () => this.#renderTitleField(form),
+            description: () => this.#renderDescriptionField(form),
+            shortDescription: () => this.#renderShortDescriptionField(form),
+            callout: () => this.#renderCalloutField(form),
+            ctas: () => this.#renderCtasField(form),
+        };
+        return html`
+            <div class="editor-section" data-section=${section.title}>
+                <div class="section-title">${section.title}</div>
+                ${section.fields.map((field) => renderers[field]())}
+            </div>
+        `;
+    }
+
+    #renderShortDescriptionField(form) {
+        const isFaq = this.getEffectiveFieldValue('variant') === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="shortDescription">
+                <sp-field-label for="shortDescription">
+                    ${this.currentVariantMapping?.shortDescription?.editorLabel ?? 'Pricing subtext'}
+                </sp-field-label>
+                <rte-field
+                    id="shortDescription"
+                    ?styling=${!isFaq}
+                    link
+                    upt-link
+                    list
+                    ?mnemonic=${!isFaq}
+                    ?icon=${!isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    data-field="shortDescription"
+                    data-field-state="${this.getFieldState('shortDescription')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.shortDescription?.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('shortDescription')}
+            </sp-field-group>
+        `;
+    }
+
+    #renderDescriptionField(form) {
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isFaq = variantValue === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="description">
+                <sp-field-label for="description">
+                    ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
+                </sp-field-label>
+                <rte-field
+                    id="description"
+                    ?styling=${!isFaq}
+                    ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
+                    link
+                    upt-link
+                    list
+                    ?mnemonic=${!isFaq}
+                    ?divider=${!isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
+                    data-field="description"
+                    data-field-state="${this.getFieldState('description')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.description.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('description')}
+            </sp-field-group>
+        `;
+    }
+
+    #renderCtasField(form) {
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isHeadlessCta = HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue);
+        return html`
+            <sp-field-group class="toggle" id="ctas">
+                <sp-field-label for="ctas"> ${this.currentVariantMapping?.ctas?.editorLabel ?? 'Primary CTA'} </sp-field-label>
+                <rte-field
+                    id="ctas"
+                    link
+                    divider="${this.fragment.variant === 'product' ? '' : nothing}"
+                    .formatMarks=${isHeadlessCta ? [] : undefined}
+                    data-field="ctas"
+                    data-field-state="${this.getFieldState('ctas')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.ctas.values[0] || ''}
+                    ?is-variation=${this.effectiveIsVariation}
+                    .parentCtas=${this.parentCtas}
+                    ?is-headless-cta=${isHeadlessCta}
+                    default-link-style="${isHeadlessCta ? 'secondary-link' : 'primary-outline'}"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()} ${this.renderCtaModificationWarning()}
+            </sp-field-group>
+        `;
+    }
+
+    #renderCalloutField(form) {
+        const isFaq = this.getEffectiveFieldValue('variant') === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="callout">
+                <sp-field-label for="callout">
+                    ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
+                </sp-field-label>
+                <rte-field
+                    id="callout"
+                    link
+                    ?icon=${!isFaq}
+                    ?list=${isFaq}
+                    ?upt-link=${isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    data-field="callout"
+                    data-field-state="${this.getFieldState('callout')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.callout?.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                    ?readonly=${this.disabled}
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('callout')}
+            </sp-field-group>
+        `;
+    }
+
     #renderTitleField(form) {
         return html`
             <sp-field-group class="toggle" id="title">
-                <sp-field-label for="card-title">Card title</sp-field-label>
+                <sp-field-label for="card-title">
+                    ${this.currentVariantMapping?.title?.editorLabel ?? 'Card title'}
+                </sp-field-label>
                 <rte-field
                     id="card-title"
                     inline
@@ -1928,9 +2078,10 @@ class MerchCardEditor extends LitElement {
                     </sp-field-group>
                     ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
                 </div>
+                ${this.#templateSectionTemplate(form)}
                 <div class="editor-section" data-section="Card header">
                     <div class="section-title">Card header</div>
-                    ${this.#renderTitleField(form)}
+                    ${this.#claimed('title') ? nothing : this.#renderTitleField(form)}
                     <sp-field-group class="toggle" id="mnemonics">
                         <mas-multifield
                             id="mnemonics"
@@ -1990,28 +2141,7 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentUpdate}"
                         ></mas-plan-type-field>
                     </sp-field-group>
-                    <sp-field-group class="toggle" id="shortDescription">
-                        <sp-field-label for="shortDescription">
-                            ${this.currentVariantMapping?.shortDescription?.editorLabel ?? 'Pricing subtext'}
-                        </sp-field-label>
-                        <rte-field
-                            id="shortDescription"
-                            ?styling=${variantValue !== VARIANT_NAMES.FAQ}
-                            link
-                            upt-link
-                            list
-                            ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
-                            ?icon=${variantValue !== VARIANT_NAMES.FAQ}
-                            .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                            data-field="shortDescription"
-                            data-field-state="${this.getFieldState('shortDescription')}"
-                            .osi=${form.osi.values[0]}
-                            .value=${form.shortDescription?.values[0] || ''}
-                            default-link-style="secondary-link"
-                            @change="${this.#handleFragmentUpdate}"
-                        ></rte-field>
-                        ${this.renderFieldStatusIndicator('shortDescription')}
-                    </sp-field-group>
+                    ${this.#claimed('shortDescription') ? nothing : this.#renderShortDescriptionField(form)}
                     <div class="two-column-grid">
                         <sp-field-group id="promoCode">
                             <sp-field-label for="promo-code">Promo code</sp-field-label>
@@ -2044,31 +2174,8 @@ class MerchCardEditor extends LitElement {
                     </sp-field-group>
                 </div>
                 <div class="editor-section" data-section="Product description">
-                    <div class="section-title">${variantValue === VARIANT_NAMES.FAQ ? 'Answers' : 'Product description'}</div>
-                    <sp-field-group class="toggle" id="description">
-                        <sp-field-label for="description">
-                            ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
-                        </sp-field-label>
-                        <rte-field
-                            id="description"
-                            ?styling=${variantValue !== VARIANT_NAMES.FAQ}
-                            ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
-                            link
-                            upt-link
-                            list
-                            ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
-                            ?divider=${variantValue !== VARIANT_NAMES.FAQ}
-                            .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                            .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
-                            data-field="description"
-                            data-field-state="${this.getFieldState('description')}"
-                            .osi=${form.osi.values[0]}
-                            .value=${form.description.values[0] || ''}
-                            default-link-style="secondary-link"
-                            @change="${this.#handleFragmentUpdate}"
-                        ></rte-field>
-                        ${this.renderFieldStatusIndicator('description')}
-                    </sp-field-group>
+                    <div class="section-title">Product description</div>
+                    ${this.#claimed('description') ? nothing : this.#renderDescriptionField(form)}
                     <sp-field-group class="toggle" id="subtitle">
                         <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
                         <sp-textfield
@@ -2084,28 +2191,7 @@ class MerchCardEditor extends LitElement {
                 </div>
                 <div class="editor-section" data-section="Call to action">
                     <div class="section-title">Call to action</div>
-                    <sp-field-group class="toggle" id="ctas">
-                        <sp-field-label for="ctas">Primary CTA</sp-field-label>
-                        <rte-field
-                            id="ctas"
-                            link
-                            divider="${this.fragment.variant === 'product' ? '' : nothing}"
-                            .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue) ? [] : undefined}
-                            data-field="ctas"
-                            data-field-state="${this.getFieldState('ctas')}"
-                            .osi=${form.osi.values[0]}
-                            .value=${form.ctas.values[0] || ''}
-                            ?is-variation=${this.effectiveIsVariation}
-                            .parentCtas=${this.parentCtas}
-                            ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)}
-                            default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)
-                                ? 'secondary-link'
-                                : 'primary-outline'}"
-                            @change="${this.#handleFragmentUpdate}"
-                        ></rte-field>
-                        ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
-                        ${this.renderCtaModificationWarning()}
-                    </sp-field-group>
+                    ${this.#claimed('ctas') ? nothing : this.#renderCtasField(form)}
                     <sp-field-group id="secureLabel" class="toggle">
                         <secure-text-field
                             class="settings-toggle-field"
@@ -2262,28 +2348,7 @@ class MerchCardEditor extends LitElement {
                 ${this.shown('callout')
                     ? html`
                           <div class="editor-section" data-section="Callout text">
-                              ${this.#sectionHeaderTemplate('callout')}
-                              <sp-field-group class="toggle" id="callout">
-                                  <sp-field-label for="callout">
-                                      ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
-                                  </sp-field-label>
-                                  <rte-field
-                                      id="callout"
-                                      link
-                                      ?icon=${variantValue !== VARIANT_NAMES.FAQ}
-                                      ?list=${variantValue === VARIANT_NAMES.FAQ}
-                                      ?upt-link=${variantValue === VARIANT_NAMES.FAQ}
-                                      .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                                      data-field="callout"
-                                      data-field-state="${this.getFieldState('callout')}"
-                                      .osi=${form.osi.values[0]}
-                                      .value=${form.callout?.values[0] || ''}
-                                      default-link-style="secondary-link"
-                                      @change="${this.#handleFragmentUpdate}"
-                                      ?readonly=${this.disabled}
-                                  ></rte-field>
-                                  ${this.renderFieldStatusIndicator('callout')}
-                              </sp-field-group>
+                              ${this.#sectionHeaderTemplate('callout')} ${this.#renderCalloutField(form)}
                           </div>
                       `
                     : nothing}

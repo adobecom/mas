@@ -17,10 +17,13 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
     backgrounds: { tag: 'picture', slot: 'backgrounds' },
-    title: { tag: 'p', slot: 'heading-xs' },
-    description: { tag: 'div', slot: 'body-xs' },
-    ctas: { slot: 'footer', size: 'm' },
+    title: { tag: 'p', slot: 'heading-xs', editorLabel: 'Title' },
+    description: { tag: 'div', slot: 'body-xs', editorLabel: 'Description' },
+    ctas: { slot: 'footer', size: 'm', editorLabel: 'CTA' },
 };
+
+const labelFor = (key, fallback) =>
+    BANNER_BLADE_AEM_FRAGMENT_MAPPING[key]?.editorLabel ?? fallback;
 
 /**
  * Slot name to display label for Banner/Blade variant (label + value
@@ -29,9 +32,9 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
 const BANNER_BLADE_FIELDS = [
     { slot: 'image', label: 'Image' },
     { slot: 'backgrounds', label: 'Background' },
-    { slot: 'heading-xs', label: 'Title' },
-    { slot: 'body-xs', label: 'Description' },
-    { slot: 'footer', label: 'CTAs' },
+    { slot: 'heading-xs', label: labelFor('title', 'Card title') },
+    { slot: 'body-xs', label: labelFor('description', 'Description') },
+    { slot: 'footer', label: labelFor('ctas', 'CTAs') },
 ];
 
 export class BannerBlade extends VariantLayout {

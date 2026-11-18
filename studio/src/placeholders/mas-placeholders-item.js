@@ -5,7 +5,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
 import { confirmPlaceholderReferences } from './placeholder-reference-guard.js';
-import { showToast, normalizeKey } from '../utils.js';
+import { showToast, normalizeKey, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import '../rte/rte-field.js';
@@ -109,6 +109,8 @@ class MasPlaceholdersItem extends LitElement {
         const shouldProceed = await confirmPlaceholderReferences({
             aem: this.repository.aem,
             key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
             excludePath: this.placeholder.path,
             mode: 'remove',
         });
@@ -139,6 +141,8 @@ class MasPlaceholdersItem extends LitElement {
         const shouldProceed = await confirmPlaceholderReferences({
             aem: this.repository.aem,
             key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
             excludePath: this.placeholder.path,
             mode: 'publish',
         });

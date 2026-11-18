@@ -5,6 +5,7 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
+import { extractLocaleFromPath } from '../utils.js';
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
@@ -29,6 +30,40 @@ export function matchesPlaceholderKey(fragmentLike, key) {
     );
 }
 
+async function findReferences(aem, path, key, excludePath, signal, locale) {
+    const modelIds = [
+        TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
+        TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
+        DICTIONARY_ENTRY_MODEL_ID,
+    ];
+    const cursor = await aem.sites.cf.fragments.search(
+        { path, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+        null,
+        signal ? { signal } : undefined,
+    );
+
+    let refsFound = 0;
+    let page;
+    const references = [];
+    const seenPaths = new Set();
+    const limit = locale ? 2 : 10;
+    while (refsFound < limit) {
+        page = await cursor.next();
+        if (!page?.value) break;
+        for (const item of page.value) {
+            if (excludePath && item.path === excludePath) continue;
+            if (seenPaths.has(item.path)) continue;
+            if (!matchesPlaceholderKey(item, key)) continue;
+            if (locale && locale !== extractLocaleFromPath(item.path)) continue;
+            seenPaths.add(item.path);
+            references.push(item);
+            refsFound++;
+        }
+    }
+
+    return references;
+}
+
 /**
  * Searches the author instance for cards, collections, and placeholders that reference `key`,
  * scoped to the same surface and its ACOM fallback. Publish-side search is not available, so
@@ -37,33 +72,14 @@ export function matchesPlaceholderKey(fragmentLike, key) {
  * @param {{ key: string, surface: string, locale: string, excludePath?: string, signal?: AbortSignal }} params
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}
  */
-export async function findPlaceholderReferences(aem, { key, excludePath, signal } = {}) {
-    const modelIds = [
-        TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
-        TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
-        DICTIONARY_ENTRY_MODEL_ID,
-    ];
-    const references = [];
-    const seenPaths = new Set();
-
-    const cursor = await aem.sites.cf.fragments.search(
-        { path: ROOT_PATH, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
-        null,
-        signal ? { signal } : undefined,
-    );
-
-    let refsFound = 0;
-    let page;
-    while (refsFound < 10) {
-        page = await cursor.next();
-        if (!page?.value) break;
-        for (const item of page.value) {
-            if (excludePath && item.path === excludePath) continue;
-            if (seenPaths.has(item.path)) continue;
-            if (!matchesPlaceholderKey(item, key)) continue;
-            seenPaths.add(item.path);
-            references.push(item);
-            refsFound++;
+export async function findPlaceholderReferences(aem, { key, excludePath, signal, surface, locale } = {}) {
+    let references = [];
+    if (locale === 'en_US') {
+        references = await findReferences(aem, ROOT_PATH, key, excludePath, signal);
+    } else {
+        references = await findReferences(aem, `${ROOT_PATH}/${surface}/${locale}`, key, excludePath, signal);
+        if (!references.length) {
+            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal, locale);
         }
     }
 

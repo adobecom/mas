@@ -11,10 +11,10 @@ export const PLACEHOLDER_REFERENCES_MODAL_TAG_NAME = 'mas-placeholder-references
  *   mode: 'remove'|'publish', excludePath?: string }} params
  * @returns {Promise<boolean>}
  */
-export async function confirmPlaceholderReferences({ aem, key, mode, excludePath }) {
+export async function confirmPlaceholderReferences({ aem, key, mode, excludePath, surface, locale }) {
     let checkResult;
     try {
-        checkResult = await findPlaceholderReferencesWithTimeout(aem, { key, excludePath, mode });
+        checkResult = await findPlaceholderReferencesWithTimeout(aem, { key, excludePath, mode, surface, locale });
     } catch (error) {
         if (error?.name === 'AbortError') return false;
         showToast('Could not check placeholder references.', 'negative');

@@ -35,6 +35,7 @@ const TIMED_OUT = Symbol('timed out');
 const metadataCache = createSwrCache({ name: 'request-metadata', ttl: MEMORY_TTL, maxEntries: 20000 });
 const responseCache = createSwrCache({ name: 'response', ttl: MEMORY_TTL, maxEntries: 20000 });
 
+// `req-` metadata lives in State; `res-` responses, larger and written less often, live in Files: State throttled them.
 const getResponseKey = (requestKey) => requestKey.replace(/^req-/, 'res-');
 
 const getResponsePath = (responseKey) => `fragment-cache/${responseKey}.json`;
@@ -72,29 +73,25 @@ async function withFilesTimeout(promise, label, context) {
     return result;
 }
 
-/** Reads a stored response from Files; best effort: a missing, failed or slow read is a miss. */
-async function readStoredResponse(responseKey, context) {
+/** Reads a `res-` key from Files; best effort: a missing, failed or slow read is a miss. */
+async function readFiles(key, context) {
     if (!context.files) return null;
     try {
-        const content = await withFilesTimeout(context.files.read(getResponsePath(responseKey)), 'res-files-read', context);
+        const content = await withFilesTimeout(context.files.read(getResponsePath(key)), 'res-files-read', context);
         return JSON.parse(content.toString());
     } catch (error) {
-        if (error.code !== 'ERROR_FILE_NOT_EXISTS') logError(`failed to read ${responseKey}: ${error.message}`, context);
+        if (error.code !== 'ERROR_FILE_NOT_EXISTS') logError(`failed to read ${key}: ${error.message}`, context);
         return null;
     }
 }
 
-/** Writes a stored response to Files; best effort, as for State. */
-async function writeStoredResponse(responseKey, response, context) {
+// Same best effort as `putInState`, with a timeout: a slow write must not delay the response.
+async function putInFiles(context, key, value, label) {
     if (!context.files) return;
     try {
-        await withFilesTimeout(
-            context.files.write(getResponsePath(responseKey), JSON.stringify(response)),
-            'res-files-write',
-            context,
-        );
+        await withFilesTimeout(context.files.write(getResponsePath(key), JSON.stringify(value)), label, context);
     } catch (error) {
-        logError(`failed to store ${responseKey}: ${error.message}`, context);
+        logError(`failed to store ${key}: ${error.message}`, context);
     }
 }
 
@@ -111,7 +108,7 @@ async function getRequestMetadata(context) {
     const load = (key, reader) => async () => (read[key] = await reader(key, context));
     const [cachedMetadata, cachedResponse] = await Promise.all([
         shared ? metadataCache.get(context, requestKey, load(requestKey, readState)) : readState(requestKey, context),
-        shared ? responseCache.get(context, responseKey, load(responseKey, readStoredResponse)) : null,
+        shared ? responseCache.get(context, responseKey, load(responseKey, readFiles)) : null,
     ]);
     if (cachedMetadata) {
         log(`found cached metadata for ${requestKey} -> ${JSON.stringify(cachedMetadata)}`, context);
@@ -128,7 +125,7 @@ async function rereadRequestMetadata(context, requestKey) {
     const responseKey = getResponseKey(requestKey);
     const [cachedMetadata, cachedResponse] = await Promise.all([
         readState(requestKey, context),
-        readStoredResponse(responseKey, context),
+        readFiles(responseKey, context),
     ]).catch((error) => {
         logError(`failed to re-read ${requestKey}: ${error.message}`, context);
         return [null, null];
@@ -194,7 +191,7 @@ async function storeRequestMetadata(context, requestKey, cachedMetadata, hash, {
     if (shared && cachedResponse?.hash !== hash && body?.length <= MAX_STORED_RESPONSE_LENGTH) {
         const response = { hash, body };
         responseCache.set(context, getResponseKey(requestKey), response);
-        writes.push(writeStoredResponse(getResponseKey(requestKey), response, context));
+        writes.push(putInFiles(context, getResponseKey(requestKey), response, 'res-files-put'));
     }
     await Promise.all(writes);
     return { lastModified, hash };

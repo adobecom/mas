@@ -684,7 +684,11 @@ export class MerchCardCollection extends LitElement {
                 if (mask || pzn) {
                     aemFragment.cache.set(mcAemFragment.cacheKey(), fragment);
                 } else {
-                    aemFragment.cache.add(fragment);
+                    aemFragment.cache.add(
+                        fragment,
+                        true,
+                        aemFragment.cacheSuffix,
+                    );
                 }
                 mcAemFragment.setAttribute('fragment', fragmentId);
                 merchCard.append(mcAemFragment);

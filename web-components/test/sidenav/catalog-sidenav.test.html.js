@@ -7,6 +7,8 @@ import {
     resetState,
     toggleLargeDesktop,
 } from '../utils.js';
+import { sendKeys, sendMouse } from '@web/test-runner-commands';
+import { CSS } from '../../src/variants/catalog.css.js';
 import '../../src/sidenav/merch-sidenav.js';
 import '../../src/sidenav/merch-sidenav-list.js';
 import '../../src/sidenav/merch-sidenav-checkbox-group.js';
@@ -117,6 +119,67 @@ runTests(async () => {
             await delay(100);
             expectedSelection('creativitydesign', true);
             window.location.hash = '';
+        });
+    });
+
+    describe('Catalog sidenav selected item contrast', () => {
+        before(() => {
+            const style = document.createElement('style');
+            style.textContent = CSS;
+            document.head.append(style);
+        });
+
+        const selectedLink = () =>
+            getCategories()
+                .querySelector('sp-sidenav-item[value=all]')
+                .shadowRoot.querySelector('a');
+
+        it('catalog sidenav selected item background is rgb(145, 145, 145) idle and keyboard-focused; non-catalog keeps rgb(213, 213, 213)', async () => {
+            await sendMouse({ type: 'move', position: [0, 0] });
+
+            await render();
+            await getCategories().querySelector('sp-sidenav-item')
+                .updateComplete;
+            expect(getComputedStyle(selectedLink()).backgroundColor).to.equal(
+                'rgb(213, 213, 213)',
+            );
+
+            container.innerHTML = '';
+            const fragment = document
+                .getElementById('merch-sidenav-template')
+                .content.cloneNode(true);
+            fragment.querySelector('merch-sidenav').classList.add('catalog');
+            container.append(fragment);
+            await delay(100);
+
+            const idle = getComputedStyle(selectedLink());
+            expect(idle.backgroundColor).to.equal('rgb(145, 145, 145)');
+            expect(idle.color).to.equal('rgb(0, 0, 0)');
+
+            const unselectedLink = getCategories()
+                .querySelector('sp-sidenav-item[value=creativitydesign]')
+                .shadowRoot.querySelector('a');
+            expect(getComputedStyle(unselectedLink).backgroundColor).to.equal(
+                'rgba(0, 0, 0, 0)',
+            );
+
+            document.activeElement?.blur();
+            for (let i = 0; i < 10; i++) {
+                if (
+                    getCategories()
+                        .querySelector('sp-sidenav-item[value=all]')
+                        .matches(':focus-within')
+                ) {
+                    break;
+                }
+                await sendKeys({ press: 'Tab' });
+            }
+            expect(selectedLink().matches(':focus-visible')).to.be.true;
+            await delay(300);
+
+            const focused = getComputedStyle(selectedLink());
+            expect(focused.backgroundColor).to.equal('rgb(145, 145, 145)');
+            expect(focused.color).to.equal('rgb(0, 0, 0)');
         });
     });
 

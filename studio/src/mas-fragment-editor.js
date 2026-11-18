@@ -17,6 +17,8 @@ import {
 } from './constants.js';
 import router from './router.js';
 import './references/mas-related-artifacts.js';
+import './references/mas-related-pages.js';
+import { canFetchFragmentUsage } from './references/usage-repository.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
@@ -902,7 +904,7 @@ export default class MasFragmentEditor extends LitElement {
         return this.fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(this.fragment);
     }
 
-    /** Collections without a related-variations preview column (i.e. not grouped variations) render full width. */
+    /** Collections without a preview column render full width. */
     get #isFullWidthContent() {
         if (this.isCompareChart) return false;
         if (this.fragment?.model?.path !== COLLECTION_MODEL_PATH) return false;
@@ -1648,12 +1650,14 @@ export default class MasFragmentEditor extends LitElement {
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
-                const { deleted, failedVariations, parentUpdateFailed } = await this.repository.deleteVariationFragment(
+                const { deleted, failedVariations, parentUpdateFailed } = await promotionsRepository.deletePromotionFragment(
+                    this.repository,
                     this.fragment,
-                    {
-                        localeDefaultFragment,
-                        promoVariationPaths: this.variationsToDelete,
-                    },
+                    () =>
+                        this.repository.deleteVariationFragment(this.fragment, {
+                            localeDefaultFragment,
+                            promoVariationPaths: this.variationsToDelete,
+                        }),
                 );
                 if (!deleted) {
                     showToast('Failed to delete fragment', 'negative');
@@ -1669,7 +1673,9 @@ export default class MasFragmentEditor extends LitElement {
                     showToast('Fragment successfully deleted.', 'positive');
                 }
             } else {
-                await this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete);
+                await promotionsRepository.deletePromotionFragment(this.repository, this.fragment, () =>
+                    this.repository.deleteFragmentWithVariations(this.fragment, this.variationsToDelete),
+                );
             }
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
@@ -1780,14 +1786,14 @@ export default class MasFragmentEditor extends LitElement {
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
-                const savedCard = await this.repository.saveFragment(cardFragmentStore, {
+                const savedCard = await promotionsRepository.savePromotionFragment(this.repository, cardFragmentStore, {
                     withToast: false,
                     refetchEtag: false,
                 });
                 if (!savedCard) return;
             }
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
-            const savedFragment = await this.repository.saveFragment(this.fragmentStore, {
+            const savedFragment = await promotionsRepository.savePromotionFragment(this.repository, this.fragmentStore, {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
@@ -2328,6 +2334,12 @@ export default class MasFragmentEditor extends LitElement {
         ></mas-related-artifacts>`;
     }
 
+    // Pages that serve the open fragment, from CDN traffic.
+    get relatedPagesSection() {
+        if (!this.fragment) return nothing;
+        return html`<mas-related-pages .fragment=${this.fragment}></mas-related-pages>`;
+    }
+
     get fragmentEditor() {
         if (!this.fragment) return nothing;
 
@@ -2424,8 +2436,15 @@ export default class MasFragmentEditor extends LitElement {
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
             const isGroupedVariation =
                 this.editorContextStore.isVariation(this.fragment.id) && Fragment.isGroupedVariationPath(this.fragment.path);
-            if (!isGroupedVariation) return nothing;
-            return html`<div id="preview-column">${this.relatedVariationsSection}</div>`;
+            // Pages request collections directly, so a collection -- compare charts included -- has
+            // external usage and internal references of its own; grouped variations also list their
+            // sibling variations. Related pages always renders where usage can be fetched, so only
+            // without it could the column be empty.
+            if (!isGroupedVariation && !canFetchFragmentUsage()) return nothing;
+            return html`<div id="preview-column">
+                ${isGroupedVariation ? this.relatedVariationsSection : nothing} ${this.relatedArtifactsSection}
+                ${this.relatedPagesSection}
+            </div>`;
         }
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
@@ -2470,7 +2489,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.countdownPreviewNotice} ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection} ${this.relatedArtifactsSection}
+                ${this.relatedVariationsSection} ${this.relatedArtifactsSection} ${this.relatedPagesSection}
             </div>
         `;
     }

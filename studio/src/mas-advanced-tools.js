@@ -92,6 +92,11 @@ class MasAdvancedTools extends LitElement {
             background: var(--spectrum-gray-75, #fafafa);
         }
 
+        .tool-card[aria-disabled='true'] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
         .tool-card:focus-visible {
             outline: 2px solid var(--spectrum-blue-700, #1473e6);
             outline-offset: 2px;
@@ -157,10 +162,6 @@ class MasAdvancedTools extends LitElement {
 
     openBulkPublish = () => {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)();
-    };
-
-    openBulkEdit = () => {
-        router.navigateToPage(PAGE_NAMES.BULK_EDIT)();
     };
 
     openSettings = () => {
@@ -229,13 +230,7 @@ class MasAdvancedTools extends LitElement {
 
     get bulkEditCard() {
         return html`
-            <a
-                class="tool-card"
-                role="button"
-                tabindex="0"
-                @click=${this.openBulkEdit}
-                @keydown=${this.handleKeyActivate(this.openBulkEdit)}
-            >
+            <a class="tool-card" role="button" aria-disabled="true" tabindex="-1">
                 <span class="tool-card-icon" aria-hidden="true"> ${bulkEditIcon} </span>
                 <div class="tool-card-text">
                     <span class="tool-card-title">Bulk edits</span>

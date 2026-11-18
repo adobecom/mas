@@ -2,6 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { revertSnapshot } = require('./snapshot.js');
 const { PROJECT_STATUS, readProjectFragment, updateProjectFragment, getProjectSnapshots } = require('./project.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-revert', { level: 'info' });
 
@@ -118,4 +119,4 @@ async function revertWithProject(params, odinEndpoint, authToken) {
     return { statusCode: 200, body: { status: finalStatus, lastError: finalError, failures, skipped } };
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

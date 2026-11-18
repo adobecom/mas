@@ -1,6 +1,6 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { isCountdownLinkText } from '../utils/countdown.js';
+import { countdownLocalTime, isCountdownLinkText } from '../utils/countdown.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
 const SURFACES_TO_CORRECT = ['adobe-home', 'sandbox', 'ccd'];
@@ -98,7 +98,7 @@ function timerDates(fragment, context) {
     const project = (context.promoProjects ?? []).find(({ label }) => label === fragment.promoProject)?.project;
     if (!project?.cdtStart || !project?.cdtEnd) return null;
     logDebug(() => `countdown timer dates taken from promo project ${project.id}`, context);
-    return { cdtStart: project.cdtStart, cdtEnd: project.cdtEnd };
+    return { cdtStart: countdownLocalTime(project.cdtStart), cdtEnd: countdownLocalTime(project.cdtEnd) };
 }
 
 /**

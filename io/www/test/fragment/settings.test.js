@@ -334,6 +334,33 @@ describe('settings', () => {
             expect(result).to.be.null;
         });
 
+        it('degrades the response on a transient failure, but not when the surface has no settings', async () => {
+            fetchStub.withArgs(settingsIndexUrl('none')).returns(createResponse(404, {}));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
+            fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(429, null, 'Too Many Requests'));
+            const missing = createContext({ surface: 'none', degraded: new Set() });
+            expect(await getSettings(missing)).to.be.null;
+            expect([...missing.degraded]).to.be.empty;
+            const failing = createContext({ degraded: new Set() });
+            expect(await getSettings(failing)).to.be.null;
+            expect([...failing.degraded]).to.deep.equal(['settings']);
+        });
+
+        it('serves the expired settings on a transient failure', async () => {
+            const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            try {
+                mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', SETTINGS_RESPONSE);
+                const settings = await getSettings(createContext());
+                clock.tick(5 * 60 * 1000 + 1);
+                fetchStub.withArgs(settingsContentUrl('settings-id')).returns(createResponse(503, null, 'Unavailable'));
+                const context = createContext({ degraded: new Set() });
+                expect(await getSettings(context)).to.deep.equal(settings);
+                expect([...context.degraded]).to.be.empty;
+            } finally {
+                clock.restore();
+            }
+        });
+
         it('returns grouped settings on success', async () => {
             const referencesBody = {
                 references: {
@@ -863,6 +890,75 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.placeholders.whatsIncludedLabel).to.be.undefined;
             expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
+        });
+
+        describe('edu placeholders in collections', () => {
+            const ref = (fields, cardSettings) => ({
+                type: 'content-fragment',
+                value: { fields, ...(cardSettings && { settings: cardSettings }) },
+            });
+            const run = async (body) => {
+                const context = { locale: 'en_US', body, promises: { settings: Promise.resolve({}) } };
+                return (await settings.process(context)).body;
+            };
+
+            it('gives a pro/edu card reference whatsIncludedLabel and eduDisclaimer', async () => {
+                const body = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: {
+                        edu: ref({ variant: 'pro', size: 'edu' }),
+                        wide: ref({ variant: 'pro', size: 'wide' }),
+                        mini: ref({ variant: 'mini' }),
+                    },
+                });
+                const { edu, wide, mini } = body.references;
+                expect(edu.value.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                expect(edu.value.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+                expect(body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                expect(body.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+                expect(wide.value.placeholders.whatsIncludedLabel).to.be.undefined;
+                expect(wide.value.placeholders.eduDisclaimer).to.be.undefined;
+                expect(wide.value.placeholders.whatsIncludedToggleLabel).to.equal('{{see-whats-included}}');
+                expect(mini.value.placeholders).to.be.undefined;
+            });
+
+            it('adds no edu placeholders to a collection without an edu card', async () => {
+                const body = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: {
+                        pro: ref({ variant: 'pro', size: 'wide' }),
+                        plans: ref({ variant: 'plans' }),
+                    },
+                });
+                for (const target of [body, body.references.pro.value, body.references.plans.value]) {
+                    expect(target.placeholders.whatsIncludedLabel).to.be.undefined;
+                    expect(target.placeholders.eduDisclaimer).to.be.undefined;
+                }
+                expect(body.placeholders.countdownTimerText).to.equal('{{countdown-timer-text}}');
+                expect(body.references.pro.value.placeholders.licenseLabel).to.exist;
+            });
+
+            it('omits eduDisclaimer when hideEduDisclaimer is on for the card or the collection', async () => {
+                const eduFields = { variant: 'pro', size: 'edu' };
+                const onCard = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: { edu: ref(eduFields, { hideEduDisclaimer: true }) },
+                });
+                const onCollection = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    settings: { hideEduDisclaimer: true },
+                    references: { edu: ref(eduFields) },
+                });
+                for (const body of [onCard, onCollection]) {
+                    const { placeholders } = body.references.edu.value;
+                    expect(placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                    expect(placeholders.eduDisclaimer).to.be.undefined;
+                }
+            });
         });
 
         it('publishes the whats-included toggle placeholder for pro cards only', async () => {

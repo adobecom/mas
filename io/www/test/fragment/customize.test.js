@@ -4,12 +4,13 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
-import { updateOffers } from '../../src/fragment/transformers/wcs.js';
+import { updateOffers, transformer as wcs } from '../../src/fragment/transformers/wcs.js';
 import { resolveCountdownTimer } from '../../src/fragment/transformers/corrector.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
+import DICTIONARY_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -914,6 +915,7 @@ describe('customize collections', function () {
         // referencesTree should reflect the merged cards: card-b removed, order updated
         const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
         expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-c', 'card-a', 'card-d']);
+        expect(result.body.references).to.have.all.keys('card-a', 'card-c', 'card-d');
     });
 
     it('should create stub referencesTree entry for a card added by a variation that had no entry in original tree', async function () {
@@ -1340,6 +1342,167 @@ describe('customize baselines', function () {
         expect(fields.features.value).to.deep.equal(['base', 'own']);
         expect(fields.backgrounds).to.deep.equal([]);
     });
+
+    describe('baseline layers', function () {
+        const processLayers = (fields, template, segment) =>
+            process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: { id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields, references: {}, referencesTree: [] },
+                baselines: {
+                    card: {
+                        fragmentBaseline: baseline('template', template),
+                        fragmentSegmentBaseline: baseline('segment', segment),
+                    },
+                },
+            });
+
+        it('keeps a lower baseline value when a higher baseline field is empty', async function () {
+            const result = await processLayers(
+                {},
+                { subtitle: 'Template subtitle', callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+                { subtitle: '', callout: { mimeType: 'text/html', value: '' } },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('keeps a lower baseline value when a higher baseline field is null or holds empty entries', async function () {
+            const result = await processLayers(
+                {},
+                { subtitle: 'Template subtitle', backgrounds: ['template.png'] },
+                { subtitle: null, backgrounds: [''] },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.backgrounds).to.deep.equal(['template.png']);
+        });
+
+        it('keeps a lower baseline value when a higher baseline rich text field has a null or no value', async function () {
+            const result = await processLayers(
+                {},
+                {
+                    callout: { mimeType: 'text/html', value: '<p>Template callout</p>' },
+                    description: { mimeType: 'text/html', value: '<p>Template description</p>' },
+                },
+                { callout: { mimeType: 'text/html', value: null }, description: { mimeType: 'text/html' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+            expect(result.body.fields.description.value).to.equal('<p>Template description</p>');
+        });
+
+        it('keeps a lower baseline value when a higher baseline multi-value rich text field holds empty entries', async function () {
+            const result = await processLayers(
+                {},
+                { customFields: { mimeType: 'text/html', value: ['<p>Template custom</p>'] } },
+                { customFields: { mimeType: 'text/html', value: [''] } },
+            );
+            expect(result.body.fields.customFields.value).to.deep.equal(['<p>Template custom</p>']);
+        });
+
+        it('keeps the offer icon when higher layers only hold empty icons', async function () {
+            const offerFields = { mnemonicIcon: ['offer.svg'], mnemonicAlt: ['Offer'] };
+            const result = await process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: {
+                    id: 'card',
+                    path: '/content/dam/mas/sandbox/en_US/card',
+                    fields: { mnemonicIcon: [''] },
+                    references: {},
+                    referencesTree: [],
+                },
+                baselines: { card: { offerBaseline: baseline('offer', offerFields) } },
+            });
+            expect(result.body.fields.mnemonicIcon).to.deep.equal(['offer.svg']);
+            expect(result.body.fields.mnemonicAlt).to.deep.equal(['Offer']);
+        });
+
+        it('keeps an empty card field when baselines only provide it empty', async function () {
+            const result = await processLayers({ subtitle: '' }, { subtitle: '' }, {});
+            expect(result.body.fields.subtitle).to.equal('');
+        });
+
+        it('never takes card own fields from a baseline', async function () {
+            const result = await processLayers(
+                { subtitle: 'Own subtitle' },
+                { tags: ['mas:template'], osi: 'template-osi', badge: 'Template badge' },
+                { pznTags: ['mas:pzn'], locReady: true },
+            );
+            const { fields } = result.body;
+            expect(fields).to.not.have.any.keys('tags', 'osi', 'pznTags', 'locReady');
+            expect(fields.badge).to.equal('Template badge');
+        });
+    });
+
+    describe('empty card fields', function () {
+        const processCard = (fields, baselineFields) =>
+            process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: { id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields, references: {}, referencesTree: [] },
+                baselines: { card: { fragmentBaseline: baseline('template', baselineFields) } },
+            });
+
+        it('inherits a baseline value when the card text field is an empty string', async function () {
+            const result = await processCard({ subtitle: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+        });
+
+        it('inherits a baseline value when the card rich text field has an empty value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html', value: '' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('inherits a baseline value when the card rich text field has no value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('inherits a baseline value when the card multi-value rich text field holds empty entries', async function () {
+            const result = await processCard(
+                { customFields: { mimeType: 'text/html', value: [''] } },
+                { customFields: { mimeType: 'text/html', value: ['<p>Template custom</p>'] } },
+            );
+            expect(result.body.fields.customFields.value).to.deep.equal(['<p>Template custom</p>']);
+        });
+
+        it('inherits baseline values when the card fields are null or hold empty entries', async function () {
+            const result = await processCard(
+                { subtitle: null, backgrounds: [''] },
+                { subtitle: 'Template subtitle', backgrounds: ['template.png'] },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.backgrounds).to.deep.equal(['template.png']);
+        });
+
+        it('clears a baseline value when the card stores the explicit empty sentinel', async function () {
+            const result = await processCard(
+                { subtitle: EXPLICIT_EMPTY_SENTINEL, callout: { mimeType: 'text/html', value: EXPLICIT_EMPTY_SENTINEL } },
+                { subtitle: 'Template subtitle', callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.subtitle).to.equal('');
+            expect(result.body.fields.callout.value).to.equal('');
+        });
+
+        it('keeps an empty card field that no baseline provides', async function () {
+            const result = await processCard({ subtitle: '', promoText: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.promoText).to.equal('');
+        });
+
+        it('keeps the card own value over the baseline value', async function () {
+            const result = await processCard({ subtitle: 'Own subtitle' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Own subtitle');
+        });
+    });
 });
 
 async function process(context) {
@@ -1417,6 +1580,158 @@ async function processWithPromoProjects(context, promoProjects) {
     updateOffers(result);
     return result;
 }
+
+describe('customize active grouped references', function () {
+    let body;
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch').returns(createResponse(200, { resolvedOffers: [{ price: 100 }] }));
+        const reference = (id, fields, path = id) => ({
+            type: 'content-fragment',
+            value: { id, path: `/content/dam/mas/sandbox/en_US/${path}`, fields },
+        });
+        const entry = (fieldName, identifier, referencesTree = []) => ({ fieldName, identifier, referencesTree });
+        const price = (promo) => `<span data-wcs-osi="SHARED-OSI"${promo ? ` data-promotion-code="${promo}"` : ''}></span>`;
+        body = {
+            id: 'root',
+            path: '/content/dam/mas/sandbox/en_US/root',
+            fields: { collections: ['collection'] },
+            references: {
+                collection: reference('collection', { cards: ['card'], variations: ['inactive-collection'] }),
+                'inactive-collection': reference(
+                    'inactive-collection',
+                    { pznTags: ['mas:pzn/country/GB'], cards: ['inactive-card', 'card'] },
+                    'collection/pzn/gb',
+                ),
+                'inactive-card': reference('inactive-card', { prices: price('INACTIVE-CHILD') }),
+                card: reference('card', {
+                    osi: 'SHARED-OSI',
+                    prices: price(),
+                    variations: ['active', 'inactive'],
+                    tags: ['tag'],
+                }),
+                active: reference('active', { pznTags: ['mas:pzn/country/AR'], prices: price('ACTIVE') }, 'card/pzn/ar'),
+                inactive: reference('inactive', { pznTags: ['mas:pzn/country/GB'], prices: price('INACTIVE') }, 'card/pzn/gb'),
+                tag: { type: 'tag', value: { id: 'tag', title: 'Card tag' } },
+            },
+            referencesTree: [
+                entry('collections', 'collection', [
+                    entry('cards', 'card', [
+                        entry('variations', 'active'),
+                        entry('variations', 'inactive'),
+                        entry('tags', 'tag'),
+                    ]),
+                    entry('variations', 'inactive-collection', [entry('cards', 'inactive-card'), entry('cards', 'card')]),
+                ]),
+            ],
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('removes variation ids from the delivered root and kept cards and collections without changing the source', async function () {
+        body.fields.variations = ['inactive'];
+        const source = structuredClone(body);
+        const result = await process({ ...FAKE_CONTEXT, fragmentPath: 'root', locale: 'en_US', country: 'AR', body });
+
+        expect(result.body.fields).not.to.have.property('variations');
+        expect(result.body.references.collection.value.fields).not.to.have.property('variations');
+        expect(result.body.references.card.value.fields).not.to.have.property('variations');
+        expect(result.body.references.card.value.variationId).to.equal('active');
+        expect(body).to.deep.equal(source);
+    });
+
+    it('preserves active dictionary subtrees while removing nested variation branches', async function () {
+        const dictionary = structuredClone(DICTIONARY_RESPONSE);
+        const [entry, nestedEntry] = dictionary.referencesTree;
+        const references = dictionary.references;
+        dictionary.fields.entries = [entry.identifier];
+        references[entry.identifier].value.fields.entries = [nestedEntry.identifier];
+        const activeTree = [{ ...entry, referencesTree: [{ fieldName: 'entries', identifier: nestedEntry.identifier }] }];
+        dictionary.references = { ...references, inactive: body.references.inactive };
+        dictionary.referencesTree = [
+            {
+                ...activeTree[0],
+                referencesTree: [
+                    ...activeTree[0].referencesTree,
+                    { fieldName: 'variations', identifier: 'inactive', referencesTree: [] },
+                ],
+            },
+        ];
+        const result = await process({
+            ...FAKE_CONTEXT,
+            surface: 'acom',
+            fragmentPath: 'dictionary/index',
+            locale: 'en_US',
+            body: dictionary,
+        });
+
+        expect(result.body.references).to.deep.equal(references);
+        expect(result.body.referencesTree).to.deep.equal(activeTree);
+    });
+
+    for (const [country, promo] of [
+        ['AR', 'ACTIVE'],
+        ['CA', null],
+    ]) {
+        it(`only prices the effective card for ${country}, excluding inactive grouped branches`, async function () {
+            const result = await process({
+                ...FAKE_CONTEXT,
+                debugLogs: false,
+                fragmentPath: 'root',
+                locale: 'en_US',
+                country,
+                body,
+            });
+            result.promises.wcs = Promise.resolve([]);
+            result.wcsConfiguration = [{ env: 'prod', wcsURL: 'https://www.adobe.com/web_commerce_artifact' }];
+
+            await wcs.process(result);
+
+            expect(fetchStub.callCount).to.equal(1);
+            const params = new URL(fetchStub.firstCall.args[0]).searchParams;
+            expect(params.get('offer_selector_ids')).to.equal('SHARED-OSI');
+            expect(params.get('promotion_code')).to.equal(promo);
+            expect(result.body.wcs.prod).to.have.all.keys(`SHARED-OSI-${country.toLowerCase()}-mult${promo ? '-active' : ''}`);
+            expect(result.body.references).to.have.all.keys('collection', 'card', 'tag');
+            expect(result.body.references.card.value.variationId).to.equal(promo ? 'active' : undefined);
+            const cardEntries = result.body.referencesTree[0].referencesTree;
+            expect(cardEntries.map(({ identifier }) => identifier)).to.deep.equal(['card']);
+            expect(cardEntries[0].referencesTree).to.deep.equal([{ fieldName: 'tags', identifier: 'tag', referencesTree: [] }]);
+        });
+    }
+
+    it('keeps the selected promo price without pricing the unused grouped variations', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, debugLogs: false, fragmentPath: 'root', locale: 'en_US', country: 'AR', body },
+            {
+                id: 'sale',
+                fragmentPaths: ['card'],
+                defaultVariations: {
+                    card: {
+                        id: 'promo-card',
+                        fields: {
+                            prices: '<span data-wcs-osi="SHARED-OSI" data-promotion-code="PROJECT"></span>',
+                        },
+                    },
+                },
+                regionVariations: {},
+            },
+            { 'SHARED-OSI': 'PROJECT' },
+        );
+        result.promises.wcs = Promise.resolve([]);
+        result.wcsConfiguration = [{ env: 'prod', wcsURL: 'https://www.adobe.com/web_commerce_artifact' }];
+
+        await wcs.process(result);
+
+        expect(fetchStub.callCount).to.equal(1);
+        expect(new URL(fetchStub.firstCall.args[0]).searchParams.get('promotion_code')).to.equal('PROJECT');
+        expect(result.body.references.card.value.variationId).to.equal('promo-card');
+        expect(result.body.wcs.prod).to.have.all.keys('SHARED-OSI-ar-mult-project');
+    });
+});
 
 describe('customize typical cases', function () {
     beforeEach(function () {
@@ -2025,6 +2340,95 @@ describe('customize promo variation', function () {
         expect(result.body.fields.title).to.equal('Legacy Title');
     });
 
+    for (const pzn of ['', 'pzn-smb', 'edu']) {
+        it(`should retain the untagged promo fallback instead of a PZN-only EDU sibling for pzn=${JSON.stringify(pzn)}`, async function () {
+            const project = {
+                ...ACTIVE_PROJECT,
+                defaultVariations: {
+                    'my-card': {
+                        id: 'edu-promo-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                        fields: { title: 'EDU Promo Title', pznTags: ['mas:pzn/pzn-edu'] },
+                    },
+                    'my-card-2': {
+                        ...PROMO_VARIATION,
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                    },
+                },
+            };
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                project,
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('promo-var-id');
+            expect(result.body.fields.title).to.equal('Promo Title');
+        });
+    }
+
+    for (const { pznTags, pzn, variations } of [
+        { pznTags: ['mas:pzn/pzn-edu'], pzn: 'PZN-EDU', variations: 'defaultVariations' },
+        { pznTags: ['mas:audiences/pzn/EDU'], pzn: ' smb, edu ', variations: 'defaultVariations' },
+        { pznTags: ['/content/cq:tags/mas/pzn/pzn-edu'], pzn: 'pzn-edu', variations: 'regionVariations' },
+        { pznTags: ['mas:pzn/country/US', 'mas:pzn/locale/en_US'], pzn: '', variations: 'defaultVariations' },
+    ]) {
+        it(`should select the eligible scoped promo with ${JSON.stringify(pznTags)} for pzn=${JSON.stringify(pzn)} from ${variations}`, async function () {
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                {
+                    ...ACTIVE_PROJECT,
+                    defaultVariations: {},
+                    [variations]: {
+                        'my-card': {
+                            id: 'scoped-promo-id',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                            fields: { title: 'Scoped Promo Title', pznTags },
+                        },
+                        'my-card-2': {
+                            ...PROMO_VARIATION,
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                        },
+                    },
+                },
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('scoped-promo-id');
+            expect(result.body.fields.title).to.equal('Scoped Promo Title');
+        });
+    }
+
     it('should prefer a region-locale match over a country-only match among geo-scoped siblings', async function () {
         const countryOnlyVariation = {
             id: 'country-only-id',
@@ -2456,6 +2860,120 @@ describe('customize PZN-only promotion rules', function () {
             );
         });
     }
+});
+
+describe('customize country-scoped PZN variations', function () {
+    function buildContext(country, pzn = 'pzn-smb', countries = ['US', 'MX']) {
+        const variations = countries.map((geo) => ({
+            id: `${geo.toLowerCase()}-smb`,
+            path: `/content/dam/mas/sandbox/en_US/geo-audience-card/pzn/${geo.toLowerCase()}-smb`,
+            fields: { cardTitle: `${geo} SMB`, pznTags: [`mas:pzn/country/${geo}`, 'mas:pzn/pzn-smb'] },
+        }));
+        return {
+            ...FAKE_CONTEXT,
+            fragmentPath: 'geo-audience-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            country,
+            pzn,
+            body: {
+                id: 'geo-audience-card',
+                path: '/content/dam/mas/sandbox/en_US/geo-audience-card',
+                fields: { cardTitle: 'Default', variations: variations.map(({ id }) => id) },
+                references: Object.fromEntries(
+                    variations.map((variation) => [variation.id, { type: 'content-fragment', value: variation }]),
+                ),
+                referencesTree: [],
+            },
+        };
+    }
+
+    function buildPromoProject(context) {
+        const grouped = Object.values(context.body.references).map(({ value }) => value);
+        const groupedPaths = grouped.map(({ id }) => `geo-audience-card/pzn/${id}`);
+        const fragmentPaths = ['geo-audience-card', ...groupedPaths];
+        return [
+            {
+                project: {
+                    id: 'geo-audience-promo',
+                    fragmentPaths,
+                    defaultVariations: {
+                        'geo-audience-card': {
+                            id: 'ordinary-promo',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/bf/geo-audience-card',
+                            fields: { cardTitle: 'Ordinary promo' },
+                        },
+                        ...Object.fromEntries(
+                            grouped.map((variation, index) => [
+                                groupedPaths[index],
+                                {
+                                    id: `${variation.id}-promo`,
+                                    path: `/content/dam/mas/sandbox/en_US/promotions/bf/${groupedPaths[index]}`,
+                                    fields: {
+                                        cardTitle: `${variation.fields.cardTitle} promo`,
+                                        pznTags: [...variation.fields.pznTags],
+                                    },
+                                },
+                            ]),
+                        ),
+                    },
+                    regionVariations: {},
+                },
+                fragmentPaths: new Set(fragmentPaths),
+                groupedVariationPaths: new Set(groupedPaths),
+                groupedVariationReferences: new Map(grouped.map((variation, index) => [groupedPaths[index], variation])),
+                promoMap: { '*': 'BF' },
+            },
+        ];
+    }
+
+    for (const [country, variationId] of [
+        ['US', 'us-smb'],
+        ['MX', 'mx-smb'],
+    ]) {
+        it(`selects the ${country} SMB grouped variation when both country and audience match`, async function () {
+            const result = await process(buildContext(country));
+            expect(result.body.variationId).to.equal(variationId);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB`);
+        });
+
+        it(`selects the ${country} SMB promo from its enrolled grouped variation`, async function () {
+            const context = buildContext(country);
+            const result = await processWithPromoProjects(context, buildPromoProject(context));
+            expect(result.body.variationId).to.equal(`${variationId}-promo`);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB promo`);
+            expect(result.body.promoVariationProject).to.equal('geo-audience-promo');
+        });
+    }
+
+    for (const { country, pzn, countries = ['US', 'MX'] } of [
+        { country: 'CA', pzn: 'pzn-smb' },
+        { country: 'US', pzn: '' },
+        { country: 'MX', pzn: '' },
+        { country: 'US', pzn: 'pzn-edu' },
+        { country: 'US', pzn: 'pzn-smb', countries: ['MX'] },
+        { country: 'MX', pzn: 'pzn-smb', countries: ['US'] },
+    ]) {
+        it(`retains default content for ${country}/${JSON.stringify(pzn)} outside ${countries.join(',')} SMB scope`, async function () {
+            const result = await process(buildContext(country, pzn, countries));
+            expect(result.body.variationId).to.be.undefined;
+            expect(result.body.fields.cardTitle).to.equal('Default');
+        });
+    }
+
+    it('does not let an out-of-country SMB group suppress the ordinary promo', async function () {
+        const context = buildContext('CA');
+        const result = await processWithPromoProjects(context, buildPromoProject(context));
+        expect(result.body.variationId).to.equal('ordinary-promo');
+        expect(result.body.fields.cardTitle).to.equal('Ordinary promo');
+    });
+
+    it('allows either intended country on a multi-country SMB grouped variation', async function () {
+        const context = buildContext('BR', 'pzn-smb', ['MX']);
+        context.body.references['mx-smb'].value.fields.pznTags.push('mas:pzn/country/BR');
+        const result = await process(context);
+        expect(result.body.variationId).to.equal('mx-smb');
+    });
 });
 
 describe('customize grouped variation scoped to a promo project (no promo variation present)', function () {
@@ -3032,7 +3550,7 @@ const CARD_MODEL = { id: CARD_MODEL_ID };
 const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
 // `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`
 // transformer). These tests cover the merge only; mask resolution/fetch lives in `mask.test.js`.
-const MASK = { fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
+const MASK = { id: 'mask-001', fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
 
 describe('customize mask overlay', function () {
     it('should overlay the mask onto a card fragment (authored fields win, empty fields preserved)', async function () {
@@ -3056,38 +3574,109 @@ describe('customize mask overlay', function () {
         expect(result.body.fields.badge).to.equal('MASKED BADGE');
         expect(result.body.fields.subtitle).to.equal('keep me');
         expect(result.body.fields.title).to.equal('Card');
+        expect(result.body.maskId).to.equal('mask-001');
     });
 
-    it('does not apply mask when root fragment is not a card (root-only overlay)', async function () {
+    it('lets the request offer override a mask-authored osi on the root card', async function () {
         const result = await process({
             ...FAKE_CONTEXT,
-            fragmentPath: 'promo-coll',
+            fragmentPath: 'promo-card',
             locale: 'en_US',
             parsedLocale: 'en_US',
-            maskFragment: MASK,
+            offer: 'offer-osi',
+            maskFragment: { id: 'mask-001', fields: { osi: 'mask-osi' } },
             body: {
-                path: '/content/dam/mas/sandbox/en_US/promo-coll',
-                id: 'coll-root',
-                // collection root has no model -> mask must not apply
-                fields: { cards: ['card-1'], collections: [] },
-                references: {
-                    'card-1': {
-                        type: 'content-fragment',
-                        value: {
-                            path: '/content/dam/mas/sandbox/en_US/card-1',
-                            id: 'card-1',
-                            model: CARD_MODEL,
-                            fields: { badge: 'ORIGINAL', variations: [] },
-                        },
-                    },
-                },
-                referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { osi: 'card-osi' },
+                references: {},
+                referencesTree: [],
             },
         });
+        expect(result.body.fields.osi).to.equal('offer-osi');
+        expect(result.body.maskId).to.equal('mask-001');
+    });
+
+    const cardRef = (id, fields) => ({
+        type: 'content-fragment',
+        value: { path: `/content/dam/mas/sandbox/en_US/${id}`, id, model: CARD_MODEL, fields: { ...fields, variations: [] } },
+    });
+    const collectionContext = (body) => ({
+        ...FAKE_CONTEXT,
+        fragmentPath: 'promo-coll',
+        locale: 'en_US',
+        parsedLocale: 'en_US',
+        maskFragment: MASK,
+        body: { path: '/content/dam/mas/sandbox/en_US/promo-coll', id: 'coll-root', model: COLLECTION_MODEL, ...body },
+    });
+
+    it('overlays the mask on every card referenced by a collection root and leaves the collection untouched', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: ['card-1', 'card-2'], collections: [] },
+                references: {
+                    'card-1': cardRef('card-1', { badge: 'ORIGINAL', subtitle: 'keep me' }),
+                    'card-2': cardRef('card-2', { badge: 'ORIGINAL' }),
+                },
+                referencesTree: [
+                    { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                    { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                ],
+            }),
+        );
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.be.undefined;
-        // card references are not overlaid (root-only overlay)
-        expect(result.body.references['card-1'].value.fields.badge).to.equal('ORIGINAL');
+        expect(result.body.maskId).to.be.undefined;
+        expect(result.body.references['card-1'].value.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.references['card-1'].value.fields.subtitle).to.equal('keep me');
+        expect(result.body.references['card-1'].value.maskId).to.equal('mask-001');
+        expect(result.body.references['card-2'].value.maskId).to.equal('mask-001');
+    });
+
+    it('overlays the mask on cards of a nested collection', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: [], collections: ['coll-2'] },
+                references: {
+                    'coll-2': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-2',
+                            id: 'coll-2',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-3'], collections: [] },
+                        },
+                    },
+                    'card-3': cardRef('card-3', { badge: 'ORIGINAL' }),
+                },
+                referencesTree: [
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-2',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-3', referencesTree: [] }],
+                    },
+                ],
+            }),
+        );
+        expect(result.body.references['coll-2'].value.maskId).to.be.undefined;
+        expect(result.body.references['card-3'].value.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.references['card-3'].value.maskId).to.equal('mask-001');
+    });
+
+    it('skips a card listed in cards but missing from references and still masks its siblings', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: ['missing', 'card-1'], collections: [] },
+                references: { 'card-1': cardRef('card-1', { badge: 'ORIGINAL' }) },
+                referencesTree: [
+                    { fieldName: 'cards', identifier: 'missing', referencesTree: [] },
+                    { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                ],
+            }),
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.references['card-1'].value.maskId).to.equal('mask-001');
     });
 
     it('should not overlay when the fragment has a non-card model', async function () {
@@ -3127,6 +3716,111 @@ describe('customize mask overlay', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('ORIGINAL');
+    });
+
+    const cardContext = (maskFragment, cardFields, extra = {}) => ({
+        ...FAKE_CONTEXT,
+        fragmentPath: 'promo-card',
+        locale: 'en_US',
+        parsedLocale: 'en_US',
+        maskFragment,
+        body: {
+            path: '/content/dam/mas/sandbox/en_US/promo-card',
+            id: 'card-root',
+            model: CARD_MODEL,
+            fields: cardFields,
+            references: {},
+            referencesTree: [],
+            ...extra,
+        },
+    });
+
+    it('unions mask tags before card tags without duplicates', async function () {
+        const maskFragment = { id: 'mask-001', fields: { tags: ['mas:product_code/phsp', 'mas:plan_type/abm'] } };
+        const result = await process(cardContext(maskFragment, { tags: ['mas:plan_type/abm', 'mas:product_code/apcc'] }));
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/phsp', 'mas:plan_type/abm', 'mas:product_code/apcc']);
+    });
+
+    it('leaves card tags untouched when the mask has no tags', async function () {
+        const result = await process(cardContext(MASK, { tags: ['mas:product_code/apcc'] }));
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/apcc']);
+    });
+
+    it('does not add a tags field when neither mask nor card has tags', async function () {
+        const result = await process(cardContext(MASK, { badge: 'ORIGINAL' }));
+        expect(result.body.fields.tags).to.be.undefined;
+    });
+
+    it('applies the union once for a card referenced by two collections in the same response', async function () {
+        const result = await process({
+            ...collectionContext({
+                fields: { cards: [], collections: ['coll-a', 'coll-b'] },
+                references: {
+                    'coll-a': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-a',
+                            id: 'coll-a',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-1'], collections: [] },
+                        },
+                    },
+                    'coll-b': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-b',
+                            id: 'coll-b',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-1'], collections: [] },
+                        },
+                    },
+                    'card-1': cardRef('card-1', { tags: ['mas:plan_type/abm'] }),
+                },
+                referencesTree: [
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-a',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                    },
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-b',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                    },
+                ],
+            }),
+            maskFragment: { id: 'mask-001', fields: { tags: ['mas:product_code/phsp'] } },
+        });
+        expect(result.body.references['card-1'].value.fields.tags).to.deep.equal([
+            'mas:product_code/phsp',
+            'mas:plan_type/abm',
+        ]);
+    });
+
+    it('unions mask tags with a selected pzn variation tags', async function () {
+        const pznVarId = 'pzn-edu-card';
+        const result = await process({
+            ...cardContext(
+                { id: 'mask-001', fields: { tags: ['mas:product_code/phsp'] } },
+                { tags: ['mas:product_code/apcc'], variations: [pznVarId] },
+                {
+                    references: {
+                        [pznVarId]: {
+                            type: 'content-fragment',
+                            value: {
+                                path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/phsp-edu',
+                                id: pznVarId,
+                                model: CARD_MODEL,
+                                fields: { pznTags: ['mas:pzn/edu'], tags: ['mas:product_code/edu'] },
+                            },
+                        },
+                    },
+                },
+            ),
+            pzn: 'edu',
+        });
+        expect(result.body.variationId).to.equal(pznVarId);
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/edu']);
     });
 
     it('should apply pzn then mask: mask fields win, pzn-only fields preserved, variationId and maskId both set, model.id preserved', async function () {
@@ -4158,6 +4852,9 @@ describe('countdown timer dates', function () {
 
     const CDT_START = '2026-11-20T00:00:00Z';
     const CDT_END = '2026-11-30T23:59:59Z';
+    // Served without a zone so each browser reads them in its own time zone.
+    const CDT_START_LOCAL = '2026-11-20T00:00:00';
+    const CDT_END_LOCAL = '2026-11-30T23:59:59';
     const CDT_LINK = '<p>Ends in <a href="https://www.adobe.com/promo">countdown-timer</a></p>';
 
     function makeProject(overrides = {}) {
@@ -4195,8 +4892,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores fragments without a countdown-timer link', async function () {
@@ -4324,8 +5021,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('stops at the first card carrying the link, even when it has no promo project', async function () {
@@ -4363,7 +5060,7 @@ describe('countdown timer dates', function () {
                 body: {
                     id: 'collection-cdt',
                     path: '/content/dam/mas/sandbox/en_US/collection-cdt',
-                    fields: { cards: ['card-1', 'card-2'], collections: ['sub'] },
+                    fields: { cards: ['card-1', 'card-2', 'card-plain'], collections: ['sub'] },
                     references: {
                         'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
                         'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
@@ -4414,12 +5111,12 @@ describe('countdown timer dates', function () {
         const { body } = result;
         expect(result.status).to.equal(200);
         // root keeps the first timed card's dates
-        expect(body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00');
         const dates = (id) => [body.references[id].value.cdtStart, body.references[id].value.cdtEnd];
-        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z']);
-        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00Z', '2026-02-10T00:00:00Z']);
-        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00Z', '2026-03-10T00:00:00Z']);
+        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00', '2026-01-10T00:00:00']);
+        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00', '2026-02-10T00:00:00']);
+        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00', '2026-03-10T00:00:00']);
         // no usable project dates, no sentinel, or a container without a sentinel: nothing stamped
         expect(dates('card-4')).to.deep.equal([undefined, undefined]);
         expect(dates('card-plain')).to.deep.equal([undefined, undefined]);
@@ -4447,8 +5144,8 @@ describe('countdown timer dates', function () {
             },
             [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-1']) }],
         );
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START_LOCAL);
         expect(result.body.references['card-2'].value.cdtStart).to.be.undefined;
         expect(result.body.references['card-2'].value.cdtEnd).to.be.undefined;
     });
@@ -4482,8 +5179,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00');
     });
 
     it('detects a countdown-timer link whose text is formatted', async function () {
@@ -4509,8 +5206,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores a link whose text merely contains countdown-timer', async function () {
@@ -4554,7 +5251,7 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 });

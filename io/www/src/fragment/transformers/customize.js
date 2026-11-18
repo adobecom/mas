@@ -106,6 +106,20 @@ function parsePznTokens(pzn) {
         .filter(Boolean);
 }
 
+export function getValidatedPzn(context) {
+    const { pzn } = context;
+    if (
+        pzn &&
+        String(pzn)
+            .split(',')
+            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
+    ) {
+        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
+        return undefined;
+    }
+    return pzn;
+}
+
 const PZN_TAG_RE = /(?:^|[/:])pzn\/(.+)$/i;
 
 function countMatchedPznTokens(tags, tokens) {
@@ -124,8 +138,8 @@ function countMatchedPznTokens(tags, tokens) {
 }
 
 /**
- * Non-zero score means this variation applies. Higher is better: each matched request pzn token
- * dominates; region and country matches add smaller tie-break weight.
+ * Both geo and audience must match when both are tagged. Among eligible variations, each
+ * matched request pzn token dominates; region and country add smaller tie-break weight.
  * @param {string[]|undefined} pznTags
  * @param {{ regionLocale: string, country?: string, pzn?: string }} ctx
  */
@@ -138,9 +152,10 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
         return 0;
     }
     const tokens = parsePznTokens(pzn);
-    const matchedTokens = countMatchedPznTokens(tags, tokens);
+    const audienceTags = tags.filter((tag) => PZN_TAG_RE.test(tag) && !hasGeoTag([tag]));
+    const matchedTokens = countMatchedPznTokens(audienceTags, tokens);
     const geo = matchesGeo(tags, { regionLocale, country });
-    if (matchedTokens === 0 && !geo) {
+    if ((audienceTags.length && matchedTokens === 0) || (hasGeoTag(tags) && !geo)) {
         return 0;
     }
     return matchedTokens * 100 + geoMatchScore(geo) * 10;
@@ -207,16 +222,23 @@ function collectPromoVariationCandidates(variationsByPath, fragmentPath) {
 }
 
 /**
- * Picks the best geo match for a fragment.
- * Candidates without a geo tag (empty pznTags, or a personalization tag like mas:pzn/edu) act as fallbacks.
+ * Picks the best geo match among audience-eligible candidates for a fragment.
+ * Eligible candidates without a geo tag act as fallbacks.
  */
-function selectBestPromoVariation(candidates, { regionLocale, country }) {
+function selectBestPromoVariation(candidates, { regionLocale, country, pzn }) {
+    const pznTokens = parsePznTokens(pzn);
     let fallback = null;
     let best = null;
     let bestScore = 0;
     for (const candidate of candidates) {
         const pznTags = candidate.fields?.pznTags;
-        if (!Array.isArray(pznTags) || pznTags.length === 0 || !hasGeoTag(pznTags)) {
+        if (!Array.isArray(pznTags) || pznTags.length === 0) {
+            fallback ??= candidate;
+            continue;
+        }
+        const audienceTags = pznTags.filter((tag) => PZN_TAG_RE.test(tag) && !hasGeoTag([tag]));
+        if (audienceTags.length && !countMatchedPznTokens(audienceTags, pznTokens)) continue;
+        if (!hasGeoTag(pznTags)) {
             fallback ??= candidate;
             continue;
         }
@@ -249,14 +271,16 @@ function isPromoVariationIgnored(root, selectedPromoProject) {
 }
 
 // Selects the best default+region promo variation for `fragmentPath`, merging both when both exist.
-function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country }) {
+function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country, pzn }) {
     const defaultVar = selectBestPromoVariation(collectPromoVariationCandidates(project.defaultVariations, fragmentPath), {
         regionLocale,
         country,
+        pzn,
     });
     const regionVar = selectBestPromoVariation(collectPromoVariationCandidates(project.regionVariations, fragmentPath), {
         regionLocale,
         country,
+        pzn,
     });
     return defaultVar && regionVar ? deepMerge(defaultVar, regionVar) : defaultVar || regionVar;
 }
@@ -269,7 +293,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
         return {};
     }
     const { project, label } = selectedPromoProject;
-    const { regionLocale, country } = customizeContext;
+    const { regionLocale, country, pzn } = customizeContext;
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     // Paths of pzn variations added to this promo project (e.g. set(['PA-123/pzn/edu'])).
     const groupedVariationPaths = selectedPromoProject.groupedVariationPaths;
@@ -291,6 +315,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             const promoPersonalizationVariation = resolvePromoVariationForPath(project, groupedFragmentPath, {
                 regionLocale,
                 country,
+                pzn,
             });
             if (promoPersonalizationVariation) {
                 logDebug(
@@ -303,7 +328,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
         }
     }
     if (findPznVariationForPromotion(root, customizeContext)) return {};
-    const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
+    const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country, pzn });
     if (!variation) {
         if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
             return { variation: {}, label };
@@ -436,7 +461,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
  * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation
  * @returns {Array}
  */
-function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
+export function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
     const customizedCards = customizedRoot.fields?.cards;
     const customizedCollections = customizedRoot.fields?.collections;
     if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
@@ -476,22 +501,64 @@ function adaptReferencesTree(referencesTree, customizedRoot, variationReferences
 }
 
 /**
- * Baseline fragments only provide defaults: their own variations are never resolved.
+ * Card identity & system fields: a card never takes them from a baseline. `variant` is not one of them: a baseline layer
+ * served as main body inherits it from a lower layer.
+ */
+export const NON_INHERITED_FIELDS = new Set([
+    'osi',
+    'tags',
+    'pznTags',
+    'variations',
+    'enableBaselines',
+    'locReady',
+    'compatVersion',
+    'originalId',
+]);
+
+const isEmptyEntry = (entry) => [undefined, null, ''].includes(entry);
+
+/**
+ * Same as `hasContent` in Studio's baseline model, which previews the layering: a field is empty when none of its entries
+ * holds a value (`''`, `null`, `[]`, `['']`, `{ value: '' }`, `{ value: null }`, `{ value: [''] }`, `{}`).
+ */
+const isEmptyFieldValue = (value) =>
+    [value]
+        .flat()
+        .flatMap((entry) => (entry instanceof Object ? entry.value : entry))
+        .every(isEmptyEntry);
+
+/**
+ * Baseline fragments only provide defaults: their own variations are never resolved, their card-own fields are ignored
+ * and their empty fields inherit from lower layers, like the card's.
  */
 function prepareBaseline(baseline) {
-    const { variations, ...fields } = baseline.fields;
     // explicit empty sentinels must survive layering to override lower layers, they are normalized once merged
+    const fields = Object.fromEntries(
+        Object.entries(baseline.fields).filter(([name, value]) => !NON_INHERITED_FIELDS.has(name) && !isEmptyFieldValue(value)),
+    );
     return { ...skimFragmentFromReferences(baseline), fields };
 }
 
 /**
- * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Unset
- * icons are delivered as `[]`, which merging skips: they don't count.
+ * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Empty
+ * icons (`[]`, `['']`) don't count.
  */
 function withOfferIcon(offerBaseline, higherLayers) {
-    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon?.length)) return offerBaseline;
+    if (higherLayers.every(({ fields }) => isEmptyFieldValue(fields.mnemonicIcon))) return offerBaseline;
     const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
     return { ...offerBaseline, fields };
+}
+
+/**
+ * Odin leaves out empty text fields: such fields inherit from the baselines
+ * providing them, only the explicit_empty sentinel clears a baseline value.
+ */
+function withoutInheritedEmptyFields(fragment, baselines) {
+    const provided = new Set(baselines.flatMap(({ fields }) => Object.keys(fields)));
+    const fields = Object.fromEntries(
+        Object.entries(fragment.fields).filter(([name, value]) => !provided.has(name) || !isEmptyFieldValue(value)),
+    );
+    return { ...fragment, fields };
 }
 
 /**
@@ -507,11 +574,33 @@ function applyBaselines(fragment, { baselines }) {
         fragmentSegmentBaseline,
     ].filter((baseline) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
-    const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
+    const preparedLayers = layers.map(prepareBaseline);
+    const card = withoutInheritedEmptyFields(fragment, preparedLayers);
+    const merged = deepMerge(card, ...preparedLayers, card);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
     if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
     return merged;
+}
+
+function applyMask(fragment, maskFragment) {
+    const merged = { ...deepMerge(fragment, maskFragment), maskId: maskFragment.id };
+    const tags = [...new Set([...(maskFragment.fields?.tags ?? []), ...(fragment.fields?.tags ?? [])])];
+    if (tags.length > 0) merged.fields.tags = tags;
+    return merged;
+}
+
+export function resolveActiveFragment(
+    root,
+    customizeContext,
+    selectedPromoProject = selectPromoProjectForFragment(root, customizeContext),
+) {
+    const { references, referencesTree, ...fragment } = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (references) {
+        customizeContext.references = { ...references, ...customizeContext.references };
+    }
+    fragment.fields = normalizeExplicitEmptyInFields(fragment.fields);
+    return { fragment, referencesTree };
 }
 
 /**
@@ -524,18 +613,15 @@ function applyBaselines(fragment, { baselines }) {
 function customizeTree(fragment, referencesTree = [], customizeContext) {
     const root = applyBaselines(fragment, customizeContext);
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
-    //apply regional or promo variation, if any.
-    const {
-        references: variationReferences,
-        referencesTree: variationReferencesTree,
-        ...customizedRoot
-    } = mergeVariations(root, customizeContext, selectedPromoProject);
-    if (variationReferences) {
-        // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
-        // win, since they may already hold customized values.
-        customizeContext.references = { ...variationReferences, ...customizeContext.references };
+    const { fragment: mergedRoot, referencesTree: variationReferencesTree } = resolveActiveFragment(
+        root,
+        customizeContext,
+        selectedPromoProject,
+    );
+    let customizedRoot = mergedRoot;
+    if (customizeContext.maskFragment && customizedRoot.model?.id === CARD_MODEL_ID) {
+        customizedRoot = applyMask(customizedRoot, customizeContext.maskFragment);
     }
-    customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
@@ -585,6 +671,10 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
             }
         }
     }
+    if (customizedRoot.fields) {
+        const { variations, ...fields } = customizedRoot.fields;
+        customizedRoot.fields = fields;
+    }
     //finally we return updated root and references (stable id: default fragment key in references map)
     const refs = customizeContext.references;
     if (refs && root.id != null) {
@@ -609,7 +699,6 @@ async function customize(context) {
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promoProjects = context.promoProjects ?? [];
-    const { maskFragment, pzn } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -626,33 +715,32 @@ async function customize(context) {
         regionLocale,
         references,
         surface,
+        pzn: getValidatedPzn(context),
         // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
         promoScopeById: {},
         // adapted references tree of each customized card / collection, by id
         customizedTrees: new Map(),
     };
-    if (
-        pzn &&
-        String(pzn)
-            .split(',')
-            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
-    ) {
-        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
-        customizeContext.pzn = undefined;
-    }
-
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
-    let { fragment: customizedFragment } = customizedTree;
+    const { fragment: customizedFragment } = customizedTree;
     if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
-    if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
-        logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
-        customizedFragment = deepMerge(customizedFragment, maskFragment);
-        customizedFragment.maskId = maskFragment.id;
-    }
-    customizedFragment.references = customizedReferences;
-    customizedFragment.referencesTree = customizedReferenceTree;
+    const activeReferences = new Set([customizedFragment.id]);
+    const collectReferences = (tree) =>
+        tree
+            .filter(({ fieldName }) => fieldName !== 'variations')
+            .map((entry) => {
+                activeReferences.add(entry.identifier);
+                return entry.referencesTree ? { ...entry, referencesTree: collectReferences(entry.referencesTree) } : entry;
+            });
+    const activeTree = collectReferences(customizedReferenceTree);
+    customizedFragment.references = Object.fromEntries(
+        Object.entries(customizedReferences ?? {}).filter(
+            ([id, ref]) => ref.type !== 'content-fragment' || activeReferences.has(id),
+        ),
+    );
+    customizedFragment.referencesTree = activeTree;
     return {
         ...context,
         status: 200,
@@ -666,4 +754,4 @@ export const transformer = {
     name: 'customize',
     process: customize,
 };
-export { deepMerge };
+export { deepMerge, MERGE_CONFIG };

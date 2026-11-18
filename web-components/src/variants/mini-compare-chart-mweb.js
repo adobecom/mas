@@ -2,7 +2,6 @@ import { html, css, unsafeCSS, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
-import { keepInHeadingPriceForAnnual } from './mini-compare-chart.js';
 import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
@@ -24,6 +23,7 @@ const SYNCED_HEIGHT_NAMES = [
     'heading-xs',
     'subtitle',
     'heading-m-price',
+    'callout-content',
     'quantity-select',
     'promo-text',
     'body-m',
@@ -36,6 +36,11 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'h3', slot: 'heading-xs' },
     subtitle: { tag: 'p', slot: 'subtitle' },
     prices: { tag: 'p', slot: 'heading-m-price' },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Legal Disclaimer',
+    },
     promoText: { tag: 'div', slot: 'promo-text' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'body-m' },
@@ -147,6 +152,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             'heading-xs',
             'subtitle',
             'heading-m-price',
+            'callout-content',
             'quantity-select',
             'promo-text',
             'body-m',
@@ -155,7 +161,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         this.syncRowHeights(
             slots.map((slot) => ({
                 name: slot,
-                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+                getElement: (card) =>
+                    slot === 'callout-content'
+                        ? card.shadowRoot.querySelector('.legal-disclaimer')
+                        : card.querySelector(`[slot="${slot}"]`),
             })),
         );
         this.adjustMiniCompareFooterRows();
@@ -164,20 +173,21 @@ export class MiniCompareChartMweb extends VariantLayout {
     priceOptionsProvider(element, options) {
         const mainPriceSlot =
             MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING.prices.slot;
-        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+        if (
+            !element.closest(`[slot="${mainPriceSlot}"]`) &&
+            element.slot !== 'price-legal'
+        )
+            return;
 
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-            options.displayPlanType =
-                this.card?.settings?.displayPlanType ?? false;
+            options.displayPerUnit = false;
+            options.displayTax = false;
+            options.displayPlanType = this.hasLegalDisclaimer
+                ? false
+                : (this.card?.settings?.displayPlanType ?? false);
             return;
         }
-        // For main price display (strikethrough and regular price)
-        // Disable perUnit display - it will be shown in legal price only
-        if (
-            element.dataset.template === 'strikethrough' ||
-            (element.dataset.template === 'price' &&
-                !element.closest?.('merch-card')?.settings?.displayAnnual)
-        ) {
+        if (element.dataset.template === 'strikethrough') {
             options.displayPerUnit = false;
         }
     }
@@ -308,6 +318,12 @@ export class MiniCompareChartMweb extends VariantLayout {
         );
     }
 
+    get hasLegalDisclaimer() {
+        return !!this.card
+            .querySelector('[slot="callout-content"]')
+            ?.textContent.trim();
+    }
+
     async adjustLegal() {
         if (this.legalAdjusted) return;
 
@@ -327,24 +343,11 @@ export class MiniCompareChartMweb extends VariantLayout {
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            keepInHeadingPriceForAnnual(
-                this.card,
-                headingPrice,
-                legal,
-                'displayTax',
-            );
-            keepInHeadingPriceForAnnual(
-                this.card,
-                headingPrice,
-                legal,
-                'displayPerUnit',
-            );
-
+            legal.dataset.displayTax = 'false';
+            legal.dataset.displayPerUnit = 'false';
             legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
+            legal.slot = 'price-legal';
+            this.card.append(legal);
             await legal.onceSettled();
         } catch {
             // Proceed with other adjustments
@@ -371,6 +374,14 @@ export class MiniCompareChartMweb extends VariantLayout {
                     <div class="price-wrapping">
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
+                        <div class="legal-disclaimer">
+                            <slot name="price-legal"></slot>
+                            <slot
+                                name="callout-content"
+                                ?hidden=${!this.hasLegalDisclaimer}
+                                @slotchange=${() => this.card.requestUpdate()}
+                            ></slot>
+                        </div>
                     </div>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
@@ -440,6 +451,11 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     static variantStyle = css`
+        :host([variant='mini-compare-chart-mweb'])
+            slot[name='callout-content'][hidden] {
+            display: none;
+        }
+
         :host([variant='mini-compare-chart-mweb'])
             .body-main
             > .price-wrapping {
@@ -535,6 +551,13 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
 
         @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host([variant='mini-compare-chart-mweb']) .legal-disclaimer {
+                min-height: var(
+                    --consonant-merch-card-mini-compare-chart-mweb-callout-content-height,
+                    0px
+                );
+            }
+
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {
@@ -597,12 +620,6 @@ export class MiniCompareChartMweb extends VariantLayout {
             ::slotted([slot='quantity-select']) {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-quantity-select-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            ::slotted([slot='callout-content']) {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-callout-content-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])

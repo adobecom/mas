@@ -1,0 +1,117 @@
+/**
+ * Hourly usage rollup (MWPW-185891).
+ *
+ * Runs on a schedule (once per hour). Grafana queries all successful fragment requests for the
+ * window in shared scans; per-fragment storage work is bounded by count and elapsed time.
+ *
+ * This exists because querying live per fragment is not viable: a single fragment's referer
+ * breakdown rescans a very large number of rows. Pre-aggregating turns the read path into a State
+ * lookup with no Grafana call at all.
+ *
+ * The job overlaps its window deliberately (see LOOKBACK_HOURS) and merges by hour rather than
+ * adding, so a retried, delayed, or double-fired alarm cannot double count.
+ */
+
+const { randomUUID } = require('crypto');
+const { Core } = require('@adobe/aio-sdk');
+const stateLib = require('@adobe/aio-lib-state');
+
+const { fetchHourlyPages } = require('./grafana');
+const { mergePages, prunePages, toEpochHour, HOUR_MS } = require('./pages');
+const { readUsage, writeUsage, emptyRecord, acquireRollupLease } = require('./state');
+
+/**
+ * How far back each run re-reads. Every hour is rewritten whole by the three runs after it ends, so
+ * the hour still in progress last time gets its final count and two missed runs in a row still
+ * repair themselves.
+ */
+const LOOKBACK_HOURS = 3;
+
+/** Headroom above the ~1,600 active fragments without unbounded State work. */
+const MAX_FRAGMENTS_PER_RUN = 2000;
+
+/** Leave a minute before the action's 300-second timeout for in-flight State work and the summary. */
+const MAX_RUN_MS = 240000;
+
+/**
+ * Aggregates a window of Grafana data into the stored records.
+ * @param {object} params action inputs
+ * @returns {Promise<object>} run summary
+ */
+async function main(params) {
+    const logger = Core.Logger('fragment-usage-rollup', { level: params.LOG_LEVEL || 'info' });
+    const startedAt = Date.now();
+
+    try {
+        const token = params.GRAFANA_SERVICE_TOKEN;
+        if (!token) {
+            return { statusCode: 503, body: 'Rollup not configured (missing GRAFANA_SERVICE_TOKEN)' };
+        }
+
+        // Runs straddling an hour boundary fetch different windows, so an overlapping run could
+        // write its older window over a newer one. The lease is taken before the Grafana query so
+        // this run's window is never older than one already stored.
+        const state = await stateLib.init();
+        if (!(await acquireRollupLease(randomUUID(), state))) {
+            logger.info('fragment usage rollup skipped: another run holds the lease');
+            return { statusCode: 409, body: 'Another fragment usage rollup is already running' };
+        }
+
+        // Stored hours are replaced whole, so the window starts on an hour boundary. Starting
+        // mid-hour would overwrite a complete stored hour with only its tail.
+        const toMs = Date.now();
+        const fromMs = toEpochHour(toMs - LOOKBACK_HOURS * HOUR_MS) * HOUR_MS;
+
+        const pagesByFragment = await fetchHourlyPages(fromMs, toMs, {
+            token,
+            url: params.GRAFANA_SERVICE_URL,
+            datasourceUid: params.GRAFANA_DATASOURCE_UID,
+            orgId: params.GRAFANA_ORG_ID,
+        });
+
+        const nowHour = toEpochHour(toMs);
+        const updatedAt = new Date(toMs).toISOString();
+
+        let fragments = 0;
+        let pages = 0;
+        let failures = 0;
+
+        const fragmentEntries = Object.entries(pagesByFragment);
+        for (const [fragmentId, hourlyPages] of fragmentEntries) {
+            if (fragments + failures >= MAX_FRAGMENTS_PER_RUN || Date.now() - startedAt >= MAX_RUN_MS) break;
+
+            // One unreadable or unwritable record must not cost every other fragment its update.
+            try {
+                const stored = (await readUsage(fragmentId, state)) || emptyRecord();
+
+                // Records written while the traffic panel existed still carry an hourly count map.
+                // Spreading `stored` would copy it forward on every run, so it is dropped explicitly
+                // and ages out with the first rewrite rather than surviving until the record expires.
+                delete stored.hours;
+
+                const mergedPages = prunePages(mergePages(stored.pages ?? {}, hourlyPages), nowHour);
+                await writeUsage(fragmentId, { ...stored, updatedAt, pages: mergedPages }, state);
+                fragments += 1;
+                pages += Object.values(hourlyPages).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
+            } catch (error) {
+                failures += 1;
+                logger.warn(`fragment usage rollup skipped ${fragmentId}: ${error.message}`);
+            }
+        }
+
+        const skipped = fragmentEntries.length - fragments - failures;
+        if (skipped) logger.warn(`fragment usage rollup reached its workload limit: ${skipped} fragments skipped`);
+        const summary = { fragments, pages, failures, skipped, durationMs: Date.now() - startedAt };
+        logger.info('fragment usage rollup complete', summary);
+
+        // Only a summary is returned. Returning the per-fragment grid would approach the 1MB
+        // Adobe I/O Runtime response cap.
+        return { statusCode: 200, body: summary };
+    } catch (error) {
+        logger.error('fragment usage rollup failed', error);
+        return { statusCode: 500, body: `ERROR in fragment usage rollup: ${error.message}` };
+    }
+}
+
+exports.main = main;
+exports.LOOKBACK_HOURS = LOOKBACK_HOURS;

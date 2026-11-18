@@ -119,7 +119,7 @@ class MasFragmentTable extends LitElement {
     }
 
     openCardPreview() {
-        openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' });
+        openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' }, this.fragmentStore.value.variant);
     }
 
     handleActionsClick(event) {

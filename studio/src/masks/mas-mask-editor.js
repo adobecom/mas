@@ -13,6 +13,7 @@ import '../rte/osi-field.js';
 import '../fields/badge-section.js';
 import '../fields/multifield.js';
 import '../fields/variable-field.js';
+import '../aem/aem-tag-picker-field.js';
 
 // Plans-card field configuration, duplicated from the plans variant of merch-card-editor.
 // Each field reuses the same widget the card editor uses and the same generic write path
@@ -525,6 +526,29 @@ class MasMaskEditor extends LitElement {
         `;
     }
 
+    get tagsTemplate() {
+        return html`
+            <div class="section-title">Tags</div>
+            <aem-tag-picker-field
+                id="f-tags"
+                namespace="/content/cq:tags/mas"
+                top="product_code"
+                multiple
+                label="Product code"
+                value=${this.fragment.getFieldValues('tags').join(',')}
+                @change=${this.#onTagsChange}
+            ></aem-tag-picker-field>
+        `;
+    }
+
+    #onTagsChange = (event) => {
+        const value = event.target.getAttribute('value');
+        const ids = value ? value.split(',') : [];
+        this.fragment.updateField('tags', ids);
+        this.fragment.newTags = [Store.masks.maskTagId(this.fragment.fragmentName, Store.surface()), ...ids];
+        this.requestUpdate();
+    };
+
     get variablesTemplate() {
         const rawValues = this.fragment?.getFieldValues('variables') ?? [];
         const value = rawValues.map((v) => ({ value: v }));
@@ -650,7 +674,7 @@ class MasMaskEditor extends LitElement {
                         ${section.fields.map((field) => this.#renderField(field))}
                     `,
                 )}
-                ${this.variablesTemplate} ${this.toolbarTemplate}
+                ${this.tagsTemplate} ${this.variablesTemplate} ${this.toolbarTemplate}
             </div>
         `;
     }

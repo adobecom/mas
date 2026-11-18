@@ -3,6 +3,7 @@ import {
     TRIAL_ANALYTICS_IDS,
     HEADLESS_STYLE_CTA_VARIANTS,
     MERCH_CARD_LOAD_TIMEOUT,
+    TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import {
@@ -28,25 +29,9 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export const ANALYTICS_TAG = 'mas:product_code/';
 export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
+
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-
-/**
- * Normalizes variant names for consistency.
- * Converts any variant starting with 'plans' to just 'plans'.
- * The 'pro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it does not carry the
- * 'plans' prefix, so it needs an explicit mapping).
- * @param {string} variant - The variant name to normalize
- * @returns {string} The normalized variant name
- */
-export function normalizeVariant(variant) {
-    if (!variant) return variant;
-    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
-    if (variant === 'pro') return 'plans';
-    if (variant.startsWith('plans')) return 'plans';
-    return variant;
-}
 
 export function appendSlot(fieldName, fields, el, mapping) {
     const config = mapping[fieldName];
@@ -198,7 +183,9 @@ export function processBadge(fields, merchCard, mapping) {
 
             merchCard.setAttribute(
                 'border-color',
-                fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR,
+                fields.borderColor ||
+                    fields.badgeBackgroundColor ||
+                    DEFAULT_BADGE_BACKGROUND_COLOR,
             );
         } else {
             merchCard.setAttribute(
@@ -1020,8 +1007,8 @@ export async function processCTAs(
                       cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const buyNowExists = filteredLinks.some(
-            (c) => c.dataset.analyticsId === 'buy-now',
+        const qualifyingCtaExists = filteredLinks.some((c) =>
+            TRIAL_TO_BUY_CTA_ANALYTICS_IDS.includes(c.dataset.analyticsId),
         );
         const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
@@ -1070,7 +1057,7 @@ export async function processCTAs(
                             ) &&
                             checkout.hasAttribute('data-replaced-osi')
                         ) {
-                            if (buyNowExists) {
+                            if (qualifyingCtaExists) {
                                 checkout.classList.remove('blue');
                                 checkout.removeAttribute('data-analytics-id');
                                 cta.remove();
@@ -1139,8 +1126,8 @@ export async function processCTAs(
                 });
                 const buyNowCta = ctas.find((c) => {
                     const checkout = getCtaSource(c);
-                    return (
-                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    return TRIAL_TO_BUY_CTA_ANALYTICS_IDS.includes(
+                        checkout.dataset.analyticsId,
                     );
                 });
                 if (!hasBlueCta && buyNowCta) {

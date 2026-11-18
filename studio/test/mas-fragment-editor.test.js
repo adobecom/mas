@@ -1525,7 +1525,7 @@ describe('MasFragmentEditor', () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragmentWithVariations: sandbox.stub().resolves(),
+                deleteFragmentWithVariations: sandbox.stub().resolves({ success: true, failedVariations: [] }),
                 deleteVariationFragment: sandbox.stub().resolves({ deleted: true, failedVariations: [] }),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
@@ -2087,8 +2087,7 @@ describe('MasFragmentEditor', () => {
                     expect(notice.getAttribute('role')).to.equal('status');
                     expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
                     expect(notice.textContent).to.include('selected promotion is missing');
-                    expect(notice.textContent).to.include('Countdown Timer Start (UTC)');
-                    expect(notice.textContent).to.include('Countdown Timer End (UTC)');
+                    expect(notice.textContent).to.include('Countdown Timer Start and Countdown Timer End (local time)');
                 });
             }
 
@@ -2119,8 +2118,8 @@ describe('MasFragmentEditor', () => {
             });
 
             for (const [instant, expected] of [
-                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 UTC'],
-                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 UTC'],
+                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 local time'],
+                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 local time'],
             ]) {
                 it(`uses the preview's effective time ${instant}`, () => {
                     Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });
@@ -2758,8 +2757,24 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    describe('previewColumn for collection grouped variations', () => {
-        it('returns nothing for collection fragment that is not a grouped variation', () => {
+    describe('previewColumn for collections', () => {
+        let ioMeta;
+
+        beforeEach(() => {
+            ioMeta = document.createElement('meta');
+            ioMeta.name = 'io-base-url';
+            ioMeta.content = 'https://io.example';
+            document.head.append(ioMeta);
+            sessionStorage.setItem('masAccessToken', 'ims-token');
+        });
+
+        afterEach(() => {
+            ioMeta.remove();
+            sessionStorage.removeItem('masAccessToken');
+        });
+
+        it('leaves a plain collection without a preview column when usage cannot be fetched', () => {
+            ioMeta.remove();
             const el = document.createElement('mas-fragment-editor');
             const fragment = new Fragment({
                 id: 'coll-id',
@@ -2773,7 +2788,43 @@ describe('MasFragmentEditor', () => {
             expect(el.previewColumn).to.equal(nothing);
         });
 
-        it('returns preview column with related variations for grouped collection variation', () => {
+        it('mounts related pages and artifacts for a plain collection, without related variations', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'coll-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('#preview-column')).to.exist;
+            expect(container.querySelector('mas-related-pages')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+            expect(container.querySelector('mas-related-variations')).to.not.exist;
+        });
+
+        it('mounts related pages and artifacts for a compare chart', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'compare-chart',
+                path: '/content/dam/mas/sandbox/en_US/compare-chart',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('mas-related-pages')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+        });
+
+        it('mounts related variations, artifacts and pages for a grouped collection variation', () => {
             const el = document.createElement('mas-fragment-editor');
             const fragment = new Fragment({
                 id: 'grouped-var',
@@ -2801,10 +2852,12 @@ describe('MasFragmentEditor', () => {
                 ],
             };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
-            const col = el.previewColumn;
-            expect(col).to.not.equal(nothing);
-            expect(col.strings.join('')).to.include('preview-column');
-            expect(col.values[0]).to.not.equal(nothing);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('#preview-column')).to.exist;
+            expect(container.querySelector('mas-related-variations')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+            expect(container.querySelector('mas-related-pages')).to.exist;
         });
     });
 
@@ -2820,7 +2873,7 @@ describe('MasFragmentEditor', () => {
             return container.querySelector('#editor-content').className;
         };
 
-        it('renders a plain collection full width', () => {
+        it('renders a collection without a preview column full width', () => {
             const className = renderEditorContentClass({
                 id: 'plain-coll',
                 path: '/content/dam/mas/sandbox/en_US/plain-coll',
@@ -3046,6 +3099,13 @@ describe('MasFragmentEditor', () => {
 
         it('does not render related artifacts for other models', () => {
             expect(renderSection(withModel('/conf/mas/settings/dam/cfm/models/dictionnary'))).to.equal(null);
+        });
+
+        it('renders related pages for the open fragment', () => {
+            const editor = withModel(CARD_MODEL_PATH);
+            const host = document.createElement('div');
+            render(editor.relatedPagesSection, host);
+            expect(host.querySelector('mas-related-pages').fragment.id).to.equal('f1');
         });
 
         describe('after a save', () => {

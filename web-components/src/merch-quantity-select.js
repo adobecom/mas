@@ -1,4 +1,4 @@
-import { BaseElement, html, on } from './base-element.js';
+import { BaseElement, html, on } from './merch-card.js';
 import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 

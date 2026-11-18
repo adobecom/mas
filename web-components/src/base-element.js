@@ -22,23 +22,19 @@ const ESCAPES = {
     "'": '&#39;',
 };
 
-// A registered symbol, so markup built by another bundle (variants hand the
-// collection its header area) is recognised too.
-const MARKUP = Symbol.for('mas.markup');
-
 class Markup {
     constructor(value) {
-        this[MARKUP] = value;
+        this.value = value;
     }
 
     toString() {
-        return this[MARKUP];
+        return this.value;
     }
 }
 
 const toMarkup = (value) => {
     if (value == null) return '';
-    if (value[MARKUP] !== undefined) return value[MARKUP];
+    if (value instanceof Markup) return value.value;
     if (Array.isArray(value)) return value.map(toMarkup).join('');
     return String(value).replace(/[&<>"']/g, (char) => ESCAPES[char]);
 };

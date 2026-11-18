@@ -1,4 +1,4 @@
-import { BaseElement, html, on } from './base-element.js';
+import { BaseElement, html, on } from './merch-card.js';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
 import {

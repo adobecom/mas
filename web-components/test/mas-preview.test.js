@@ -3,7 +3,7 @@ import {
     createPreview,
     getPreviewSettings,
     renderPreview,
-} from '../docs/ccd-preview.js';
+} from '../docs/mas-preview.js';
 import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 
 describe('preview', () => {
@@ -289,7 +289,7 @@ describe('preview validation field', () => {
 
     before(async () => {
         await import('../../studio/libs/swc.js');
-        styles = ['spectrum.css', 'ccd-preview.css'].map((name) => {
+        styles = ['spectrum.css', 'mas-preview.css'].map((name) => {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = new URL(`../docs/${name}`, import.meta.url).href;
@@ -318,7 +318,7 @@ describe('preview validation field', () => {
 
     it('keeps the warning inside the fragment field and vertically centered', async () => {
         const response = await fetch(
-            new URL('../docs/ccd-preview.html', import.meta.url),
+            new URL('../docs/mas-preview.html', import.meta.url),
         );
         expect(response.ok).to.be.true;
         const page = new DOMParser().parseFromString(

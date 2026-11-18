@@ -67,9 +67,9 @@ masStudio-*.json
 docs/
 !/web-components/docs/
 /web-components/docs/*
-!/web-components/docs/ccd-preview.html
-!/web-components/docs/ccd-preview.js
-!/web-components/docs/ccd-preview.css
+!/web-components/docs/mas-preview.html
+!/web-components/docs/mas-preview.js
+!/web-components/docs/mas-preview.css
 !/nala/docs/
 /nala/docs/*
 !/nala/docs/preview/

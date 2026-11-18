@@ -2,7 +2,7 @@ import { expect, test } from '../../libs/docs-test.js';
 import { publishedCards, unpublishedCard, collectionPreview, sharedPreview } from './preview.spec.js';
 import { constructTestUrl } from '../../utils/commerce.js';
 
-const previewPath = '/web-components/docs/ccd-preview.html';
+const previewPath = '/web-components/docs/mas-preview.html';
 const getPreviewUrl = (baseURL, fragment) => {
     const params = new URLSearchParams({
         'fragment-id': fragment.fragmentId,

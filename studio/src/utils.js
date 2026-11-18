@@ -592,7 +592,7 @@ export function previewFragmentOnPage(fragment) {
     const type = fragment?.model?.path === CARD_MODEL_PATH ? 'merch-card' : 'merch-card-collection';
     const surface = extractSurfaceFromPath(fragment.path);
     if (['ccd', 'adobe-home', 'commerce'].includes(surface)) {
-        const url = new URL('/web-components/docs/ccd-preview.html', window.location.origin);
+        const url = new URL('/web-components/docs/mas-preview.html', window.location.origin);
         url.search = new URLSearchParams({
             'fragment-id': fragment.id,
             'content-type': type,

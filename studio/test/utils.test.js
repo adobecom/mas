@@ -71,7 +71,7 @@ describe('previewFragmentOnPage', () => {
             previewFragmentOnPage({ ...fragment, path: `/content/dam/mas/${surface}/fr_FR/card` });
             const url = new URL(open.firstCall.args[0]);
             expect(url.origin).to.equal(window.location.origin);
-            expect(url.pathname).to.equal('/web-components/docs/ccd-preview.html');
+            expect(url.pathname).to.equal('/web-components/docs/mas-preview.html');
             expect(Object.fromEntries(url.searchParams)).to.deep.equal({
                 'fragment-id': fragment.id,
                 'content-type': 'merch-card',

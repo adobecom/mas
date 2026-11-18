@@ -5,19 +5,17 @@ import {
     MERCH_CARD_LOAD_TIMEOUT,
     TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
-import { UptLink } from './upt-link.js';
 import {
+    UptLink,
     createTag,
     getService,
     getHeadlessCtaVariant,
     hydrateHeadlessCta,
-} from './utils.js';
-import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
-import { isCountdownLinkText } from './countdown.js';
-import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
-} from './image-markup.js';
+} from './commerce.js';
+import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
+import { isCountdownLinkText } from './countdown.js';
 import { getFragmentMapping } from './variants/variants.js';
 import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 

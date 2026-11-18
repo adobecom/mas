@@ -80,7 +80,11 @@ must still pass before merge.
 ### IO changes require manual verification
 
 The first gate, `io-preview-support`, stops changes under `io/www/` or
-`io/studio/` for human review. It also applies when a change includes Studio
+`io/studio/` for human review, except files listed in `.pinata/io-allowlist.txt`
+(the two locale tables and the IO tests, which the IO unit tests cover). New and
+deleted IO files always stop. Piñata cannot widen the allowlist in its own
+change: the harness's `tenant-contract-integrity` guard on `.pinata/` runs first.
+It also applies when a change includes Studio
 or web-component files: a working UI preview does not verify changed IO code.
 Pasting a preview URL does not remove this gate. A human approval to continue
 is an explicit exception, not proof that IO was tested automatically.

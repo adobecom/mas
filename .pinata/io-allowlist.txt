@@ -1,0 +1,8 @@
+# IO paths a Piñata change may touch without stopping for a human at io-preview-support.
+# One bash glob per line; `*` also matches `/`, so `io/www/test/**` covers nested folders.
+# Anything else under io/www or io/studio, and any IO deletion, escalates.
+# Widen only with evidence: logic (e.g. transformers) changes often and needs a deployed candidate to verify.
+io/www/src/fragment/locales.js
+io/studio/src/locales.js
+io/www/test/**
+io/studio/test/**

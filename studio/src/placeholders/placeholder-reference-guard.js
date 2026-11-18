@@ -11,10 +11,10 @@ export const PLACEHOLDER_REFERENCES_MODAL_TAG_NAME = 'mas-placeholder-references
  *   mode: 'remove'|'publish', excludePath?: string }} params
  * @returns {Promise<boolean>}
  */
-export async function confirmPlaceholderReferences({ aem, key, surface, locale, mode, excludePath }) {
+export async function confirmPlaceholderReferences({ aem, key, mode, excludePath }) {
     let checkResult;
     try {
-        checkResult = await findPlaceholderReferencesWithTimeout(aem, { key, surface, locale, excludePath, mode });
+        checkResult = await findPlaceholderReferencesWithTimeout(aem, { key, excludePath, mode });
     } catch (error) {
         if (error?.name === 'AbortError') return false;
         showToast('Could not check placeholder references.', 'negative');
@@ -22,6 +22,7 @@ export async function confirmPlaceholderReferences({ aem, key, surface, locale, 
     }
 
     const { references, allowProceed } = checkResult;
+    if (!references.length && allowProceed && mode === 'publish') return true;
     references.sort((a, b) => a.model.id.localeCompare(b.model.id));
     const modalAllowProceed = mode === 'remove' ? false : allowProceed;
     const { MasPlaceholderReferencesModal } = await import('./mas-placeholder-references-modal.js');

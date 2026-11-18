@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-placeholder-references-modal.css.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, PAGE_NAMES } from '../constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, PAGE_NAMES, EVENT_KEYDOWN } from '../constants.js';
 import { extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 
@@ -18,7 +18,7 @@ function referenceTypeLabel(reference) {
 }
 
 /** Mirrors the deep-link convention used by mas-promotions-items-table.js's #getSearchUrl. */
-function buildReferenceHref(reference, key) {
+function buildReferenceHref(reference) {
     if (!reference?.path) return '';
     const surface = extractSurfaceFromPath(reference.path);
     const locale = extractLocaleFromPath(reference.path);
@@ -26,7 +26,7 @@ function buildReferenceHref(reference, key) {
     const isPlaceholder = reference.model?.path === DICTIONARY_MODEL_PATH;
     const params = new URLSearchParams({ page: isPlaceholder ? PAGE_NAMES.PLACEHOLDERS : PAGE_NAMES.CONTENT });
     if (isPlaceholder) {
-        params.set('search', key);
+        params.set('search', reference.id);
     } else if (reference.id) {
         params.set('query', reference.id);
     }
@@ -54,6 +54,23 @@ class MasPlaceholderReferencesModal extends LitElement {
         this.placeholderKey = '';
         this.references = [];
         this.allowProceed = false;
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+    }
+
+    handleKeyDown(event) {
+        if (event.key === 'Escape') {
+            this.cancel();
+        }
     }
 
     proceed() {
@@ -85,7 +102,7 @@ class MasPlaceholderReferencesModal extends LitElement {
         const hasReferences = this.references.length > 0;
         const showProceed = (this.mode === 'publish' && this.allowProceed) || (this.mode === 'remove' && !hasReferences);
         const headline = this.mode === 'publish' ? 'Publish placeholder' : 'Delete placeholder';
-        const subline = hasReferences ? `"${this.placeholderKey}" is referenced` : '';
+        const subline = hasReferences ? `The placeholder "${this.placeholderKey}" is referenced` : '';
         return html`
             <sp-dialog-wrapper
                 open
@@ -107,23 +124,16 @@ class MasPlaceholderReferencesModal extends LitElement {
                     ${subline ? html`<p><strong>${subline}</strong></p>` : nothing}
                     ${hasReferences
                         ? html`
-                              <p>
-                                  The following items reference the placeholder
-                                  <strong>"${this.placeholderKey}"</strong>:
-                              </p>
+                              <p>The list of example fragments where references are found :</p>
                               <ul class="reference-list">
                                   ${this.references.map(
                                       (reference) => html`
                                           <li>
                                               <span class="reference-type"
-                                                  >${referenceTypeLabel(reference)}
-                                                  ${extractSurfaceFromPath(reference.path)}</span
+                                                  >${referenceTypeLabel(reference)} ${extractSurfaceFromPath(reference.path)}
+                                                  ${extractLocaleFromPath(reference.path)}</span
                                               >
-                                              <a
-                                                  href=${buildReferenceHref(reference, this.placeholderKey)}
-                                                  target="_blank"
-                                                  rel="noopener"
-                                              >
+                                              <a href=${buildReferenceHref(reference)} target="_blank" rel="noopener">
                                                   ${reference.title || reference.path}
                                               </a>
                                           </li>

@@ -1,8 +1,6 @@
-import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import {
     DICTIONARY_ENTRY_MODEL_ID,
     ROOT_PATH,
-    SURFACES,
     TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
@@ -10,23 +8,6 @@ import {
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
-
-/**
- * Same-surface + ACOM fallback paths to search for placeholder references, mirroring the
- * fallback convention `ensureDictionaryIndex` uses for the dictionary index chain.
- * @param {{ surface: string, locale: string }} params
- * @returns {string[]}
- */
-export function buildPlaceholderReferenceScopes({ surface, locale }) {
-    if (!surface || !locale) return [];
-    const scopes = [`${ROOT_PATH}/${surface}/${locale}`];
-    if (surface !== SURFACES.ACOM.name) {
-        const fallbackLocale = getDefaultLocaleCode(surface, locale) ?? locale;
-        const acomScope = `${ROOT_PATH}/${SURFACES.ACOM.name}/${fallbackLocale}`;
-        if (!scopes.includes(acomScope)) scopes.push(acomScope);
-    }
-    return scopes;
-}
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -57,7 +38,6 @@ export function matchesPlaceholderKey(fragmentLike, key) {
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}
  */
 export async function findPlaceholderReferences(aem, { key, surface, locale, excludePath, signal } = {}) {
-    const scopes = buildPlaceholderReferenceScopes({ surface, locale });
     const modelIds = [
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
@@ -66,20 +46,24 @@ export async function findPlaceholderReferences(aem, { key, surface, locale, exc
     const references = [];
     const seenPaths = new Set();
 
-    for (const path of scopes) {
-        const cursor = await aem.sites.cf.fragments.search(
-            { path, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
-            null,
-            signal ? { signal } : undefined,
-        );
-        for await (const page of cursor) {
-            for await (const item of page) {
-                if (excludePath && item.path === excludePath) continue;
-                if (seenPaths.has(item.path)) continue;
-                if (!matchesPlaceholderKey(item, key)) continue;
-                seenPaths.add(item.path);
-                references.push(item);
-            }
+    const cursor = await aem.sites.cf.fragments.search(
+        { ROOT_PATH, modelIds, query: `{{${key}}}`, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+        null,
+        signal ? { signal } : undefined,
+    );
+
+    let refsFound = 0;
+    let page;
+    while (refsFound < 10) {
+        page = await cursor.next();
+        if (!page?.value) break;
+        for (const item of page.value) {
+            if (excludePath && item.path === excludePath) continue;
+            if (seenPaths.has(item.path)) continue;
+            if (!matchesPlaceholderKey(item, key)) continue;
+            seenPaths.add(item.path);
+            references.push(item);
+            refsFound++;
         }
     }
 
@@ -93,8 +77,12 @@ export async function findPlaceholderReferencesWithTimeout(aem, args) {
     const refsPromise = findPlaceholderReferences(aem, args);
 
     let timeoutId;
+    let timedOut = false;
     const timeoutPromise = new Promise((resolve) => {
-        timeoutId = setTimeout(() => resolve({ references: [] }), REFERENCE_CHECK_PROCEED_THRESHOLD_MS);
+        timeoutId = setTimeout(() => {
+            timedOut = true;
+            resolve({ references: [] });
+        }, REFERENCE_CHECK_PROCEED_THRESHOLD_MS);
     });
 
     const promises = [refsPromise];
@@ -102,10 +90,7 @@ export async function findPlaceholderReferencesWithTimeout(aem, args) {
     const result = await Promise.race(promises);
     clearTimeout(timeoutId);
     result.durationMs = Date.now() - startedAt;
-    result.allowProceed =
-        args.mode === 'publish' ? result.durationMs < REFERENCE_CHECK_PROCEED_THRESHOLD_MS : result.references.length === 0;
-    if (result.durationMs > REFERENCE_CHECK_PROCEED_THRESHOLD_MS) {
-        processAbortController.abort();
-    }
+    result.allowProceed = args.mode === 'publish' ? !timedOut : result.references.length === 0;
+    if (timedOut) processAbortController.abort();
     return result;
 }

@@ -15,6 +15,9 @@
         "eslint": "^8",
         "mocha": "^10.2.0"
     },
+    "overrides": {
+        "axios": "^1.20.0"
+    },
     "scripts": {
         "test": "mocha --recursive ./test",
         "test:ci": "mocha --recursive ./test",

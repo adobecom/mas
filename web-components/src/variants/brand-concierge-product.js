@@ -35,12 +35,6 @@ export class BrandConciergeProduct extends VariantLayout {
         return '[slot="heading-s"]';
     }
 
-    // Returns '' (never the heading-xs price) when the title is missing.
-    get titleText() {
-        const title = this.card.querySelector(this.headingSelector);
-        return title?.textContent?.trim() ?? '';
-    }
-
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;

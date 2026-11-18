@@ -529,10 +529,7 @@ export class MerchCard extends LitElement {
     }
 
     get title() {
-        return (
-            this.variantLayout?.titleText ??
-            this.titleElement?.textContent?.trim()
-        );
+        return this.titleElement?.textContent?.trim();
     }
 
     /* c8 ignore next 3 */

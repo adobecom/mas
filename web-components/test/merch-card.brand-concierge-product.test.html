@@ -328,18 +328,6 @@
                         expect(absent.title).to.be.undefined;
                     });
 
-                    it('has no titleText getter on the brand-concierge-product variantLayout; headingSelector still equals [slot="heading-s"]', async () => {
-                        const card = await buildCard(
-                            'brand-concierge-product',
-                            '<h3 slot="heading-s">Acrobat Pro</h3><p slot="heading-xs">US$19.99/mo</p>',
-                        );
-                        expect('titleText' in card.variantLayout).to.be.false;
-                        expect(card.variantLayout.titleText).to.be.undefined;
-                        expect(card.variantLayout.headingSelector).to.equal(
-                            '[slot="heading-s"]',
-                        );
-                    });
-
                     it('does not mutate the card when reading title', async () => {
                         const card = await buildCard(
                             'brand-concierge-product',

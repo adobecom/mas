@@ -1,4 +1,4 @@
-import { expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html, waitUntil } from '@open-wc/testing';
 import { sendKeys, setViewport } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
@@ -21,18 +21,34 @@ const usage = {
     ],
 };
 
-// Opening and closing the modal each run a Spectrum transition, which can take over a second on a
-// loaded CI runner.
-const modalTransition = { timeout: 5000 };
+// Opening and closing the modal each run a Spectrum transition. On the CI runner (run 41587889767)
+// one open plus one close outlasted mocha's 5000ms, and a stalled page never finishes either. Only
+// the tests that assert a transition's outcome wait for it. Each wait stays under the suite limit
+// below, so a slow step fails with its own message instead of a generic mocha timeout.
+const modalTransition = { timeout: 8000 };
 const wrapperOf = (element) => element.shadowRoot.querySelector('sp-dialog-wrapper');
 const closeButtonOf = (element) =>
     wrapperOf(element).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
 
-async function openDialog(data = usage) {
-    const element = await fixture(html`<mas-external-usage-dialog .usage=${data}></mas-external-usage-dialog>`);
+/** Renders the dialog and the Spectrum parts the tests touch, which do not depend on the open transition. */
+async function renderOpen(element) {
     element.open = true;
     await element.updateComplete;
-    await waitUntil(() => wrapperOf(element)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
+    const parts = ['sp-dialog-wrapper', 'sp-table', 'sp-table-head-cell', 'sp-table-body'];
+    await Promise.all([...element.shadowRoot.querySelectorAll(parts)].map((part) => part.updateComplete));
+}
+
+/** Content stays inert, and ignores click(), until the open transition ends. */
+const opened = (element) =>
+    waitUntil(
+        () => element.shadowRoot.querySelector('sp-overlay')?.state === 'opened',
+        'Dialog never finished opening',
+        modalTransition,
+    );
+
+async function openDialog(data = usage) {
+    const element = await fixture(html`<mas-external-usage-dialog .usage=${data}></mas-external-usage-dialog>`);
+    await renderOpen(element);
     return element;
 }
 
@@ -45,9 +61,7 @@ async function openThemedDialog(viewport) {
         </sp-theme>
     `);
     const element = theme.querySelector('mas-external-usage-dialog');
-    element.open = true;
-    await element.updateComplete;
-    await waitUntil(() => wrapperOf(element)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
+    await renderOpen(element);
     return element;
 }
 
@@ -55,12 +69,9 @@ async function openThemedDialog(viewport) {
 const visibleBoxOf = (element) =>
     wrapperOf(element).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.content').getBoundingClientRect();
 
-async function closeFixture() {
-    const overlay = document.querySelector('mas-external-usage-dialog')?.shadowRoot.querySelector('sp-overlay');
-    if (!overlay?.open) return;
-    const closed = oneEvent(overlay, 'sp-closed');
-    overlay.open = false;
-    await closed;
+/** Removing the host closes its overlay, without waiting on a transition that may never finish. */
+function closeFixture() {
+    document.querySelectorAll('mas-external-usage-dialog').forEach((dialog) => dialog.remove());
 }
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());
@@ -69,7 +80,10 @@ const requestCounts = (element) =>
     [...element.shadowRoot.querySelectorAll('.page-requests')].map((node) => node.textContent.trim());
 const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
-describe('mas-external-usage-dialog', () => {
+describe('mas-external-usage-dialog', function () {
+    // Two transition waits fit in one test.
+    this.timeout(20000);
+
     let sandbox;
 
     beforeEach(() => {
@@ -185,6 +199,7 @@ describe('mas-external-usage-dialog', () => {
         sandbox.stub(navigator.clipboard, 'writeText').resolves();
         const emit = sandbox.stub(Events.toast, 'emit');
         const element = await openDialog();
+        await opened(element);
 
         element.shadowRoot.querySelector('.page-copy').click();
 
@@ -196,6 +211,7 @@ describe('mas-external-usage-dialog', () => {
         sandbox.stub(navigator.clipboard, 'writeText').rejects(new DOMException('Write permission denied.', 'NotAllowedError'));
         const emit = sandbox.stub(Events.toast, 'emit');
         const element = await openDialog();
+        await opened(element);
 
         element.shadowRoot.querySelector('.page-copy').click();
 
@@ -258,6 +274,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('reverses to the quietest pages when the Requests header is toggled', async () => {
         const element = await openDialog();
+        await opened(element);
         headerCell(element, 1).click();
         await element.updateComplete;
         expect(requestCounts(element)).to.deep.equal(['40', '120', '900']);
@@ -265,6 +282,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('switches to an alphabetical page order when the Page header is picked', async () => {
         const element = await openDialog();
+        await opened(element);
         headerCell(element, 0).click();
         await element.updateComplete;
         expect(pageHrefs(element)).to.deep.equal([
@@ -285,6 +303,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('marks only the active column as sorted, so one arrow shows at a time', async () => {
         const element = await openDialog();
+        await opened(element);
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal(null);
         expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('desc');
         headerCell(element, 0).click();
@@ -295,6 +314,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('announces the active sort to screen readers', async () => {
         const element = await openDialog();
+        await opened(element);
         await headerCell(element, 1).updateComplete;
         expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('descending');
         headerCell(element, 1).click();
@@ -330,6 +350,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('emits close when the close button is pressed', async () => {
         const element = await openDialog();
+        await opened(element);
         let closed = false;
         element.addEventListener('close', () => {
             closed = true;
@@ -341,6 +362,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('emits close when the underlay is clicked', async () => {
         const element = await openDialog();
+        await opened(element);
         let closed = false;
         element.addEventListener('close', () => {
             closed = true;
@@ -382,6 +404,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('resets the sort order each time it reopens', async () => {
         const element = await openDialog();
+        await opened(element);
         headerCell(element, 0).click();
         await element.updateComplete;
         element.open = false;

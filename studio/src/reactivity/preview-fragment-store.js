@@ -14,6 +14,8 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
+import { mergeParentFields } from '../aem/variation-utils.js';
+import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
 const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
@@ -93,12 +95,19 @@ export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
     previewLocaleOverride = null;
+    /** @type {Fragment | null} merged baselines filling the empty fields of the preview */
+    baselineParent = null;
+    /** @type {string | null} variant of the baselines, deciding the arrays to merge when the card has none */
+    baselineVariant = null;
     #resolving = false;
     #resolvePending = false;
+    #valueVersion = 0;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
     #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
+    /** Authored fields before resolution: `this.value` holds the resolved result, which must not be resolved again. */
+    #sourceFields = [];
 
     /**
      * @param {Fragment} initialValue
@@ -108,6 +117,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
         this.lazy = lazy;
+        this.#captureSourceFields();
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
             if (this.lazy || !Store.previewDictionaryReady(this.previewLocale)) return;
@@ -131,27 +141,43 @@ export class PreviewFragmentStore extends FragmentStore {
            rather than (in this case) "super.set(value)"
         */
         this.value.replaceFrom(value, false);
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateField(name, value) {
         this.value.updateField(name, value);
+        const field = this.value.getField(name);
+        const index = this.#sourceFields.findIndex((sourceField) => sourceField.name === name);
+        if (index !== -1) this.#sourceFields[index] = structuredClone(field);
+        else if (field) this.#sourceFields.push(structuredClone(field));
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateFieldInternal(name, value) {
         this.value.updateFieldInternal(name, value);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     refreshFrom(value) {
         this.value.refreshFrom(value);
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     discardChanges() {
         this.value.discardChanges();
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
+    }
+
+    #captureSourceFields() {
+        this.#sourceFields = structuredClone(this.value.fields);
     }
 
     get previewLocale() {
@@ -230,13 +256,14 @@ export class PreviewFragmentStore extends FragmentStore {
 
         this.#resolving = true;
         const dictionarySig = this.previewLocale;
+        const valueVersion = this.#valueVersion;
         this.getResolvedFragment()
             .then((result) => {
-                if (result) {
-                    this.#resolvedDictionarySig = dictionarySig;
-                    this.replaceFrom(result);
-                    this.refreshAemFragment(true);
-                }
+                // The value changed mid-resolve: drop the outdated result, the follow-up resolve applies the fresh one.
+                if (!result || valueVersion !== this.#valueVersion) return;
+                this.#resolvedDictionarySig = dictionarySig;
+                this.replaceFrom(result);
+                this.refreshAemFragment(true);
             })
             .catch((error) => {
                 console.error('[PreviewFragmentStore] Failed to resolve fragment:', error);
@@ -258,6 +285,11 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
+        body.fields = structuredClone(this.#sourceFields);
+        if (this.baselineParent) {
+            const variant = body.fields.find(({ name }) => name === 'variant')?.values[0] || this.baselineVariant;
+            mergeParentFields(body, this.baselineParent, MERGE_CONFIG[variant]?.arraysToMerge);
+        }
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 

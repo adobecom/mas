@@ -38,7 +38,11 @@ export const VARIANT_NAMES = {
 export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surfaces: ['all'] },
     { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surfaces: [SURFACES.ACOM] },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM, SURFACES.GENUINE] },
+    {
+        label: 'Plans',
+        value: VARIANT_NAMES.PLANS,
+        surfaces: [SURFACES.ACOM, SURFACES.GENUINE, SURFACES.DALP, SURFACES.ELEMENTS],
+    },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
@@ -62,7 +66,7 @@ export const VARIANTS = [
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU, SURFACES.DALP, SURFACES.ELEMENTS],
     },
     {
         label: 'Brand Concierge Product',
@@ -82,14 +86,14 @@ export const VARIANTS = [
     {
         label: 'Segment',
         value: VARIANT_NAMES.SEGMENT,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.DALP, SURFACES.ELEMENTS],
     },
     { label: 'Media', value: VARIANT_NAMES.MEDIA, surfaces: [SURFACES.ACOM] },
     { label: 'Slice', value: VARIANT_NAMES.SLICES, surfaces: [SURFACES.CCD] },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surfaces: [SURFACES.ACOM_CC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.DALP, SURFACES.ELEMENTS],
     },
     { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surfaces: [SURFACES.CCD] },
     {
@@ -130,7 +134,16 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC, SURFACES.GENUINE, SURFACES.ACOM_EDU],
+        surfaces: [
+            SURFACES.SANDBOX,
+            SURFACES.ACOM_CC,
+            SURFACES.ACOM,
+            SURFACES.ACOM_DC,
+            SURFACES.GENUINE,
+            SURFACES.ACOM_EDU,
+            SURFACES.DALP,
+            SURFACES.ELEMENTS,
+        ],
     },
     {
         label: 'Mini Compare Chart',

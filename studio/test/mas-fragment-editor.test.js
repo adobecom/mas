@@ -1525,7 +1525,7 @@ describe('MasFragmentEditor', () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragmentWithVariations: sandbox.stub().resolves(),
+                deleteFragmentWithVariations: sandbox.stub().resolves({ success: true, failedVariations: [] }),
                 deleteVariationFragment: sandbox.stub().resolves({ deleted: true, failedVariations: [] }),
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
@@ -2087,8 +2087,7 @@ describe('MasFragmentEditor', () => {
                     expect(notice.getAttribute('role')).to.equal('status');
                     expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
                     expect(notice.textContent).to.include('selected promotion is missing');
-                    expect(notice.textContent).to.include('Countdown Timer Start (UTC)');
-                    expect(notice.textContent).to.include('Countdown Timer End (UTC)');
+                    expect(notice.textContent).to.include('Countdown Timer Start and Countdown Timer End (local time)');
                 });
             }
 
@@ -2119,8 +2118,8 @@ describe('MasFragmentEditor', () => {
             });
 
             for (const [instant, expected] of [
-                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 UTC'],
-                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 UTC'],
+                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 local time'],
+                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 local time'],
             ]) {
                 it(`uses the preview's effective time ${instant}`, () => {
                     Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });

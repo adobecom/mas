@@ -18,6 +18,7 @@ export const dimensions = {
         ['annual', { template: 'annual' }],
         ['legal', { template: 'legal', displayPlanType: true }],
         ['discount', { template: 'discount' }],
+        ['discount-amount', { template: 'discount-amount' }],
         ['alternative', { alternativePrice: true }],
         ['optical-alternative', { template: 'optical', alternativePrice: true }],
         ['with-annual', { displayAnnual: true }],
@@ -168,6 +169,16 @@ edge(
 edge('discount-no-baseline', {}, { priceWithoutDiscount: undefined }, { template: 'discount' });
 edge('discount-zero', {}, { price: 0 }, { template: 'discount' });
 edge('discount-invalid', {}, { price: '29' }, { template: 'discount' });
+for (const [id, detailChanges] of [
+    ['no-baseline', { priceWithoutDiscount: undefined }],
+    ['equal-prices', { priceWithoutDiscount: 29.99 }],
+    ['higher-price', { price: 49.99 }],
+    ['zero', { price: 0 }],
+    ['negative', { price: -10 }],
+    ['invalid', { price: '29' }],
+]) {
+    edge(`discount-amount-${id}`, {}, detailChanges, { template: 'discount-amount' });
+}
 edge(
     'discount-chinese',
     {},

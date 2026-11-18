@@ -99,3 +99,114 @@ describe('VariantLayout.postCardUpdateHook', () => {
         await layout.postCardUpdateHook();
     });
 });
+
+// These run against the browser's real ResizeObserver: the re-arm in
+// requestReflowCheck relies on a new observation reporting even when the size
+// did not change. Observers only deliver on rendered frames, which a
+// backgrounded test page never gets, so the suite skips itself there.
+describe('VariantLayout reflow observation', () => {
+    let card;
+    let child;
+    let layout;
+    let reports;
+
+    before(async function () {
+        const rendering = await Promise.race([
+            new Promise((resolve) =>
+                requestAnimationFrame(() => resolve(true)),
+            ),
+            new Promise((resolve) => setTimeout(() => resolve(false), 500)),
+        ]);
+        if (!rendering) this.skip();
+    });
+    const nextReport = () =>
+        new Promise((resolve) => {
+            reports.push(resolve);
+        });
+
+    // Price resolutions arrive in their own tasks, never inside a delivery.
+    const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    beforeEach(() => {
+        card = document.createElement('div');
+        card.style.cssText = 'width:200px;height:100px;';
+        child = document.createElement('div');
+        child.style.cssText = 'height:30px;';
+        card.append(child);
+        document.body.append(card);
+        reports = [];
+        layout = new VariantLayout(card);
+        layout.resyncOnReflow = () => reports.shift()?.();
+        card.variantLayout = layout;
+    });
+
+    afterEach(() => {
+        layout.disconnectReflow();
+        card.remove();
+    });
+
+    it('reports the observed sizes once layout is done', async () => {
+        const first = nextReport();
+        layout.observeReflow(card, child);
+        await first;
+        expect(layout.boxOf(card)).to.deep.equal({ width: 200, height: 100 });
+        expect(layout.heightOf(child)).to.equal(30);
+        expect(layout.heightOf(null)).to.equal(0);
+    });
+
+    it('reports again on request although nothing was resized', async () => {
+        const first = nextReport();
+        layout.observeReflow(card, child);
+        await first;
+        await nextTask();
+
+        const second = nextReport();
+        layout.requestReflowCheck();
+        await second;
+    });
+
+    it('coalesces requests made in one task into one report', async () => {
+        const first = nextReport();
+        layout.observeReflow(card, child);
+        await first;
+        await nextTask();
+
+        let count = 0;
+        layout.resyncOnReflow = () => (count += 1);
+        layout.requestReflowCheck();
+        layout.requestReflowCheck();
+        layout.requestReflowCheck();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(count).to.equal(1);
+    });
+
+    it('reports a hidden card as zero wide so no geometry is read', async () => {
+        card.style.display = 'none';
+        const rect = sinon.spy(card, 'getBoundingClientRect');
+        const first = nextReport();
+        layout.observeReflow(card, child);
+        await first;
+        expect(layout.boxOf(card).width).to.equal(0);
+        expect(rect.called).to.be.false;
+    });
+
+    it('measures an element the observer has not reported', () => {
+        layout.observeReflow(card);
+        expect(layout.boxOf(child).height).to.equal(30);
+    });
+
+    it('stops reporting once disconnected', async () => {
+        const first = nextReport();
+        layout.observeReflow(card, child);
+        await first;
+        await nextTask();
+
+        let count = 0;
+        layout.resyncOnReflow = () => (count += 1);
+        layout.disconnectReflow();
+        layout.requestReflowCheck();
+        card.style.width = '300px';
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(count).to.equal(0);
+    });
+});

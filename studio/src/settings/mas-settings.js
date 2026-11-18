@@ -97,10 +97,10 @@ class MasSettings extends LitElement {
             transform: translate(-50%, -50%);
             width: 508px;
             max-width: calc(100vw - 32px);
+            max-height: calc(100dvh - 32px);
             border-radius: 16px;
             background: var(--spectrum-white, #ffffff);
             display: flex;
-            flex-direction: column;
             z-index: 1;
         }
 

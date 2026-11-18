@@ -670,8 +670,8 @@ describe('corrector', () => {
             const result = await transformer.process({ body: staleBody(CDT_LINK), promoProjects });
 
             for (const target of [result.body, result.body.references['card-1'].value]) {
-                expect(target.cdtStart).to.equal('2026-01-01T00:00:00Z');
-                expect(target.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+                expect(target.cdtStart).to.equal('2026-01-01T00:00:00');
+                expect(target.cdtEnd).to.equal('2026-01-10T00:00:00');
             }
         });
 

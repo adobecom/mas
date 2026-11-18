@@ -159,7 +159,10 @@ async function main(params) {
             product.market_segments.forEach((s) => tags.push(`mas:market_segments/${s}`));
         }
         if (osi) {
-            const [baseOffer] = await aosClient.resolveOfferSelector(osi, undefined, { arrangementCode: arrangement_code });
+            const [baseOffer] = await aosClient.resolveOfferSelector(osi, undefined, {
+                arrangementCode: arrangement_code,
+                verifyIdentity: true,
+            });
             const planType = baseOffer && aosClient.calculatePlanType(baseOffer.commitment, baseOffer.term);
             if (RELEASE_PLAN_TYPES.includes(planType)) tags.push(`mas:plan_type/${planType.toLowerCase()}`);
         }

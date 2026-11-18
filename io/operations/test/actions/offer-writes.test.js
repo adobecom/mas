@@ -130,6 +130,17 @@ describe('offer writes validate AOS before mutation', () => {
         offers = [{ ...product, commitment: 'TERM_LICENSE', term: 'P3Y' }];
         expect(await releaseTags()).to.not.include('mas:plan_type/');
     });
+    it('tags the plan type of the verified selected offer when AOS lists another offer first', async () => {
+        const abmId = 'A'.repeat(32);
+        offers = [
+            { ...product, offer_id: offerId, commitment: 'YEAR', term: 'ANNUAL' },
+            { ...product, offer_id: abmId, commitment: 'YEAR', term: 'MONTHLY' },
+        ];
+        wcsOffers = [{ offerSelectorIds: [selector], offerId: abmId }];
+        const tags = await releaseTags();
+        expect(tags).to.include('mas:plan_type/abm');
+        expect(tags).to.not.include('mas:plan_type/puf');
+    });
     it('does not link an unresolved selector', async () => {
         offers = [];
         const result = await link({ ...params, cardId: 'card', offerSelectorId: selector });

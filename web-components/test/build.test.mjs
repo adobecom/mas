@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { build } from 'esbuild';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = fileURLToPath(new URL('../', import.meta.url));
 const options = {
     absWorkingDir: root,
     bundle: true,
@@ -66,7 +66,7 @@ test('explicit commerce imports isolate shared state and standalone components',
 
 test('the normal mas build rejects missing explicit commerce exports', async () => {
     const contents = readFileSync(
-        new URL('../../src/commerce.js', import.meta.url),
+        new URL('../src/commerce.js', import.meta.url),
         'utf8',
     ).replace("export { hostOsi } from './plan-type-text.js';", '');
     await build({ ...options, entryPoints: ['./src/mas.js'] });
@@ -81,7 +81,7 @@ test('the normal mas build rejects missing explicit commerce exports', async () 
                         builder.onLoad({ filter: /\/commerce\.js$/ }, () => ({
                             contents,
                             resolveDir: fileURLToPath(
-                                new URL('../../src/', import.meta.url),
+                                new URL('../src/', import.meta.url),
                             ),
                         }));
                     },

@@ -2,9 +2,11 @@ name: IO WWW Merge
 on:
     pull_request:
         types: [closed]
+        branches: [main]
         paths:
             - 'io/www/**'
             - 'price/**'
+            - 'checkout/**'
             - '.github/workflows/io-merge.yaml'
 
 jobs:

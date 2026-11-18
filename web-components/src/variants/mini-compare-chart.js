@@ -1,5 +1,5 @@
 import { html, css, unsafeCSS } from 'lit';
-import { createTag } from '../commerce.js';
+import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart.css.js';
 import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';

@@ -34,18 +34,21 @@ import {
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 import {
     getService,
     printMeasure,
-    toPromotionCodes,
-    hostOsi,
+    setForegroundTimeout,
+    clearForegroundTimeout,
+} from './utils.js';
+import { toPromotionCodes } from './utilities.js';
+import { hostOsi } from './plan-type-text.js';
+import {
     applyContextPromotionCode,
     applyDisplayAnnualDefault,
     applyHideStPriceLabels,
     mergePriceLiterals,
     registerContextOptionsProviders,
-} from './commerce.js';
+} from './mas-context.js';
 
 const MERCH_CARD = 'merch-card';
 

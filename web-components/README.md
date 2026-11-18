@@ -66,8 +66,8 @@ the evergreen mas.js is located at /web-components/dist/mas.js
 npm run build
 ```
 
-Cards explicitly import shared helpers from `commerce.js`; the card build only normalizes this external bundle path.
-Deploy both bundles together: cached commerce (`max-age=7200`) must expire or be invalidated before cards require new exports.
+Deploy additive commerce exports before switching cards to use them; after CDN propagation, allow at least the two-hour browser cache window (prefer the next day).
+Long-lived tabs may retain old modules beyond that window; elapsed time alone does not guarantee version compatibility. Roll back cards before removing exports.
 
 #### Build documentation
 

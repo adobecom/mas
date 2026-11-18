@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
@@ -25,9 +25,6 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     ctas: { slot: 'footer', size: 'm', editorLabel: 'Marquee CTA' },
 };
 
-const labelFor = (key, fallback) =>
-    MARQUEE_AEM_FRAGMENT_MAPPING[key]?.editorLabel ?? fallback;
-
 /**
  * Slot name to display label for Marquee variant (label + value only, no card).
  * Labels match the editor (merch-card-editor.js). Order defines render order.
@@ -35,15 +32,25 @@ const labelFor = (key, fallback) =>
 const MARQUEE_FIELDS = [
     { slot: 'image', label: 'Image' },
     { slot: 'backgrounds', label: 'Background' },
-    { slot: 'heading-xs', label: labelFor('title', 'Card title') },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(MARQUEE_AEM_FRAGMENT_MAPPING, 'title', 'Card title'),
+    },
     {
         slot: 'body-xs',
-        label: labelFor('description', 'Product description'),
+        label: editorLabel(
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+            'description',
+            'Product description',
+        ),
     },
     { slot: 'short-description', label: 'Pricing subtext' },
     { slot: 'callout-content', label: 'Callout text' },
     { slot: 'prices', label: 'Product price' },
-    { slot: 'footer', label: labelFor('ctas', 'CTAs') },
+    {
+        slot: 'footer',
+        label: editorLabel(MARQUEE_AEM_FRAGMENT_MAPPING, 'ctas', 'CTAs'),
+    },
 ];
 
 export class Marquee extends VariantLayout {

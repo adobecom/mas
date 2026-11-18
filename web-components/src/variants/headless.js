@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
@@ -29,9 +29,6 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     customFields: { tag: 'div', slot: 'custom-fields' },
 };
 
-const labelFor = (key, fallback) =>
-    HEADLESS_AEM_FRAGMENT_MAPPING[key]?.editorLabel ?? fallback;
-
 /**
  * Slot name to display label for Headless variant (label + value only, no card).
  * Only includes fields that are authorable in the merch-card editor to avoid confusion.
@@ -41,14 +38,32 @@ const HEADLESS_FIELDS = [
     { slot: 'bg-image', label: 'Background Image' },
     { slot: 'badge', label: 'Badge' },
     { slot: 'icons', label: 'Mnemonic icon' },
-    { slot: 'heading-xs', label: labelFor('title', 'Card title') },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'title',
+            'Card title',
+        ),
+    },
     { slot: 'body-xxs', label: 'Subtitle' },
     { slot: 'body-xs', label: 'Product description' },
-    { slot: 'promo-text', label: labelFor('promoText', 'Promo text') },
+    {
+        slot: 'promo-text',
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'promoText',
+            'Promo text',
+        ),
+    },
     { slot: 'callout-content', label: 'Callout text' },
     {
         slot: 'short-description',
-        label: labelFor('shortDescription', 'Pricing subtext'),
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'shortDescription',
+            'Pricing subtext',
+        ),
     },
     { slot: 'trial-badge', label: 'Trial Badge' },
     { slot: 'prices', label: 'Product price' },

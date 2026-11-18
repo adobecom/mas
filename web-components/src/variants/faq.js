@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
 /**
@@ -31,17 +31,24 @@ export const FAQ_AEM_FRAGMENT_MAPPING = {
     },
 };
 
-const labelFor = (key) => FAQ_AEM_FRAGMENT_MAPPING[key].editorLabel;
-
 /**
  * Slot name to display label for FAQ variant (label + value only, no card).
  * Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const FAQ_FIELDS = [
     { slot: 'prices', label: 'Product price' },
-    { slot: 'body-xs', label: labelFor('description') },
-    { slot: 'short-description', label: labelFor('shortDescription') },
-    { slot: 'callout-content', label: labelFor('callout') },
+    {
+        slot: 'body-xs',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'description'),
+    },
+    {
+        slot: 'short-description',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'shortDescription'),
+    },
+    {
+        slot: 'callout-content',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'callout'),
+    },
 ];
 
 export class Faq extends VariantLayout {

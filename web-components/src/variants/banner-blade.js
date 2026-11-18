@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
@@ -22,9 +22,6 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     ctas: { slot: 'footer', size: 'm', editorLabel: 'CTA' },
 };
 
-const labelFor = (key, fallback) =>
-    BANNER_BLADE_AEM_FRAGMENT_MAPPING[key]?.editorLabel ?? fallback;
-
 /**
  * Slot name to display label for Banner/Blade variant (label + value
  * only, no card). Labels match the editor (merch-card-editor.js). Order defines render order.
@@ -32,9 +29,26 @@ const labelFor = (key, fallback) =>
 const BANNER_BLADE_FIELDS = [
     { slot: 'image', label: 'Image' },
     { slot: 'backgrounds', label: 'Background' },
-    { slot: 'heading-xs', label: labelFor('title', 'Card title') },
-    { slot: 'body-xs', label: labelFor('description', 'Description') },
-    { slot: 'footer', label: labelFor('ctas', 'CTAs') },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(
+            BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+            'title',
+            'Card title',
+        ),
+    },
+    {
+        slot: 'body-xs',
+        label: editorLabel(
+            BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+            'description',
+            'Description',
+        ),
+    },
+    {
+        slot: 'footer',
+        label: editorLabel(BANNER_BLADE_AEM_FRAGMENT_MAPPING, 'ctas', 'CTAs'),
+    },
 ];
 
 export class BannerBlade extends VariantLayout {

@@ -202,6 +202,24 @@ describe('promotions-repository', () => {
             expect(failure).to.equal(error);
         });
 
+        it('rejects a fresh caller whose own loader swallowed the revalidation failure', async () => {
+            const stale = { id: 'promo-1', tags: [] };
+            Store.promotions.list.data.set([{ get: () => stale }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            const swallowingLoader = sandbox.stub().resolves();
+
+            let failure;
+            try {
+                await getPromotionProjectsForProbe(swallowingLoader, { fresh: true });
+            } catch (caught) {
+                failure = caught;
+            }
+            Store.promotions.list.data.removeMeta('fetchedAt');
+            expect(swallowingLoader.calledOnce).to.be.true;
+            expect(failure?.message).to.equal('Could not revalidate the promotions list.');
+        });
+
         it('does not reload for a joining caller once the shared refresh succeeded', async () => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');

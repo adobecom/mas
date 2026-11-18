@@ -1549,7 +1549,7 @@ export class MasRepository extends LitElement {
                     this.aem,
                     fragment,
                     fragment.getFieldValues('pznTags'),
-                    () => this.loadPromotions(),
+                    () => this.loadPromotions({ rethrow: true }),
                 );
             }
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
@@ -2479,7 +2479,7 @@ export class MasRepository extends LitElement {
         let latest = await this.aem.sites.cf.fragments.getById(id, null, skipReferences ? { references: null } : undefined);
         if (!skipPromoMerge) {
             latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
-                this.loadPromotions(),
+                this.loadPromotions({ rethrow: true }),
             );
         }
 

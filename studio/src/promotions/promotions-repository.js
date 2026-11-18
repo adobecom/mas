@@ -207,6 +207,8 @@ export const getPromotionProjectsForProbe = (() => {
         if (!fetched || (stale && fresh)) {
             await promotionProjectsLoad;
             if (joined && (!isFetched() || isStale())) await loadPromotions();
+            // A loader that swallows its failure leaves the list stale: a fresh caller must not get it back.
+            if (fresh && isStale()) throw new Error('Could not revalidate the promotions list.');
         } else if (stale) {
             // Nobody awaits a background refresh, so its failure must not surface as an unhandled rejection.
             promotionProjectsLoad.catch((error) => console.warn('Background promotions refresh failed:', error?.message));

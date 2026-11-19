@@ -21,3 +21,6 @@ mental_models:
         - mas-io
         - mas-cicd
         - mas-lead-architect
+
+context:
+    designs: figma

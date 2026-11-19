@@ -269,6 +269,107 @@
                         expect(planTypeMargin('disabled')).to.equal('0px');
                     });
                 });
+
+                describe('card.title', () => {
+                    const buildCard = async (variant, content) => {
+                        const service = document.createElement(
+                            'mas-commerce-service',
+                        );
+                        service.setAttribute('env', 'stage');
+                        service.setAttribute('country', 'US');
+                        service.setAttribute('language', 'en');
+                        const card = document.createElement('merch-card');
+                        card.setAttribute('variant', variant);
+                        card.innerHTML = content;
+                        container.append(service, card);
+                        await card.updateComplete;
+                        return card;
+                    };
+
+                    beforeEach(() => {
+                        container.innerHTML = '';
+                    });
+
+                    it('returns the heading-s text of a fragment card', async () => {
+                        const [masCommerceService, card] =
+                            getTemplateContent('product-card-wide');
+                        container.append(masCommerceService, card);
+                        await card.checkReady();
+                        const heading = card
+                            .querySelector('[slot="heading-s"]')
+                            .textContent.trim();
+                        const price = card
+                            .querySelector('[slot="heading-xs"]')
+                            .textContent.trim();
+                        expect(card.title).to.equal(heading);
+                        if (price) expect(card.title).to.not.include(price);
+                    });
+
+                    it('returns only the title when a price is present', async () => {
+                        const card = await buildCard(
+                            'brand-concierge-product',
+                            '<h3 slot="heading-s">Acrobat Pro</h3><p slot="heading-xs">US$19.99/mo</p>',
+                        );
+                        expect(card.title).to.equal('Acrobat Pro');
+                        expect(card.title).to.not.include('19.99');
+                        expect(card.title).to.not.include('US$');
+                    });
+
+                    it('returns an empty string for an empty or absent heading-s', async () => {
+                        const empty = await buildCard(
+                            'brand-concierge-product',
+                            '<h3 slot="heading-s"></h3><p slot="heading-xs">US$19.99/mo</p>',
+                        );
+                        const absent = await buildCard(
+                            'brand-concierge-product',
+                            '<p slot="heading-xs">US$19.99/mo</p>',
+                        );
+                        expect(empty.title).to.equal('');
+                        expect(absent.title).to.be.undefined;
+                    });
+
+                    it('does not mutate the card when reading title', async () => {
+                        const card = await buildCard(
+                            'brand-concierge-product',
+                            '<h3 slot="heading-s">Acrobat Pro</h3><p slot="heading-xs">US$19.99/mo</p>',
+                        );
+                        const snapshot = () => [
+                            card.innerHTML,
+                            [...card.children].map((child) => [
+                                child.getAttribute('slot'),
+                                child.textContent,
+                            ]),
+                        ];
+                        const before = snapshot();
+                        card.title;
+                        card.title;
+                        expect(snapshot()).to.deep.equal(before);
+                    });
+
+                    it('keeps the slot lookup for other variants', async () => {
+                        for (const variant of ['plans', 'catalog']) {
+                            const card = await buildCard(
+                                variant,
+                                '<h3 slot="heading-xs">Plan title</h3>',
+                            );
+                            expect(card.title).to.equal('Plan title');
+                            expect(card.title).to.equal(
+                                card
+                                    .querySelector(
+                                        card.variantLayout.headingSelector,
+                                    )
+                                    ?.textContent?.trim(),
+                            );
+                        }
+                        const mini = await buildCard(
+                            'mini',
+                            '<p slot="title">Mini title</p>',
+                        );
+                        expect(mini.title).to.equal('Mini title');
+                        const bare = await buildCard('plans', '');
+                        expect(bare.title).to.be.undefined;
+                    });
+                });
             });
         </script>
     </body>

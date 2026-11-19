@@ -6,7 +6,7 @@ export const PLACEHOLDER_REFERENCES_MODAL_TAG_NAME = 'mas-placeholder-references
 /**
  * Runs the author-side placeholder reference check and, if needed, shows the reference modal.
  * Resolves `true` only when the user presses Proceed; `mode: 'remove'` never offers Proceed
- * when references are found, so a blocked removal always resolves `false`.
+ * when references are found, so a blocked removal always resolves `false`..
  * @param {{ aem: import('../aem/aem.js').AEM, key: string, surface: string, locale: string,
  *   mode: 'remove'|'publish', excludePath?: string }} params
  * @returns {Promise<boolean>}

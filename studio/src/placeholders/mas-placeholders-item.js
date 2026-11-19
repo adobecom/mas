@@ -185,7 +185,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     /**
-     * Renders a table cell with optional tooltip
+     * Renders a table cell with optional tooltip.
      * @param {string} content - Cell content
      * @returns {TemplateResult} - HTML template
      */

@@ -124,7 +124,7 @@ class MasPlaceholderReferencesModal extends LitElement {
                     ${subline ? html`<p><strong>${subline}</strong></p>` : nothing}
                     ${hasReferences
                         ? html`
-                              <p>The list of example fragments where references are found :</p>
+                              <p>The list of example fragments where references are found : </p>
                               <ul class="reference-list">
                                   ${this.references.map(
                                       (reference) => html`

@@ -22,6 +22,7 @@ import {
     extractImageUrl,
     getFragmentEditorUrl,
     resolvePromoVariationDefaultCard,
+    previewFragmentOnPage,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -32,7 +33,77 @@ import {
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
+    STATUS_PUBLISHED,
 } from '../src/constants.js';
+
+describe('previewFragmentOnPage', () => {
+    let open;
+    const fragment = {
+        id: '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
+        path: '/content/dam/mas/acom/en_US/card',
+        model: { path: CARD_MODEL_PATH },
+        status: STATUS_PUBLISHED,
+    };
+
+    beforeEach(() => {
+        open = sinon.stub(window, 'open');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('keeps published acom cards on Milo', () => {
+        previewFragmentOnPage(fragment);
+        expect(open.firstCall.args).to.deep.equal([
+            `https://milo.adobe.com/merch/mas/preview?fragment-id=${fragment.id}&content-type=merch-card&locale=en_US`,
+            '_blank',
+        ]);
+    });
+
+    it('keeps unpublished acom cards on the Milo preview host', () => {
+        previewFragmentOnPage({ ...fragment, status: 'DRAFT' });
+        expect(new URL(open.firstCall.args[0]).hostname).to.equal('main--milo--adobecom.aem.page');
+    });
+
+    for (const surface of ['ccd', 'adobe-home', 'commerce']) {
+        it(`opens published ${surface} cards in the same-origin preview with the light theme`, () => {
+            previewFragmentOnPage({ ...fragment, path: `/content/dam/mas/${surface}/fr_FR/card` });
+            const url = new URL(open.firstCall.args[0]);
+            expect(url.origin).to.equal(window.location.origin);
+            expect(url.pathname).to.equal('/web-components/docs/mas-preview.html');
+            expect(Object.fromEntries(url.searchParams)).to.deep.equal({
+                'fragment-id': fragment.id,
+                'content-type': 'merch-card',
+                locale: 'fr_FR',
+                theme: 'light',
+            });
+        });
+    }
+
+    it('enables unpublished content for non-Milo collections', () => {
+        previewFragmentOnPage({
+            ...fragment,
+            path: '/content/dam/mas/ccd/en_US/collection',
+            model: { path: COLLECTION_MODEL_PATH },
+            status: 'DRAFT',
+        });
+        const params = new URL(open.firstCall.args[0]).searchParams;
+        expect(params.get('content-type')).to.equal('merch-card-collection');
+        expect(params.get('mas.preview')).to.equal('on');
+        expect(params.get('theme')).to.equal('light');
+    });
+
+    it('does not change routing for surfaces outside this ticket', () => {
+        previewFragmentOnPage({ ...fragment, path: '/content/dam/mas/express/en_US/card' });
+        expect(new URL(open.firstCall.args[0]).hostname).to.equal('milo.adobe.com');
+    });
+
+    it('does not open a window without a fragment id', () => {
+        previewFragmentOnPage({});
+        expect(open.called).to.be.false;
+    });
+});
 
 function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch Card: CC Pro: Business') {
     return {

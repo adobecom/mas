@@ -28,6 +28,10 @@ const SYNCED_ROWS = [
         getElement: (card) => card.shadowRoot?.querySelector('.fine'),
     },
     {
+        name: 'addon',
+        getElement: (card) => card.querySelector('[slot="addon"]'),
+    },
+    {
         name: 'footer',
         getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
@@ -337,6 +341,17 @@ export class ProductPricing extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
+        }
+
+        /* Cards without an add-on reserve its row (box + 16px margin) so prices
+           and buttons line up with their neighbors, as in Figma. Unset var =
+           invalid calc = no reserve, so a row with no add-on is unchanged. */
+        :host([variant='product-pricing']) slot[name='addon'] {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(
+                var(--consonant-merch-card-product-pricing-addon-height) + 16px
+            );
         }
 
         /* Legal + short-description share this row; a card shows one. */

@@ -217,6 +217,41 @@ describe('ProductPricing.syncHeights across a collection', () => {
         }
     });
 
+    it('reserves the add-on row for siblings without one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const withAddon = makeCard({ heights: { addon: 52 } });
+        const without = makeCard({ heights: {} });
+        const layout = layoutFor([withAddon, without]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(withAddon.__styles[prop]).to.equal('52px');
+            expect(
+                without.__styles[prop],
+                'card without an add-on reserves the row',
+            ).to.equal('52px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('leaves the add-on row unset when no card in the row has one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const a = makeCard({ heights: {} });
+        const b = makeCard({ heights: {} });
+        const layout = layoutFor([a, b]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(a.__styles[prop]).to.be.undefined;
+            expect(b.__styles[prop]).to.be.undefined;
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
     it('does not sync on mobile (stacked cards are each their own row)', () => {
         const prop = '--consonant-merch-card-product-pricing-heading-s-height';
         const a = makeCard({ top: 0, heights: { 'heading-s': 40 } });

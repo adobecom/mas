@@ -102,6 +102,34 @@ describe('MasksStore', () => {
         expect(saved).to.not.equal(false);
     });
 
+    describe('preview mask cache invalidation', () => {
+        const key = 'mask-ids-https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=photo';
+
+        beforeEach(async () => {
+            store.setAem(createAemMock());
+            await store.loadSurface('acom', 'en_US');
+            localStorage.setItem(key, JSON.stringify({ value: { status: 404 }, timestamp: Date.now(), ttl: 300000 }));
+        });
+
+        afterEach(() => localStorage.removeItem(key));
+
+        it('clears a persisted miss after creating a mask', async () => {
+            await store.createMask({ name: 'Photo', title: 'Photo mask', fields: [] });
+            expect(localStorage.getItem(key)).to.equal(null);
+        });
+
+        it('clears a persisted miss after saving a mask', async () => {
+            await store.saveMask(new Fragment({ id: 'photo', path: 'p', fields: [] }));
+            expect(localStorage.getItem(key)).to.equal(null);
+        });
+
+        it('retains a persisted miss when saving fails', async () => {
+            store.aem.sites.cf.fragments.save.rejects(new Error('Save failed'));
+            await store.saveMask(new Fragment({ id: 'photo', path: 'p', fields: [] }));
+            expect(localStorage.getItem(key)).not.to.equal(null);
+        });
+    });
+
     it('hands fragments.save the fragment carrying newTags', async () => {
         const aem = createAemMock();
         store.setAem(aem);

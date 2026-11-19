@@ -7,6 +7,7 @@ import {
     getFragmentId,
     getRegionalLocale,
     getRequestInfos,
+    markDegraded,
     matchesGeo,
 } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
@@ -162,15 +163,21 @@ export async function getSettings(context) {
     if (context.hasExternalSettings) return context.settings;
     const cachedSettings = await getCachedSettings(context);
     if (cachedSettings && !cachedSettings.isExpired) return cachedSettings.settings;
-    const { id } = await getSettingsId(context);
-    if (!id) {
+    // a transient failure serves the expired settings when there are some, and otherwise degrades the response; a
+    // 404 (no settings for the surface) is not a failure
+    const failed = (status) => {
+        if (status < 500 && status !== 429) return null;
+        if (cachedSettings) return cachedSettings.settings;
+        markDegraded(context, 'settings');
         return null;
-    }
+    };
+    const { id, status } = await getSettingsId(context);
+    if (!id) return failed(status);
     const response = await fetch(odinReferences(id, context.preview, REFERENCES.ALL), context, 'settings');
 
     if (response.status !== 200) {
         logDebug(() => 'Failed to fetch settings fragment', context);
-        return null;
+        return failed(response.status);
     }
 
     const settings = collectSettingEntries(response.body);

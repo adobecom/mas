@@ -16,6 +16,7 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'p', slot: 'short-description' },
+    callout: { tag: 'div', slot: 'callout-content' },
     prices: { tag: 'p', slot: 'prices' },
     ctas: { slot: 'footer', size: 'm' },
 };
@@ -30,6 +31,7 @@ const MARQUEE_FIELDS = [
     { slot: 'heading-xs', label: 'Title' },
     { slot: 'body-xs', label: 'Product description' },
     { slot: 'short-description', label: 'Short Description' },
+    { slot: 'callout-content', label: 'Callout text' },
     { slot: 'prices', label: 'Product price' },
     { slot: 'footer', label: 'CTAs' },
 ];

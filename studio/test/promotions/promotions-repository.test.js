@@ -925,7 +925,8 @@ describe('promotions-repository', () => {
                 },
             };
 
-            const result = await duplicatePromotionProject(repository, makeSourcePromotion(), { title: 'Black Friday copy' });
+            const source = { ...makeSourcePromotion(), id: 'source-project' };
+            const result = await duplicatePromotionProject(repository, source, { title: 'Black Friday copy' });
 
             expect(result.newPromotion).to.deep.equal(newPromotion);
             expect(result.failedVariations).to.deep.equal([]);

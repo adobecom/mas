@@ -200,7 +200,7 @@ export function loadAllPlaceholders(store) {
 
 /**
  * Loads all fragments (cards or collections). Subscribes to fragments list and populates store.
- * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
+ * @param {string} type - TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS or TABLE_TYPE.BASELINES
  * @param {Object} repository - MasRepository instance
  * @param {Object} state - Mutable state for process cancellation
  * @param {Function} options.getDisplayName - Display label for raw fragment data
@@ -209,6 +209,22 @@ export function loadAllPlaceholders(store) {
  */
 
 export function loadAllFragments(type, repository, state = {}, { getDisplayName, onReady, store } = {}) {
+    if (type === TABLE_TYPE.BASELINES) {
+        const { data } = store.baselinesList;
+        const callback = (stores) => {
+            const baselines = stores.map(({ value }) => ({
+                ...value,
+                studioPath: getDisplayName(value),
+            }));
+            const cardsByPaths = new Map(store.cardsByPaths.get());
+            for (const baseline of baselines) cardsByPaths.set(baseline.path, baseline);
+            store.cardsByPaths.set(cardsByPaths);
+            store.displayBaselines.set(baselines);
+            store.allBaselines.set(baselines);
+        };
+        data.subscribe(callback);
+        return { unsubscribe: () => data.unsubscribe(callback) };
+    }
     // Collections load via repository.loadAllCollections() with a dedicated model-filtered
     // query; partitioning the shared card stream misses collections that sit deep in the
     // cursor on large surfaces (acom, nala) where cards dominate the first pages.

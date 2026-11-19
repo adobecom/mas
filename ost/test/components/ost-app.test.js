@@ -249,7 +249,27 @@ describe('ost-app', () => {
             await el.updateComplete;
             const tab = el.shadowRoot.querySelector('ost-offer-tab');
             await tab.updateComplete;
-            expect(tab.shadowRoot.querySelector('ost-placeholder-panel')).to.exist;
+            const phPanel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            expect(phPanel).to.exist;
+            expect(phPanel.deepLinkApplied).to.be.false;
+            expect(phPanel.referenceOsi).to.equal('');
+        });
+
+        it('renders deeplinked ost-placeholder-panel with reference osi', async () => {
+            store.authoringFlow = 'single';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.selectedOffer = { offer_id: 'X' };
+            store.wizardStep = 'offer';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            el.config = { initialReferenceOsi: 'test_ref_osi' };
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const phPanel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            expect(phPanel).to.exist;
+            expect(phPanel.deepLinkApplied).to.be.true;
+            expect(phPanel.referenceOsi).to.equal('test_ref_osi');
         });
 
         it('renders ost-offer-detail-focused in consult flow when an offer is selected', async () => {

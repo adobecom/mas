@@ -234,10 +234,11 @@ function hasValidationErrors(fragment) {
 }
 
 /**
- * `publishFragments` rejects the whole batch with a 412 when any fragment in it (project or a
+ * `publishFragments` rejects the first batch with a 412 when any fragment in it (project or a
  * variation) has a stale etag. That's the only failure mode where dropping the variations and
- * retrying the project alone is a reasonable recovery. Any other error (auth, network, 5xx) is a
- * project-level failure and must not be masked as a variations shortfall.
+ * retrying the project alone is a reasonable recovery. Any other first-batch error (auth, network, 5xx)
+ * is a project-level failure and must not be masked as a variations shortfall. Failures on later
+ * batches are handled separately since the project is already published by then.
  * @param {Error} error
  * @returns {boolean}
  */
@@ -282,6 +283,13 @@ export async function publishPromotionProject(
                 await Promise.all(fragments.map((fragment) => repository.clearStagedTag(fragment)));
                 await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
             } catch (error) {
+                // The project is first in the first batch, so any completed batch means it is already live.
+                const published = error.publishedFragments ?? [];
+                if (published.length) {
+                    console.error('Failed to publish some promo variations alongside promotion project', error);
+                    showToast(promotionPublishShortfallMessage(promoVariationPaths.length - (published.length - 1)), 'warning');
+                    return true;
+                }
                 if (!isVariationBatchConflict(error)) {
                     throw error;
                 }

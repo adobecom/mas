@@ -2014,6 +2014,18 @@ describe('mas-field – tooltip icon-button rendering', () => {
             svg.getAttribute('class') || '',
             'milo info icon class',
         ).to.contain('icon-milo-info');
+        expect(svg.getAttribute('viewBox'), 'Spectrum 2 viewBox').to.equal(
+            '0 0 20 20',
+        );
+        expect(svg.getAttribute('class')).to.equal('icon-milo icon-milo-info');
+        expect(svg.getAttribute('aria-hidden')).to.equal('true');
+        expect(svg.getAttribute('height')).to.equal('18');
+        expect(svg.getAttribute('width')).to.equal('18');
+        const paths = svg.querySelectorAll('path');
+        expect(paths.length, 'InfoCircle has three paths').to.equal(3);
+        paths.forEach((path) =>
+            expect(path.getAttribute('fill')).to.equal('currentcolor'),
+        );
         expect(
             btn.getBoundingClientRect().width,
             'glyph occupies space',

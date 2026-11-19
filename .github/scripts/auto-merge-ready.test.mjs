@@ -14,6 +14,7 @@ import {
     approvalsApplying,
     failingChecks,
     purgeFailureMessage,
+    refusalReason,
     selectCandidates,
     skipReason,
     sweep,
@@ -104,10 +105,33 @@ test('failing checks are skipped before the merge state and approvals are consid
     );
 });
 
-test('merge state other than CLEAN is skipped', () => {
-    for (const mergeStateStatus of ['BEHIND', 'BLOCKED', 'UNKNOWN', 'DIRTY']) {
+test('merge state other than CLEAN or BLOCKED is skipped', () => {
+    for (const mergeStateStatus of ['BEHIND', 'UNKNOWN', 'DIRTY', 'UNSTABLE']) {
         assert.equal(skipReason(readyPr({ mergeStateStatus }), loadOf()), `merge state is ${mergeStateStatus}`);
     }
+});
+
+test('BLOCKED goes to the merge call once checks and approvals pass', () => {
+    assert.equal(skipReason(readyPr({ mergeStateStatus: 'BLOCKED' }), loadOf()), null);
+    const one = { ...approvals, reviews: approvals.reviews.slice(0, 1) };
+    assert.equal(
+        skipReason(readyPr({ mergeStateStatus: 'BLOCKED' }), loadOf({ approved: one })),
+        '1 of 2 approvals apply to the current code',
+    );
+});
+
+test('refusalReason reads the message GitHub returns', () => {
+    const body = JSON.stringify({
+        message:
+            'Repository rule violations found\n\nAt least 1 approving review is required by reviewers with write access.\n\n',
+        status: '405',
+    });
+    assert.equal(
+        refusalReason(body),
+        'Repository rule violations found At least 1 approving review is required by reviewers with write access.',
+    );
+    assert.equal(refusalReason(''), null);
+    assert.equal(refusalReason('not json'), null);
 });
 
 test('fewer than two applying approvals are skipped', () => {

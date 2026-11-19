@@ -1,6 +1,7 @@
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
 const WORKER_ACTION_NAME = 'bulk-publish-worker';
@@ -44,4 +45,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

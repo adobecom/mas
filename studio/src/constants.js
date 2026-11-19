@@ -1,4 +1,5 @@
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../web-components/src/compat-version.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../web-components/src/constants.js';
 
 export const CHECKOUT_CTA_TEXTS = {
     'buy-now': 'Buy now',
@@ -240,8 +241,8 @@ export const WORKFLOW_STEP_OPTIONS = [
 ];
 
 export const TAG_MODEL_ID_MAPPING = {
-    [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    [TAG_MERCH_CARD_COLLECTION]: COLLECTION_MODEL_ID,
+    [TAG_MERCH_CARD]: CARD_MODEL_ID,
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);

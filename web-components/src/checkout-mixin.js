@@ -8,9 +8,9 @@ import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
 import { getService } from './utilities.js';
 import { selectOffers } from '../../price/src/offers.js';
 import { isPromotionActive } from '../../price/src/price/utilities.js';
+import { is3in1Modal, isOpen3in1Modal } from '../../checkout/src/decisions.js';
 import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-    MODAL_TYPE_3_IN_1,
     STATE_RESOLVED,
 } from '../src/constants.js';
 import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
@@ -146,16 +146,15 @@ export function CheckoutMixin(Base) {
         }
 
         get is3in1Modal() {
-            return Object.values(MODAL_TYPE_3_IN_1).includes(
-                this.getAttribute('data-modal'),
-            );
+            return is3in1Modal(this.getAttribute('data-modal'));
         }
 
         get isOpen3in1Modal() {
             const masFF3in1 = document.querySelector('meta[name=mas-ff-3in1]');
-            return (
-                this.is3in1Modal && (!masFF3in1 || masFF3in1.content !== 'off')
-            );
+            return isOpen3in1Modal({
+                modal: this.getAttribute('data-modal'),
+                threeInOneEnabled: !masFF3in1 || masFF3in1.content !== 'off',
+            });
         }
 
         requestUpdate(force = false) {

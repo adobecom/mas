@@ -455,7 +455,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
  * Rebuilds the referencesTree to match the cards/collections order and membership
  * of the customized root fragment. Non-cards/collections entries (tags, variations)
  * are preserved. New IDs not present in the original tree take their entry from the promo
- * variation's hydrated tree (so their own subtree is customized too), or a stub entry otherwise.
+ * variation's hydrated tree (so their own subtree is customized too), or a stub entry otherwise
  * @param {Array} referencesTree
  * @param {Object} customizedRoot
  * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation

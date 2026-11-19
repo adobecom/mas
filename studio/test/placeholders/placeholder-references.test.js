@@ -7,10 +7,7 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../../src/constants.js';
-import {
-    matchesPlaceholderKey,
-    findPlaceholderReferences,
-} from '../../src/placeholders/placeholder-references.js';
+import { matchesPlaceholderKey, findPlaceholderReferences } from '../../src/placeholders/placeholder-references.js';
 
 function makeCursor(pages) {
     return (async function* () {

@@ -67,7 +67,7 @@ describe('previewFragmentOnPage', () => {
     });
 
     for (const surface of ['ccd', 'adobe-home', 'commerce']) {
-        it(`opens published ${surface} cards in the same-origin preview`, () => {
+        it(`opens published ${surface} cards in the same-origin preview with the light theme`, () => {
             previewFragmentOnPage({ ...fragment, path: `/content/dam/mas/${surface}/fr_FR/card` });
             const url = new URL(open.firstCall.args[0]);
             expect(url.origin).to.equal(window.location.origin);
@@ -76,7 +76,7 @@ describe('previewFragmentOnPage', () => {
                 'fragment-id': fragment.id,
                 'content-type': 'merch-card',
                 locale: 'fr_FR',
-                theme: surface === 'ccd' ? 'darkest' : 'light',
+                theme: 'light',
             });
         });
     }
@@ -91,7 +91,7 @@ describe('previewFragmentOnPage', () => {
         const params = new URL(open.firstCall.args[0]).searchParams;
         expect(params.get('content-type')).to.equal('merch-card-collection');
         expect(params.get('mas.preview')).to.equal('on');
-        expect(params.get('theme')).to.equal('darkest');
+        expect(params.get('theme')).to.equal('light');
     });
 
     it('does not change routing for surfaces outside this ticket', () => {

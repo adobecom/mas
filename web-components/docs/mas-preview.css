@@ -8,17 +8,7 @@ body {
 body > sp-theme {
     display: block;
     min-height: 100vh;
-    background: radial-gradient(
-            ellipse at 8% 0%,
-            rgb(235, 16, 0, 0.08),
-            transparent 45%
-        ),
-        radial-gradient(
-            ellipse at 92% 10%,
-            rgb(101, 72, 255, 0.08),
-            transparent 45%
-        ),
-        var(--spectrum-gray-50);
+    background: var(--spectrum-gray-50);
 }
 
 main {

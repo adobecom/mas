@@ -15,6 +15,9 @@ const getPreviewUrl = (baseURL, fragment) => {
 };
 
 const expectPreviewLoaded = async (page, fragment) => {
+    const theme = new URL(page.url()).searchParams.get('theme') ?? 'light';
+    await expect(page.locator('body')).toHaveClass(new RegExp(`\\bspectrum--${theme}\\b`));
+    await expect(page.locator('body > sp-theme')).toHaveAttribute('color', theme === 'darkest' ? 'dark' : theme);
     await expect(page.locator('#preview > *')).toHaveJSProperty('localName', fragment.contentType ?? 'merch-card');
     const card = page.locator('#preview merch-card').first();
     await expect(card).toHaveAttribute('variant', fragment.variant);

@@ -18,6 +18,7 @@ import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 import { getParameter } from '@dexter/tacocat-core';
+import { checkoutDecisions } from '../../checkout/src/decisions.js';
 
 export const TAG_NAME_SERVICE = 'mas-commerce-service';
 
@@ -38,6 +39,16 @@ export class MasCommerceService extends HTMLElement {
     #featureFlags;
 
     lastLoggingTime = 0;
+
+    /**
+     * Stateless checkout helpers, available before connection or activation.
+     * @readonly
+     * @returns {object} The frozen namespace documented in checkout/README.md.
+     */
+    get checkoutDecisions() {
+        return checkoutDecisions;
+    }
+
     get #config() {
         const env = this.getAttribute('env') ?? 'prod';
         const config = {

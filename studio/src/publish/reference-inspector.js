@@ -165,7 +165,7 @@ async function readFragment(load, timeoutMs, timeoutMessage = 'Reference lookup 
             new Promise((resolve, reject) => {
                 timer = setTimeout(() => {
                     reject(new Error(timeoutMessage));
-                    controller.abort();
+                    controller.abort(new DOMException(timeoutMessage, 'TimeoutError'));
                 }, timeoutMs);
             }),
         ]);

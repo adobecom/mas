@@ -1,5 +1,5 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, markDegraded } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
@@ -83,6 +83,7 @@ async function buildDictionaryLayer(context, surface, locale, prefix) {
         collectEntries(response.body, response.body.references || {}, dictionary);
         return dictionary;
     });
+    if (!layer) markDegraded(context, `dictionary ${surface}/${locale}`);
     return layer ?? {};
 }
 

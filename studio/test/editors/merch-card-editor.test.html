@@ -2160,6 +2160,73 @@
                                 expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
                             });
 
+                            it('Remove on a card whose addon has a background colour drops the wrapper', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { addon: ['<merch-addon background="gradient">{{addon-stock-trial}}</merch-addon>'] },
+                                    'optional-remove-qa-background',
+                                );
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(fragmentStore.get().getField('addon').values).to.deep.equal(['{{}}']);
+                                expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
+                            });
+
+                            it('Remove on Badge and card decoration only drops the addon background', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    {
+                                        addon: ['<merch-addon background="gradient">{{addon-stock-trial}}</merch-addon>'],
+                                        badge: ['Best value'],
+                                    },
+                                    'optional-remove-badge-background',
+                                );
+                                await editor.toggleFields();
+                                editor.querySelector('sp-action-button[aria-label="Remove Badge and card decoration"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(fragmentStore.get().getField('addon').values[0] ?? '').to.not.include('background=');
+                                expect(editor.getEffectiveSettingValue('addon')).to.include('{{addon-stock-trial}}');
+                            });
+
+                            it('Remove on Quantity selector/Addon on a variation resets the addon to the parent', async () => {
+                                const { editor, fragmentStore } = await setupTestEnvironment(
+                                    { showOptionalSections: false, addon: ['{{addon-stock-trial}}'] },
+                                    'optional-remove-qa-variation',
+                                );
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                const reset = [];
+                                const resetFieldToParent = fragmentStore.resetFieldToParent.bind(fragmentStore);
+                                fragmentStore.resetFieldToParent = (...args) => {
+                                    reset.push(args[0]);
+                                    return resetFieldToParent(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(reset).to.include('addon');
+                                expect(fragmentStore.get().getField('addon')?.values?.[0]).to.not.equal('{{}}');
+                            });
+
+                            it('does not count a settings-default addon background as Badge and card decoration content', async () => {
+                                const { editor } = await setupPlans({}, 'optional-settings-default-background');
+                                Store.settings.rows.set([
+                                    createSettingRow({
+                                        name: 'addon',
+                                        value: '<merch-addon background="gradient">{{addon-stock-ai-studio-trial}}</merch-addon>',
+                                        valueType: 'optional-text',
+                                        booleanValue: true,
+                                    }),
+                                ]);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
+                                await editor.toggleFields();
+                                expect(editor.hasContent('badge')).to.be.false;
+                                expect(editor.hasContent('quantityAddon')).to.be.true;
+                            });
+
                             it('keeps a shown section rendered after its content is cleared', async () => {
                                 const { editor, fragmentStore } = await setupPlans(
                                     { callout: ['<p>Saved callout</p>'] },

@@ -34,7 +34,7 @@ Publishing a promotion keeps the **Publish promo variations** checkbox. When sel
 
 All projects must be created before the promotion publish request and automatic Bulk Publish requests begin. A creation failure stops publishing; there is no direct variation-publish fallback or automatic rollback. Created projects remain available for inspection.
 
-The result dialog provides project links in the current Studio environment instead of opening tabs. **Request accepted** does not mean AEM/Odin publishing has completed; use the existing Bulk Publish project to inspect results and perform follow-up actions. Errors also appear at the top of the promotion view.
+The result dialog provides project links in the current Studio environment. Clicking a project link opens it in a new tab, keeping the promotion view open; tabs do not open automatically. **Request accepted** does not mean AEM/Odin publishing has completed; use the existing Bulk Publish project to inspect results and perform follow-up actions. Errors also appear at the top of the promotion view.
 
 After confirming Publish, keyboard focus moves into the progress area so Escape cannot dismiss the dialog while requests are in progress.
 

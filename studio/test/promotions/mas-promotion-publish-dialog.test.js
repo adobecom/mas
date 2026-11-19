@@ -114,7 +114,23 @@ describe('mas-promotion-publish-dialog', () => {
         expect(element.shadowRoot.querySelector('sp-progress-circle')).to.exist;
     });
 
-    it('keeps partially created project links in the current environment without opening tabs', async () => {
+    it('opens project links in a new tab', async () => {
+        element.phase = 'result';
+        element.result = {
+            promotion: { status: 'accepted' },
+            projects: [{ id: 'real-id', surface: 'acom-cc', title: 'Sale', dispatchStatus: 'accepted' }],
+        };
+        await element.updateComplete;
+        const link = element.shadowRoot.querySelector('sp-link');
+        await link.updateComplete;
+
+        const anchor = link.shadowRoot.querySelector('a');
+        expect(anchor.target).to.equal('_blank');
+        expect(anchor.relList.contains('noopener')).to.be.true;
+        expect(anchor.relList.contains('noreferrer')).to.be.true;
+    });
+
+    it('keeps partially created project links in the current environment without automatically opening tabs', async () => {
         const open = sinon.stub(window, 'open');
         element.phase = 'result';
         element.result = {

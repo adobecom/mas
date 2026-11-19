@@ -208,6 +208,8 @@ class MasPromotionPublishDialog extends LitElement {
                     (project) => html`
                         <li>
                             <sp-link
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 href=${new URL(
                                     buildProjectDeepLink(
                                         PAGE_NAMES.BULK_PUBLISH_EDITOR,

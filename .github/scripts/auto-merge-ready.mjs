@@ -91,10 +91,18 @@ export function skipReason(pr, load, maxFiles = DEFAULT_MAX_CHANGED_FILES) {
     if (restricted) return `touches ${restricted}`;
     const failing = failingChecks(load.checks());
     if (failing.length) return `checks not passing: ${failing.join(', ')}`;
-    if (pr.mergeStateStatus !== 'CLEAN') return `merge state is ${pr.mergeStateStatus}`;
+    if (!['CLEAN', 'BLOCKED'].includes(pr.mergeStateStatus)) return `merge state is ${pr.mergeStateStatus}`;
     const approvals = countApprovals(load.approvals());
     if (approvals < MIN_APPROVALS) return `${approvals} of ${MIN_APPROVALS} approvals apply to the current code`;
     return null;
+}
+
+export function refusalReason(stdout) {
+    try {
+        return JSON.parse(stdout).message.replace(/\s+/g, ' ').trim();
+    } catch {
+        return null;
+    }
 }
 
 export function commentBody(reason) {
@@ -219,7 +227,21 @@ export function purgeFailureMessage({ number, parent, message }) {
 
 // A merged PR is never retried: a purge failure is reported next to "merged" and fails the run.
 function merge(repo, pr, files) {
-    gh('pr', 'merge', String(pr.number), '--repo', repo, '--squash', '--match-head-commit', pr.headRefOid);
+    // Not `gh pr merge`: it refuses a BLOCKED PR without asking GitHub.
+    try {
+        gh(
+            'api',
+            '-X',
+            'PUT',
+            `repos/${repo}/pulls/${pr.number}/merge`,
+            '-f',
+            'merge_method=squash',
+            '-f',
+            `sha=${pr.headRefOid}`,
+        );
+    } catch (error) {
+        return skip(repo, pr.number, `GitHub refused the merge: ${refusalReason(error.stdout) ?? error.message}`, false);
+    }
     if (!touchesStudio(files)) return { outcome: 'merged', merged: true };
     const purgeFailure = dispatchPurge(repo, pr.number);
     if (purgeFailure) return { outcome: 'merged, Akamai purge dispatch failed', merged: true, purgeFailure };

@@ -46,14 +46,15 @@ const stubEmptyDictionary = (preview, surface, locale, stub = fetchStub) => {
 };
 
 // Shared helper reused by the pipeline tests: stubs the surface-baseline dictionary (sandbox) for the
-// locales the pipeline exercises. The acom default layer falls through to the suite's default 404 stub.
+// locales the pipeline exercises, and an empty acom default layer (a missing one would degrade the response).
 const mockDictionary = (preview = false, stub = fetchStub, cleanCache = true) => {
     if (cleanCache) {
         clearDictionaryCache();
     }
-    ['en_US', 'fr_FR', 'de_DE'].forEach((locale) =>
-        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub),
-    );
+    for (const locale of ['en_US', 'fr_FR', 'de_DE']) {
+        mockDirectDictionary(preview, BASELINE_SURFACE, locale, { references: {} }, stub);
+        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub);
+    }
 };
 
 const odinResponse = (description, cta = '{{buy-now}}', surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({

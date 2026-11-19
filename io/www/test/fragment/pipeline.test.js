@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { mockDictionary } from './replace.test.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import zlib from 'zlib';
@@ -10,6 +12,7 @@ import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type:
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -83,7 +86,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // promotions folder — no active promotions by default
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
+        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions&limit=50`)
         .returns(createResponse(200, { items: [] }));
 
     // WCS prefill — hardcoded prod config is always merged in; return empty offers
@@ -193,6 +196,7 @@ describe('collection placeholders', () => {
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
         clearSettingsCache();
+        clearDictionaryCache();
     });
 
     afterEach(function () {
@@ -238,6 +242,7 @@ describe('pipeline corner cases', () => {
         mockDictionary(false, fetchStub);
         resetCache();
         clearSettingsCache();
+        clearPromoCache();
     });
 
     afterEach(() => {

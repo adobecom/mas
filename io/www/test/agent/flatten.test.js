@@ -359,7 +359,6 @@ describe('flattenOffer', () => {
             });
             const href = termsUrl('locale=en_US&country=US&offer_id=OFFER-PROMO&promotion_code=PROMO_1');
             expect(offer.terms_url).to.equal(href);
-            expect(offer.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href, text: 'See terms' });
         });
 
         it('uses the request locale and the content country of a territory', async () => {
@@ -397,17 +396,15 @@ describe('flattenOffer', () => {
         it('has no URL without an OSI or when the offer cannot be resolved', async () => {
             const withoutOsi = await flattenOffer({ fields: { description: studioLink } });
             expect(withoutOsi.terms_url).to.be.null;
-            expect(withoutOsi.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href: undefined, text: 'See terms' });
 
             const ownLink = '<a is="upt-link" data-analytics-id="terms">See terms</a>';
             const ownLinkWithoutOsi = await flattenOffer({ fields: { osi: 'card', description: ownLink } });
-            expect(ownLinkWithoutOsi.seeTermsInfo).to.deep.equal({ analyticsId: 'terms', href: undefined, text: 'See terms' });
+            expect(ownLinkWithoutOsi.terms_url).to.be.null;
             expect(fetchStub.called).to.be.false;
 
             const onPriceError = sinon.spy();
             const unresolved = await flattenOffer({ fields: { osi: 'gone', description: studioLink } }, { onPriceError });
             expect(unresolved.terms_url).to.be.null;
-            expect(unresolved.seeTermsInfo.href).to.be.undefined;
             expect(onPriceError.calledOnce).to.be.true;
             expect(onPriceError.firstCall.args[1]).to.equal('gone');
         });
@@ -437,7 +434,7 @@ describe('flattenOffer', () => {
                 });
             }
 
-            it('is only a fallback for a promo terms link, which keeps its own seeTermsInfo', async () => {
+            it('is only a fallback for a promo terms link, which wins when it resolves', async () => {
                 const regularLink = link(`href="${offerTerms}" data-analytics-id="see-terms"`);
                 const resolved = await flattenOffer({
                     fields: { osi: 'card', description: `${regularLink} ${studioLink}` },
@@ -447,7 +444,6 @@ describe('flattenOffer', () => {
 
                 const unresolved = await flattenOffer({ fields: { description: `${studioLink} ${regularLink}` } });
                 expect(unresolved.terms_url).to.equal(offerTerms);
-                expect(unresolved.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href: undefined, text: 'See terms' });
                 expect(fetchStub.called).to.be.false;
             });
         });

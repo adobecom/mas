@@ -1,6 +1,7 @@
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { checkModifications } = require('./snapshot.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-check-modifications', { level: 'info' });
 
@@ -33,4 +34,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

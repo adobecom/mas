@@ -138,9 +138,12 @@ const createSelectionSummaryForIndex = ({ nodeMap, parentMap, leafDescendantsMap
      * 3. Single branch selected -> `<Branch label> (<count> selected)`
      * 4. Cross-branch selection -> `<count> templates selected`
      */
-    const templateSummaryForSelectedLeafIds = (selectedIds = []) => {
+    const templateSummaryForSelectedLeafIds = (selectedIds = [], treeSize) => {
         const selectedCount = selectedIds.length;
-        if (selectedCount === 0 || (leafIds.length > 0 && selectedCount === leafIds.length)) {
+        if (
+            selectedCount === 0 ||
+            (leafIds.length > 0 && selectedCount === leafIds.length && selectedCount === (treeSize || selectedCount))
+        ) {
             return 'All templates selected';
         }
 
@@ -199,6 +202,7 @@ export class TreePickerField extends LitElement {
         label: { type: String },
         placeholder: { type: String },
         tree: { type: Array, attribute: false },
+        treeSize: { type: Number, attribute: false },
         value: { type: Array, attribute: false },
         open: { type: Boolean, state: true },
         searchQuery: { type: String, state: true },
@@ -355,6 +359,7 @@ export class TreePickerField extends LitElement {
         this.label = '';
         this.placeholder = 'All templates';
         this.tree = [];
+        this.treeSize = 0;
         this.value = [];
         this.open = false;
         this.searchQuery = '';
@@ -582,7 +587,7 @@ export class TreePickerField extends LitElement {
     get #summary() {
         const selectedIds = this.open ? this.draftValue : this.#selectedLeafIds(this.value);
         const text = selectedIds.length
-            ? this.#summaryHelper.templateSummaryForSelectedLeafIds(selectedIds)
+            ? this.#summaryHelper.templateSummaryForSelectedLeafIds(selectedIds, this.treeSize)
             : this.placeholder || 'All templates';
 
         return {

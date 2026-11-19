@@ -68,6 +68,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     shortDescription: { tag: 'div', slot: 'short-description' },
     ctas: { slot: 'footer', size: 'm' },
     planType: true,
+    addon: true,
     style: 'consonant',
 };
 
@@ -128,8 +129,23 @@ export class ProductPricing extends VariantLayout {
         return host;
     }
 
+    async adjustAddon() {
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        addon.setAttribute('custom-checkbox', '');
+        const price = this.card.querySelector(
+            `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        if (!price) return;
+        await price.onceSettled?.();
+        const planType = price.value?.[0]?.planType;
+        if (planType) addon.planType = planType;
+    }
+
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
+        await this.adjustAddon();
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
         this.flagPriceRow();
@@ -216,6 +232,7 @@ export class ProductPricing extends VariantLayout {
                             <slot name="legal"></slot>
                             <slot name="short-description"></slot>
                         </div>
+                        <slot name="addon"></slot>
                     </div>
                     <footer><slot name="footer"></slot></footer>
                 </div>

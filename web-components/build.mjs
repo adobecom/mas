@@ -56,34 +56,15 @@ Promise.all([
     }),
     build({
         ...defaults,
-        entryPoints: ['./src/sidenav/merch-sidenav.js'],
-        outfile: `${outfolder}/merch-sidenav.js`,
-        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
-    }),
-    build({
-        ...defaults,
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildComponent('merch-card', {
-        plugins: [
-            {
-                name: 'external-commerce',
-                setup(build) {
-                    build.onResolve(
-                        {
-                            filter: /^\.\.?\/commerce\.js$/,
-                        },
-                        () => ({ path: './commerce.js', external: true }),
-                    );
-                },
-            },
-        ],
-    }),
+    buildComponent('merch-card', [external('commerce')]),
     // BaseElement comes from the merch-card.js the page already loads.
-    buildComponent('merch-card-collection', { external: ['./merch-card.js'] }),
+    buildComponent('merch-card-collection', [external('merch-card')]),
     buildComponent('merch-icon'),
-    buildComponent('merch-quantity-select', { external: ['./merch-card.js'] }),
+    buildComponent('merch-quantity-select', [external('merch-card')]),
+    buildComponent('sidenav/merch-sidenav', [external('merch-card')]),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildComponent('merch-whats-included'),
@@ -110,12 +91,11 @@ async function buildLitComponent(name) {
 }
 
 // Components built on BaseElement: the build fails if Lit becomes reachable.
-async function buildComponent(name, { plugins = [], ...options } = {}) {
+async function buildComponent(name, plugins = []) {
     await build({
         ...defaults,
-        ...options,
         entryPoints: [`./src/${name}.js`],
-        outfile: `${outfolder}/${name}.js`,
+        outfile: `${outfolder}/${name.split('/').pop()}.js`,
         plugins: [minifyCss(), noLit(), ...plugins],
     });
 }
@@ -127,6 +107,19 @@ function noLit() {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
                 errors: [{ text: `${importer} imports lit` }],
             }));
+        },
+    };
+}
+
+// Resolves ./<file>.js and ../<file>.js to the external dist file ./<file>.js.
+function external(file) {
+    return {
+        name: `external-${file}`,
+        setup(build) {
+            build.onResolve(
+                { filter: new RegExp(`^\\.\\.?/${file}\\.js$`) },
+                () => ({ path: `./${file}.js`, external: true }),
+            );
         },
     };
 }

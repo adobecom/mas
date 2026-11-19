@@ -1,9 +1,9 @@
-import { html, LitElement, unsafeCSS } from 'lit';
+import { BaseElement, html, on } from '../merch-card.js';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { createTag } from '../utils.js';
 import { styles } from './merch-sidenav-checkbox-group.css.js';
 
-export class MerchSidenavCheckboxGroup extends LitElement {
+export class MerchSidenavCheckboxGroup extends BaseElement {
     static properties = {
         sidenavCheckboxTitle: { type: String },
         label: { type: String },
@@ -12,7 +12,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
         value: { type: String },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     constructor() {
         super();
@@ -75,13 +75,18 @@ export class MerchSidenavCheckboxGroup extends LitElement {
 
     render() {
         return html`<div aria-label="${this.label}">
-            <div
-                @change="${(e) => this.selectionChanged(e)}"
-                class="checkbox-group"
-            >
+            <div class="checkbox-group">
                 <slot></slot>
             </div>
         </div>`;
+    }
+
+    bindEvents() {
+        on(
+            this.shadowRoot.querySelector('.checkbox-group'),
+            'change',
+            (event) => this.selectionChanged(event),
+        );
     }
 }
 

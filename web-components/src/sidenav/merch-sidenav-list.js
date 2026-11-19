@@ -1,10 +1,10 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { BaseElement, html, nothing, on } from '../merch-card.js';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { debounce, updateHash, paramsToHash } from '../utils.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
 import { styles } from './merch-sidenav-list.css.js';
 
-export class MerchSidenavList extends LitElement {
+export class MerchSidenavList extends BaseElement {
     static properties = {
         sidenavListTitle: { type: String },
         label: { type: String },
@@ -25,7 +25,7 @@ export class MerchSidenavList extends LitElement {
         },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     constructor() {
         super();
@@ -195,15 +195,18 @@ export class MerchSidenavList extends LitElement {
     }
 
     render() {
-        return html`<div
-            aria-label="${this.label}"
-            @change="${(e) => this.selectionChanged(e)}"
-        >
+        return html`<div aria-label="${this.label}">
             ${this.sidenavListTitle
                 ? html`<h2>${this.sidenavListTitle}</h2>`
                 : nothing}
             <slot></slot>
         </div>`;
+    }
+
+    bindEvents() {
+        on(this.shadowRoot.querySelector('div'), 'change', (event) =>
+            this.selectionChanged(event),
+        );
     }
 }
 

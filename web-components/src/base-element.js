@@ -1,9 +1,9 @@
 /**
- * Base class for the components merch-card, merch-card-collection and
- * merch-quantity-select ship without Lit. It keeps Lit's public contract:
- * `static properties` (type, attribute, reflect, converter, state),
- * requestUpdate(), updateComplete, willUpdate/firstUpdated/updated and values
- * assigned before the element was upgraded.
+ * Base class for the components merch-card, merch-card-collection,
+ * merch-quantity-select and merch-sidenav ship without Lit. It keeps Lit's
+ * public contract: `static properties` (type, attribute, reflect, converter,
+ * state), requestUpdate(), updateComplete, willUpdate/firstUpdated/updated and
+ * values assigned before the element was upgraded.
  *
  * render() returns a string built with `html`, which escapes every value.
  * When it differs from the previous render, the shadow DOM is patched in

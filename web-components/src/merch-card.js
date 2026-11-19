@@ -1,8 +1,8 @@
 import { BaseElement } from './base-element.js';
 import { styles } from './merch-card.css.js';
 
-// merch-card-collection.js and merch-quantity-select.js import these from the
-// merch-card.js the page already loads.
+// merch-card-collection.js, merch-quantity-select.js and merch-sidenav.js import
+// these from the merch-card.js the page already loads.
 export { BaseElement, html, nothing, on, unsafeHTML } from './base-element.js';
 import './merch-icon.js';
 import './merch-gradient.js';

@@ -74,7 +74,7 @@ Other top-level areas include `io/www/` (a Node.js >=22 service), `nala/` (Playw
 
 ## Web Components (Lit + Adobe Spectrum)
 
-- Use Lit for all custom elements with reactive properties (`static properties`), except the components `build.mjs` builds with `buildComponent` (merch-card with its variants and sub-components, merch-card-collection, merch-quantity-select). Those extend `BaseElement` (`web-components/src/base-element.js`) and must not import `lit`; the build fails if they do. merch-card-collection and merch-quantity-select import `BaseElement` from `./merch-card.js`, which their builds keep external. Their `render()` returns a string built with its escaping `html` tag (`nothing` renders empty, as in Lit), and `bindEvents()` attaches listeners with `on()`.
+- Use Lit for all custom elements with reactive properties (`static properties`), except the components `build.mjs` builds with `buildComponent` (merch-card with its variants and sub-components, merch-card-collection, merch-quantity-select, merch-sidenav with its list, checkbox group and merch-search). Those extend `BaseElement` (`web-components/src/base-element.js`) and must not import `lit`; the build fails if they do. merch-card-collection, merch-quantity-select and merch-sidenav import `BaseElement` from the merch-card module, which their builds keep external as `./merch-card.js`. Their `render()` returns a string built with its escaping `html` tag (`nothing` renders empty, as in Lit), and `bindEvents()` attaches listeners with `on()`.
 - Use `render()` for declarative templates — no imperative DOM manipulation.
 - Use getters (for example `get headerTemplate()`) for rendering HTML sections, not `renderXyz()` methods.
 - Only use per-item render functions when iterating over a list.

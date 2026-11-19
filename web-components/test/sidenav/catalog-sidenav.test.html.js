@@ -6,6 +6,7 @@ import {
     refreshElement,
     resetState,
     toggleLargeDesktop,
+    toggleMobile,
 } from '../utils.js';
 import { sendKeys, sendMouse } from '@web/test-runner-commands';
 import { CSS } from '../../src/variants/catalog.css.js';
@@ -295,6 +296,75 @@ runTests(async () => {
             );
             expect(search.value).to.equal('photoshop');
             expect(sidenavItemCD.expanded).to.be.true;
+        });
+    });
+
+    describe('merch-sidenav', () => {
+        const sidenav = () => document.querySelector('merch-sidenav');
+
+        // Background test pages may not fire media query change events.
+        const resize = async (toggleViewport) => {
+            await toggleViewport();
+            sidenav().mobileAndTablet.dispatchEvent(new Event('change'));
+            while (!(await sidenav().updateComplete));
+        };
+
+        afterEach(async () => {
+            await toggleLargeDesktop();
+        });
+
+        it('switches between aside and modal when the viewport changes', async () => {
+            await render();
+            expect(sidenav().hasAttribute('modal')).to.be.false;
+            expect(
+                sidenav().shadowRoot.querySelector('h2').textContent,
+            ).to.equal('REFINE YOUR RESULTS');
+            await resize(toggleMobile);
+            expect(sidenav().hasAttribute('modal')).to.be.true;
+            expect(sidenav().shadowRoot.childElementCount).to.equal(0);
+            sidenav().showModal();
+            await sidenav().updateComplete;
+            expect(!!sidenav().dialog).to.be.true;
+            sidenav().shadowRoot.querySelector('sp-link').click();
+            await sidenav().updateComplete;
+            expect(!!sidenav().dialog).to.be.false;
+            expect(document.body.classList.contains('merch-modal')).to.be.false;
+            await resize(toggleLargeDesktop);
+            expect(sidenav().hasAttribute('modal')).to.be.false;
+            expect(!!sidenav().shadowRoot.querySelector('h2')).to.be.true;
+            const element = sidenav();
+            element.remove();
+            element.mobileAndTablet.dispatchEvent(new Event('change'));
+            expect(element.isUpdatePending).to.be.false;
+        });
+
+        it('renders the title as text', async () => {
+            await render();
+            sidenav().sidenavTitle = '<b>Filters</b>';
+            await sidenav().updateComplete;
+            const title = sidenav().shadowRoot.querySelector('h2');
+            expect(title.textContent).to.equal('<b>Filters</b>');
+            expect(title.childElementCount).to.equal(0);
+        });
+
+        it('handles each list and checkbox change once after re-renders', async () => {
+            await render();
+            const list = document.querySelector('merch-sidenav-list');
+            const group = document.querySelector(
+                'merch-sidenav-checkbox-group',
+            );
+            const calls = [];
+            list.selectionChanged = () => calls.push('list');
+            group.selectionChanged = () => calls.push('group');
+            for (let i = 0; i < 3; i++) {
+                list.requestUpdate();
+                group.requestUpdate();
+                await Promise.all([list.updateComplete, group.updateComplete]);
+            }
+            const change = () => new Event('change', { bubbles: true });
+            list.querySelector('sp-sidenav').dispatchEvent(change());
+            group.querySelector('sp-checkbox').dispatchEvent(change());
+            expect(calls).to.deep.equal(['list', 'group']);
         });
     });
 });

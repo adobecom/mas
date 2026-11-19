@@ -62,17 +62,22 @@ merch-card[variant="product-pricing"] merch-badge {
     --merch-badge-color: #fff !important;
     --merch-badge-padding: 0 !important;
     inset-inline-start: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
-    line-height: 18px;
+    line-height: 20px;
+}
+
+merch-card[variant="product-pricing"] merch-icon[slot="icons"] {
+    --mod-img-width: 32px;
+    --mod-img-height: 32px;
 }
 
 merch-card[variant="product-pricing"] [slot="heading-s"] {
     margin: 0;
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 900;
-    line-height: 18px;
-    letter-spacing: -0.2px;
+    line-height: 24px;
+    letter-spacing: -0.48px;
     color: #000;
 }
 
@@ -92,9 +97,11 @@ merch-card[variant="product-pricing"] [slot="body-xs"] a {
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] {
     margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 20px;
+    font-family: "Adobe Clean Display Black", adobe-clean-display, "Arial Bold Adjusted", sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 18px;
+    letter-spacing: -0.2px;
     color: #000;
     text-align: left;
 }
@@ -111,9 +118,11 @@ merch-card[variant="product-pricing"] [slot="heading-xs"] .price-alternative {
 }
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] .price-strikethrough {
+    font-family: "Adobe Clean", adobe-clean, sans-serif;
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
+    letter-spacing: 0;
     text-decoration: line-through;
     color: #5c5c5c;
 }

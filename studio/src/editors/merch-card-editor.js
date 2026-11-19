@@ -1296,13 +1296,16 @@ class MerchCardEditor extends LitElement {
         return this.#parseWhatsIncluded(this.inheritanceParent.getFieldValue(WHAT_IS_INCLUDED, 0));
     }
 
-    /** What's included with a `fieldState` on each bullet/application compared with the parent's item at the same position. */
+    /**
+     * What's included with a `fieldState` on each bullet/application compared with the parent's items.
+     * Items are marked even when the parent list is empty, so the multifield never falls back to the section state.
+     */
     get whatsIncludedItems() {
         const own = this.whatsIncluded;
+        if (this.getFieldState(WHAT_IS_INCLUDED) === 'no-parent') return own;
         const parent = this.parentWhatsIncluded;
         const inheritedState = this.isInheritedFromBaseline(WHAT_IS_INCLUDED) ? BASELINE_FIELD_STATE : 'inherited';
         const withStates = (items, parentItems) => {
-            if (!parentItems.length) return items;
             const { matches } = matchParentItems(items, parentItems);
             return items.map((item, index) => ({
                 ...item,
@@ -1365,12 +1368,13 @@ class MerchCardEditor extends LitElement {
 
     get mnemonics() {
         if (!this.fragment) return [];
-        const parentMnemonics = this.parentMnemonics;
-        const inheritedState = this.mnemonicsFromBaseline ? BASELINE_FIELD_STATE : 'inherited';
         const mnemonics = this.#toMnemonics((fieldName) => this.getEffectiveFieldValues(fieldName));
+        const parentMnemonics = this.parentMnemonics;
+        if (!parentMnemonics.length && this.getMnemonicsFieldState() === 'no-parent') return mnemonics;
+        const inheritedState = this.mnemonicsFromBaseline ? BASELINE_FIELD_STATE : 'inherited';
         const { matches } = matchParentItems(mnemonics, parentMnemonics);
         return mnemonics.map((mnemonic, index) => {
-            if (!parentMnemonics.length || !mnemonic.icon) return mnemonic;
+            if (!mnemonic.icon) return mnemonic;
             return { ...mnemonic, fieldState: matches[index] < 0 ? 'overridden' : inheritedState };
         });
     }
@@ -2706,7 +2710,7 @@ class MerchCardEditor extends LitElement {
     }
 
     /** Restores part of What's included from the parent; once nothing differs any more the field inherits again. */
-    async #restoreWhatsIncludedPart(changes) {
+    async #restoreWhatsIncludedPart(changes, notify = true) {
         const { label, values, bullets } = { ...this.whatsIncluded, ...changes };
         const parent = this.parentWhatsIncluded;
         const matchesParent =
@@ -2717,7 +2721,7 @@ class MerchCardEditor extends LitElement {
             return;
         }
         this.#saveWhatsIncluded({ label, values, bullets });
-        this.#showRestoredToast(WHAT_IS_INCLUDED);
+        if (notify) this.#showRestoredToast(WHAT_IS_INCLUDED);
     }
 
     #restoreWhatsIncludedItem(event, listName) {
@@ -2726,8 +2730,12 @@ class MerchCardEditor extends LitElement {
             .composedPath()
             .find((element) => ['mas-included-field', 'mas-icon-picker-field'].includes(element.localName));
         const index = event.currentTarget.getFieldIndex(field);
-        const { items } = restoreParentItem(this.whatsIncluded[listName], this.parentWhatsIncluded[listName], index);
-        this.#restoreWhatsIncludedPart({ [listName]: items });
+        const { items, parentItem } = restoreParentItem(
+            this.whatsIncluded[listName],
+            this.parentWhatsIncluded[listName],
+            index,
+        );
+        this.#restoreWhatsIncludedPart({ [listName]: items }, !!parentItem);
     }
 
     get customFieldValues() {

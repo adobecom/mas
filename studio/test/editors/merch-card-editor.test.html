@@ -3114,6 +3114,22 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('marks an application added to a baseline without applications as overridden', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement('Included', [APPLICATION], [BULLET], '').outerHTML,
+                                    ]);
+                                    expect(editor.whatsIncludedItems.values.map(({ fieldState }) => fieldState)).to.deep.equal([
+                                        'overridden',
+                                    ]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks only the edited bullet overridden when another was removed', () => {
                                     const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
                                         BULLET,
@@ -3236,6 +3252,14 @@
                                         ['baseline.svg', 'baseline'],
                                         ['own.svg', 'overridden'],
                                     ]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('marks a visual added to a baseline without visuals as overridden', () => {
+                                    const editor = makeBaselineCard(ownVisuals(['own.svg'], ['Own']));
+                                    editor.baselinesController.parent = new Fragment({ fields: ownVisuals([], []) });
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    expect(itemStates(editor)).to.deep.equal([['own.svg', 'overridden']]);
                                     expect(mnemonicsIndicatorText(editor)).to.equal('');
                                 });
 

@@ -65,9 +65,8 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
 }
 
 /**
- * Searches the author instance for cards, collections, and placeholders that reference `key`,
- * scoped to the same surface and its ACOM fallback. Publish-side search is not available, so
- * this only reflects the author state (known limitation).
+ * Searches the author instance for cards, collections, and placeholders that reference `key`. 
+ * Publish-side search is not available, so this only reflects the author state (known limitation).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {{ key: string, surface: string, locale: string, excludePath?: string, signal?: AbortSignal }} params
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}

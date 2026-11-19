@@ -3170,6 +3170,20 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('offers the section restore for a label change on mini compare chart, which hides the label', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    editor.fragment.getField('variant').values = ['mini-compare-chart'];
+                                    ownWhatsIncluded(editor, 'Own label', [BULLET]);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 describe('when the card cleared What is included and the baseline has a divider color', () => {
                                     const DIVIDER = 'spectrum-gray-300';
                                     const clearedCard = (label, bullets) => {

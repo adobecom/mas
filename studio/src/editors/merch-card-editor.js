@@ -1324,9 +1324,13 @@ class MerchCardEditor extends LitElement {
         return this.whatsIncluded.label === this.parentWhatsIncluded.label ? 'inherited' : 'overridden';
     }
 
-    /** Pro stores the label only alongside its sections, so with every section removed the label can't be restored on its own. */
+    /**
+     * Mini compare chart doesn't show the label, so the section restore covers it there.
+     * Pro stores the label only alongside its sections, so with every section removed the label can't be restored on its own.
+     */
     get #isWhatsIncludedLabelRestorable() {
         if (this.getWhatsIncludedLabelState() !== 'overridden') return false;
+        if (this.getEffectiveFieldValue('variant') === VARIANT_NAMES.MINI_COMPARE_CHART) return false;
         return !this.#isProWhatsIncluded || this.whatsIncluded.bullets.length > 0;
     }
 

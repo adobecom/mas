@@ -46,6 +46,17 @@ describe('mas-promotion-publish-dialog', () => {
         expect(element.shadowRoot.textContent).not.to.include('They will still be included');
     });
 
+    it('warns that validation-error variations remain included when publishing variations', async () => {
+        element.plan = { ...element.plan, warnings: [{ path: '/one', message: 'Missing title' }] };
+        element.phase = 'confirm';
+
+        await element.updateComplete;
+
+        expect(element.shadowRoot.textContent).to.include('Some variations have validation errors.');
+        expect(element.shadowRoot.textContent).to.include('They will still be included');
+        expect(element.shadowRoot.querySelector('sp-checkbox').checked).to.be.true;
+    });
+
     it('lets Escape cancel confirmation and restores focus to the opener', async () => {
         const opener = await fixture(html`<button>Publish promotion</button>`);
         opener.focus();
@@ -188,6 +199,29 @@ describe('mas-promotion-publish-dialog', () => {
             },
         };
     }
+
+    it('shows a preparation failure without starting publication when discovery fails', async () => {
+        const { repository, promotion } = makeRequest();
+        const failure = new Error('Variation discovery unavailable');
+        repository.aem.sites.cf.fragments.search = sinon.stub().throws(failure);
+        const errorLog = sinon.stub(console, 'error');
+        const result = new Promise((resolve) => element.addEventListener('promotion-publish-result', resolve, { once: true }));
+
+        await element.requestPublish(repository, promotion);
+        const event = await result;
+        await element.updateComplete;
+
+        expect(element.phase).to.equal('result');
+        expect(event.detail).to.deep.equal({
+            promotionId: promotion.id,
+            promotion: { status: 'not-started', error: null },
+            projects: [],
+            error: 'Could not prepare publishing: Variation discovery unavailable',
+        });
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).to.include(failure.message);
+        expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
+        expect(errorLog.calledOnceWith('Failed to prepare promotion publishing', failure)).to.be.true;
+    });
 
     it('closes without creating when the parent rejects confirmation after a permission change', async () => {
         const { repository, promotion } = makeRequest();

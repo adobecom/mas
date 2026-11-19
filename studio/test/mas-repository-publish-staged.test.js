@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
+import { Fragment } from '../src/aem/fragment.js';
 import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
@@ -138,6 +139,17 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             expect(fragment.fields[0].values).to.deep.equal(['other-tag']);
         });
 
+        it('keeps a successful publish successful when post-publish cleanup has no confirmed saved fragment', async () => {
+            const repo = makeRepo();
+            repo.aem.sites.cf.fragments.save.resolves(null);
+
+            const result = await repo.publishFragment(stagedCardFragment());
+
+            expect(result).to.be.true;
+            expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+            expect(repo.aem.sites.cf.fragments.save.calledOnce).to.be.true;
+        });
+
         it('leaves the staged tag untouched when the publish call fails', async () => {
             const repo = makeRepo();
             repo.aem.sites.cf.fragments.publish = sandbox.stub().rejects(new Error('network down'));
@@ -162,6 +174,95 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             const saved = repo.aem.sites.cf.fragments.save.firstCall.args[0];
             expect(saved.isStaged).to.be.false;
             expect(saved.tags.map((tag) => tag.id)).to.deep.equal(['mas:studio/other']);
+        });
+    });
+
+    describe('clearStagedTag with an expected revision', () => {
+        it('saves the supplied revision without borrowing a newer ETag', async () => {
+            const repo = makeRepo();
+
+            await repo.clearStagedTag(stagedCardFragment(), { expectedEtag: 'expected-revision' });
+
+            const [fragment, options] = repo.aem.sites.cf.fragments.save.firstCall.args;
+            expect(fragment.etag).to.equal('expected-revision');
+            expect(options.refetchEtag).to.be.false;
+        });
+
+        it('propagates save conflicts so a pre-publish operation cannot continue', async () => {
+            const repo = makeRepo();
+            const conflict = new Error('Fragment was modified by another user');
+            repo.aem.sites.cf.fragments.save.rejects(conflict);
+            let failure;
+
+            try {
+                await repo.clearStagedTag(stagedCardFragment(), { expectedEtag: 'etag-1' });
+            } catch (error) {
+                failure = error;
+            }
+
+            expect(failure).to.equal(conflict);
+        });
+
+        for (const [change, modify] of [
+            ['title', () => ({ title: 'Concurrent title' })],
+            ['description', () => ({ description: 'Concurrent description' })],
+            ['field values', (fragment) => ({ fields: [{ ...fragment.fields[0], values: ['concurrent-tag'] }] })],
+            [
+                'added fields',
+                (fragment) => ({ fields: [...fragment.fields, { name: 'title', values: ['Concurrent content'] }] }),
+            ],
+            ['native tags', () => ({ tags: [{ id: 'mas:concurrent-tag', title: 'Concurrent tag' }] })],
+        ]) {
+            it(`rejects a readback containing concurrent changes to ${change}`, async () => {
+                const repo = makeRepo();
+                repo.aem.sites.cf.fragments.save.callsFake(async (fragment) => ({
+                    ...fragment,
+                    ...modify(fragment),
+                    etag: 'etag-3',
+                }));
+                let failure;
+
+                try {
+                    await repo.clearStagedTag(stagedCardFragment(), { expectedEtag: 'etag-1' });
+                } catch (error) {
+                    failure = error;
+                }
+
+                expect(failure?.message).to.include('changed');
+            });
+        }
+
+        it('propagates an unconfirmed save instead of continuing pre-publish work', async () => {
+            const repo = makeRepo();
+            repo.aem.sites.cf.fragments.save.resolves(null);
+            let failure;
+
+            try {
+                await repo.clearStagedTag(stagedCardFragment(), { expectedEtag: 'etag-1' });
+            } catch (error) {
+                failure = error;
+            }
+
+            expect(failure?.message).to.include('Could not confirm');
+        });
+
+        it('retains the revision from its own staged-tag save', async () => {
+            const repo = makeRepo();
+            const fragment = new Fragment(stagedCardFragment());
+            repo.aem.sites.cf.fragments.save.callsFake(async (saved) => ({ ...saved, etag: 'etag-2' }));
+
+            await repo.clearStagedTag(fragment, { expectedEtag: fragment.etag });
+
+            expect(fragment.etag).to.equal('etag-2');
+            expect(fragment.isStaged).to.be.false;
+        });
+
+        it('preserves the existing post-publish refresh policy when no revision is supplied', async () => {
+            const repo = makeRepo();
+
+            await repo.clearStagedTag(stagedCardFragment());
+
+            expect(repo.aem.sites.cf.fragments.save.firstCall.args[1].refetchEtag).to.be.true;
         });
     });
 

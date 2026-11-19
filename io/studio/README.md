@@ -56,6 +56,12 @@ Ask a colleague for secret values and add them to your `.env` file:
 
 With these steps, your local `.aio` and `.env` are ready for local dev. To make them available to CI/CD, store them in Vault — see **Seed your Vault secrets** below.
 
+## Bulk Publish reference publication
+
+`POST /bulk-publish` accepts an optional `publishReferences` boolean, defaulting to `true` for existing manual workflows. Promotion-driven requests set it to `false` so AEM receives an empty `filterReferencesByStatus` list. This does not change `includeCards` or `includeVariations`, which control target expansion and snapshots.
+
+Deploy both the `bulk-publish` dispatcher and `bulk-publish-worker` to the workspace configured by Studio's `io-base-url` before validating the promotion flow. An older dispatcher or worker does not honor the new flag. Index replication behavior is unchanged.
+
 ## Bulk Publish access for test identities
 
 Studio resolves Bulk Publish access for `@adobetest.com` identities through `GET /bulk-publish-access` instead of LDAP membership. Other identities and all other tools retain their existing LDAP authorization.

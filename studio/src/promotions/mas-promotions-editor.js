@@ -669,11 +669,38 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #reloadPromotionFromServer() {
-        const id = this.fragment?.id;
-        if (!id) return;
+        const currentStore = this.fragmentStore;
+        const currentPromotion = currentStore?.get();
+        if (!currentPromotion?.id) return;
+        const lifecycleToken = this.#itemsSelectionStoreToken;
+        let changed;
+        const reactivity = new ReactiveController(
+            this,
+            [
+                currentStore,
+                this.inEdit,
+                this.promotionId,
+                Store.promotions.selectedCards,
+                Store.promotions.selectedCollections,
+                Store.promotions.selectedOffers,
+            ],
+            () => {
+                changed = true;
+            },
+        );
+        changed = false;
         try {
-            const promotion = await this.#fetchPromotionModelById(id);
-            if (!promotion) return;
+            const promotion = await this.#fetchPromotionModelById(currentPromotion.id);
+            if (
+                !promotion ||
+                !this.isConnected ||
+                lifecycleToken !== this.#itemsSelectionStoreToken ||
+                currentStore !== this.fragmentStore ||
+                currentPromotion !== this.fragment ||
+                changed ||
+                this.#promotionPublishOptions.hasUnsavedChanges
+            )
+                return;
             this.storeController?.hostDisconnected();
             this.fragmentStore = new FragmentStore(promotion);
             this.storeController = new StoreController(this, this.fragmentStore);
@@ -683,6 +710,9 @@ class MasPromotionsEditor extends LitElement {
         } catch (error) {
             console.error(error);
             showToast('Failed to refresh promotion.', 'negative');
+        } finally {
+            reactivity.hostDisconnected();
+            this.removeController(reactivity);
         }
     }
 

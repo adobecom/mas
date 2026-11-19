@@ -2411,6 +2411,208 @@ describe('MasPromotionsEditor', () => {
             return { el, repo, publish };
         }
 
+        for (const change of ['unsaved fields', 'changed selection', 'different promotion', 'expired promotion']) {
+            it(`rejects publish confirmation after ${change}`, async () => {
+                const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+                const data = makeFragmentData({
+                    id: 'revalidation-promo',
+                    title: 'Revalidation promotion',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                    surfaces: ['sandbox'],
+                    geos: ['mas:pzn/country/US'],
+                    fragments: [cardPath],
+                });
+                data.fields.find(({ name }) => name === 'tags').values = ['mas:promotion/revalidation'];
+                const { el, repo, publish } = await mountSavedPromotion(data);
+                await waitForEditorConnect(el);
+                repo.aem.sites.cf.fragments.search = makeSearchStub({
+                    '/content/dam/mas/sandbox/en_US/promotions/revalidation': [
+                        {
+                            id: 'variation-1',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/revalidation/card-a',
+                            status: 'DRAFT',
+                        },
+                    ],
+                });
+                clickPromotionQuickAction(el, 'Publish');
+                const dialog = el.promotionPublishDialog;
+                await waitUntil(() => dialog.phase === 'confirm');
+                const toast = sandbox.stub(Events.toast, 'emit');
+                if (change === 'unsaved fields') {
+                    el.fragment.updateField('promoCode', ['NEW-CODE']);
+                } else if (change === 'changed selection') {
+                    Store.promotions.selectedCards.set([cardPath, '/content/dam/mas/sandbox/en_US/another-card']);
+                } else if (change === 'different promotion') {
+                    const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                    el.fragmentStore = new FragmentStore(makePromotion({ ...data, id: 'another-promotion' }));
+                } else {
+                    el.fragment.updateField('endDate', ['2000-01-01T00:00:00.000Z']);
+                    el.fragment.hasChanges = false;
+                }
+                await el.updateComplete;
+
+                dialog.confirm();
+                await waitUntil(() => dialog.phase === 'closed' && !el.promotionPublish);
+
+                expect(publish.called).to.be.false;
+                expect(
+                    toast.calledWith({
+                        variant: 'negative',
+                        content: 'The promotion changed or can no longer be published. Review it before publishing.',
+                    }),
+                ).to.be.true;
+            });
+        }
+
+        describe('post-publish refresh', () => {
+            async function closeResultWithRefreshPending() {
+                const serverData = makeFragmentData({
+                    id: 'refresh-promo',
+                    title: 'Refresh promotion',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                    surfaces: ['sandbox'],
+                    geos: ['mas:pzn/country/US'],
+                    fragments: ['/content/dam/mas/sandbox/en_US/card-a'],
+                    status: 'PUBLISHED',
+                });
+                serverData.fields.find(({ name }) => name === 'tags').values = ['mas:promotion/refresh-promo'];
+                const { el, repo } = await mountSavedPromotion({ ...serverData, status: 'DRAFT' });
+                await waitForEditorConnect(el);
+                let resolve;
+                let reject;
+                const response = new Promise((resolveResponse, rejectResponse) => {
+                    resolve = resolveResponse;
+                    reject = rejectResponse;
+                });
+                repo.aem.sites.cf.fragments.getById.returns(response);
+                clickPromotionQuickAction(el, 'Publish');
+                const dialog = el.promotionPublishDialog;
+                await waitUntil(() => dialog.phase === 'result' && !el.promotionPublish);
+                expect(dialog.result.promotion.status).to.equal('accepted');
+                expect(repo.aem.sites.cf.fragments.getById.calledOnce).to.be.true;
+                await dialog.updateComplete;
+                dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+                await dialog.updateComplete;
+                expect(dialog.phase).to.equal('closed');
+                expect(el.fragment.status).to.equal('DRAFT');
+                const finishRefresh = async (error) => {
+                    if (error) reject(error);
+                    else resolve(serverData);
+                    await flushPromises();
+                    await el.updateComplete;
+                };
+                return { el, repo, serverData, finishRefresh };
+            }
+
+            function editPromoCode(el) {
+                const input = el.renderRoot.querySelector('#promoCode');
+                input.value = 'NEW-UNSAVED-CODE';
+                input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+            }
+
+            it('applies an accepted refresh when the closed result has no intervening edits', async () => {
+                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                await finishRefresh();
+                expect(el.fragment.status).to.equal('PUBLISHED');
+                expect(el.fragment.hasChanges).to.be.false;
+                expect(Store.promotions.selectedCards.value).to.deep.equal(['/content/dam/mas/sandbox/en_US/card-a']);
+            });
+
+            it('preserves field edits made after closing the publish result', async () => {
+                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                const store = el.fragmentStore;
+                editPromoCode(el);
+                expect(el.fragment.hasChanges).to.be.true;
+                await finishRefresh();
+                expect(el.fragment.getFieldValue('promoCode')).to.equal('NEW-UNSAVED-CODE');
+                expect(el.fragment.hasChanges).to.be.true;
+                expect(el.fragmentStore).to.equal(store);
+                expect(el.renderRoot.querySelector('#promoCode').value).to.equal('NEW-UNSAVED-CODE');
+            });
+
+            for (const selection of ['selectedCards', 'selectedCollections', 'selectedOffers']) {
+                it(`preserves ${selection} changes after closing the publish result`, async () => {
+                    const { el, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    const selected = selection === 'selectedOffers' ? ['new-offer'] : ['/content/dam/mas/sandbox/en_US/new'];
+                    Store.promotions[selection].set(selected);
+                    expect(el.fragment.hasChanges).to.be.false;
+                    await finishRefresh();
+                    expect(Store.promotions[selection].value).to.deep.equal(selected);
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.status).to.equal('DRAFT');
+                });
+            }
+
+            for (const change of ['field', 'selection']) {
+                it(`preserves a ${change} edit saved while the refresh is pending`, async () => {
+                    const { el, repo, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    repo.saveFragment.callsFake(async (fragmentStore) => {
+                        fragmentStore.refreshFrom(fragmentStore.get());
+                        return fragmentStore.get();
+                    });
+                    if (change === 'field') editPromoCode(el);
+                    else Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/new']);
+                    await el.updateComplete;
+                    clickPromotionQuickAction(el, 'Save');
+                    await waitUntil(() => repo.saveFragment.calledOnce && !el.fragment.hasChanges);
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.hasChanges).to.be.false;
+                    if (change === 'field') expect(el.fragment.getFieldValue('promoCode')).to.equal('NEW-UNSAVED-CODE');
+                    else expect(el.fragment.getFieldValues('fragments')).to.deep.equal(['/content/dam/mas/sandbox/en_US/new']);
+                });
+            }
+
+            for (const id of ['refresh-promo', 'another-promo']) {
+                it(`ignores refresh after replacing the current store with ${id}`, async () => {
+                    const { el, serverData, finishRefresh } = await closeResultWithRefreshPending();
+                    const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                    const replacement = new FragmentStore(makePromotion({ ...serverData, id, title: 'Replacement' }));
+                    Store.promotions.inEdit.set(replacement);
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(replacement);
+                    expect(el.fragment.title).to.equal('Replacement');
+                });
+            }
+
+            it('ignores refresh after replacing the promotion inside the same store', async () => {
+                const { el, serverData, finishRefresh } = await closeResultWithRefreshPending();
+                const replacement = makePromotion({ ...serverData, title: 'Replacement' });
+                el.fragmentStore.set(replacement);
+                await finishRefresh();
+                expect(el.fragment).to.equal(replacement);
+            });
+
+            for (const reconnect of [false, true]) {
+                it(`ignores refresh after disconnect${reconnect ? ' and reconnect' : ''}`, async () => {
+                    const { el, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    el.remove();
+                    if (reconnect) {
+                        document.body.appendChild(el);
+                        await waitForEditorConnect(el);
+                    }
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.status).to.equal('DRAFT');
+                });
+            }
+
+            it('retains the current promotion and reports refresh errors', async () => {
+                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                const store = el.fragmentStore;
+                const toast = sandbox.stub(Events.toast, 'emit');
+                sandbox.stub(console, 'error');
+                await finishRefresh(new Error('Refresh failed'));
+                expect(el.fragmentStore).to.equal(store);
+                expect(toast.calledWith({ variant: 'negative', content: 'Failed to refresh promotion.' })).to.be.true;
+            });
+        });
+
         it('publishes when Publish is clicked with a future start date', async () => {
             const { el, publish } = await mountSavedPromotion({
                 id: 'sched-promo',

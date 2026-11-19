@@ -1,7 +1,9 @@
 import { expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from '../../src/constants.js';
+import { AEM } from '../../src/aem/aem.js';
+import { MasRepository } from '../../src/mas-repository.js';
 import { getPromotionPublishPlan, publishPromotionProject } from '../../src/promotions/promotion-publish-utils.js';
 import { makeSearchStub } from '../helpers/aem-tag-fetch.js';
 
@@ -35,6 +37,7 @@ describe('promotion Bulk Publish integration', () => {
                         id: `variation-${surface}`,
                         path: `/content/dam/mas/${surface}/en_US/promotions/sale/card`,
                         status: 'MODIFIED',
+                        etag: '"1"',
                         fields: [],
                         model: { path: COLLECTION_MODEL_PATH },
                     },
@@ -42,7 +45,10 @@ describe('promotion Bulk Publish integration', () => {
             })),
         };
         const fragments = {
-            getWithEtag: sandbox.stub().resolves(promotion),
+            getWithEtag: sandbox.stub().callsFake(async (id) => {
+                if (id === promotion.id) return promotion;
+                return plan.groups.flatMap((group) => group.variations).find((variation) => variation.id === id);
+            }),
             publish: sandbox.stub().resolves({ items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }] }),
             publishFragments: sandbox.stub(),
             create: sandbox.stub().callsFake(async (payload) => ({
@@ -114,6 +120,78 @@ describe('promotion Bulk Publish integration', () => {
             ]);
         }
     });
+
+    it('disables reference publication in every promotion Bulk Publish request', async () => {
+        await publishPromotionProject(repository, promotion, { plan });
+
+        expect(fetchStub.getCalls().map(({ args }) => JSON.parse(args[1].body).publishReferences)).to.deep.equal([
+            false,
+            false,
+        ]);
+    });
+
+    for (const concurrentEdit of [false, true]) {
+        it(
+            concurrentEdit
+                ? 'rejects a staged-save conflict without overwriting newer variation content'
+                : 'clears staged tags using the latest variation body and its matching ETag',
+            async () => {
+                const variation = plan.groups[0].variations[0];
+                variation.model.path = CARD_MODEL_PATH;
+                variation.fields = [
+                    { name: 'tags', type: 'tag', multiple: true, values: [STAGED.TAG] },
+                    { name: 'cardTitle', type: 'text', multiple: false, values: ['OLD CONTENT'] },
+                ];
+                let latest = {
+                    ...structuredClone(variation),
+                    etag: '"2"',
+                    fields: [structuredClone(variation.fields[0]), { ...variation.fields[1], values: ['NEW SAVED CONTENT'] }],
+                };
+                const aem = new AEM('test', repository.aem.baseUrl);
+                sandbox.stub(aem, 'getFragmentWithEtag').callsFake(async () => structuredClone(latest));
+                sandbox.stub(aem, 'saveTags').resolves();
+                sandbox.stub(aem, 'pollUpdatedFragment').callsFake(async () => structuredClone(latest));
+                repository.aem.sites.cf.fragments.getWithEtag.withArgs(variation.id).callsFake(async () => {
+                    const snapshot = structuredClone(latest);
+                    if (concurrentEdit) {
+                        latest = {
+                            ...latest,
+                            etag: '"concurrent"',
+                            fields: latest.fields.map((field) =>
+                                field.name === 'cardTitle' ? { ...field, values: ['NEWER CONCURRENT CONTENT'] } : field,
+                            ),
+                        };
+                    }
+                    return snapshot;
+                });
+                repository.aem.sites.cf.fragments.save = aem.saveFragment.bind(aem);
+                repository.clearStagedTag = MasRepository.prototype.clearStagedTag.bind(repository);
+                repository.processError = sandbox.stub();
+                fetchStub.callsFake(async (url, options) => {
+                    if (options.method === 'PUT') {
+                        if (options.headers['If-Match'] !== latest.etag) return new Response('{}', { status: 412 });
+                        latest = { ...latest, ...JSON.parse(options.body), etag: '"3"' };
+                        return new Response('{}', { status: 200 });
+                    }
+                    return new Response(JSON.stringify({ accepted: true }), { status: 202 });
+                });
+
+                const result = await publishPromotionProject(repository, promotion, { plan });
+
+                expect(result.promotion.status).to.equal(concurrentEdit ? 'not-started' : 'accepted');
+                expect(latest.fields.find((field) => field.name === 'cardTitle').values).to.deep.equal([
+                    concurrentEdit ? 'NEWER CONCURRENT CONTENT' : 'NEW SAVED CONTENT',
+                ]);
+                expect(latest.fields.find((field) => field.name === 'tags').values).to.deep.equal(
+                    concurrentEdit ? [STAGED.TAG] : [],
+                );
+                if (concurrentEdit) expect(fetchStub.calledWith('https://io.example/bulk-publish')).to.be.false;
+                const put = fetchStub.getCalls().find(({ args }) => args[1].method === 'PUT');
+                expect(put.args[1].headers['If-Match']).to.equal('"2"');
+                expect(aem.getFragmentWithEtag.called).to.be.false;
+            },
+        );
+    }
 
     it('keeps content-invalid variations in the project', async () => {
         plan.groups[0].variations[0].validationStatus = [{ message: 'Invalid content' }];
@@ -201,12 +279,68 @@ describe('promotion Bulk Publish integration', () => {
         expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
     });
 
-    it('uses the promotion ETag refreshed after staged flags are cleared', async () => {
-        repository.aem.sites.cf.fragments.getWithEtag.onSecondCall().resolves({ ...promotion, etag: '"fresh"' });
+    it('stops before project creation if the promotion revision cannot be confirmed', async () => {
+        repository.aem.sites.cf.fragments.getWithEtag.resolves({ ...promotion, etag: null });
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.error).to.include('revision');
+        expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
+    });
+
+    it('does not publish when a fresh variation has no revision', async () => {
+        const variation = plan.groups[0].variations[0];
+        repository.aem.sites.cf.fragments.getWithEtag.withArgs(variation.id).resolves({ ...variation, etag: null });
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.error).to.include('latest revision');
+        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('uses only the promotion revision produced by its own staged-tag save', async () => {
+        repository.clearStagedTag.callsFake(async (fragment) => {
+            if (fragment.id === promotion.id) fragment.etag = '"own-stage-save"';
+        });
+
         await publishPromotionProject(repository, promotion, { plan });
-        expect(repository.aem.sites.cf.fragments.publish.firstCall.args[0].etag).to.equal('"fresh"');
-        expect(repository.clearStagedTag.lastCall.calledBefore(repository.aem.sites.cf.fragments.getWithEtag.secondCall)).to.be
-            .true;
+
+        expect(repository.aem.sites.cf.fragments.publish.firstCall.args[0].etag).to.equal('"own-stage-save"');
+        expect(
+            repository.aem.sites.cf.fragments.getWithEtag.getCalls().filter(({ args }) => args[0] === promotion.id),
+        ).to.have.lengthOf(1);
+    });
+
+    it('cannot publish a different promotion revision after project creation', async () => {
+        let serverRevision = '"1"';
+        const { getWithEtag, create } = repository.aem.sites.cf.fragments;
+        getWithEtag.withArgs(promotion.id).callsFake(async () => ({ ...promotion, etag: serverRevision }));
+        create.onSecondCall().callsFake(async (payload) => {
+            serverRevision = '"2"';
+            return {
+                ...payload,
+                id: 'project-acom-cc',
+                path: `${payload.parentPath}/${payload.name}`,
+                status: 'DRAFT',
+            };
+        });
+        const aem = new AEM('test', repository.aem.baseUrl);
+        repository.aem.sites.cf.fragments.publish = aem.publishFragment.bind(aem);
+        fetchStub.callsFake(async (url, options) => {
+            if (url === aem.cfPublishUrl) {
+                if (options.headers['If-Match'] !== serverRevision) return new Response('{}', { status: 412 });
+                return new Response(JSON.stringify({ items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }] }));
+            }
+            return new Response(JSON.stringify({ accepted: true }), { status: 202 });
+        });
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.promotion.status).not.to.equal('accepted');
+        expect(result.error).to.include('412');
+        expect(fetchStub.calledWith('https://io.example/bulk-publish')).to.be.false;
+        expect(fetchStub.firstCall.args[1].headers['If-Match']).to.equal('"1"');
     });
 
     it('does not replay a promotion request whose response was lost', async () => {

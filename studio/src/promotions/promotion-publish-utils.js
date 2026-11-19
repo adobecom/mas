@@ -286,7 +286,7 @@ export async function publishPromotionProject(repository, promotionFragment, { p
         if (groups.length && !ioBaseUrl) throw new Error('ioBaseUrl is required');
         if (groups.length && !token) throw new Error('A sign-in token is required');
         const current = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
-        if (!current) throw new Error('Failed to fetch promotion for publish');
+        if (!current?.etag) throw new Error('Failed to fetch promotion revision for publish');
         if (promotionFragment.etag && current.etag !== promotionFragment.etag) {
             throw new Error('The promotion has changed. Refresh it before publishing.');
         }
@@ -299,13 +299,19 @@ export async function publishPromotionProject(repository, promotionFragment, { p
             result.projects.push(project.entry);
         }
         stage = 'publish promotion';
+        const promotion = new Fragment(current);
         await processConcurrently(
-            [current, ...groups.flatMap((group) => group.variations)],
-            (fragment) => repository.clearStagedTag(fragment),
+            [promotion, ...groups.flatMap((group) => group.variations)],
+            async (fragment) => {
+                const latest =
+                    fragment === promotion
+                        ? fragment
+                        : new Fragment(await repository.aem.sites.cf.fragments.getWithEtag(fragment.id));
+                if (!latest.etag) throw new Error(`Failed to fetch the latest revision for ${fragment.path}`);
+                await repository.clearStagedTag(latest, { expectedEtag: latest.etag });
+            },
             VARIATIONS_CONCURRENCY_LIMIT,
         );
-        const promotion = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
-        if (!promotion) throw new Error('Failed to fetch promotion after clearing staged flags');
         result.promotion.status = 'unknown';
         const response = await repository.aem.sites.cf.fragments.publish(promotion, []);
         const item = response?.items?.find((entry) => entry.path === promotion.path);
@@ -327,6 +333,7 @@ export async function publishPromotionProject(repository, promotionFragment, { p
                     waitForCompletion: false,
                     includeCards: false,
                     includeVariations: false,
+                    publishReferences: false,
                 });
                 if (!acceptance.accepted) throw new Error('A request is already in progress. Check the Bulk Publish project.');
                 entry.dispatchStatus = 'accepted';

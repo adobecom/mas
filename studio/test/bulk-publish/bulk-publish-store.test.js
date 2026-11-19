@@ -1,6 +1,7 @@
 import { expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import Events from '../../src/events.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
 import { startPublishing, startReverting, saveSnapshot, resetToDraft } from '../../src/bulk-publish/bulk-publish-store.js';
 
@@ -68,6 +69,25 @@ describe('startPublishing()', () => {
         });
         expect(publishFn.firstCall.args[0]).to.include({ includeVariations: true, includeCards: true });
     });
+
+    for (const publishReferences of [false, true, undefined]) {
+        it(`preserves the reference publication policy when publishReferences is ${publishReferences}`, async () => {
+            const publishFn = sinon.stub().resolves({ accepted: true });
+
+            await startPublishing({
+                project,
+                token,
+                ioBaseUrl,
+                repository: repo,
+                publishFn,
+                pollIntervalMs: 1,
+                maxPolls: 5,
+                publishReferences,
+            });
+
+            expect(publishFn.firstCall.args[0].publishReferences).to.equal(publishReferences ?? true);
+        });
+    }
 
     it('calls repository.refreshFragment after successful publish', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
@@ -186,6 +206,33 @@ describe('startPublishing()', () => {
         }
         expect(error.message).to.include('could not be confirmed');
         expect(repo.refreshFragment.called).to.be.false;
+        expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('reports background tracking failures without losing the accepted dispatch result', async () => {
+        const failure = new Error('Project state unavailable');
+        sinon.stub(project, 'get').throws(failure);
+        const toast = sinon.stub(Events.toast, 'emit');
+        const errorLog = sinon.stub(console, 'error');
+
+        const result = await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn: sinon.stub().resolves({ accepted: true, activationId: 'accepted-activation' }),
+            waitForCompletion: false,
+        });
+        await waitUntil(() => toast.calledOnce);
+
+        expect(result).to.deep.equal({ accepted: true, activationId: 'accepted-activation' });
+        expect(
+            toast.calledWith({
+                variant: 'negative',
+                content: 'Could not track Bulk Publish proj-1. Check the project.',
+            }),
+        ).to.be.true;
+        expect(errorLog.calledOnceWith('Failed to track Bulk Publish proj-1', failure)).to.be.true;
         expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
     });
 });

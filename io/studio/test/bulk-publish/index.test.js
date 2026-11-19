@@ -81,4 +81,15 @@ describe('bulk-publish/index.js — dispatcher', () => {
         expect(workerParams.includeCards).to.equal(true);
         expect(workerParams.includeVariations).to.equal(false);
     });
+
+    for (const publishReferences of [false, true, undefined]) {
+        it(`forwards publishReferences=${publishReferences} with omitted values defaulting to true`, async () => {
+            const params = publishReferences === undefined ? valid : { ...valid, publishReferences };
+
+            const result = await action.main(params);
+
+            expect(result.statusCode).to.equal(202);
+            expect(invokeAsyncActionStub.firstCall.args[1].publishReferences).to.equal(publishReferences ?? true);
+        });
+    }
 });

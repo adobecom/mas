@@ -1719,12 +1719,13 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Clears the internal staged tag once a fragment has been successfully published.
-     * No-ops when the fragment isn't staged. Persistence failures are reported via
-     * processError but never turn a successful publish into a reported failure.
+     * Clears the staged tag after publish, or before publish with an expected revision.
+     * Expected-revision saves propagate failures; post-publish cleanup remains best-effort.
      * @param {Fragment|object} fragmentData
+     * @param {object} [options]
+     * @param {string} [options.expectedEtag]
      */
-    async clearStagedTag(fragmentData) {
+    async clearStagedTag(fragmentData, { expectedEtag } = {}) {
         if (!fragmentData) return;
         const fragment = fragmentData instanceof Fragment ? fragmentData : new Fragment(fragmentData);
         if (!fragment.isStaged) return;
@@ -1743,12 +1744,42 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            const saved = await this.aem.sites.cf.fragments.save(fragment, { refetchEtag: true });
-            if (!saved) return;
+            const expected =
+                expectedEtag === undefined
+                    ? null
+                    : {
+                          title: fragment.title,
+                          description: fragment.description,
+                          fields: structuredClone(fragment.fields),
+                          tags: fragment.tags?.map(({ id }) => id) ?? [],
+                      };
+            const saved = await this.aem.sites.cf.fragments.save(expected ? { ...fragment, etag: expectedEtag } : fragment, {
+                refetchEtag: !expected,
+            });
+            if (!saved) {
+                if (expected) throw new Error('Could not confirm the staged flag was saved.');
+                return;
+            }
+            if (
+                expected &&
+                (saved.title !== expected.title ||
+                    saved.description !== expected.description ||
+                    (saved.tags?.length ?? 0) !== expected.tags.length ||
+                    expected.tags.some((id) => !saved.tags?.some((tag) => tag.id === id)) ||
+                    saved.fields.length !== expected.fields.length ||
+                    expected.fields.some(
+                        ({ name, values }) =>
+                            JSON.stringify(saved.fields.find((field) => field.name === name)?.values) !==
+                            JSON.stringify(values),
+                    ))
+            ) {
+                throw new Error('The fragment changed while clearing its staged flag. Refresh before publishing.');
+            }
             fragment.refreshFrom(saved);
             const store = findFragmentStoreById(fragment.id, Store.fragments.list.data.get());
             if (typeof store?.refreshFrom === 'function') store.refreshFrom(saved);
         } catch (error) {
+            if (expectedEtag !== undefined) throw error;
             this.processError(error, 'Failed to clear staged flag after publish.');
         }
     }

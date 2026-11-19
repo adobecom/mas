@@ -4,13 +4,7 @@ import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
-import {
-    QUICK_ACTION,
-    BULK_PUBLISH_STATUS,
-    BULK_PUBLISH_PROJECT_MODEL_ID,
-    PAGE_NAMES,
-    STATUS_PUBLISHED,
-} from '../constants.js';
+import { QUICK_ACTION, BULK_PUBLISH_STATUS, PAGE_NAMES, STATUS_PUBLISHED } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { getFromFragmentCache } from '../mas-repository.js';

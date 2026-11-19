@@ -55,6 +55,21 @@ describe('publishBulk', () => {
         expect(body.publishedBy).to.equal('user@example.com');
     });
 
+    for (const publishReferences of [false, true, undefined]) {
+        it(`sends the reference publication policy when publishReferences is ${publishReferences}`, async () => {
+            fetchStub.resolves(new Response('{}', { status: 202 }));
+
+            await publishBulk({
+                ioBaseUrl: 'https://io.example',
+                projectId: 'proj-1',
+                token: 'abc',
+                publishReferences,
+            });
+
+            expect(JSON.parse(fetchStub.firstCall.args[1].body).publishReferences).to.equal(publishReferences ?? true);
+        });
+    }
+
     it('resolves with the parsed response body on 200', async () => {
         const body = { status: 'Published', summary: { total: 2, published: 2, skipped: 0, failed: 0 }, details: [] };
         fetchStub.resolves(

@@ -55,6 +55,7 @@ export async function startPublishing({
     sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     includeVariations = false,
     includeCards = false,
+    publishReferences = true,
     waitForCompletion = true,
 }) {
     if (Store.bulkPublishProjects.publishing.get()[project.id]) return { alreadyPublishing: true };
@@ -76,6 +77,7 @@ export async function startPublishing({
             aemOdinEndpoint,
             includeVariations,
             includeCards,
+            publishReferences,
         });
         if (!waitForCompletion && acceptance?.accepted !== true) {
             throw new Error('Bulk Publish acceptance could not be confirmed. Check the project before publishing again.');

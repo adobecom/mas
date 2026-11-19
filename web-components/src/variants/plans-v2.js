@@ -523,9 +523,12 @@ export class PlansV2 extends VariantLayout {
     static variantStyle = SHADOW_CSS;
 
     static collectionOptions = {
+        // A node, which the Lit and the BaseElement collection headers both render.
         customHeaderArea: (collection) => {
             if (!collection.sidenav) return '';
-            return html`<slot name="resultsText"></slot>`;
+            const slot = document.createElement('slot');
+            slot.name = 'resultsText';
+            return slot;
         },
         headerVisibility: {
             search: false,

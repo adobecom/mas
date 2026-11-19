@@ -1996,6 +1996,7 @@
                                 'Visuals',
                                 'Footer rows',
                                 'Custom fields',
+                                'Quantity selector/Addon',
                             ]);
                             expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#planType'))).to.equal(
                                 'Price and Promo',
@@ -2069,6 +2070,13 @@
                                 expect(sectionHasContent(quantityAddon, () => undefined)).to.be.false;
                                 expect(sectionHasContent(quantityAddon, (name) => (name === 'addon' ? '{{a}}' : ''))).to.be
                                     .true;
+                                expect(sectionHasContent(quantityAddon, (name) => (name === 'addon' ? '{{}}' : ''))).to.be
+                                    .false;
+                                expect(
+                                    sectionHasContent(quantityAddon, (name) =>
+                                        name === 'quantitySelect' ? '<merch-quantity-select/>' : '',
+                                    ),
+                                ).to.be.false;
                                 expect(isSectionShown(true, false, false)).to.be.false;
                                 expect(isSectionShown(true, false, true)).to.be.true;
                                 expect(isSectionShown(false, true, true)).to.be.false;
@@ -2102,6 +2110,7 @@
                                 expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
                                 expect(editor.querySelector('badge-section')).to.not.exist;
                                 expect(menuValues(editor)).to.include.members(['callout', 'badge']);
+                                expect(menuValues(editor)).to.not.include('quantityAddon');
                             });
 
                             it('shows a saved callout on load and leaves it out of the menu', async () => {
@@ -2111,12 +2120,95 @@
                                 expect(menuValues(editor)).to.not.include('callout');
                             });
 
-                            it('does not show Quantity selector/Addon for a global settings default alone', async () => {
+                            it('shows Quantity selector/Addon for a global settings default alone', async () => {
                                 const { editor } = await setupPlans({}, 'optional-settings-default');
+                                Store.settings.rows.set([
+                                    createSettingRow({
+                                        name: 'addon',
+                                        value: '{{addon-stock-ai-studio-trial}}',
+                                        valueType: 'optional-text',
+                                        booleanValue: true,
+                                    }),
+                                ]);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
                                 await editor.toggleFields();
-                                expect(editor.hasContent('quantityAddon')).to.be.false;
+                                expect(editor.globalSettingsDefaults.addon).to.equal('{{addon-stock-ai-studio-trial}}');
+                                expect(editor.hasContent('quantityAddon')).to.be.true;
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                            });
+
+                            it('Remove on Quantity selector/Addon turns settings off on a top-level card', async () => {
+                                const { editor, fragmentStore } = await setupPlans({}, 'optional-remove-qa');
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                const calls = [];
+                                const updateField = fragmentStore.updateField.bind(fragmentStore);
+                                fragmentStore.updateField = (...args) => {
+                                    calls.push(args);
+                                    return updateField(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(calls.some(([name, value]) => name === 'addon' && value[0] === '{{}}')).to.be.true;
+                                expect(
+                                    calls.some(
+                                        ([name, value]) => name === 'quantitySelect' && value[0] === '<merch-quantity-select/>',
+                                    ),
+                                ).to.be.true;
                                 expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
-                                expect(menuValues(editor)).to.include('quantityAddon');
+                            });
+
+                            it('keeps a shown section rendered after its content is cleared', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { callout: ['<p>Saved callout</p>'] },
+                                    'optional-keep-shown',
+                                );
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                fragmentStore.updateField('callout', []);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                editor.querySelector('sp-action-button[aria-label="Remove Callout text"]').click();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                            });
+
+                            it('orders and labels Badge and card decoration per Figma', async () => {
+                                const { editor } = await setupPlans(
+                                    { badge: ['<merch-badge>New</merch-badge>'] },
+                                    'optional-figma',
+                                );
+                                await editor.toggleFields();
+                                const section = editor.querySelector(
+                                    '.editor-section[data-section="Badge and card decoration"]',
+                                );
+                                const labels = [...section.querySelectorAll('sp-field-label')].map((l) => l.textContent.trim());
+                                expect(labels.slice(0, 2)).to.deep.equal(['Card image URL', 'Card image alt text']);
+                                expect(labels).to.include('Card border color');
+                                expect(section.querySelector('.two-column-grid sp-field-group#backgroundImage')).to.not.exist;
+                                expect(section.querySelector('.two-column-grid sp-field-group#badge')).to.not.exist;
+                            });
+
+                            it("labels the What's included title field Section title", async () => {
+                                const { editor } = await setupPlans({}, 'optional-whats-included-label');
+                                editor.querySelector('.add-section-trigger sp-menu-item[value="whatsIncluded"]')?.click();
+                                await editor.updateComplete;
+                                const label = editor.querySelector('sp-field-group#whatsIncluded sp-field-label');
+                                expect(label?.textContent.trim()).to.equal('Section title');
+                            });
+
+                            it('orders Quantity selector/Addon fields per Figma', async () => {
+                                const { editor } = await setupPlans({}, 'optional-qa-order');
+                                await editor.toggleFields();
+                                const ids = [...editor.querySelectorAll('sp-field-group')]
+                                    .map((group) => group.id)
+                                    .filter((id) => ['quantitySelect', 'addonConfirmation', 'addon'].includes(id));
+                                expect(ids).to.deep.equal(['quantitySelect', 'addonConfirmation', 'addon']);
+                                expect(
+                                    editor.querySelector('sp-field-group#addonConfirmation sp-field-label').textContent.trim(),
+                                ).to.equal('Addon confirmation');
                             });
 
                             it('shows a section picked from the menu and resets the picks on another fragment', async () => {

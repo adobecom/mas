@@ -4,9 +4,10 @@ Project-scoped decisions of M@S, following [KNOW-0000](https://github.com/Adobe-
 
 ADRs are grouped by domain: `<domain>/<PREFIX>-NNNN-short-title.md`, each domain with its own counter (as in [KNOW-0001](https://github.com/Adobe-acom/core/blob/main/decisions/knowledge/KNOW-0001-adr-repository-topology.md)). Identifiers are never reused or renumbered.
 
-| Domain            | Prefix | Folder               |
-| ----------------- | ------ | -------------------- |
-| Content structure | `CONT` | [content](./content) |
+| Domain            | Prefix | Folder                 |
+| ----------------- | ------ | ---------------------- |
+| Content structure | `CONT` | [content](./content)   |
+| Delivery          | `DLV`  | [delivery](./delivery) |
 
 ## Content
 
@@ -18,3 +19,9 @@ ADRs are grouped by domain: `<domain>/<PREFIX>-NNNN-short-title.md`, each domain
 | [CONT-0004](./content/CONT-0004-scope-settings-per-surface.md)                  | Scope settings and offer mappings per surface with targeted overrides      | active |
 | [CONT-0005](./content/CONT-0005-layer-merch-content-through-baselines.md)       | Layer merch content through product, template and market segment baselines | active |
 | [CONT-0006](./content/CONT-0006-select-one-fragment-variation.md)               | Select one promotion, regional or PZN variation per fragment               | active |
+
+## Delivery
+
+| ID                                                                   | Title                                                        | Status |
+| -------------------------------------------------------------------- | ------------------------------------------------------------ | ------ |
+| [DLV-0001](./delivery/DLV-0001-layer-caches-from-edge-to-origins.md) | Layer fragment caches from the CDN edge down to Odin and WCS | active |

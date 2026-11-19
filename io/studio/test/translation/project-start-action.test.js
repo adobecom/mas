@@ -160,6 +160,7 @@ describe('Translation project-start action', function () {
 
         expect(result).to.deep.equal({
             statusCode: 202,
+            headers: { 'Access-Control-Expose-Headers': 'x-request-id' },
             body: {
                 jobId: 'project-1',
                 submissionDate: '2026-03-25T16:00:00Z',

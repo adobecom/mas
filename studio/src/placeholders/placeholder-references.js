@@ -45,7 +45,7 @@ async function findReferences(aem, path, key, excludePath, signal) {
     let page;
     const references = [];
     const seenPaths = new Set();
-    while (refsFound < 10) {
+    while (refsFound < 5) {
         page = await cursor.next();
         if (!page?.value) break;
         for (const item of page.value) {

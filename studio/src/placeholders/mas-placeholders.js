@@ -319,7 +319,7 @@ class MasPlaceholders extends LitElement {
 
     /**
      * This is needed because selection checkboxes are lost on filtering
-     * Whenever some filtering happens (rows are added/removed) this needs to be called.
+     * Whenever some filtering happens (rows are added/removed) this needs to be called
      */
     async refresh() {
         if (this.internalPlaceholders.length === 0) return;

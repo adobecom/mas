@@ -94,13 +94,15 @@ const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `$
 
 // Memory usage is logged on its own line, on the first call of a container, then at most once a minute.
 const MEMORY_LOG_INTERVAL = 60 * 1000;
+// Tells containers apart in the memory logs: an id per container, random as the runtime exposes none.
+const CONTAINER_ID = globalThis.crypto.randomUUID().slice(0, 8);
 let memoryLoggedAt = -Infinity;
 
 /**
  * Logs the process memory and the caches sizes, e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB |
  * caches 6.1MB up to heap used 576.0MB in 548 entries, 12 evicted: response 4.0MB (180, 12 evicted),
- * request-metadata 75KB (180, 0 evicted), ..." (largest cache first, entry count in parentheses; evictions are
- * counted since the container started). Server side only.
+ * request-metadata 75KB (180, 0 evicted), ... | container 3f9a1c2e up 42m" (largest cache first, entry count in
+ * parentheses; evictions are counted since the container started). Server side only.
  */
 export function logMemoryUsage(context) {
     const now = Date.now();
@@ -112,7 +114,7 @@ export function logMemoryUsage(context) {
         .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries}, ${cache.evictions} evicted)`)
         .join(', ');
     log(
-        `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(memory.bytes)} up to heap used ${formatSize(memory.heap?.maxUsed)} in ${memory.lru.size} entries, ${memory.evictions} evicted: ${perCache}`,
+        `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(memory.bytes)} up to heap used ${formatSize(memory.heap?.maxUsed)} in ${memory.lru.size} entries, ${memory.evictions} evicted: ${perCache} | container ${CONTAINER_ID} up ${Math.round(process.uptime() / 60)}m`,
         context,
     );
 }

@@ -4,6 +4,7 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = 
 const { buildSiblingActionName, fetchOdin, getInternalValue, getValue, getValues, invokeAsyncAction } = require('../common.js');
 const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
 const { enqueueJob } = require('./queue.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('translation-starter', { level: 'info' });
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
@@ -144,5 +145,5 @@ async function updateSubmissionMetadata(params, projectCF, etag, authToken, subm
     return response.json();
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);
 exports.DISPATCHER_ACTION_NAME = DISPATCHER_ACTION_NAME;

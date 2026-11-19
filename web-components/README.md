@@ -57,6 +57,20 @@ unchanged, including the query-string fallback for missing/falsy `instant`.
 Use Node 22+ for web-components tests and builds; Studio and the repository's
 `.nvmrc` remain on Node 20.
 
+### Shared checkout decisions
+
+`mas-commerce-service.checkoutDecisions` exposes the frozen, stateless
+[shared checkout decision helpers](../checkout/README.md). The read-only getter
+is available on constructed service elements before connection or activation,
+through both the `commerce.js` and `mas.js` entry points.
+
+The helpers select workflow fallbacks, checkout configs and modal paths/hashes,
+and classify 3-in-1 eligibility. Callers provide explicit page flags and offer
+context; fetching, localization, DOM changes and action handlers stay in browser
+adapters. An unmapped segment or absent segmented path returns `undefined`, so
+the adapter must skip the modal rather than select another audience's target.
+See the shared module documentation for inputs, precedence and rollout rules.
+
 ### Building
 
 mas builds packages both for Milo and external consumers.

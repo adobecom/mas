@@ -245,7 +245,7 @@ export class ProductPricing extends VariantLayout {
         :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             padding: 24px 24px 32px;
         }
 

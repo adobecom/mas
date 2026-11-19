@@ -174,7 +174,7 @@ listed in `priceErrors`; the rest of the offer is still returned.
 | `pzn` | `string \| null` | Requested audience selector for product lookup; `null` when omitted or selecting a fragment by UUID. |
 | `badge` | `string \| null` | Card badge text. |
 | `ctas` | `object[]` | Ordered `{ label: string }` CTA entries; `[]` when none exist. |
-| `terms_url` | `string \| null` | Promo terms page for the card's offer, from its promo terms (UPT) link. Without one, or when its offer can't be resolved, the `https` `href` of the first regular link authored with `data-analytics-id="see-terms"`; otherwise `null`. |
+| `terms_url` | `string \| null` | Promo terms page for the card's offer, from its promo terms (UPT) link. Without one, or when its offer can't be resolved, the `https` `href` of the first regular link authored with `data-analytics-id="see-terms"`; otherwise `null`. See [Adding a promo terms link](https://mas.adobe.com/docs/promotions/promo-terms-link). |
 | `title` | `string` | Card title. |
 | `subtitle` | `string` | Card subtitle. |
 | `promoText` | `string` | Promotional text. |
@@ -188,7 +188,6 @@ listed in `priceErrors`; the rest of the offer is still returned.
 | `taxText` | `string` | Tax text, for example `excl. GST`. |
 | `recurrenceText` | `string` | Billing frequency, for example `/mo`. |
 | `unitText` | `string` | Offer unit, for example `per license`. |
-| `seeTermsInfo` | `object` | The promo terms link's `analyticsId`, `href` (same as `terms_url` when resolved), and `text`; regular see-terms links are not included. See [Adding a promo terms link](https://mas.adobe.com/docs/promotions/promo-terms-link). |
 | `renewalText` | `string` | Authored renewal text. |
 | `promoDurationText` | `string` | Authored promotion-duration text. |
 | `priceErrors` | `string[]` | OSIs of prices that could not be resolved and are missing from the response; omitted when every price resolved. |

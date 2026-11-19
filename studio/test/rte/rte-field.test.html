@@ -1198,9 +1198,18 @@
                         expect(editor.borderTopWidth).to.equal('0px');
                         expect(editor.borderBottomLeftRadius).to.equal('8px');
                         expect(editor.borderTopLeftRadius).to.equal('0px');
-                        expect(editor.paddingTop).to.equal('8px');
-                        expect(editor.paddingRight).to.equal('12px');
+                        expect(editor.paddingTop).to.equal('7px');
+                        expect(editor.paddingRight).to.equal('10px');
                         expect(editor.paddingBottom).to.equal('7px');
+
+                        const prose = getComputedStyle(rte.shadowRoot.querySelector('#editor .ProseMirror'));
+                        expect(prose.paddingLeft).to.equal('0px');
+                        expect(prose.lineHeight).to.equal('18px');
+
+                        const counter = getComputedStyle(rte.shadowRoot.querySelector('#counter'));
+                        expect(counter.marginTop).to.equal('0px');
+                        expect(counter.lineHeight).to.equal('16px');
+                        expect(counter.color).to.equal(resolveColor(rte, '--spectrum-gray-700'));
                     });
 
                     it('uses the blue border on the toolbar when overridden', async function () {

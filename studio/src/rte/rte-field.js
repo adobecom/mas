@@ -379,6 +379,13 @@ class RteField extends LitElement {
                     outline-offset: 0;
                 }
 
+                #counter {
+                    margin: 0;
+                    font-size: var(--spectrum-font-size-75);
+                    line-height: 16px;
+                    color: var(--spectrum-gray-700);
+                }
+
                 :host([floating-toolbar]) #counter {
                     display: none;
                 }
@@ -448,7 +455,17 @@ class RteField extends LitElement {
                 :host(:not([floating-toolbar])) sp-action-group[aria-label='RTE toolbar actions'] + #editor-row #editor {
                     border-top: 0;
                     border-radius: 0 0 8px 8px;
-                    padding: 8px 12px 7px;
+                    padding: 7px 10px;
+                    font-size: var(--spectrum-font-size-100);
+                }
+
+                :host(:not([floating-toolbar]))
+                    sp-action-group[aria-label='RTE toolbar actions']
+                    + #editor-row
+                    #editor
+                    .ProseMirror {
+                    padding: 0;
+                    line-height: 18px;
                 }
 
                 :host(:not([floating-toolbar])[data-field-state='overridden'])

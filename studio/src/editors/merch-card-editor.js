@@ -1413,12 +1413,27 @@ class MerchCardEditor extends LitElement {
                     top: -1px;
                 }
 
+                merch-card-editor {
+                    --mod-fieldlabel-font-size: 14px;
+                    --mod-fieldlabel-line-height: 18px;
+                    --mod-fieldlabel-min-height: 32px;
+                    --mod-fieldlabel-padding-block: 7px;
+                }
+
                 .section-title {
-                    font-size: 20px;
+                    font-size: 18px;
+                    line-height: 22px;
                     font-weight: 700;
                     margin-bottom: 8px;
-                    color: var(--spectrum-gray-900);
-                    letter-spacing: -0.01em;
+                    color: var(--spectrum-gray-800);
+                }
+
+                .editor-section sp-field-group {
+                    margin: 12px 0;
+                }
+
+                .editor-section sp-field-group sp-field-group {
+                    margin: 0;
                 }
 
                 .section-description {
@@ -1431,7 +1446,12 @@ class MerchCardEditor extends LitElement {
                 .two-column-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 20px;
+                    gap: 12px 20px;
+                    margin: 12px 0;
+                }
+
+                .two-column-grid > sp-field-group {
+                    margin: 0;
                 }
 
                 .tags-spacing {

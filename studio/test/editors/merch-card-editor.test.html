@@ -2105,6 +2105,26 @@
                         });
                     });
 
+                    describe('Figma typography', () => {
+                        it('uses 18px section titles, 14px field labels and 12px field gaps', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-typography',
+                            );
+                            await editor.toggleFields();
+                            const title = getComputedStyle(editor.querySelector('.editor-section .section-title'));
+                            expect(title.fontSize).to.equal('18px');
+                            expect(title.lineHeight).to.equal('22px');
+                            const host = getComputedStyle(editor);
+                            expect(host.getPropertyValue('--mod-fieldlabel-font-size').trim()).to.equal('14px');
+                            expect(host.getPropertyValue('--mod-fieldlabel-min-height').trim()).to.equal('32px');
+                            const group = editor.querySelector('.editor-section > sp-field-group');
+                            expect(getComputedStyle(group).marginTop).to.equal('12px');
+                            const grid = editor.querySelector('.two-column-grid');
+                            expect(getComputedStyle(grid).rowGap).to.equal('12px');
+                        });
+                    });
+
                     describe('Meta data collapse', () => {
                         const toggleSelector = '.editor-section--meta .section-header-row sp-action-button.meta-data-toggle';
 

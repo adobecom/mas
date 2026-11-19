@@ -1,9 +1,9 @@
-import { html, LitElement } from 'lit';
+import { BaseElement, html } from './merch-card.js';
 import { debounce } from './utils.js';
 import { EVENT_MERCH_SEARCH_CHANGE } from './constants.js';
 import { deeplink, pushStateFromComponent, parseState } from './deeplink.js';
 
-export class MerchSearch extends LitElement {
+export class MerchSearch extends BaseElement {
     static properties = {
         deeplink: { type: String },
     };

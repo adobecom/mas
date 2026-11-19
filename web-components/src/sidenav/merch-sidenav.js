@@ -1,9 +1,8 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
-import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
+import { BaseElement, html, nothing, on } from '../merch-card.js';
 import '../merch-search.js';
 import './merch-sidenav-list.js';
 import './merch-sidenav-checkbox-group.js';
-import { SPECTRUM_MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
+import { TABLET_DOWN } from '../media.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
 import { styles } from './merch-sidenav.css.js';
 
@@ -15,7 +14,7 @@ const CHECKBOX_SIZE = {
     catalog: 'xl',
 };
 
-export class MerchSideNav extends LitElement {
+export class MerchSideNav extends BaseElement {
     static properties = {
         sidenavTitle: { type: String },
         closeText: { type: String, attribute: 'close-text' },
@@ -37,6 +36,7 @@ export class MerchSideNav extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.mobileAndTablet.addEventListener('change', this.handleMediaChange);
         this.addEventListener(EVENT_MERCH_SIDENAV_SELECT, this.handleSelection);
         // Observe document direction changes
         this.dirObserver = new MutationObserver(() => {
@@ -55,6 +55,10 @@ export class MerchSideNav extends LitElement {
     disconnectedCallback() {
         this.dirObserver?.disconnect();
         super.disconnectedCallback();
+        this.mobileAndTablet.removeEventListener(
+            'change',
+            this.handleMediaChange,
+        );
         this.removeEventListener(
             EVENT_MERCH_SIDENAV_SELECT,
             this.handleSelection,
@@ -96,8 +100,8 @@ export class MerchSideNav extends LitElement {
         }
     }
 
-    mobileDevice = new MatchMediaController(this, SPECTRUM_MOBILE_LANDSCAPE);
-    mobileAndTablet = new MatchMediaController(this, TABLET_DOWN);
+    mobileAndTablet = window.matchMedia(TABLET_DOWN);
+    handleMediaChange = () => this.requestUpdate();
 
     get filters() {
         return this.querySelector('merch-sidenav-list');
@@ -114,19 +118,12 @@ export class MerchSideNav extends LitElement {
     get asDialog() {
         if (!this.open) return nothing;
         const closeButton = !this.autoclose
-            ? html`<sp-link @click="${this.closeModal}"
-                  >${this.closeText || 'Close'}</sp-link
-              >`
+            ? html`<sp-link>${this.closeText || 'Close'}</sp-link>`
             : nothing;
         return html`
             <sp-theme color="light" scale="medium" dir="${this.dir}">
-                <sp-overlay type="modal" open @sp-closed=${this.closeModal}>
-                    <sp-dialog-base
-                        dismissable
-                        underlay
-                        no-divider
-                        @close=${this.closeModal}
-                    >
+                <sp-overlay type="modal" open>
+                    <sp-dialog-base dismissable underlay no-divider>
                         <div id="content">
                             <div id="sidenav">
                                 <div>
@@ -153,6 +150,16 @@ export class MerchSideNav extends LitElement {
         return this.shadowRoot.querySelector('sp-dialog-base');
     }
 
+    bindEvents() {
+        on(
+            this.shadowRoot.querySelector('sp-overlay'),
+            'sp-closed',
+            this.closeModal,
+        );
+        on(this.dialog, 'close', this.closeModal);
+        on(this.shadowRoot.querySelector('sp-link'), 'click', this.closeModal);
+    }
+
     handleSelection() {
         if (this.autoclose) this.closeModal();
     }
@@ -167,7 +174,7 @@ export class MerchSideNav extends LitElement {
         document.querySelector('body')?.classList.add('merch-modal');
     }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 }
 
 customElements.define('merch-sidenav', MerchSideNav);

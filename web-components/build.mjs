@@ -56,37 +56,15 @@ Promise.all([
     }),
     build({
         ...defaults,
-        entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
-        outfile: `${outfolder}/merch-card-collection.js`,
-    }),
-    build({
-        ...defaults,
-        entryPoints: ['./src/sidenav/merch-sidenav.js'],
-        outfile: `${outfolder}/merch-sidenav.js`,
-        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
-    }),
-    build({
-        ...defaults,
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildComponent('merch-card', [
-        {
-            name: 'external-commerce',
-            setup(build) {
-                build.onResolve(
-                    {
-                        filter: /^\.\.?\/commerce\.js$/,
-                    },
-                    () => ({ path: './commerce.js', external: true }),
-                );
-            },
-        },
-    ]),
-    buildLitComponent('merch-card-collection'),
+    buildComponent('merch-card', [external('commerce')]),
+    // BaseElement comes from the merch-card.js the page already loads.
+    buildComponent('merch-card-collection', [external('merch-card')]),
     buildComponent('merch-icon'),
-    buildLitComponent('merch-quantity-select'),
+    buildComponent('merch-quantity-select', [external('merch-card')]),
+    buildComponent('sidenav/merch-sidenav', [external('merch-card')]),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildComponent('merch-whats-included'),
@@ -117,7 +95,7 @@ async function buildComponent(name, plugins = []) {
     await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
-        outfile: `${outfolder}/${name}.js`,
+        outfile: `${outfolder}/${name.split('/').pop()}.js`,
         plugins: [minifyCss(), noLit(), ...plugins],
     });
 }
@@ -129,6 +107,19 @@ function noLit() {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
                 errors: [{ text: `${importer} imports lit` }],
             }));
+        },
+    };
+}
+
+// Resolves ./<file>.js and ../<file>.js to the external dist file ./<file>.js.
+function external(file) {
+    return {
+        name: `external-${file}`,
+        setup(build) {
+            build.onResolve(
+                { filter: new RegExp(`^\\.\\.?/${file}\\.js$`) },
+                () => ({ path: `./${file}.js`, external: true }),
+            );
         },
     };
 }

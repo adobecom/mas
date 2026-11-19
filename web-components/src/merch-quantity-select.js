@@ -1,4 +1,4 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { BaseElement, html, nothing, on } from './merch-card.js';
 import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 
@@ -8,7 +8,9 @@ import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
 } from './constants.js';
 
-export class MerchQuantitySelect extends LitElement {
+const renderedValues = new WeakMap();
+
+export class MerchQuantitySelect extends BaseElement {
     static get properties() {
         return {
             closed: { type: Boolean, reflect: true },
@@ -28,9 +30,7 @@ export class MerchQuantitySelect extends LitElement {
         };
     }
 
-    static get styles() {
-        return unsafeCSS(styles);
-    }
+    static styles = styles;
 
     constructor() {
         super();
@@ -275,10 +275,8 @@ export class MerchQuantitySelect extends LitElement {
                             ? ' selected'
                             : ''}"
                         role="option"
-                        id="${`qs-item-${index}`}"
-                        aria-selected=${this.selectedValue === option}
-                        @click="${() => this.handleMenuOption(option, true)}"
-                        @mouseenter="${() => this.handleMouseEnter(index)}"
+                        id="qs-item-${index}"
+                        aria-selected="${this.selectedValue === option}"
                     >
                         ${option === this.max ? `${option}+` : option}
                     </div>
@@ -309,7 +307,9 @@ export class MerchQuantitySelect extends LitElement {
 
     render() {
         if (!this.configured) return nothing;
-
+        const activeDescendant = this.closed
+            ? nothing
+            : html`aria-activedescendant="qs-item-${this.highlightedIndex}"`;
         return html`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">
@@ -318,28 +318,18 @@ export class MerchQuantitySelect extends LitElement {
                     aria-labelledby="qsLabel"
                     name="quantity"
                     role="combobox"
-                    aria-expanded=${!this.closed}
+                    aria-expanded="${!this.closed}"
                     aria-controls="qsPopover"
-                    aria-activedescendant="${!this.closed
-                        ? `qs-item-${this.highlightedIndex}`
-                        : nothing}"
-                    .value="${this.selectedValue}"
+                    ${activeDescendant}
                     type="text"
                     autocomplete="on"
-                    @keydown="${this.handleKeydown}"
-                    @keyup="${this.handleKeyupDebounced}"
                 />
                 <button
                     class="picker-button"
-                    aria-activedescendant="${!this.closed
-                        ? `qs-item-${this.highlightedIndex}`
-                        : nothing}"
-                    @focus="${this.onButtonFocus}"
-                    @blur="${this.onButtonBlur}"
+                    ${activeDescendant}
                     aria-controls="qsPopover"
-                    aria-expanded=${!this.closed}
+                    aria-expanded="${!this.closed}"
                     aria-labelledby="qsLabel"
-                    @click="${this.toggleMenu}"
                 >
                     <div
                         class="picker-button-fill ${this.closed
@@ -350,6 +340,28 @@ export class MerchQuantitySelect extends LitElement {
                 ${this.popover}
             </div>
         `;
+    }
+
+    bindEvents() {
+        const input = this.shadowRoot.querySelector('.text-field-input');
+        if (!input) return;
+        // Like a Lit property binding, only write a changed value, so text
+        // the customer is typing survives unrelated renders.
+        if (renderedValues.get(input) !== this.selectedValue) {
+            input.value = this.selectedValue;
+            renderedValues.set(input, this.selectedValue);
+        }
+        on(input, 'keydown', (event) => this.handleKeydown(event));
+        on(input, 'keyup', this.handleKeyupDebounced);
+        const button = this.shadowRoot.querySelector('.picker-button');
+        on(button, 'focus', (event) => this.onButtonFocus(event));
+        on(button, 'blur', (event) => this.onButtonBlur(event));
+        on(button, 'click', this.toggleMenu);
+        this.shadowRoot.querySelectorAll('.item').forEach((item, index) => {
+            const option = this.options[index];
+            on(item, 'click', () => this.handleMenuOption(option, true));
+            on(item, 'mouseenter', () => this.handleMouseEnter(index));
+        });
     }
 }
 

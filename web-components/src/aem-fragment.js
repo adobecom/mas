@@ -432,11 +432,11 @@ export class AemFragment extends HTMLElement {
         }
 
         if (this.#mask) {
-            endpoint += `&mask=${this.#mask}`;
+            endpoint += `&mask=${encodeURIComponent(this.#mask)}`;
         }
 
         if (this.#pzn) {
-            endpoint += `&pzn=${this.#pzn}`;
+            endpoint += `&pzn=${encodeURIComponent(this.#pzn)}`;
         }
 
         try {

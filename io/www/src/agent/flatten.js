@@ -396,13 +396,13 @@ function seeTermsLinkUrl(fields) {
 
 async function flattenOffer(fragment, context) {
     const fields = fragment?.fields ?? {};
-    const merchCard = await extractMerchCard(fragment, context);
+    const { seeTermsInfo, ...merchCard } = await extractMerchCard(fragment, context);
     return {
         fragment: fragment?.id ?? null,
         productName: (fieldValue(fields, 'cardTitle') || '').trim() || null,
         badge: stripTags(fieldValue(fields, 'badge')),
         // The promo terms link wins; otherwise a regular link authored with the see-terms analytics id.
-        terms_url: merchCard.seeTermsInfo?.href ?? seeTermsLinkUrl(fields),
+        terms_url: seeTermsInfo?.href ?? seeTermsLinkUrl(fields),
         ...parseTags(fields.tags),
         ...merchCard,
     };

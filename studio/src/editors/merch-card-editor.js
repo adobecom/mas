@@ -529,6 +529,21 @@ class MerchCardEditor extends LitElement {
         return this.renderFieldStatusIndicator(ADDON);
     }
 
+    get fragmentTitlePreviewTemplate() {
+        if (this.getEffectiveFieldValue('variant') !== VARIANT_NAMES.HEADLESS) return nothing;
+        const title = this.fragment.title ?? '';
+        const index = title.indexOf(':');
+        const emphasis = index === -1 ? title : title.slice(0, index);
+        const rest = index === -1 ? '' : title.slice(index);
+        return html`<div class="fragment-title-preview" id="fragment-title-preview">
+            <span class="fragment-title-preview-label">Fragment title preview</span>
+            <div class="fragment-title-preview-title">
+                <strong class="fragment-title-preview-emphasis">${emphasis}</strong
+                ><span class="fragment-title-preview-rest">${rest}</span>
+            </div>
+        </div>`;
+    }
+
     renderValidationBanner() {
         const errors = this.fragment?.getValidationErrors() ?? [];
         if (!errors.length) return nothing;
@@ -1395,6 +1410,38 @@ class MerchCardEditor extends LitElement {
                     top: -1px;
                 }
 
+                .fragment-title-preview {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    padding: 10px 10px 10px 12px;
+                    border-radius: 8px;
+                    background-color: var(--spectrum-gray-75, #f8f8f8);
+                    margin-bottom: 16px;
+                }
+
+                .fragment-title-preview-label {
+                    font-size: 12px;
+                    line-height: 16px;
+                    font-weight: 400;
+                    color: var(--spectrum-gray-700, #505050);
+                }
+
+                .fragment-title-preview-title {
+                    font-size: 14px;
+                    line-height: 18px;
+                    min-height: 18px;
+                    color: var(--spectrum-gray-600, #757575);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .fragment-title-preview-emphasis {
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
                 .section-title {
                     font-size: 20px;
                     font-weight: 700;
@@ -1587,7 +1634,7 @@ class MerchCardEditor extends LitElement {
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
-                ${this.renderValidationBanner()}
+                ${this.renderValidationBanner()} ${this.fragmentTitlePreviewTemplate}
                 <div class="section-title-status">
                     <div class="section-title">General info</div>
                     <div class="section-staged-status">

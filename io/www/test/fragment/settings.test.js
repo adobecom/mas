@@ -334,6 +334,33 @@ describe('settings', () => {
             expect(result).to.be.null;
         });
 
+        it('degrades the response on a transient failure, but not when the surface has no settings', async () => {
+            fetchStub.withArgs(settingsIndexUrl('none')).returns(createResponse(404, {}));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
+            fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(429, null, 'Too Many Requests'));
+            const missing = createContext({ surface: 'none', degraded: new Set() });
+            expect(await getSettings(missing)).to.be.null;
+            expect([...missing.degraded]).to.be.empty;
+            const failing = createContext({ degraded: new Set() });
+            expect(await getSettings(failing)).to.be.null;
+            expect([...failing.degraded]).to.deep.equal(['settings']);
+        });
+
+        it('serves the expired settings on a transient failure', async () => {
+            const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            try {
+                mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', SETTINGS_RESPONSE);
+                const settings = await getSettings(createContext());
+                clock.tick(5 * 60 * 1000 + 1);
+                fetchStub.withArgs(settingsContentUrl('settings-id')).returns(createResponse(503, null, 'Unavailable'));
+                const context = createContext({ degraded: new Set() });
+                expect(await getSettings(context)).to.deep.equal(settings);
+                expect([...context.degraded]).to.be.empty;
+            } finally {
+                clock.restore();
+            }
+        });
+
         it('returns grouped settings on success', async () => {
             const referencesBody = {
                 references: {

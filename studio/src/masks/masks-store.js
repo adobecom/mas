@@ -3,6 +3,7 @@ import { Fragment } from '../aem/fragment.js';
 import { CARD_MODEL_PATH, MAS_MASKS_PREFIX, MASKS_FOLDER, ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
+import { clearMaskCache } from '../../../io/www/src/fragment/transformers/mask.js';
 
 const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
 
@@ -131,6 +132,7 @@ export class MasksStore {
             const latest = await this.aem.sites.cf.fragments.getById(created.id);
             latest.newTags = [this.maskTagId(fragmentName)];
             await this.aem.saveTags(latest);
+            clearMaskCache(true);
             await this.loadSurface(this.#surface, this.#locale);
             showToast('Mask created.', 'positive');
             return created.id;
@@ -155,6 +157,7 @@ export class MasksStore {
                 throw new Error('Masks must use the card model.');
             }
             const saved = await this.aem.sites.cf.fragments.save(fragment);
+            clearMaskCache(true);
             await this.loadSurface(this.#surface, this.#locale);
             showToast('Mask saved.', 'positive');
             return saved;

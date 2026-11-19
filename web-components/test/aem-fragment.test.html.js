@@ -930,6 +930,23 @@ runTests(async () => {
                 aemFragment.remove();
             });
 
+            for (const name of ['mask', 'pzn']) {
+                it(`encodes ${name} without injecting extra query parameters`, async () => {
+                    const value = 'x&foo=bar#50% +%26';
+                    const fragment = document.createElement('aem-fragment');
+                    fragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                    fragment.setAttribute(name, value);
+                    document.body.appendChild(fragment);
+                    await fragment.updateComplete;
+                    const url = new URL(fetch.lastCall.firstArg);
+
+                    expect(url.searchParams.get(name)).to.equal(value);
+                    expect(url.searchParams.has('foo')).to.be.false;
+                    expect(url.hash).to.equal('');
+                    fragment.remove();
+                });
+            }
+
             it('appends instant param to endpoint URL on published (non-preview) fetch', async () => {
                 cache.clear();
                 const masCommerceService = document.querySelector(

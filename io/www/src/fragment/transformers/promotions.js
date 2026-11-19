@@ -82,6 +82,8 @@ const promoVariationsCache = createSwrCache({
     name: 'promo-variations',
     previewTtl: PREVIEW_CACHE_TTL,
     previewMemory: true,
+    // production has ~1,800 surface/promotion/locale keys, more than the default 1,000
+    maxEntries: 3000,
     shouldCache: ({ complete }) => (complete ? true : { ttl: 10 * 1000 }),
 });
 

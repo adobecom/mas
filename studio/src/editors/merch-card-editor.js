@@ -124,6 +124,7 @@ class MerchCardEditor extends LitElement {
         backgroundsUrlInvalid: { type: Object, state: true },
         imageDimensionsInvalid: { type: Boolean, state: true },
         backgroundsDimensionsInvalid: { type: Object, state: true },
+        metaCollapsed: { type: Boolean, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -177,6 +178,7 @@ class MerchCardEditor extends LitElement {
         this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
         this.imageDimensionsInvalid = false;
         this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
+        this.metaCollapsed = false;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
         this.baselinesController = new CardBaselinesController(this);
@@ -1504,6 +1506,15 @@ class MerchCardEditor extends LitElement {
                     margin-bottom: 0;
                 }
 
+                #meta-data-body {
+                    margin-top: 8px;
+                }
+
+                #meta-data-body[hidden],
+                #meta-data-body > [hidden] {
+                    display: none !important;
+                }
+
                 .restore-all-link {
                     --mod-link-text-color-primary-default: var(--spectrum-accent-content-color-default);
                     --mod-link-text-color-primary-hover: var(--spectrum-accent-content-color-hover);
@@ -1691,37 +1702,53 @@ class MerchCardEditor extends LitElement {
                     </div>
                 </div>
                 <div class="editor-section editor-section--meta" data-section="Meta data">
-                    <div class="section-title">Meta data</div>
-                    <sp-field-group class="toggle" id="cardName">
-                        <sp-field-label for="card-name">Deep linking name</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter card name"
-                            id="card-name"
-                            data-field="cardName"
-                            data-field-state="${this.getFieldState('cardName')}"
-                            value="${form.cardName.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('cardName')}
-                    </sp-field-group>
-                    <sp-field-group id="tags">
-                        <sp-field-label for="tags-field">Tags</sp-field-label>
-                        <aem-tag-picker-field
-                            id="tags-field"
-                            label="Tags"
-                            namespace="/content/cq:tags/mas"
-                            multiple
-                            class="tags-spacing"
-                            data-field-state="${this.getTagsFieldState()}"
-                            value="${(this.fragment.newTags || this.fragment.tags.map((tag) => tag.id)).join(',')}"
-                            .parentTags="${this.effectiveIsVariation
-                                ? this.localeDefaultFragment?.tags.map((t) => t.id) || []
-                                : []}"
-                            @change=${this.#handeTagsChange}
-                        ></aem-tag-picker-field>
-                        ${this.renderTagsStatusIndicator()}
-                    </sp-field-group>
-                    ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
+                    <div class="section-header-row">
+                        <div class="section-title">Meta data</div>
+                        <sp-action-button
+                            quiet
+                            class="meta-data-toggle"
+                            aria-label=${this.metaCollapsed ? 'Expand Meta data' : 'Collapse Meta data'}
+                            aria-expanded=${this.metaCollapsed ? 'false' : 'true'}
+                            aria-controls="meta-data-body"
+                            @click=${() => (this.metaCollapsed = !this.metaCollapsed)}
+                        >
+                            ${this.metaCollapsed
+                                ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                                : html`<sp-icon-chevron-up slot="icon"></sp-icon-chevron-up>`}
+                        </sp-action-button>
+                    </div>
+                    <div id="meta-data-body" class="meta-data-body" ?hidden=${this.metaCollapsed}>
+                        <sp-field-group class="toggle" id="cardName" ?hidden=${this.metaCollapsed}>
+                            <sp-field-label for="card-name">Deep linking name</sp-field-label>
+                            <sp-textfield
+                                placeholder="Enter card name"
+                                id="card-name"
+                                data-field="cardName"
+                                data-field-state="${this.getFieldState('cardName')}"
+                                value="${form.cardName.values[0]}"
+                                @input="${this.#handleFragmentUpdate}"
+                            ></sp-textfield>
+                            ${this.renderFieldStatusIndicator('cardName')}
+                        </sp-field-group>
+                        <sp-field-group id="tags" ?hidden=${this.metaCollapsed}>
+                            <sp-field-label for="tags-field">Tags</sp-field-label>
+                            <aem-tag-picker-field
+                                id="tags-field"
+                                label="Tags"
+                                namespace="/content/cq:tags/mas"
+                                multiple
+                                class="tags-spacing"
+                                data-field-state="${this.getTagsFieldState()}"
+                                value="${(this.fragment.newTags || this.fragment.tags.map((tag) => tag.id)).join(',')}"
+                                .parentTags="${this.effectiveIsVariation
+                                    ? this.localeDefaultFragment?.tags.map((t) => t.id) || []
+                                    : []}"
+                                @change=${this.#handeTagsChange}
+                            ></aem-tag-picker-field>
+                            ${this.renderTagsStatusIndicator()}
+                        </sp-field-group>
+                        ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
+                    </div>
                 </div>
                 <div class="editor-section" data-section="Card header">
                     <div class="section-title">Card header</div>

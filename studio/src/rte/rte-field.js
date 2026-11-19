@@ -435,6 +435,27 @@ class RteField extends LitElement {
                     background-color: var(--spectrum-blue-100);
                 }
 
+                :host(:not([floating-toolbar])) sp-action-group[aria-label='RTE toolbar actions'] {
+                    margin-bottom: -8px;
+                    padding: 7px 12px;
+                    gap: 6px;
+                    background: var(--spectrum-gray-75);
+                    border: 2px solid var(--spectrum-gray-300);
+                    border-bottom: 0;
+                    border-radius: 8px 8px 0 0;
+                }
+
+                :host(:not([floating-toolbar])) sp-action-group[aria-label='RTE toolbar actions'] + #editor-row #editor {
+                    border-top: 0;
+                    border-radius: 0 0 8px 8px;
+                    padding: 8px 12px 7px;
+                }
+
+                :host(:not([floating-toolbar])[data-field-state='overridden'])
+                    sp-action-group[aria-label='RTE toolbar actions'] {
+                    border-color: var(--spectrum-blue-400);
+                }
+
                 .exceeded {
                     color: var(--spectrum-red-700);
                 }

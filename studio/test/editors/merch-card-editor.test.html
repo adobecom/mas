@@ -2105,6 +2105,112 @@
                         });
                     });
 
+                    describe('Meta data collapse', () => {
+                        const toggleSelector = '.editor-section--meta .section-header-row sp-action-button.meta-data-toggle';
+
+                        it('starts expanded with an accessible toggle', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-default',
+                            );
+                            await editor.toggleFields();
+                            expect(editor.metaCollapsed).to.equal(false);
+                            const button = editor.querySelector(toggleSelector);
+                            const card = editor.querySelector('.editor-section--meta');
+                            expect(button).to.exist;
+                            expect(button.parentElement).to.equal(card.querySelector('.section-header-row'));
+                            expect(card.querySelector('.section-title').contains(button)).to.equal(false);
+                            expect(button.quiet).to.equal(true);
+                            expect(button.getAttribute('aria-expanded')).to.equal('true');
+                            expect(button.getAttribute('aria-label')).to.equal('Collapse Meta data');
+                            expect(button.querySelector('sp-icon-chevron-up')).to.exist;
+                            expect(button.querySelector('sp-icon-chevron-down')).to.not.exist;
+                            expect(button.getAttribute('aria-controls')).to.equal('meta-data-body');
+                            expect(card.querySelector('#meta-data-body')).to.exist;
+                            expect(editor.querySelector('#cardName').hidden).to.equal(false);
+                            expect(editor.querySelector('#tags').hidden).to.equal(false);
+                        });
+
+                        it('collapses and restores the fields without touching their values', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-toggle',
+                            );
+                            await editor.toggleFields();
+                            const setItemCalls = [];
+                            const originalSetItem = Storage.prototype.setItem;
+                            Storage.prototype.setItem = function (...args) {
+                                setItemCalls.push(args);
+                                return originalSetItem.apply(this, args);
+                            };
+                            try {
+                                const card = editor.querySelector('.editor-section--meta');
+                                const button = editor.querySelector(toggleSelector);
+                                const cardNameField = () => editor.querySelector('#cardName');
+                                const tagsField = () => editor.querySelector('#tags');
+                                const snapshot = () => ({
+                                    cardName: editor.querySelector('sp-textfield#card-name').value,
+                                    tags: editor.querySelector('#tags-field').getAttribute('value'),
+                                    stored: fragmentStore.get().getFieldValue('cardName'),
+                                });
+                                const cardStyle = getComputedStyle(card);
+                                const before = snapshot();
+                                const { backgroundColor, borderTopWidth } = cardStyle;
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('false');
+                                expect(button.getAttribute('aria-label')).to.equal('Expand Meta data');
+                                expect(button.querySelector('sp-icon-chevron-down')).to.exist;
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(true);
+                                    expect(getComputedStyle(field).display).to.equal('none');
+                                    expect(field.isConnected).to.equal(true);
+                                    expect(card.contains(field)).to.equal(true);
+                                }
+                                expect(card.querySelector('#meta-data-body').hidden).to.equal(true);
+                                expect(getComputedStyle(card.querySelector('.section-title')).display).to.not.equal('none');
+                                expect(card.classList.contains('editor-section--meta')).to.equal(true);
+                                expect(getComputedStyle(card).display).to.not.equal('none');
+                                expect(getComputedStyle(card).backgroundColor).to.equal(backgroundColor);
+                                expect(getComputedStyle(card).borderTopWidth).to.equal(borderTopWidth);
+                                expect(snapshot()).to.deep.equal(before);
+
+                                await editor.toggleFields();
+                                expect(getComputedStyle(cardNameField()).display).to.equal('none');
+                                expect(getComputedStyle(tagsField()).display).to.equal('none');
+                                expect(
+                                    [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                                ).to.deep.equal([
+                                    'Card framework',
+                                    'Meta data',
+                                    'Card header',
+                                    'Price and Promo',
+                                    'Product description',
+                                    'Call to action',
+                                    'Visuals',
+                                    "What's included",
+                                    "What's included",
+                                    'Footer rows',
+                                    'Custom fields',
+                                    'Options and settings',
+                                ]);
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('true');
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(false);
+                                    expect(getComputedStyle(field).display).to.not.equal('none');
+                                }
+                                expect(snapshot()).to.deep.equal(before);
+                                expect(setItemCalls).to.deep.equal([]);
+                            } finally {
+                                Storage.prototype.setItem = originalSetItem;
+                            }
+                        });
+                    });
+
                     describe('enable baselines toggle', () => {
                         it('renders an unchecked Enable baselines switch in General info', async () => {
                             const { editor } = await setupTestEnvironment({}, 'baselines-render');

@@ -1170,6 +1170,92 @@
                     });
                 });
 
+                describe('RTE Field: bordered toolbar', () => {
+                    const TOOLBAR = "sp-action-group[aria-label='RTE toolbar actions']";
+                    const resolveColor = (rte, token) => {
+                        const probe = document.createElement('span');
+                        probe.style.color = `var(${token})`;
+                        rte.shadowRoot.append(probe);
+                        const { color } = getComputedStyle(probe);
+                        probe.remove();
+                        return color;
+                    };
+
+                    it('joins the toolbar and the editor in one bordered box', async function () {
+                        const rte = await createFromTemplate('rte-toolbar', this.test.title);
+                        const toolbar = getComputedStyle(rte.shadowRoot.querySelector(TOOLBAR));
+                        expect(toolbar.borderTopWidth).to.equal('2px');
+                        expect(toolbar.borderBottomWidth).to.equal('0px');
+                        expect(toolbar.borderTopLeftRadius).to.equal('8px');
+                        expect(toolbar.borderBottomLeftRadius).to.equal('0px');
+                        expect(toolbar.padding).to.equal('7px 12px');
+                        expect(toolbar.columnGap).to.equal('6px');
+                        expect(toolbar.marginBottom).to.equal('-8px');
+                        expect(toolbar.backgroundColor).to.equal(resolveColor(rte, '--spectrum-gray-75'));
+                        expect(toolbar.borderTopColor).to.equal(resolveColor(rte, '--spectrum-gray-300'));
+
+                        const editor = getComputedStyle(rte.shadowRoot.querySelector('#editor'));
+                        expect(editor.borderTopWidth).to.equal('0px');
+                        expect(editor.borderBottomLeftRadius).to.equal('8px');
+                        expect(editor.borderTopLeftRadius).to.equal('0px');
+                        expect(editor.paddingTop).to.equal('7px');
+                        expect(editor.paddingRight).to.equal('10px');
+                        expect(editor.paddingBottom).to.equal('7px');
+
+                        const prose = getComputedStyle(rte.shadowRoot.querySelector('#editor .ProseMirror'));
+                        expect(prose.paddingLeft).to.equal('0px');
+                        expect(prose.lineHeight).to.equal('18px');
+
+                        const counter = getComputedStyle(rte.shadowRoot.querySelector('#counter'));
+                        expect(counter.marginTop).to.equal('0px');
+                        expect(counter.lineHeight).to.equal('16px');
+                        expect(counter.color).to.equal(resolveColor(rte, '--spectrum-gray-700'));
+                    });
+
+                    it('uses the blue border on the toolbar when overridden', async function () {
+                        const rte = await createFromTemplate('rte-toolbar-overridden', this.test.title);
+                        const toolbar = getComputedStyle(rte.shadowRoot.querySelector(TOOLBAR));
+                        expect(toolbar.borderTopColor).to.equal(resolveColor(rte, '--spectrum-blue-400'));
+                    });
+
+                    it('keeps the editor border without a toolbar (hide-format-buttons)', async function () {
+                        const rte = await createFromTemplate('rte-no-link', this.test.title);
+                        expect(rte.shadowRoot.querySelector(TOOLBAR)).to.not.exist;
+                        const editor = getComputedStyle(rte.shadowRoot.querySelector('#editor'));
+                        expect(editor.borderTopWidth).to.equal('2px');
+                        expect(editor.padding).to.equal('0px 4px');
+                    });
+
+                    it('keeps the editor border without a toolbar (hide-toolbar)', async function () {
+                        const rte = await createFromTemplate('rte-hide-toolbar', this.test.title);
+                        expect(rte.shadowRoot.querySelector(TOOLBAR)).to.not.exist;
+                        const editor = getComputedStyle(rte.shadowRoot.querySelector('#editor'));
+                        expect(editor.borderTopWidth).to.equal('2px');
+                        expect(editor.borderTopLeftRadius).to.equal('8px');
+                        expect(editor.padding).to.equal('8px 4px 4px');
+                    });
+
+                    it('keeps the floating toolbar style', async function () {
+                        const rte = await createFromTemplate('rte-floating-toolbar', this.test.title);
+                        const toolbar = getComputedStyle(rte.shadowRoot.querySelector(TOOLBAR));
+                        expect(toolbar.borderTopWidth).to.equal('1px');
+                        expect(toolbar.borderBottomWidth).to.equal('1px');
+                        expect(toolbar.borderTopColor).to.equal(resolveColor(rte, '--spectrum-gray-300'));
+                        for (const corner of [
+                            'borderTopLeftRadius',
+                            'borderTopRightRadius',
+                            'borderBottomLeftRadius',
+                            'borderBottomRightRadius',
+                        ]) {
+                            expect(toolbar[corner]).to.equal('8px');
+                        }
+                        expect(toolbar.marginBottom).to.equal('0px');
+                        const editor = getComputedStyle(rte.shadowRoot.querySelector('#editor'));
+                        expect(editor.borderTopWidth).to.equal('0px');
+                        expect(editor.padding).to.equal('0px');
+                    });
+                });
+
                 describe('RTE Field: mnemonic serialization', () => {
                     it('serializes mnemonicText as text content, not as mnemonic-text attribute', async function () {
                         const rte = await createFromTemplate('rte-mnemonic', this.test.title);
@@ -1235,6 +1321,18 @@
         </template>
         <template id="rte-no-link">
             <rte-field hide-format-buttons><p>Badge text</p></rte-field>
+        </template>
+        <template id="rte-toolbar">
+            <rte-field link><p>Toolbar</p></rte-field>
+        </template>
+        <template id="rte-toolbar-overridden">
+            <rte-field link data-field-state="overridden"><p>Toolbar</p></rte-field>
+        </template>
+        <template id="rte-hide-toolbar">
+            <rte-field hide-toolbar><p>No toolbar</p></rte-field>
+        </template>
+        <template id="rte-floating-toolbar">
+            <rte-field link floating-toolbar><p>Floating</p></rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>

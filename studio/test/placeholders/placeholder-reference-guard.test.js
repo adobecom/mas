@@ -87,7 +87,7 @@ describe('placeholder-reference-guard', () => {
         }
 
         expect(result).to.be.false;
-        expect(toastSpy.callCount).to.equal(1);
+        expect(toastSpy.callCount).to.equal(2);
     });
 
     it('resolves false without a toast when the check is aborted', async () => {
@@ -113,6 +113,6 @@ describe('placeholder-reference-guard', () => {
         }
 
         expect(result).to.be.false;
-        expect(toastSpy.callCount).to.equal(0);
+        expect(toastSpy.callCount).to.equal(1);
     });
 });

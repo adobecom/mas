@@ -1,6 +1,5 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { BaseElement, html, nothing, on, unsafeHTML } from './merch-card.js';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
-import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
 import {
     EVENT_MAS_ERROR,
@@ -132,7 +131,7 @@ const searcher = (elements, { search }) => {
     return elements;
 };
 
-export class MerchCardCollection extends LitElement {
+export class MerchCardCollection extends BaseElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
@@ -199,7 +198,7 @@ export class MerchCardCollection extends LitElement {
 
     // A bare requestUpdate() (tag group deeplink, literals, sidenav) asks for a
     // re-arrangement, even when batched with a resultCount or hasMore write.
-    // Lit calls this from its constructor, before private fields exist.
+    // BaseElement calls this from its constructor, before private fields exist.
     requestUpdate(name, ...rest) {
         if (name === undefined) this.arrangeRequested = true;
         super.requestUpdate(name, ...rest);
@@ -208,6 +207,16 @@ export class MerchCardCollection extends LitElement {
     render() {
         return html` <slot></slot>
             ${this.footer}`;
+    }
+
+    bindEvents() {
+        on(
+            this.shadowRoot.querySelector(
+                '#footer .show-more, #footer sp-button',
+            ),
+            'click',
+            () => this.showMore(),
+        );
     }
 
     checkReady() {
@@ -758,11 +767,7 @@ export class MerchCardCollection extends LitElement {
         if (!this.hasMore) return;
         // product-pricing loads no Spectrum, so it gets a native button.
         if (this.classList.contains('product-pricing')) {
-            return html`<button
-                type="button"
-                class="show-more"
-                @click="${this.showMore}"
-            >
+            return html`<button type="button" class="show-more">
                 <slot name="showMoreText"></slot>
             </button>`;
         }
@@ -770,7 +775,6 @@ export class MerchCardCollection extends LitElement {
             variant="secondary"
             treatment="outline"
             style="order: 1000;"
-            @click="${this.showMore}"
         >
             <slot name="showMoreText"></slot>
         </sp-button>`;
@@ -834,7 +838,7 @@ export class MerchCardCollection extends LitElement {
         this.sidenav?.showModal(e);
     }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 }
 
 MerchCardCollection.SortOrder = SORT_ORDER;
@@ -876,7 +880,7 @@ const SEARCH_SIZE = {
     catalog: 'l',
 };
 
-export default class MerchCardCollectionHeader extends LitElement {
+export default class MerchCardCollectionHeader extends BaseElement {
     constructor() {
         super();
         this.collection = null;
@@ -893,9 +897,14 @@ export default class MerchCardCollectionHeader extends LitElement {
 
     #visibility;
     #merchCardElement;
+    #tablet = window.matchMedia(TABLET_UP);
+    #desktop = window.matchMedia(DESKTOP_UP);
+    #mediaChanged = () => this.requestUpdate();
 
     connectedCallback() {
         super.connectedCallback();
+        this.#tablet.addEventListener('change', this.#mediaChanged);
+        this.#desktop.addEventListener('change', this.#mediaChanged);
         this.collection?.addEventListener(
             EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
             this.updateLiterals,
@@ -909,6 +918,8 @@ export default class MerchCardCollectionHeader extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#tablet.removeEventListener('change', this.#mediaChanged);
+        this.#desktop.removeEventListener('change', this.#mediaChanged);
         this.collection?.removeEventListener(
             EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
             this.updateLiterals,
@@ -961,19 +972,16 @@ export default class MerchCardCollectionHeader extends LitElement {
         return this.collection?.variant;
     }
 
-    tablet = new MatchMediaController(this, TABLET_UP);
-    desktop = new MatchMediaController(this, DESKTOP_UP);
-
     get isMobile() {
         return !this.isTablet && !this.isDesktop;
     }
 
     get isTablet() {
-        return this.tablet.matches && !this.desktop.matches;
+        return this.#tablet.matches && !this.#desktop.matches;
     }
 
     get isDesktop() {
-        return this.desktop.matches;
+        return this.#desktop.matches;
     }
 
     get currentMedia() {
@@ -991,7 +999,6 @@ export default class MerchCardCollectionHeader extends LitElement {
                 <sp-search
                     id="search-bar"
                     placeholder="${searchPlaceholder}"
-                    .size=${SEARCH_SIZE[this.variant]}
                     aria-label="${searchPlaceholder}"
                 ></sp-search>
             </merch-search>
@@ -1006,7 +1013,6 @@ export default class MerchCardCollectionHeader extends LitElement {
                 id="filter"
                 variant="secondary"
                 treatment="outline"
-                @click="${this.openFilters}"
                 ><slot name="filtersText"></slot
             ></sp-action-button>
         `;
@@ -1026,7 +1032,6 @@ export default class MerchCardCollectionHeader extends LitElement {
             <sp-action-menu
                 id="sort"
                 size="m"
-                @change="${this.collection?.sortChanged}"
                 selects="single"
                 value="${alphabetical
                     ? SORT_ORDER.alphabetical
@@ -1063,8 +1068,8 @@ export default class MerchCardCollectionHeader extends LitElement {
         return html` <div
             id="result"
             aria-live="polite"
-            type=${type}
-            quantity=${quantity}
+            type="${type}"
+            quantity="${quantity}"
         >
             <slot name="${this.resultSlotName}"></slot>
         </div>`;
@@ -1080,7 +1085,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         const customHeaderArea = customHeaderAreaGetter(this.collection);
         if (!customHeaderArea || customHeaderArea === nothing) return nothing;
         return html`<div id="custom" role="heading" aria-level="2">
-            ${customHeaderArea}
+            ${unsafeHTML(customHeaderArea.outerHTML)}
         </div>`;
     }
 
@@ -1112,7 +1117,18 @@ export default class MerchCardCollectionHeader extends LitElement {
         `;
     }
 
-    static styles = unsafeCSS(headerStyles);
+    bindEvents() {
+        const search = this.shadowRoot.querySelector('sp-search');
+        if (search) search.size = SEARCH_SIZE[this.variant];
+        on(this.shadowRoot.querySelector('#filter'), 'click', (event) =>
+            this.openFilters(event),
+        );
+        on(this.shadowRoot.querySelector('#sort'), 'change', (event) =>
+            this.collection?.sortChanged.call(this, event),
+        );
+    }
+
+    static styles = headerStyles;
 
     get placeholderKeys() {
         return [

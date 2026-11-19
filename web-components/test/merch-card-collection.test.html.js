@@ -199,6 +199,17 @@ runTests(async () => {
             expect(sortElement).to.exist;
         });
 
+        it('keeps the search field when the result changes', async () => {
+            await renderWithSidenav();
+            const search = header.shadowRoot.querySelector('sp-search');
+            pushState({ search: 'acrobat' });
+            await delay(100);
+            expect(header.resultSlotName).to.equal('searchResultsMobileText');
+            expect(header.shadowRoot.querySelector('sp-search')).to.equal(
+                search,
+            );
+        });
+
         it('should have accessible aria-label on search input', async () => {
             await renderWithSidenav();
             const searchInput =
@@ -208,6 +219,22 @@ runTests(async () => {
             const ariaLabel = searchInput.getAttribute('aria-label');
             expect(ariaLabel).to.be.a('string');
             expect(ariaLabel.length).to.be.greaterThan(0);
+        });
+
+        it('renders the plans results text slot on desktop with a sidenav', async () => {
+            await toggleDesktop();
+            await renderWithSidenav();
+            merchCards.variant = 'plans';
+            header.requestUpdate();
+            await header.updateComplete;
+            expect(
+                header.shadowRoot.querySelector('#custom').innerHTML.trim(),
+            ).to.equal('<slot name="resultsText"></slot>');
+            merchCards.sidenav = null;
+            header.requestUpdate();
+            await header.updateComplete;
+            expect(header.shadowRoot.querySelector('#custom')?.outerHTML).to.be
+                .undefined;
         });
     });
 

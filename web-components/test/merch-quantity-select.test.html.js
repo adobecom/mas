@@ -60,6 +60,23 @@ runTests(async () => {
                 expect(popOver.classList.contains('closed')).to.be.true;
             });
 
+            it('keeps typed text and focus across unrelated updates', async () => {
+                const input =
+                    quantitySelect.shadowRoot.querySelector(
+                        '.text-field-input',
+                    );
+                input.focus();
+                input.value = '7';
+                quantitySelect.highlightedIndex = 3;
+                await quantitySelect.updateComplete;
+                expect(input.value).to.equal('7');
+                expect(quantitySelect.shadowRoot.activeElement).to.equal(input);
+                quantitySelect.highlightedIndex = 1;
+                input.value = String(quantitySelect.selectedValue);
+                input.blur();
+                await quantitySelect.updateComplete;
+            });
+
             it('should set default value as 2 ', async () => {
                 expect(quantitySelect.highlightedIndex).to.equal(1);
                 expect(quantitySelect.selectedValue).to.equal(2);

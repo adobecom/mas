@@ -56,12 +56,6 @@ Promise.all([
     }),
     build({
         ...defaults,
-        entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [minifyCss(), rewriteImportsToLibsFolder()],
-        outfile: `${outfolder}/merch-card-collection.js`,
-    }),
-    build({
-        ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
         plugins: [minifyCss(), rewriteImportsToLibsFolder()],
@@ -71,22 +65,25 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildComponent('merch-card', [
-        {
-            name: 'external-commerce',
-            setup(build) {
-                build.onResolve(
-                    {
-                        filter: /^\.\.?\/commerce\.js$/,
-                    },
-                    () => ({ path: './commerce.js', external: true }),
-                );
+    buildComponent('merch-card', {
+        plugins: [
+            {
+                name: 'external-commerce',
+                setup(build) {
+                    build.onResolve(
+                        {
+                            filter: /^\.\.?\/commerce\.js$/,
+                        },
+                        () => ({ path: './commerce.js', external: true }),
+                    );
+                },
             },
-        },
-    ]),
-    buildLitComponent('merch-card-collection'),
+        ],
+    }),
+    // BaseElement comes from the merch-card.js the page already loads.
+    buildComponent('merch-card-collection', { external: ['./merch-card.js'] }),
     buildComponent('merch-icon'),
-    buildLitComponent('merch-quantity-select'),
+    buildComponent('merch-quantity-select', { external: ['./merch-card.js'] }),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildComponent('merch-whats-included'),
@@ -113,9 +110,10 @@ async function buildLitComponent(name) {
 }
 
 // Components built on BaseElement: the build fails if Lit becomes reachable.
-async function buildComponent(name, plugins = []) {
+async function buildComponent(name, { plugins = [], ...options } = {}) {
     await build({
         ...defaults,
+        ...options,
         entryPoints: [`./src/${name}.js`],
         outfile: `${outfolder}/${name}.js`,
         plugins: [minifyCss(), noLit(), ...plugins],

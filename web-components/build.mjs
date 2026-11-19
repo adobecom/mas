@@ -70,7 +70,19 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildLitComponent('merch-card'),
+    buildLitComponent('merch-card', [
+        {
+            name: 'external-commerce',
+            setup(build) {
+                build.onResolve(
+                    {
+                        filter: /^\.\.?\/commerce\.js$/,
+                    },
+                    () => ({ path: './commerce.js', external: true }),
+                );
+            },
+        },
+    ]),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -80,16 +92,19 @@ Promise.all([
     buildLitComponent('merch-mnemonic-list'),
     buildLitComponent('mas-mnemonic'),
     buildLitComponent('mas-compare-chart'),
-]).catch(() => process.exit(1));
+]).catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+});
 
-async function buildLitComponent(name) {
+async function buildLitComponent(name, plugins = []) {
     const { metafile } = await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [rewriteImportsToLibsFolder(), ...plugins],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));

@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing } from '../base-element.js';
 import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
@@ -279,6 +279,14 @@ export class VariantLayout {
     renderLayout() {
         //nothing to do by default
     }
+
+    /**
+     * Runs after every card render: attaches listeners to the rendered
+     * shadow DOM with on() and sets element properties.
+     * @param {ShadowRoot} root
+     */
+    /* c8 ignore next 1 */
+    bindEvents(root) {}
 
     get aemFragmentMapping() {
         return getFragmentMapping(this.card.variant);

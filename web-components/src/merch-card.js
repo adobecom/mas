@@ -1,5 +1,9 @@
-import { LitElement, unsafeCSS } from 'lit';
+import { BaseElement } from './base-element.js';
 import { styles } from './merch-card.css.js';
+
+// For merch-card-collection.js and merch-quantity-select.js to import from the
+// merch-card.js the page already loads, once this export is deployed.
+export { BaseElement, html, nothing, on, unsafeHTML } from './base-element.js';
 import './merch-icon.js';
 import './merch-gradient.js';
 import './merch-addon.js';
@@ -136,7 +140,7 @@ const intersectionObserver = new IntersectionObserver((entries) => {
 
 let idCounter = 0;
 
-export class MerchCard extends LitElement {
+export class MerchCard extends BaseElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         name: { type: String, attribute: 'name', reflect: true },
@@ -235,7 +239,7 @@ export class MerchCard extends LitElement {
         priceLiterals: { type: Object },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     static registerVariant = registerVariant;
 
@@ -370,6 +374,10 @@ export class MerchCard extends LitElement {
         )
             return;
         return this.variantLayout.renderLayout();
+    }
+
+    bindEvents() {
+        this.variantLayout?.bindEvents(this.shadowRoot);
     }
 
     get computedBorderColor() {

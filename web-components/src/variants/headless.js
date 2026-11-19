@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing } from '../base-element.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, HEADLESS_SHADOW_CSS } from './headless.css.js';
 

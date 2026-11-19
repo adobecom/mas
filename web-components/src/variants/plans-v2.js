@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, on, nothing } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans-v2.css.js';
 import Media from '../media.js';
 import {
@@ -297,7 +297,7 @@ export class PlansV2 extends VariantLayout {
     get stockCheckbox() {
         return this.card.checkboxLabel
             ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+                <input type="checkbox"></input>
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
@@ -375,7 +375,6 @@ export class PlansV2 extends VariantLayout {
                 class="short-description-toggle ${this.shortDescriptionExpanded
                     ? 'expanded'
                     : ''}"
-                @click=${this.toggleShortDescription}
             >
                 <span class="toggle-label">${this.shortDescriptionLabel}</span>
                 <span
@@ -471,6 +470,17 @@ export class PlansV2 extends VariantLayout {
         this.visibilityObserver?.disconnect();
     }
 
+    bindEvents(root) {
+        on(root.querySelector('#stock-checkbox input'), 'change', (event) =>
+            this.card.toggleStockOffer(event),
+        );
+        on(
+            root.querySelector('.short-description-toggle'),
+            'click',
+            this.toggleShortDescription,
+        );
+    }
+
     renderLayout() {
         const size = this.card.getAttribute('size');
         const isWide = size === 'wide';
@@ -513,9 +523,12 @@ export class PlansV2 extends VariantLayout {
     static variantStyle = SHADOW_CSS;
 
     static collectionOptions = {
+        // A node, which the Lit and the BaseElement collection headers both render.
         customHeaderArea: (collection) => {
             if (!collection.sidenav) return nothing;
-            return html`<slot name="resultsText"></slot>`;
+            const slot = document.createElement('slot');
+            slot.name = 'resultsText';
+            return slot;
         },
         headerVisibility: {
             search: false,

@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html, on } from '../base-element.js';
 import { isMobileOrTablet } from '../utils.js';
 import { EVENT_MERCH_CARD_ACTION_MENU_TOGGLE } from '../constants.js';
 import { CSS, SHADOW_CSS } from './catalog.css.js';
@@ -74,10 +74,6 @@ export class Catalog extends VariantLayout {
                                 ? 'always-visible'
                                 : 'invisible'
                             : 'hidden'}"
-                        @click="${this.toggleActionMenu}"
-                        @keypress="${this.toggleActionMenu}"
-                        @focus="${this.showActionMenuOnHover}"
-                        @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
                         aria-hidden="false"
@@ -107,6 +103,14 @@ export class Catalog extends VariantLayout {
             </div>
             ${this.secureLabelFooter}
             <slot></slot>`;
+    }
+
+    bindEvents(root) {
+        const actionMenu = root.querySelector('.action-menu');
+        on(actionMenu, 'click', this.toggleActionMenu);
+        on(actionMenu, 'keypress', this.toggleActionMenu);
+        on(actionMenu, 'focus', this.showActionMenuOnHover);
+        on(actionMenu, 'blur', this.hideActionMenuOnBlur);
     }
 
     getGlobalCSS() {

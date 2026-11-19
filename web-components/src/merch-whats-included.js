@@ -1,8 +1,8 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { BaseElement, html, on, nothing } from './base-element.js';
 import { styles } from './merch-whats-included.css.js';
 
-export class MerchWhatsIncluded extends LitElement {
-    static styles = unsafeCSS(styles);
+export class MerchWhatsIncluded extends BaseElement {
+    static styles = styles;
 
     static properties = {
         heading: { type: String, attribute: true },
@@ -50,10 +50,16 @@ export class MerchWhatsIncluded extends LitElement {
             ${this.isMobile &&
             this.rows.length > this.mobileRows &&
             !this.bulletsAdded
-                ? html`<div @click=${this.toggle} class="see-more">
+                ? html`<div class="see-more">
                       ${this.showAll ? '- See less' : '+ See more'}
                   </div>`
                 : nothing}`;
+    }
+
+    bindEvents() {
+        on(this.shadowRoot.querySelector('.see-more'), 'click', () =>
+            this.toggle(),
+        );
     }
 
     get isMobile() {

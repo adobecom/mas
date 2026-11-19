@@ -1,6 +1,4 @@
-import { LitElement, html, nothing, unsafeCSS } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { ifDefined } from 'lit/directives/if-defined.js';
+import { BaseElement, html, on, unsafeHTML, nothing } from './base-element.js';
 import { styles } from './mas-mnemonic.css.js';
 
 function hasSpectrumTooltip() {
@@ -12,7 +10,7 @@ function hasSpectrumTooltip() {
     );
 }
 
-export default class MasMnemonic extends LitElement {
+export default class MasMnemonic extends BaseElement {
     static activeTooltip = null;
 
     static properties = {
@@ -39,7 +37,7 @@ export default class MasMnemonic extends LitElement {
         _computedPlacement: { type: String, state: true },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     constructor() {
         super();
@@ -225,10 +223,7 @@ export default class MasMnemonic extends LitElement {
 
         if (useSpectrum) {
             return html`
-                <overlay-trigger
-                    placement="${placement}"
-                    @sp-opened=${() => this.showTooltip()}
-                >
+                <overlay-trigger placement="${placement}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         slot="hover-content"
@@ -243,19 +238,6 @@ export default class MasMnemonic extends LitElement {
 
         const plainContent = content.replace(/<[^>]*>/g, '');
         const visibleClass = this.tooltipVisible ? 'tooltip-visible' : '';
-        const pointerHandlers = {
-            pointerdown: (e) => {
-                this.lastPointerType = e.pointerType;
-            },
-            pointerenter: (e) =>
-                e.pointerType !== 'touch' && this.showTooltip(),
-            pointerleave: (e) =>
-                e.pointerType !== 'touch' && this.hideTooltip(),
-            click: (e) => {
-                if (this.lastPointerType === 'touch') this.handleTap(e);
-                this.lastPointerType = null;
-            },
-        };
         const cp = this._computedPlacement;
         const isHorizontal = cp === 'top' || cp === 'bottom';
         const bodyStyle = this.smartPlacement
@@ -273,13 +255,12 @@ export default class MasMnemonic extends LitElement {
                 tabindex="0"
                 role="img"
                 aria-label="${plainContent}"
-                @pointerdown=${pointerHandlers.pointerdown}
-                @pointerenter=${pointerHandlers.pointerenter}
-                @pointerleave=${pointerHandlers.pointerleave}
-                @click=${pointerHandlers.click}
             >
                 ${this.renderIcon()}
-                <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
+                <span
+                    class="css-tooltip-body"
+                    ${bodyStyle ? html`style="${bodyStyle}"` : nothing}
+                >
                     ${unsafeHTML(content)}
                     ${this.smartPlacement
                         ? html`<span
@@ -292,6 +273,30 @@ export default class MasMnemonic extends LitElement {
                 </span>
             </span>
         `;
+    }
+
+    bindEvents() {
+        on(this.shadowRoot.querySelector('overlay-trigger'), 'sp-opened', () =>
+            this.showTooltip(),
+        );
+        const tooltip = this.shadowRoot.querySelector('.css-tooltip');
+        on(tooltip, 'pointerdown', (e) => {
+            this.lastPointerType = e.pointerType;
+        });
+        on(
+            tooltip,
+            'pointerenter',
+            (e) => e.pointerType !== 'touch' && this.showTooltip(),
+        );
+        on(
+            tooltip,
+            'pointerleave',
+            (e) => e.pointerType !== 'touch' && this.hideTooltip(),
+        );
+        on(tooltip, 'click', (e) => {
+            if (this.lastPointerType === 'touch') this.handleTap(e);
+            this.lastPointerType = null;
+        });
     }
 }
 

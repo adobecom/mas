@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, on, nothing } from '../base-element.js';
 import { createTag } from '../commerce.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, SHADOW_CSS } from './mini-compare-chart-mweb.css.js';
@@ -378,8 +378,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                             <slot name="price-legal"></slot>
                             <slot
                                 name="callout-content"
-                                ?hidden=${!this.hasLegalDisclaimer}
-                                @slotchange=${() => this.card.requestUpdate()}
+                                ${this.hasLegalDisclaimer ? '' : 'hidden'}
                             ></slot>
                         </div>
                     </div>
@@ -391,6 +390,14 @@ export class MiniCompareChartMweb extends VariantLayout {
             </div>
             ${this.getMiniCompareFooterRows()}
         `;
+    }
+
+    bindEvents(root) {
+        on(
+            root.querySelector('slot[name="callout-content"]'),
+            'slotchange',
+            () => this.card.requestUpdate(),
+        );
     }
 
     async postCardUpdateHook() {

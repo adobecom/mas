@@ -1,8 +1,8 @@
-import { LitElement, html, nothing, unsafeCSS } from 'lit';
+import { BaseElement, html, on, nothing } from './base-element.js';
 import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 import { styles } from './merch-addon.css.js';
 
-export default class MerchAddon extends LitElement {
+export default class MerchAddon extends BaseElement {
     static properties = {
         planType: { type: String, attribute: 'plan-type', reflect: true },
         checked: { type: Boolean, reflect: true },
@@ -119,18 +119,14 @@ export default class MerchAddon extends LitElement {
         return html` <input
                 type="checkbox"
                 id="addon-checkbox"
-                aria-labelledby=${product ? labelledBy : nothing}
-                .checked=${this.checked}
-                @change=${this.handleChange}
+                ${product ? html`aria-labelledby="${labelledBy}"` : nothing}
             />
             <span
                 role="checkbox"
-                aria-checked=${this.checked}
+                aria-checked="${this.checked}"
                 tabindex="0"
-                aria-labelledby=${labelledBy}
+                aria-labelledby="${labelledBy}"
                 id="custom-checkbox"
-                @click=${this.handleCustomClick}
-                @keydown=${this.handleKeyDown}
             >
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
@@ -141,7 +137,16 @@ export default class MerchAddon extends LitElement {
                 : nothing}`;
     }
 
-    static styles = unsafeCSS(styles);
+    bindEvents() {
+        const input = this.shadowRoot.querySelector('input');
+        input.checked = this.checked;
+        on(input, 'change', this.handleChange);
+        const checkbox = this.shadowRoot.querySelector('#custom-checkbox');
+        on(checkbox, 'click', this.handleCustomClick);
+        on(checkbox, 'keydown', (event) => this.handleKeyDown(event));
+    }
+
+    static styles = styles;
 }
 
 customElements.define('merch-addon', MerchAddon);

@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html } from '../base-element.js';
 import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
 import { CSS, SHADOW_CSS } from './mini.css.js';
 

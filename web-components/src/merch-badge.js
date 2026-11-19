@@ -1,5 +1,4 @@
-import { LitElement, html, nothing, unsafeCSS } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { BaseElement, html, unsafeHTML, nothing } from './base-element.js';
 import { styles } from './merch-badge.css.js';
 
 const renderIcon = (iconName) => {
@@ -10,7 +9,7 @@ const renderIcon = (iconName) => {
         )}`;
     return html`<img src="${iconName}" class="badge-icon" />`;
 };
-export default class MerchBadge extends LitElement {
+export default class MerchBadge extends BaseElement {
     static properties = {
         color: { type: String },
         variant: { type: String },
@@ -83,7 +82,7 @@ export default class MerchBadge extends LitElement {
         </div>`;
     }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 }
 
 customElements.define('merch-badge', MerchBadge);

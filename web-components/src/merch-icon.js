@@ -1,4 +1,4 @@
-import { LitElement, html, unsafeCSS } from 'lit';
+import { BaseElement, html } from './base-element.js';
 import { toRelativeAssetUrl } from './utils.js';
 import { styles } from './merch-icon.css.js';
 
@@ -10,7 +10,7 @@ function hasSpectrumTooltip() {
     );
 }
 
-export default class MerchIcon extends LitElement {
+export default class MerchIcon extends BaseElement {
     static properties = {
         size: { type: String, attribute: true },
         src: { type: String, attribute: true },
@@ -98,7 +98,7 @@ export default class MerchIcon extends LitElement {
               />`;
     }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 }
 
 customElements.define('merch-icon', MerchIcon);

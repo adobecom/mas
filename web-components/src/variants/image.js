@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './image.css.js';
 
 export const IMAGE_AEM_FRAGMENT_MAPPING = {

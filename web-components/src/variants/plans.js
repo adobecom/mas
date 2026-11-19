@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, on, nothing } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
@@ -337,7 +337,7 @@ export class Plans extends VariantLayout {
     get stockCheckbox() {
         return this.card.checkboxLabel
             ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+                <input type="checkbox"></input>
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
@@ -382,6 +382,12 @@ export class Plans extends VariantLayout {
         }
     }
 
+    bindEvents(root) {
+        on(root.querySelector('#stock-checkbox input'), 'change', (event) =>
+            this.card.toggleStockOffer(event),
+        );
+    }
+
     renderLayout() {
         return html` ${this.badge}
             <div class="body">
@@ -410,9 +416,12 @@ export class Plans extends VariantLayout {
     static variantStyle = SHADOW_CSS;
 
     static collectionOptions = {
+        // A node, which the Lit and the BaseElement collection headers both render.
         customHeaderArea: (collection) => {
             if (!collection.sidenav) return nothing;
-            return html`<slot name="resultsText"></slot>`;
+            const slot = document.createElement('slot');
+            slot.name = 'resultsText';
+            return slot;
         },
         headerVisibility: {
             search: false,

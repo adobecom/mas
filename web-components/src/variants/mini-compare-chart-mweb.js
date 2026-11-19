@@ -1,4 +1,4 @@
-import { html, on } from '../base-element.js';
+import { html, on, nothing } from '../base-element.js';
 import { createTag } from '../commerce.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, SHADOW_CSS } from './mini-compare-chart-mweb.css.js';
@@ -359,7 +359,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             !this.card.querySelector('[slot="icons"]') &&
             !this.card.getAttribute('id')
         )
-            return '';
+            return nothing;
         return html`<slot name="icons"></slot>`;
     }
 

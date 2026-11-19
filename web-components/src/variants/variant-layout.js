@@ -1,4 +1,4 @@
-import { html } from '../base-element.js';
+import { html, nothing } from '../base-element.js';
 import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
@@ -180,7 +180,7 @@ export class VariantLayout {
             ? html`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
               >`
-            : '';
+            : nothing;
     }
 
     get secureLabelFooter() {

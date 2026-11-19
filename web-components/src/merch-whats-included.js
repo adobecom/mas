@@ -1,4 +1,4 @@
-import { BaseElement, html, on } from './base-element.js';
+import { BaseElement, html, on, nothing } from './base-element.js';
 import { styles } from './merch-whats-included.css.js';
 
 export class MerchWhatsIncluded extends BaseElement {
@@ -46,14 +46,14 @@ export class MerchWhatsIncluded extends BaseElement {
             <slot name="contentBullets"></slot>
             ${!this.isMobile || !this.bulletsAdded
                 ? html`<slot name="content"></slot>`
-                : ''}
+                : nothing}
             ${this.isMobile &&
             this.rows.length > this.mobileRows &&
             !this.bulletsAdded
                 ? html`<div class="see-more">
                       ${this.showAll ? '- See less' : '+ See more'}
                   </div>`
-                : ''}`;
+                : nothing}`;
     }
 
     bindEvents() {

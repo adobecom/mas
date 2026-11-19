@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, on } from '../base-element.js';
+import { html, on, nothing } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
@@ -287,7 +287,7 @@ export class Plans extends VariantLayout {
     get divider() {
         return this.card.variant === 'plans-education'
             ? html`<div class="divider"></div>`
-            : '';
+            : nothing;
     }
 
     async adjustLegal() {
@@ -341,7 +341,7 @@ export class Plans extends VariantLayout {
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
-            : '';
+            : nothing;
     }
 
     get icons() {
@@ -349,7 +349,7 @@ export class Plans extends VariantLayout {
             !this.card.querySelector('[slot="icons"]') &&
             !this.card.getAttribute('id')
         )
-            return '';
+            return nothing;
         return html`<slot name="icons"></slot>`;
     }
 
@@ -418,7 +418,7 @@ export class Plans extends VariantLayout {
     static collectionOptions = {
         // A node, which the Lit and the BaseElement collection headers both render.
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return '';
+            if (!collection.sidenav) return nothing;
             const slot = document.createElement('slot');
             slot.name = 'resultsText';
             return slot;

@@ -1,5 +1,11 @@
 import { expect } from './utilities.js';
-import { BaseElement, html, on, unsafeHTML } from '../src/base-element.js';
+import {
+    BaseElement,
+    html,
+    nothing,
+    on,
+    unsafeHTML,
+} from '../src/base-element.js';
 
 class TestElement extends BaseElement {
     static properties = {
@@ -110,7 +116,9 @@ describe('BaseElement', () => {
             '<ul><li>a</li><li>&lt;b&gt;</li></ul>',
         );
         expect(
-            String(html`${unsafeHTML('<b>x</b>')}${null}${undefined}`),
+            String(
+                html`${unsafeHTML('<b>x</b>')}${null}${undefined}${nothing}`,
+            ),
         ).to.equal('<b>x</b>');
     });
 

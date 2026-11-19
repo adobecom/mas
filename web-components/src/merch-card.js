@@ -3,7 +3,7 @@ import { styles } from './merch-card.css.js';
 
 // For merch-card-collection.js and merch-quantity-select.js to import from the
 // merch-card.js the page already loads, once this export is deployed.
-export { BaseElement, html, on, unsafeHTML } from './base-element.js';
+export { BaseElement, html, nothing, on, unsafeHTML } from './base-element.js';
 import './merch-icon.js';
 import './merch-gradient.js';
 import './merch-addon.js';

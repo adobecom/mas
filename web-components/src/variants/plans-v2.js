@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, on } from '../base-element.js';
+import { html, on, nothing } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './plans-v2.css.js';
 import Media from '../media.js';
 import {
@@ -301,7 +301,7 @@ export class PlansV2 extends VariantLayout {
                 <span></span>
                 ${this.card.checkboxLabel}
             </label>`
-            : '';
+            : nothing;
     }
 
     get hasShortDescription() {
@@ -357,7 +357,7 @@ export class PlansV2 extends VariantLayout {
     }
 
     get shortDescriptionToggle() {
-        if (!this.hasShortDescription) return '';
+        if (!this.hasShortDescription) return nothing;
 
         // Show desktop version (no toggle) for tablet and up
         if (!Media.isMobile) {
@@ -397,7 +397,7 @@ export class PlansV2 extends VariantLayout {
         return this.card.querySelector('[slot="icons"]') ||
             this.card.getAttribute('id')
             ? html`<slot name="icons"></slot>`
-            : '';
+            : nothing;
     }
 
     get secureLabelFooter() {
@@ -525,7 +525,7 @@ export class PlansV2 extends VariantLayout {
     static collectionOptions = {
         // A node, which the Lit and the BaseElement collection headers both render.
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return '';
+            if (!collection.sidenav) return nothing;
             const slot = document.createElement('slot');
             slot.name = 'resultsText';
             return slot;

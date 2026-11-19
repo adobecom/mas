@@ -32,8 +32,11 @@ class Markup {
     }
 }
 
+/** Renders nothing. The same registered symbol as Lit's `nothing`. */
+export const nothing = Symbol.for('lit-nothing');
+
 const toMarkup = (value) => {
-    if (value == null) return '';
+    if (value == null || value === nothing) return '';
     if (value instanceof Markup) return value.value;
     if (Array.isArray(value)) return value.map(toMarkup).join('');
     return String(value).replace(/[&<>"']/g, (char) => ESCAPES[char]);
@@ -378,7 +381,8 @@ export class BaseElement extends HTMLElement {
     /** Reflects properties and writes render() to the shadow DOM. */
     update() {
         const state = states.get(this);
-        const markup = String(this.render() ?? '');
+        const result = this.render();
+        const markup = result === nothing ? '' : String(result ?? '');
         for (const name of state.reflecting) reflect(this, state, name);
         state.reflecting.clear();
         markUpdated(state);

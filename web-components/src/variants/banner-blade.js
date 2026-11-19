@@ -1,4 +1,4 @@
-import { html } from '../base-element.js';
+import { html, nothing } from '../base-element.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS, BANNER_BLADE_SHADOW_CSS } from './headless.css.js';
 import {
@@ -59,12 +59,12 @@ export class BannerBlade extends VariantLayout {
                                 <slot name="${slot}"></slot>
                                 ${slot === 'backgrounds'
                                     ? renderBackgroundsToggleButton()
-                                    : ''}
+                                    : nothing}
                             </span>
                         </div>
                         ${slot === 'backgrounds'
                             ? renderBackgroundsDetailRow()
-                            : ''}
+                            : nothing}
                     `,
                 )}
             </div>

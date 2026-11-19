@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, on } from '../base-element.js';
+import { html, on, nothing } from '../base-element.js';
 import { CSS, SHADOW_CSS } from './pro.css.js';
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
@@ -719,7 +719,7 @@ export class Pro extends VariantLayout {
                     ? html`<span id="license-select-product" hidden
                           >${product}</span
                       >`
-                    : ''}
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
@@ -730,7 +730,7 @@ export class Pro extends VariantLayout {
                     ${open
                         ? html`aria-activedescendant="license-option-${this
                               .licenseHighlightedIndex}"`
-                        : ''}
+                        : nothing}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
@@ -843,9 +843,9 @@ export class Pro extends VariantLayout {
                               ? html`<div class="callout">
                                     <slot name="callout-content"></slot>
                                 </div>`
-                              : ''}
+                              : nothing}
                       </div>`
-                    : ''}
+                    : nothing}
                 ${this.hasAddOn
                     ? html`<div
                           class="add-on"
@@ -855,7 +855,7 @@ export class Pro extends VariantLayout {
                       >
                           <slot name="addon"></slot>
                       </div>`
-                    : ''}
+                    : nothing}
                 <footer>
                     <slot name="footer"></slot>
                 </footer>
@@ -885,12 +885,12 @@ export class Pro extends VariantLayout {
                           <slot name="whats-included"></slot>
                       </div>
                   `
-                : ''}
+                : nothing}
             ${this.hasEduDisclaimer
                 ? html`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
                   </div>`
-                : ''}
+                : nothing}
             <slot></slot>
         `;
     }

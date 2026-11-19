@@ -1,8 +1,8 @@
-import { BaseElement, html, unsafeHTML } from './base-element.js';
+import { BaseElement, html, unsafeHTML, nothing } from './base-element.js';
 import { styles } from './merch-badge.css.js';
 
 const renderIcon = (iconName) => {
-    if (!iconName) return '';
+    if (!iconName) return nothing;
     if (iconName.startsWith('sp-icon-'))
         return html`${unsafeHTML(
             `<${iconName} class="badge-icon"></${iconName}>`,

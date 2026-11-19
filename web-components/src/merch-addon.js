@@ -1,4 +1,4 @@
-import { BaseElement, html, on } from './base-element.js';
+import { BaseElement, html, on, nothing } from './base-element.js';
 import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 import { styles } from './merch-addon.css.js';
 
@@ -119,7 +119,7 @@ export default class MerchAddon extends BaseElement {
         return html` <input
                 type="checkbox"
                 id="addon-checkbox"
-                ${product ? html`aria-labelledby="${labelledBy}"` : ''}
+                ${product ? html`aria-labelledby="${labelledBy}"` : nothing}
             />
             <span
                 role="checkbox"
@@ -134,7 +134,7 @@ export default class MerchAddon extends BaseElement {
             </label>
             ${product
                 ? html`<span id="addon-product" hidden>${product}</span>`
-                : ''}`;
+                : nothing}`;
     }
 
     bindEvents() {

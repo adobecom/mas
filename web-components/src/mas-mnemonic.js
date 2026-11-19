@@ -1,4 +1,4 @@
-import { BaseElement, html, on, unsafeHTML } from './base-element.js';
+import { BaseElement, html, on, unsafeHTML, nothing } from './base-element.js';
 import { styles } from './mas-mnemonic.css.js';
 
 function hasSpectrumTooltip() {
@@ -259,7 +259,7 @@ export default class MasMnemonic extends BaseElement {
                 ${this.renderIcon()}
                 <span
                     class="css-tooltip-body"
-                    ${bodyStyle ? html`style="${bodyStyle}"` : ''}
+                    ${bodyStyle ? html`style="${bodyStyle}"` : nothing}
                 >
                     ${unsafeHTML(content)}
                     ${this.smartPlacement
@@ -269,7 +269,7 @@ export default class MasMnemonic extends BaseElement {
                               class="css-tooltip-tip ${cp}"
                               style="${tipOffset}"
                           ></span>`
-                        : ''}
+                        : nothing}
                 </span>
             </span>
         `;

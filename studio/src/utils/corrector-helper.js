@@ -1,5 +1,6 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
 import { fixFieldsDataExtraOptions, shouldApplyCorrector } from '../../../io/www/src/fragment/transformers/corrector.js';
+import { logToLana } from './lana-logger.js';
 
 /**
  * Applies corrector transformer logic to fragment data
@@ -74,22 +75,18 @@ export function applyCorrectorToFragment(fragmentData, surface) {
     }
 
     // Log to LANA if corrections were made
-    if (correctedFields.length > 0 && window.lana?.log) {
-        const { pathname, search } = window.location;
-        const page = `¶page=${pathname}${search}`;
-        const facts = JSON.stringify({
-            fragmentId: fragmentData.id || 'unknown',
-            fragmentPath: fragmentData.path || 'unknown',
-            fragmentTitle: fragmentData.title || 'unknown',
-            modelPath: modelPath || 'unknown',
-            surface: surface || 'unknown',
-            correctedFields: correctedFields.join(','),
-        });
-        window.lana.log(`Corrector applied${page}¶facts=${facts}`, {
-            clientId: 'merch-at-scale-studio',
-            delimiter: '¶',
-            sampleRate: 1,
-            tags: 'studio',
-        });
+    if (correctedFields.length > 0) {
+        logToLana(
+            'Corrector applied',
+            {
+                fragmentId: fragmentData.id || 'unknown',
+                fragmentPath: fragmentData.path || 'unknown',
+                fragmentTitle: fragmentData.title || 'unknown',
+                modelPath: modelPath || 'unknown',
+                surface: surface || 'unknown',
+                correctedFields: correctedFields.join(','),
+            },
+            1,
+        );
     }
 }

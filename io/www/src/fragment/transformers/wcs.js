@@ -1,4 +1,12 @@
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, matchesGeo } from '../utils/common.js';
+import {
+    fetch,
+    getCountry,
+    getFragmentId,
+    getRegionalLocale,
+    getRequestInfos,
+    markDegraded,
+    matchesGeo,
+} from '../utils/common.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
@@ -59,6 +67,7 @@ async function buildOfferMapping(context) {
         if (response.status !== 200) return null;
         return collectMappings(response.body, response.body.references || {});
     });
+    if (!mappings) markDegraded(context, `offer mapping ${surface}`);
     logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);
     return mappings ?? [];
 }
@@ -332,6 +341,9 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
     url.searchParams.set('api_key', wcsContext.context.api_key);
+    if (wcsContext.serveLatest) {
+        url.searchParams.set('serveLatest', 'true');
+    }
     if (wcsContext.language) {
         url.searchParams.set('language', wcsContext.language);
     }
@@ -341,6 +353,8 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     }
     const load = async () => {
         const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
+        // an unknown offer (4xx) is an authoring issue, which a rebuild would not fix
+        if (response.status >= 500 || response.status === 429) markDegraded(wcsContext.context, `wcs ${osi}`);
         return response.status === 200 ? response.body : null;
     };
     const { context } = wcsContext;
@@ -426,7 +440,9 @@ async function computeWcsCaches(tokens, context, prefetched = {}) {
     for (const config of context.wcsConfiguration) {
         wcsContext.wcsURL = config.wcsURL;
         wcsContext.landscape = config.landscape || 'PUBLISHED';
-        const known = prefetched[config.env] ?? {};
+        wcsContext.serveLatest = config.env === 'stage' && ['true', true].includes(context.serveLatest);
+        const envKey = wcsContext.serveLatest ? 'stage-latest' : config.env;
+        const known = prefetched[envKey] ?? {};
         const missing = tokens.filter((token) => !(wcsCacheKey(token, wcsContext) in known));
         try {
             const fetched = await computeCache(missing, wcsContext);
@@ -437,7 +453,7 @@ async function computeWcsCaches(tokens, context, prefetched = {}) {
                 const offers = known[key] ?? fetched[key];
                 if (offers) cache[key] = offers;
             }
-            caches[config.env] = { ...cache, ...known };
+            caches[envKey] = { ...cache, ...known };
             /* c8 ignore next 3*/
         } catch (error) {
             logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);

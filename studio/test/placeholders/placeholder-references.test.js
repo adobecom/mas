@@ -54,7 +54,7 @@ describe('placeholder-references', () => {
             await findPlaceholderReferences(aem, { key: 'buy-now', surface: 'sandbox', locale: 'en_US' });
 
             const calls = aem.sites.cf.fragments.search.getCalls();
-            expect(calls).to.have.lengthOf(1);
+            expect(calls).to.have.lengthOf(2);
             for (const call of calls) {
                 expect(call.args[0].modelIds).to.have.members([
                     TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
@@ -65,7 +65,7 @@ describe('placeholder-references', () => {
         });
 
         it('keeps items with an exact {{key}} token and filters out unrelated matches', async () => {
-            const surfaceScope = ROOT_PATH;
+            const surfaceScope = `${ROOT_PATH}/sandbox`;
             const aem = createAem((path) =>
                 path === surfaceScope
                     ? [

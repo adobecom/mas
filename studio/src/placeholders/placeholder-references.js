@@ -5,7 +5,6 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
-import { extractLocaleFromPath } from '../utils.js';
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
@@ -30,7 +29,7 @@ export function matchesPlaceholderKey(fragmentLike, key) {
     );
 }
 
-async function findReferences(aem, path, key, excludePath, signal, locale) {
+async function findReferences(aem, path, key, excludePath, signal) {
     const modelIds = [
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
@@ -46,15 +45,13 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
     let page;
     const references = [];
     const seenPaths = new Set();
-    const limit = locale ? 2 : 10;
-    while (refsFound < limit) {
+    while (refsFound < 10) {
         page = await cursor.next();
         if (!page?.value) break;
         for (const item of page.value) {
             if (excludePath && item.path === excludePath) continue;
             if (seenPaths.has(item.path)) continue;
             if (!matchesPlaceholderKey(item, key)) continue;
-            if (locale && locale !== extractLocaleFromPath(item.path)) continue;
             seenPaths.add(item.path);
             references.push(item);
             refsFound++;
@@ -74,11 +71,14 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
 export async function findPlaceholderReferences(aem, { key, excludePath, signal, surface, locale } = {}) {
     let references = [];
     if (locale === 'en_US') {
-        references = await findReferences(aem, ROOT_PATH, key, excludePath, signal);
+        references = await findReferences(aem, `${ROOT_PATH}/${surface}`, key, excludePath, signal);
+        if (!references.length && surface !== 'acom') {
+            references = await findReferences(aem, `${ROOT_PATH}/acom`, key, excludePath, signal);
+        }
     } else {
         references = await findReferences(aem, `${ROOT_PATH}/${surface}/${locale}`, key, excludePath, signal);
-        if (!references.length) {
-            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal, locale);
+        if (!references.length && surface !== 'acom') {
+            references = await findReferences(aem, `${ROOT_PATH}/acom/${locale}`, key, excludePath, signal);
         }
     }
 
@@ -86,6 +86,7 @@ export async function findPlaceholderReferences(aem, { key, excludePath, signal,
 }
 
 export async function findPlaceholderReferencesWithTimeout(aem, args) {
+    document.body.style.cursor = 'progress';
     const processAbortController = new AbortController();
     args.signal = processAbortController.signal;
     const startedAt = Date.now();
@@ -105,6 +106,7 @@ export async function findPlaceholderReferencesWithTimeout(aem, args) {
     const result = await Promise.race(promises);
     clearTimeout(timeoutId);
     result.durationMs = Date.now() - startedAt;
+    document.body.style.cursor = 'default';
     result.allowProceed = args.mode === 'publish' ? !timedOut : result.references.length === 0;
     if (timedOut) processAbortController.abort();
     return result;

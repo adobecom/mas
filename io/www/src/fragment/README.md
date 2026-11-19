@@ -167,6 +167,14 @@ isolation on stage and coordinate WCS cache expiry or purge when its
 The offers sync does not fetch WCS pricing and is unchanged. The agent/flatten
 runtime continues using its production configuration and production prefill.
 
+## response cache
+
+Responses are stored per request key (`req-` metadata in State, `res-` body in Files, both copied in container memory for a minute), and served depending on their last refresh (logged as `cache <outcome>`):
+
+- less than 5 minutes ago: served as is (`hit`),
+- less than an hour ago: served as is (`stale`, with a short CDN `max-age`, `networkConfig.staleCacheMaxAge`, 30s by default), while a non-blocking invocation of this action with the same parameters and `refresh: true` rebuilds and stores it (`refresh`). A container triggers at most one refresh per key a minute, and none while it rebuilds that key. `refresh` is ignored on web requests,
+- otherwise (or never stored): rebuilt while the request waits (`miss`), concurrent requests of the same container waiting for the same rebuild (`joined`).
+
 ## configuration
 
 you can configure a few things via state with `aio app state put/del` command
@@ -182,7 +190,7 @@ below are the members of that object
 | `apiKeys`           | Extra accepted client API keys, merged with the hardcoded baseline in `utils/configuration.js`. Entries are literal strings; wrap a value in `/.../` to match a regex pattern, e.g. `["my-test-key", "/^CreativeCloud_v\\d+_\\d+$/"]`. Unknown api_key values in the request → `401` before any downstream call. | Array |`` |
 | `apiKeySurfaces` | Surface served by an api key, e.g. `{"AdobeExpressWeb": "express", "/^CreativeCloud_v\\d+_\\d+$/": "ccd"}` (keys accept the same `/.../` regex form as `apiKeys`). Used as surface when the request has neither `surface` nor `id`; a `surface` parameter conflicting with it → `404`. | Object |`` |
 | `debugLogs` | turns debug log on | Boolean | `false` |
-| `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500` | Array |`` |
+| `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500`, as well as the CDN `cacheMaxAge` (300s), `cacheStaleWhileRevalidate` (86400s) and `staleCacheMaxAge` (30s, for `stale` responses, see [response cache](#response-cache)) | Array |`` |
 
 Each configuration can be managed using the following commands:
 https://wiki.corp.adobe.com/pages/viewpage.action?pageId=3587728545

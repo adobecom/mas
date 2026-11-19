@@ -5,6 +5,7 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
+import { showToast } from '../utils.js';
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
@@ -69,6 +70,7 @@ async function findReferences(aem, path, key, excludePath, signal) {
  * @returns {Promise<{ references: object[], durationMs: number, allowProceed: boolean }>}
  */
 export async function findPlaceholderReferences(aem, { key, excludePath, signal, surface, locale } = {}) {
+    showToast('Searching for references ...');
     let references = [];
     if (locale === 'en_US') {
         references = await findReferences(aem, `${ROOT_PATH}/${surface}`, key, excludePath, signal);
@@ -86,7 +88,6 @@ export async function findPlaceholderReferences(aem, { key, excludePath, signal,
 }
 
 export async function findPlaceholderReferencesWithTimeout(aem, args) {
-    document.body.style.cursor = 'progress';
     const processAbortController = new AbortController();
     args.signal = processAbortController.signal;
     const startedAt = Date.now();
@@ -106,7 +107,6 @@ export async function findPlaceholderReferencesWithTimeout(aem, args) {
     const result = await Promise.race(promises);
     clearTimeout(timeoutId);
     result.durationMs = Date.now() - startedAt;
-    document.body.style.cursor = 'default';
     result.allowProceed = args.mode === 'publish' ? !timedOut : result.references.length === 0;
     if (timedOut) processAbortController.abort();
     return result;

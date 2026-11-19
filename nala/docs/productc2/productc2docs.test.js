@@ -112,7 +112,7 @@ test.describe('Product-C2 gallery feature test suite', () => {
             expect(count).toBe(1);
             await expect(cta).toHaveAttribute('class', /blue/);
         });
-    });    
+    });
 
     test(`${features[3].name},${features[3].tags}`, async () => {
         const { data } = features[3];
@@ -137,7 +137,7 @@ test.describe('Product-C2 gallery feature test suite', () => {
             expect(count).toBe(1);
             await expect(cta).toHaveAttribute('class', /blue/);
         });
-    });    
+    });
 
     test(`${features[4].name},${features[4].tags}`, async () => {
         const { data } = features[4];
@@ -162,8 +162,8 @@ test.describe('Product-C2 gallery feature test suite', () => {
             expect(count).toBe(1);
             await expect(cta).toHaveAttribute('class', /blue/);
         });
-    });     
-    
+    });
+
     test(`${features[5].name},${features[5].tags}`, async () => {
         const { data } = features[5];
 
@@ -187,5 +187,5 @@ test.describe('Product-C2 gallery feature test suite', () => {
             expect(count).toBe(1);
             await expect(cta1).toHaveAttribute('class', /blue/);
         });
-    });      
+    });
 });

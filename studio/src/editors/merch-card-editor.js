@@ -1104,7 +1104,7 @@ class MerchCardEditor extends LitElement {
                 <div class="section-title">${title}</div>
                 <div class="section-header-actions">
                     ${extra}
-                    <sp-action-button quiet size="s" aria-label="Remove ${title}" @click=${() => this.#handleRemoveSection(id)}>
+                    <sp-action-button quiet size="m" aria-label="Remove ${title}" @click=${() => this.#handleRemoveSection(id)}>
                         <sp-icon-delete slot="icon"></sp-icon-delete>
                     </sp-action-button>
                 </div>
@@ -1814,6 +1814,8 @@ class MerchCardEditor extends LitElement {
                 .settings-toggle-field--addon sp-combobox {
                     width: 100%;
                     margin-block-end: 16px;
+                    --mod-combobox-border-width: 2px;
+                    --mod-combobox-border-color-default: var(--spectrum-gray-300);
                 }
 
                 .settings-toggle-field--addon[data-field-state='overridden'] sp-combobox {

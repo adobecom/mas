@@ -2101,6 +2101,8 @@
                                 ]);
                                 expect(editor.querySelector('sp-field-group.toggle#callout rte-field[data-field="callout"]')).to
                                     .exist;
+                                const remove = editor.querySelector('sp-action-button[aria-label="Remove Callout text"]');
+                                expect(remove.size).to.equal('m');
                                 expect(editor.querySelector('sp-field-group.toggle#addonConfirmation')).to.exist;
                             });
 

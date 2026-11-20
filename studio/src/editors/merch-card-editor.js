@@ -11,7 +11,7 @@ import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
+import { CARD_MODEL_PATH, COMPAT_VERSION, MAS_PRODUCT_CODE_PREFIX, STAGED } from '../constants.js';
 import { HEADLESS_STYLE_CTA_VARIANTS } from '../../../web-components/src/constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
@@ -36,7 +36,8 @@ import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
-import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
+import { normalizeVariantName, VARIANT_NAMES, VARIANTS } from './variant-picker.js';
+import { buildFragmentTitle, parseFragmentTitle, splitFragmentTitle } from '../utils/fragment-title.js';
 import { supportsCountdown } from '../../../io/www/src/fragment/utils/countdown.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { Fragment, isTemplateRequiredField } from '../aem/fragment.js';
@@ -134,6 +135,10 @@ class MerchCardEditor extends LitElement {
         backgroundsUrlInvalid: { type: Object, state: true },
         imageDimensionsInvalid: { type: Boolean, state: true },
         backgroundsDimensionsInvalid: { type: Object, state: true },
+        titleOrg: { type: String, state: true },
+        titleState: { type: String, state: true },
+        titleBlockPage: { type: String, state: true },
+        titleOrgTouched: { type: Boolean, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -169,6 +174,10 @@ class MerchCardEditor extends LitElement {
         this.currentVariantMapping = null;
         this.localeDefaultFragment = null;
         this.isVariation = false;
+        this.titleOrg = '';
+        this.titleState = '';
+        this.titleBlockPage = '';
+        this.titleOrgTouched = false;
         this.promotionGeoOptions = [];
         this.disabledPromoGeoOptions = [];
         this.lastMnemonicState = null;
@@ -1016,6 +1025,23 @@ class MerchCardEditor extends LitElement {
 
     #cachedGlobalDefaults = null;
 
+    get #titleParts() {
+        const variant = this.getEffectiveFieldValue('variant');
+        return {
+            template: VARIANTS.find(({ value }) => value === variant)?.label ?? '',
+            product: this.fragment.getCurrentTagTitle(MAS_PRODUCT_CODE_PREFIX),
+            customerSegment: this.fragment.getCurrentTagTitle('mas:customer_segment/'),
+            planType: this.fragment.getCurrentTagTitle('mas:plan_type/'),
+            surface: Store.surface(),
+            isHeadless: HEADLESS_STYLE_CTA_VARIANTS.includes(variant),
+            blockPage: this.titleBlockPage,
+        };
+    }
+
+    get #fragmentTitle() {
+        return buildFragmentTitle({ ...this.#titleParts, org: this.titleOrg, state: this.titleState });
+    }
+
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
         if (this.fragmentStore?.get()) {
@@ -1033,6 +1059,11 @@ class MerchCardEditor extends LitElement {
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
             this.#ensureSettingsLoaded();
+            const { org, state, blockPage } = parseFragmentTitle(this.fragment.title ?? '', this.#titleParts);
+            this.titleOrg = org;
+            this.titleState = state;
+            this.titleBlockPage = blockPage;
+            this.titleOrgTouched = false;
         }
         if (changedProperties.has('localeDefaultFragment')) {
             this.fieldsReady = false;
@@ -1546,6 +1577,34 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
+                #fragment-title-group {
+                    grid-column: 1 / -1;
+                }
+
+                .fragment-title-fields {
+                    width: 100%;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                }
+
+                .uppercase {
+                    text-transform: uppercase;
+                }
+
+                .title-preview {
+                    padding: 8px 12px;
+                    border: 1px solid var(--spectrum-gray-200);
+                    border-radius: 4px;
+                    background: var(--spectrum-gray-100, #f8f8f8);
+                    color: var(--spectrum-gray-700);
+                    overflow-wrap: anywhere;
+                }
+
+                .title-preview-org {
+                    font-weight: 700;
+                }
+
                 .tags-spacing {
                     margin: 0;
                 }
@@ -1752,15 +1811,7 @@ class MerchCardEditor extends LitElement {
                         ></sp-textfield>
                         ${this.renderFieldStatusIndicator('cardName')}
                     </sp-field-group>
-                    <sp-field-group id="fragment-title-group">
-                        <sp-field-label for="fragment-title">Fragment title</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter fragment title"
-                            id="fragment-title"
-                            value="${this.fragment.title}"
-                            @input="${this.#handleFragmentTitleUpdate}"
-                        ></sp-textfield>
-                    </sp-field-group>
+                    ${this.fragmentTitleTemplate}
                     <sp-field-group id="fragment-description-group">
                         <sp-field-label for="fragment-description">Fragment description</sp-field-label>
                         <sp-textfield
@@ -2298,6 +2349,7 @@ class MerchCardEditor extends LitElement {
         this.#updateAvailableColors();
         this.#updateBackgroundColors();
         this.toggleFields();
+        this.#handleFragmentTitleUpdate();
     }
 
     #handeTagsChange(e) {
@@ -2306,10 +2358,66 @@ class MerchCardEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
+        this.#handleFragmentTitleUpdate();
     }
 
-    #handleFragmentTitleUpdate(e) {
-        this.fragmentStore.updateFieldInternal('title', e.target.value);
+    #handleFragmentTitleUpdate() {
+        if (!this.titleOrg.trim()) return;
+        this.fragmentStore.updateFieldInternal('title', this.#fragmentTitle);
+    }
+
+    #handleTitlePartChange(field, e) {
+        this[field] = e.target.value;
+        this.#handleFragmentTitleUpdate();
+    }
+
+    get fragmentTitleTemplate() {
+        const orgInvalid = this.titleOrgTouched && !this.titleOrg.trim();
+        const [orgPart, rest] = splitFragmentTitle(this.#fragmentTitle, this.titleOrg);
+        const preview = html`<span class="title-preview-org">${orgPart}</span>${rest}`;
+        return html`<sp-field-group id="fragment-title-group" vertical>
+            <sp-field-label>Fragment title</sp-field-label>
+            <div class="fragment-title-fields">
+                <sp-field-group vertical>
+                    <sp-field-label for="fragment-org" required>Org</sp-field-label>
+                    <sp-textfield
+                        id="fragment-org"
+                        class="uppercase"
+                        placeholder="i.e. mas"
+                        value="${this.titleOrg}"
+                        ?invalid=${orgInvalid}
+                        @input=${(e) => this.#handleTitlePartChange('titleOrg', e)}
+                        @focusout=${() => (this.titleOrgTouched = true)}
+                    ></sp-textfield>
+                    ${orgInvalid ? html`<sp-help-text slot="negative-help-text">Enter an org</sp-help-text>` : nothing}
+                </sp-field-group>
+                <sp-field-group vertical>
+                    <sp-field-label for="fragment-state">State (optional)</sp-field-label>
+                    <sp-textfield
+                        id="fragment-state"
+                        placeholder="i.e. default, bf-26-variation"
+                        value="${this.titleState}"
+                        @input=${(e) => this.#handleTitlePartChange('titleState', e)}
+                    ></sp-textfield>
+                </sp-field-group>
+            </div>
+            ${HEADLESS_STYLE_CTA_VARIANTS.includes(this.getEffectiveFieldValue('variant'))
+                ? html`<sp-field-group vertical>
+                      <sp-field-label for="fragment-block-page">Block/Page (optional)</sp-field-label>
+                      <sp-textfield
+                          id="fragment-block-page"
+                          value="${this.titleBlockPage}"
+                          @input=${(e) => this.#handleTitlePartChange('titleBlockPage', e)}
+                      ></sp-textfield>
+                  </sp-field-group>`
+                : nothing}
+            <sp-field-group vertical>
+                <sp-field-label id="fragment-title-preview-label">Fragment title preview</sp-field-label>
+                <div id="fragment-title-preview" class="title-preview" aria-labelledby="fragment-title-preview-label">
+                    ${preview}
+                </div>
+            </sp-field-group>
+        </sp-field-group>`;
     }
 
     #handleFragmentDescriptionUpdate(e) {

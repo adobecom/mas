@@ -92,7 +92,7 @@
             import Store from '../../src/store.js';
             import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
-            import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
+            import { VARIANT_NAMES, VARIANTS } from '../../src/editors/variant-picker.js';
             import { delay } from '../utils.js';
             import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
@@ -231,7 +231,7 @@
                         const variationData = {
                             ...baseMockData,
                             path: variationPath,
-                            title: `Test Variation ${testId}`,
+                            title: overrides.title ?? `Test Variation ${testId}`,
                             id: `test-variation-${testId}`,
                             tags: overrides.tags || [],
                             fields: baseMockData.fields.map((field) => {
@@ -1977,6 +1977,161 @@
                             editor.querySelector('sp-switch#fragment-enable-baselines').click();
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([true]);
+                        });
+                    });
+
+                    describe('fragment title', () => {
+                        const TAGS = [
+                            { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                            { id: 'mas:customer_segment/individual', title: 'Individual' },
+                        ];
+                        const labelOf = (variant) => VARIANTS.find(({ value }) => value === variant).label;
+                        const setup = (overrides = {}, testId = 'title') =>
+                            setupTestEnvironment(
+                                { isVariation: false, variant: ['catalog'], tags: TAGS, ...overrides },
+                                testId,
+                            );
+                        const preview = () => editor.querySelector('#fragment-title-preview').textContent.trim();
+                        const typeInto = async (selector, value) => {
+                            const field = editor.querySelector(selector);
+                            field.value = value;
+                            field.dispatchEvent(new Event('input', { bubbles: true }));
+                            await editor.updateComplete;
+                        };
+
+                        it('replaces the freeform field with org, state and a preview', async () => {
+                            await setup({}, 'title-layout');
+                            const org = editor.querySelector('#fragment-org');
+                            const state = editor.querySelector('#fragment-state');
+                            const previewBox = editor.querySelector('#fragment-title-preview');
+
+                            expect(editor.querySelector('#fragment-title')).to.not.exist;
+                            expect(org.localName).to.equal('sp-textfield');
+                            expect(getComputedStyle(org).textTransform).to.equal('uppercase');
+                            expect(editor.querySelector('sp-field-label[for="fragment-org"]').hasAttribute('required')).to.be
+                                .true;
+                            expect(state.getAttribute('placeholder')).to.equal('i.e. default, bf-26-variation');
+                            expect(org.closest('.fragment-title-fields')).to.equal(state.closest('.fragment-title-fields'));
+                            expect(org.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+                            expect(previewBox.localName).to.equal('div');
+                            expect(state.compareDocumentPosition(previewBox) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+                            expect(getComputedStyle(previewBox).backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
+                        });
+
+                        it('shows the block or page field for headless-style templates only', async () => {
+                            for (const variant of ['catalog', 'headless', 'marquee', 'banner-blade']) {
+                                await setup({ variant: [variant] }, `title-block-${variant}`);
+                                expect(Boolean(editor.querySelector('#fragment-block-page')), variant).to.equal(
+                                    variant !== 'catalog',
+                                );
+                                layoutContainer.remove();
+                            }
+                        });
+
+                        it('writes the previewed title once an org is typed', async () => {
+                            const { fragmentStore } = await setup({}, 'title-org');
+                            await typeInto('#fragment-org', 'merch');
+
+                            expect(preview()).to.equal('MERCH: Catalog: Photoshop: Individual');
+                            expect(fragmentStore.get().title).to.equal(preview());
+                            expect(fragmentStore.get().hasChanges).to.be.true;
+                        });
+
+                        it('updates the preview and title live from state and block or page', async () => {
+                            const { fragmentStore } = await setup({ variant: ['headless'] }, 'title-live');
+                            await typeInto('#fragment-org', 'merch');
+                            await typeInto('#fragment-state', 'Q3');
+                            await typeInto('#fragment-block-page', 'hero');
+
+                            expect(preview()).to.equal('MERCH: hero: Headless: Photoshop: Individual: Q3');
+                            expect(fragmentStore.get().title).to.equal(preview());
+                        });
+
+                        it('updates the title when the template changes', async () => {
+                            const { fragmentStore } = await setup({}, 'title-variant');
+                            await typeInto('#fragment-org', 'merch');
+
+                            const picker = editor.querySelector('#card-variant');
+                            picker.value = 'segment';
+                            picker.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            expect(fragmentStore.get().title).to.equal(`MERCH: ${labelOf('segment')}: Photoshop: Individual`);
+                        });
+
+                        it('updates the title when the tags change', async () => {
+                            const { fragmentStore } = await setup({}, 'title-tags');
+                            await typeInto('#fragment-org', 'merch');
+
+                            const tags = editor.querySelector('#tags-field');
+                            tags.setAttribute('value', 'mas:product_code/phsp,mas:customer_segment/team');
+                            tags.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            const segment = fragmentStore.get().getCurrentTagTitle('mas:customer_segment/');
+                            expect(segment).to.not.equal('Individual');
+                            expect(fragmentStore.get().title).to.equal(`MERCH: Catalog: Photoshop: ${segment}`);
+                        });
+
+                        it('includes the plan type on acom-dc only', async () => {
+                            const planTags = [...TAGS, { id: 'mas:plan_type/abm', title: 'ABM' }];
+                            await setup({ tags: planTags }, 'title-plan-acom-dc');
+                            Store.search.set((prev) => ({ ...prev, path: 'acom-dc' }));
+                            await typeInto('#fragment-org', 'merch');
+                            expect(preview()).to.equal('MERCH: Catalog: Photoshop: Individual: ABM');
+                            layoutContainer.remove();
+
+                            await setup({ tags: planTags }, 'title-plan-nala');
+                            await typeInto('#fragment-org', 'merch');
+                            expect(preview()).to.equal('MERCH: Catalog: Photoshop: Individual');
+                        });
+
+                        it('fills org and state from a matching title without rewriting it', async () => {
+                            const title = 'MERCH: Catalog: Photoshop: Individual: Q3';
+                            const { fragmentStore } = await setup({ title }, 'title-match');
+
+                            expect(editor.querySelector('#fragment-org').value).to.equal('MERCH');
+                            expect(editor.querySelector('#fragment-state').value).to.equal('Q3');
+                            expect(fragmentStore.get().title).to.equal(title);
+                        });
+
+                        it('leaves a legacy title untouched until an org is typed', async () => {
+                            const { fragmentStore } = await setup({ title: 'Summer promo card' }, 'title-legacy');
+
+                            expect(editor.querySelector('#fragment-org').value).to.equal('');
+                            expect(editor.querySelector('#fragment-state').value).to.equal('');
+                            expect(fragmentStore.get().title).to.equal('Summer promo card');
+
+                            await typeInto('#fragment-state', 'Q3');
+                            expect(fragmentStore.get().title).to.equal('Summer promo card');
+
+                            await typeInto('#fragment-org', 'merch');
+                            expect(fragmentStore.get().title).to.equal('MERCH: Catalog: Photoshop: Individual: Q3');
+                        });
+
+                        it('flags an empty org on focusout without writing a title', async () => {
+                            const { fragmentStore } = await setup({ title: 'Summer promo card' }, 'title-invalid');
+                            const org = editor.querySelector('#fragment-org');
+                            expect(org.invalid).to.be.false;
+
+                            org.dispatchEvent(new Event('focusout', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            expect(org.invalid).to.be.true;
+                            expect(editor.querySelector('[slot="negative-help-text"]').textContent.trim()).to.equal(
+                                'Enter an org',
+                            );
+                            expect(fragmentStore.get().title).to.equal('Summer promo card');
+                        });
+
+                        it('renders the org in bold in the preview', async () => {
+                            await setup({}, 'title-bold');
+                            await typeInto('#fragment-org', 'merch');
+
+                            const orgPart = editor.querySelector('#fragment-title-preview .title-preview-org');
+                            expect(orgPart.textContent).to.equal('MERCH');
+                            expect(getComputedStyle(orgPart).fontWeight).to.equal('700');
+                            expect(preview()).to.equal(fragmentStore.get().title);
                         });
                     });
 

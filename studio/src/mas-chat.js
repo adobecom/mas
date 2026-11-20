@@ -4,6 +4,7 @@ import './mas-chat-input.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
+import './mas-chat-masa-session.js';
 import Store from './store.js';
 import router from './router.js';
 import { masaAvatar } from './img/masa-avatar.js';
@@ -45,6 +46,21 @@ import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 import { OFFER_NOT_AVAILABLE_MESSAGE, excludeEnterprise } from './utils/enterprise-offers.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
+import {
+    askMasa as submitMasaQuestion,
+    buildMasaContext,
+    MASA_BUSY_MESSAGE,
+    SESSION_CAPACITY_MESSAGE,
+} from './mas-chat/masa-ask.js';
+import { typingIndicator } from './mas-chat/typing-indicator.js';
+import {
+    isMasaAvailable,
+    rememberFailure,
+    resetMasaAvailability,
+    isUserInputError,
+    isRefusal,
+} from './mas-chat/masa-availability.js';
+import { getInvestigationSession, isRunning } from './mas-chat/investigation-session.js';
 
 /**
  * Shown beside the typing indicator while the follow-up turn runs. The
@@ -52,6 +68,9 @@ import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintFor
  * happening" rather than "the next step is still coming".
  */
 const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
+
+/** MASA ran out of budget or time, or could not back up an answer: labelled as unfinished, not as unavailable. */
+const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-timeout', 'masa-timeout', 'answer-unavailable'];
 
 /**
  * Intent hints that drive multi-turn guided flows. While one of these is
@@ -61,6 +80,33 @@ const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
  * create a card instead of searching.
  */
 const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection']);
+
+/** Button value of "Cancel it" on the message shown when a conversation asks MASA twice at once. */
+const MASA_CANCEL = 'masa-cancel';
+
+/** Shown on a MASA message whose answer an earlier page left unfinished. */
+const MASA_INTERRUPTED_MESSAGE = 'The answer was interrupted before it arrived.';
+
+/** What an earlier ASK_MASA hand-off reads as when ai-chat cannot offer ASK_MASA. */
+const MASA_HAND_OFF_NOTE = 'Handed this question to MASA.';
+
+/**
+ * With MASA not offered, ai-chat rejects an ASK_MASA envelope the model copies
+ * from the history, so earlier hand-offs are sent as a plain note instead.
+ */
+function withoutMasaHandOffs(history) {
+    return history.map((turn) =>
+        turn.role === 'assistant' && typeof turn.content === 'string' && /"intent":\s*"ASK_MASA"/.test(turn.content)
+            ? { ...turn, content: MASA_HAND_OFF_NOTE }
+            : turn,
+    );
+}
+
+/** Every connected chat; closing and reopening the drawer creates a new one. */
+const connectedChats = new Set();
+
+/** MASA messages whose question is still being asked or answered on this page. */
+const asking = new Set();
 
 /**
  * Main AI Chat Component
@@ -75,6 +121,7 @@ export class MasChat extends LitElement {
         currentSessionId: { type: String },
         showWelcomeScreen: { type: Boolean },
         loadingLabel: { type: String },
+        dragActive: { type: Boolean },
     };
 
     constructor() {
@@ -87,6 +134,8 @@ export class MasChat extends LitElement {
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
         this.loadingLabel = '';
+        this.dragActive = false;
+        this.dragDepth = 0;
         this.recentReleaseProductsCache = [];
         this.resetReleaseFlow();
     }
@@ -169,8 +218,10 @@ export class MasChat extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        connectedChats.add(this);
         this.abortController = new AbortController();
         this.loadActiveSession();
+        this.watchSession();
         this.addEventListener('prompt-selected', this.handlePromptSelected);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
@@ -180,11 +231,19 @@ export class MasChat extends LitElement {
         this.addEventListener('button-selected', this.handleButtonSelected);
         this.addEventListener('confirmation-action', this.handleConfirmationAction);
         this.addEventListener('chat-feedback', this.handleChatFeedback);
+        this.addEventListener('masa-retry', this.handleMasaRetry);
+        this.addEventListener('masa-follow-up', this.handleMasaFollowUp);
+        this.addEventListener('dragenter', this.handleDragEnter);
+        this.addEventListener('dragover', this.handleDragOver);
+        this.addEventListener('dragleave', this.handleDragLeave);
+        this.addEventListener('drop', this.handleDrop);
+        this.addEventListener('keydown', this.handleDragEscape);
     }
 
     disconnectedCallback() {
         this.#session = {};
         super.disconnectedCallback();
+        connectedChats.delete(this);
         this.abortController?.abort();
         this.abortController = null;
         this.#turn?.controller.abort();
@@ -199,9 +258,33 @@ export class MasChat extends LitElement {
         this.removeEventListener('button-selected', this.handleButtonSelected);
         this.removeEventListener('confirmation-action', this.handleConfirmationAction);
         this.removeEventListener('chat-feedback', this.handleChatFeedback);
+        this.removeEventListener('masa-retry', this.handleMasaRetry);
+        this.removeEventListener('masa-follow-up', this.handleMasaFollowUp);
+        this.removeEventListener('dragenter', this.handleDragEnter);
+        this.removeEventListener('dragover', this.handleDragOver);
+        this.removeEventListener('dragleave', this.handleDragLeave);
+        this.removeEventListener('drop', this.handleDrop);
+        this.removeEventListener('keydown', this.handleDragEscape);
+        this.unwatchSession?.();
+        this.endDrag();
+    }
+
+    /** Re-render when the conversation's session changes, so uploads that outlive a closed drawer still show. */
+    watchSession() {
+        this.unwatchSession?.();
+        if (!this.currentSessionId) return;
+        const session = getInvestigationSession(this.currentSessionId);
+        const refresh = () => this.requestUpdate();
+        session.addEventListener('change', refresh);
+        this.unwatchSession = () => session.removeEventListener('change', refresh);
+    }
+
+    willUpdate(changed) {
+        if (changed.has('currentSessionId') && this.isConnected) this.watchSession();
     }
 
     loadActiveSession() {
+        sessionManager.flushSession(sessionManager.getActiveSessionId());
         const session = sessionManager.getActiveSession();
         this.currentSessionId = session.id;
 
@@ -211,7 +294,7 @@ export class MasChat extends LitElement {
             session.messages.some((m) => m.role === 'user' || (m.role === 'assistant' && !m.showSuggestions));
 
         if (hasRealMessages) {
-            this.messages = session.messages;
+            this.messages = this.restoreMessages(session.messages);
             this.conversationHistory = session.conversationHistory || [];
             this.showPromptSuggestions = false;
             this.showWelcomeScreen = false;
@@ -308,10 +391,11 @@ export class MasChat extends LitElement {
         this.resetReleaseFlow();
 
         const { sessionId } = event.detail;
+        sessionManager.flushSession(sessionId);
         const session = sessionManager.getSession(sessionId) || sessionManager.getActiveSession();
 
         this.currentSessionId = session.id;
-        this.messages = session.messages || [];
+        this.messages = this.restoreMessages(session.messages || []);
         this.conversationHistory = session.conversationHistory || [];
 
         const hasRealMessages =
@@ -329,6 +413,21 @@ export class MasChat extends LitElement {
         if (selector) {
             selector.loadSessions();
         }
+    }
+
+    /**
+     * A MASA message an earlier page left unanswered — its fallback still on
+     * its way, or no record, answer or error at all — cannot settle now, so
+     * it offers to ask again.
+     */
+    restoreMessages(messages) {
+        const unfinished = (message) =>
+            message.fallback?.pending || (!message.recordId && !message.failure && !message.fallback?.content);
+        return messages.map((message) =>
+            message.type === 'masa' && !asking.has(message.id) && unfinished(message)
+                ? { ...message, fallback: null, failure: MASA_INTERRUPTED_MESSAGE }
+                : message,
+        );
     }
 
     resetReleaseState() {
@@ -362,10 +461,45 @@ export class MasChat extends LitElement {
         this.handleSendMessage({ detail: { message: prompt, context: { intentHint } } });
     }
 
+    addUserMessage(message, context) {
+        const userMessage = {
+            role: 'user',
+            content: message,
+            timestamp: Date.now(),
+        };
+
+        if (context?.hidden) {
+            userMessage.hidden = true;
+        }
+
+        if (context?.osi) {
+            userMessage.osi = context.osi;
+            this.selectedReleaseOsi = context.osi;
+        }
+        if (Object.hasOwn(context ?? {}, 'trialOsi')) {
+            userMessage.trialOsi = context.trialOsi;
+            this.selectedReleaseTrialOsi = context.trialOsi || null;
+        }
+        if (context?.offer) {
+            userMessage.offer = context.offer;
+            this.selectedReleaseOffer = context.offer;
+        }
+        if (Object.hasOwn(context ?? {}, 'trialOffer')) {
+            userMessage.trialOffer = context.trialOffer;
+            this.selectedReleaseTrialOffer = context.trialOffer || null;
+        }
+
+        this.messages = [...this.messages, { ...userMessage, fresh: true }];
+    }
+
     handleButtonSelected(event) {
         const { value, label, product } = event.detail;
+        if (value === MASA_CANCEL) {
+            this.cancelMasaQuestion();
+            return;
+        }
         const messageIndex = this.messages.findLastIndex(
-            (m) => m.role === 'assistant' && m.buttonGroup && !m.buttonGroup.selectedValue,
+            (m) => m.role === 'assistant' && m.buttonGroup && !m.buttonGroup.selectedValue && !m.masaBusy,
         );
         const answeredGroupLabel = messageIndex !== -1 ? this.messages[messageIndex].buttonGroup.label : null;
         if (messageIndex !== -1) {
@@ -555,39 +689,27 @@ export class MasChat extends LitElement {
             this.messages = this.messages.map((msg) => (msg.openOst ? { ...msg, ostConfirmed: true } : msg));
         }
 
-        const userMessage = {
-            role: 'user',
-            content: message,
-            timestamp: Date.now(),
-        };
+        this.addUserMessage(message, context);
+        await this.runTurn(message, context);
+    }
 
-        if (context?.hidden) {
-            userMessage.hidden = true;
-        }
-
-        if (context?.osi) {
-            userMessage.osi = context.osi;
-            this.selectedReleaseOsi = context.osi;
-        }
-        if (Object.hasOwn(context ?? {}, 'trialOsi')) {
-            userMessage.trialOsi = context.trialOsi;
-            this.selectedReleaseTrialOsi = context.trialOsi || null;
-        }
-        if (context?.offer) {
-            userMessage.offer = context.offer;
-            this.selectedReleaseOffer = context.offer;
-        }
-        if (Object.hasOwn(context ?? {}, 'trialOffer')) {
-            userMessage.trialOffer = context.trialOffer;
-            this.selectedReleaseTrialOffer = context.trialOffer || null;
-        }
-
-        this.messages = [...this.messages, { ...userMessage, fresh: true }];
-
+    /** Answer a message that is already in the thread. */
+    async runTurn(message, context) {
         const turn = this.beginTurn();
         const work = this.captureWork();
         this.isLoading = true;
         this.error = null;
+
+        // Images only mean something to MASA, so a message carrying them skips
+        // ai-chat. The ask does not end the turn; this path does.
+        if (getInvestigationSession(this.currentSessionId).images.length) {
+            void this.askMasaInThread(message);
+            if (this.isCurrentWork(work)) {
+                this.isLoading = false;
+                this.loadingLabel = '';
+            }
+            return;
+        }
 
         // Inside a guided flow the flow's LLM prompt stays the canonical
         // interpreter — e.g., a release-flow turn that types "PA-1375" means
@@ -609,14 +731,7 @@ export class MasChat extends LitElement {
         }
 
         try {
-            const currentPath = Store.search?.value?.path || getHashParam('path');
-            const enrichedContext = {
-                ...context,
-                currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
-                currentLocale: Store.filters?.value?.locale || 'en_US',
-                lastOperation: this.getLastOperationResult(),
-                workingSet: this.getRecentFragments(),
-            };
+            const enrichedContext = { ...context, ...this.studioContext() };
 
             // When the user clicked a button menu, the displayed message is
             // the friendly label but the model needs the rich routing value
@@ -939,6 +1054,7 @@ export class MasChat extends LitElement {
                             suggestedTitle: response.suggestedTitle,
                             timestamp: Date.now(),
                             fresh: true,
+                            ...this.builtInLabel(message),
                         },
                     ];
                 }
@@ -998,7 +1114,7 @@ export class MasChat extends LitElement {
             const category = classifyEnvelopeIntent(envelope);
 
             if (category === 'meta') {
-                return this.dispatchMetaEnvelope(envelope);
+                return this.dispatchMetaEnvelope(envelope, originalMessage);
             }
 
             if (envelope.clarification_question || envelope.missing_slots?.length) {
@@ -1080,16 +1196,31 @@ export class MasChat extends LitElement {
     }
 
     /**
-     * Handle meta intents (ASK_USER / ABORT / START_OVER / SHOW_HELP /
-     * REPORT_ERROR). Returns true — meta is always terminal for the turn.
+     * Handle meta intents (ASK_USER / ASK_MASA / ABORT / START_OVER /
+     * SHOW_HELP / REPORT_ERROR). Returns true — meta is always terminal for
+     * the turn. ASK_MASA ends the turn at once; MASA answers in the thread.
      */
-    dispatchMetaEnvelope(envelope) {
+    dispatchMetaEnvelope(envelope, originalMessage) {
         const { intent } = envelope;
+
+        if (intent === 'ASK_MASA') {
+            void this.askMasaInThread(originalMessage);
+            return true;
+        }
 
         if (intent === 'ASK_USER') {
             const text =
                 envelope.clarification_question || envelope.user_message || 'Could you clarify what you would like me to do?';
-            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: text,
+                    timestamp: Date.now(),
+                    fresh: true,
+                    ...this.envelopeAnswerLabel(envelope, originalMessage),
+                },
+            ];
             return true;
         }
 
@@ -1111,7 +1242,16 @@ export class MasChat extends LitElement {
 
         if (intent === 'SHOW_HELP') {
             const text = envelope.user_message || 'Here are some things I can help with.';
-            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: text,
+                    timestamp: Date.now(),
+                    fresh: true,
+                    ...this.envelopeAnswerLabel(envelope, originalMessage),
+                },
+            ];
             return true;
         }
 
@@ -1124,6 +1264,302 @@ export class MasChat extends LitElement {
         // Should never reach here — META_INTENTS set is closed. Defer to old path.
         if (META_INTENTS.has(intent)) return true;
         return false;
+    }
+
+    /** The MASA service call, kept as a method so tests can stand in for MASA. */
+    askMasa(options) {
+        return submitMasaQuestion(options);
+    }
+
+    /** The Studio path, locale and fragment ID that MASA sees above the conversation turns. */
+    get masaPageContext() {
+        return `Studio path: ${Store.search?.value?.path ?? ''}\nLocale: ${Store.filters?.value?.locale ?? 'en_US'}\nFragment ID: ${Store.fragmentEditor?.fragmentId?.get() ?? ''}`;
+    }
+
+    /** A user_message that neither asks back nor prompts for missing slots answers the user from Studio's knowledge. */
+    envelopeAnswerLabel(envelope, originalMessage) {
+        const answers = envelope.user_message && !envelope.clarification_question && !envelope.missing_slots?.length;
+        return answers ? this.builtInLabel(originalMessage) : {};
+    }
+
+    /** Once MASA is known to be unavailable, a plain answer says so and offers to ask MASA the question again. */
+    builtInLabel(message) {
+        if (isMasaAvailable()) return {};
+        const question = this.messages.findLast((item) => item.role === 'user' && !item.hidden)?.content ?? message;
+        return { builtIn: { conversationId: this.currentSessionId, question } };
+    }
+
+    /**
+     * Ask MASA in this conversation without holding up the turn that asked:
+     * the caller does not await it, so its turn ends and the message box is
+     * freed at once. The "MASA is working on it" message is updated in place
+     * when the answer, or the labelled fallback, lands — even after later
+     * Studio turns or a switch to another conversation. Never rejects.
+     */
+    async askMasaInThread(question) {
+        const ask = {
+            id: crypto.randomUUID(),
+            conversationId: this.currentSessionId,
+            question,
+            history: this.conversationHistory,
+            turn: this.#turn,
+        };
+        const latest = this.messages.at(-1);
+        const earlier = latest?.role === 'user' && latest.content === question ? this.messages.slice(0, -1) : this.messages;
+        this.messages = [
+            ...this.messages,
+            {
+                id: ask.id,
+                role: 'assistant',
+                type: 'masa',
+                conversationId: ask.conversationId,
+                question,
+                recordId: null,
+                fallback: null,
+                failure: null,
+                timestamp: Date.now(),
+            },
+        ];
+        asking.add(ask.id);
+        try {
+            ask.studioContext = this.studioContext();
+            ask.session = getInvestigationSession(ask.conversationId);
+            const { context } = buildMasaContext({ page: this.masaPageContext, messages: earlier });
+            await this.askMasa({
+                conversationId: ask.conversationId,
+                question,
+                context,
+                onRecord: (recordId) => {
+                    ask.recordId = recordId;
+                    this.clearImages(ask.session);
+                    this.replaceMasaMessage(ask, (message) => ({ ...message, recordId }));
+                },
+            });
+        } catch (error) {
+            await this.settleMasaFailure(ask, error);
+        } finally {
+            asking.delete(ask.id);
+        }
+    }
+
+    /**
+     * A busy conversation offers to cancel the running question; a cancelled
+     * question stays cancelled; an input error is shown on the message; a
+     * refusal hands the turn back to Studio; any other failure is answered by
+     * ai-chat without MASA, under the label.
+     */
+    async settleMasaFailure(ask, error) {
+        if (error.code === 'masa-conversation-busy') {
+            this.replaceMasaMessage(ask, () => ({
+                role: 'assistant',
+                content: MASA_BUSY_MESSAGE,
+                masaBusy: true,
+                buttonGroup: { label: 'MASA', options: [{ label: 'Cancel it', value: MASA_CANCEL }] },
+                timestamp: Date.now(),
+                fresh: true,
+            }));
+            return;
+        }
+        if (ask.session?.records.find((record) => record.id === ask.recordId)?.status === 'cancelled') return;
+        if (isUserInputError(error)) {
+            this.replaceMasaMessage(ask, (message) => ({ ...message, failure: error.message || error.code }));
+            return;
+        }
+        const wasAvailable = isMasaAvailable();
+        if (rememberFailure(error)) this.clearAllImages();
+        if (wasAvailable && isRefusal(error) && this.canRerun(ask)) {
+            this.messages = this.messages.filter((message) => message.id !== ask.id);
+            this.conversationHistory = ask.history;
+            await this.runTurn(ask.question);
+            return;
+        }
+        const reason = MASA_UNFINISHED_CODES.includes(error.code) ? { reason: 'unfinished' } : {};
+        this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true, ...reason } }));
+        try {
+            const response = await this.callAIChatAction(
+                {
+                    message: ask.question,
+                    conversationHistory: ask.history,
+                    context: ask.studioContext,
+                    intentHint: 'documentation',
+                    masa: false,
+                },
+                { detached: true },
+            );
+            const content =
+                response.message || response.user_message || 'I processed your request but have nothing further to add.';
+            this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { content, ...reason } }));
+        } catch (fallbackError) {
+            logError('MASA fallback answer failed', fallbackError);
+            this.replaceMasaMessage(ask, (message) => ({
+                ...message,
+                fallback: null,
+                failure: `Sorry, I encountered an error: ${fallbackError.message}`,
+            }));
+        }
+    }
+
+    /** The turn that asked can run again only while this chat still shows it and no newer turn has started. */
+    canRerun(ask) {
+        return this.isConnected && this.currentSessionId === ask.conversationId && this.#turn === ask.turn;
+    }
+
+    /**
+     * Rewrite the MASA message of `ask` in the conversation that owns it: in
+     * every connected chat showing that conversation — the asking chat may be
+     * gone with a closed drawer — otherwise in storage, after any pending
+     * debounced save of it so that save cannot overwrite the change.
+     */
+    replaceMasaMessage(ask, change) {
+        this.editConversation(ask.conversationId, (messages) =>
+            messages.map((message) => (message.id === ask.id ? change(message) : message)),
+        );
+    }
+
+    editConversation(conversationId, edit) {
+        const showing = [...connectedChats].filter((chat) => chat.currentSessionId === conversationId);
+        for (const chat of showing) chat.messages = edit(chat.messages);
+        if (showing.length) return;
+        sessionManager.flushSession(conversationId);
+        const stored = sessionManager.getSession(conversationId);
+        if (stored) sessionManager.updateSession(conversationId, { messages: edit(stored.messages) });
+    }
+
+    /** MASA reads the images with the question it accepted, so the message box lets go of them. */
+    clearImages(session) {
+        for (const image of [...session.images]) session.removeImage(image.id);
+    }
+
+    /** MASA is unavailable for the page, so no conversation may keep images that would route its next message to MASA. */
+    clearAllImages() {
+        for (const { id } of sessionManager.listSessions()) this.clearImages(getInvestigationSession(id));
+    }
+
+    /** Images can be attached only where uploads can reach MASA: a media origin is configured and MASA is not known to be down. */
+    get imagesEnabled() {
+        return Boolean(document.querySelector('meta[name="masa-media-origin"]')?.content) && isMasaAvailable();
+    }
+
+    get attachedImages() {
+        const ready = getInvestigationSession(this.currentSessionId).images.map(({ id, name, preview }) => ({
+            id,
+            name,
+            preview,
+            status: 'ready',
+        }));
+        const uploading = getInvestigationSession(this.currentSessionId).uploads.map(({ id, name }) => ({
+            id,
+            name,
+            status: 'uploading',
+        }));
+        return [...ready, ...uploading];
+    }
+
+    /** Upload the chosen images; an upload that finds MASA unavailable turns the paperclip off and says why. */
+    async handleAttachImages(event) {
+        const conversationId = this.currentSessionId;
+        const session = getInvestigationSession(conversationId);
+        let error = null;
+        for (const file of event.detail.files) {
+            error = (await session.addImage(file)) ?? session.error;
+            if (error) break;
+        }
+        if (error) {
+            const unavailable = rememberFailure(error);
+            if (unavailable) this.clearAllImages();
+            this.editConversation(conversationId, (messages) => [
+                ...messages,
+                unavailable
+                    ? {
+                          role: 'assistant',
+                          content: 'Images need MASA, and MASA is unavailable right now, so I cannot attach them.',
+                          timestamp: Date.now(),
+                          fresh: true,
+                      }
+                    : {
+                          role: 'error',
+                          content: error.code === 'session-capacity' ? SESSION_CAPACITY_MESSAGE : error.message || error.code,
+                          timestamp: Date.now(),
+                          fresh: true,
+                      },
+            ]);
+            this.showWelcomeScreen = false;
+            this.showPromptSuggestions = false;
+        }
+        this.requestUpdate();
+    }
+
+    hasFiles(event) {
+        return [...(event.dataTransfer?.types ?? [])].includes('Files');
+    }
+
+    endDrag() {
+        this.dragDepth = 0;
+        this.dragActive = false;
+    }
+
+    handleDragEnter(event) {
+        if (!this.hasFiles(event)) return;
+        event.preventDefault();
+        this.dragDepth++;
+        this.dragActive = this.imagesEnabled && !getInvestigationSession(this.currentSessionId).uploads.length;
+    }
+
+    handleDragOver(event) {
+        if (this.hasFiles(event)) event.preventDefault();
+    }
+
+    handleDragLeave(event) {
+        if (!this.hasFiles(event)) return;
+        this.dragDepth = Math.max(0, this.dragDepth - 1);
+        if (!this.dragDepth) this.dragActive = false;
+    }
+
+    handleDragEscape(event) {
+        if (event.key === 'Escape') this.endDrag();
+    }
+
+    handleDrop(event) {
+        if (!this.hasFiles(event)) return;
+        event.preventDefault();
+        this.endDrag();
+        const files = [...event.dataTransfer.files];
+        if (this.imagesEnabled && files.length) void this.handleAttachImages({ detail: { files } });
+    }
+
+    renderDropOverlay() {
+        return this.dragActive ? html`<div class="chat-drop-overlay">Drop images to ask MASA about them</div>` : nothing;
+    }
+
+    handleRemoveImage(event) {
+        getInvestigationSession(this.currentSessionId).removeImage(event.detail.id);
+        this.requestUpdate();
+    }
+
+    /** "Ask MASA again" forgets that MASA was unavailable and asks the same question anew. */
+    handleMasaRetry(event) {
+        resetMasaAvailability();
+        void this.askMasaInThread(event.detail.question);
+    }
+
+    /** A follow-up chip under MASA's answer asks that question in the same conversation. */
+    handleMasaFollowUp(event) {
+        const { question } = event.detail;
+        this.showPromptSuggestions = false;
+        this.addUserMessage(question);
+        void this.askMasaInThread(question);
+    }
+
+    /** "Cancel it" on the busy message cancels the conversation's running MASA question. */
+    cancelMasaQuestion() {
+        this.messages = this.messages.map((message) =>
+            message.masaBusy && !message.buttonGroup.selectedValue
+                ? { ...message, buttonGroup: { ...message.buttonGroup, selectedValue: MASA_CANCEL } }
+                : message,
+        );
+        const session = getInvestigationSession(this.currentSessionId);
+        const running = session.records.find(isRunning);
+        if (running) session.cancel(running);
     }
 
     /**
@@ -1168,7 +1604,13 @@ export class MasChat extends LitElement {
         }
 
         if (action === 'dispatch') {
+            const answersSlotPrompt = Boolean(this.pendingSearchIntent);
             this.pendingSearchIntent = null;
+            // A card search is MASA's to answer; a reply to the surface prompt finishes the search Studio began.
+            if (classified.dispatch.operationName === 'search_cards' && !answersSlotPrompt && isMasaAvailable()) {
+                void this.askMasaInThread(message);
+                return true;
+            }
             await this.executeOperation({
                 type: 'studio_operation',
                 operationName: classified.dispatch.operationName,
@@ -1282,7 +1724,13 @@ export class MasChat extends LitElement {
         ];
     }
 
-    async callAIChatAction(params) {
+    /**
+     * POST one request to ai-chat. Chat turns are offered the MASA hand-off
+     * while MASA is available. A detached request (the MASA fallback) is not
+     * cancelled by a new turn or by closing the drawer, like the MASA job it
+     * stands in for.
+     */
+    async callAIChatAction(params, { detached = false } = {}) {
         const work = this.captureWork();
         if (!window.adobeIMS) {
             throw new Error('Adobe IMS not loaded');
@@ -1295,6 +1743,9 @@ export class MasChat extends LitElement {
 
         const aioBaseURL = AI_CHAT_BASE_URL;
         const actionUrl = `${aioBaseURL}/ai-chat`;
+        const request = { masa: isMasaAvailable(), ...params };
+        if (!request.masa && request.conversationHistory)
+            request.conversationHistory = withoutMasaHandOffs(request.conversationHistory);
 
         let response;
         try {
@@ -1305,12 +1756,14 @@ export class MasChat extends LitElement {
                     Authorization: `Bearer ${accessTokenObj.token}`,
                     'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
                 },
-                body: JSON.stringify(params),
-                signal: composeChatRequestSignal(
-                    CHAT_REQUEST_TIMEOUT_MS,
-                    this.abortController?.signal,
-                    params?.requestType ? null : this.#turn?.controller.signal,
-                ),
+                body: JSON.stringify(request),
+                signal: detached
+                    ? composeChatRequestSignal(CHAT_REQUEST_TIMEOUT_MS)
+                    : composeChatRequestSignal(
+                          CHAT_REQUEST_TIMEOUT_MS,
+                          this.abortController?.signal,
+                          params?.requestType ? null : this.#turn?.controller.signal,
+                      ),
             });
         } catch (error) {
             if (isChatRequestTimeout(error)) {
@@ -2060,7 +2513,10 @@ export class MasChat extends LitElement {
         }
 
         const productCards = rawProducts.map((product) => this.mapProductToChatCard(product));
-        const message = `Found ${rawProducts.length} product${rawProducts.length === 1 ? '' : 's'} in the catalog:`;
+        const message =
+            result.total > rawProducts.length
+                ? `Showing ${rawProducts.length} of ${result.total} products in the catalog. Type a product name to narrow it down:`
+                : `Found ${rawProducts.length} product${rawProducts.length === 1 ? '' : 's'} in the catalog:`;
 
         this.messages = [
             ...this.messages,
@@ -2680,6 +3136,17 @@ export class MasChat extends LitElement {
         }
     }
 
+    /** Where the user is in Studio and what the conversation last worked on, sent with each ai-chat turn. */
+    studioContext() {
+        const currentPath = Store.search?.value?.path || getHashParam('path');
+        return {
+            currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
+            currentLocale: Store.filters?.value?.locale || 'en_US',
+            lastOperation: this.getLastOperationResult(),
+            workingSet: this.getRecentFragments(),
+        };
+    }
+
     getLastOperationResult() {
         const lastOp = this.messages
             .slice()
@@ -2725,15 +3192,13 @@ export class MasChat extends LitElement {
     }
 
     render() {
-        if (this.showWelcomeScreen) {
-            return this.renderWelcomeScreen();
-        }
-        return this.renderChatView();
+        return this.showWelcomeScreen ? this.renderWelcomeScreen() : this.renderChatView();
     }
 
     renderWelcomeScreen() {
         return html`
             <div class="chat-welcome-container">
+                ${this.renderDropOverlay()}
                 <div class="welcome-header-actions">
                     <mas-chat-session-selector></mas-chat-session-selector>
                 </div>
@@ -2751,7 +3216,11 @@ export class MasChat extends LitElement {
                     <div class="welcome-input-wrapper">
                         <mas-chat-input
                             @send-message=${this.handleSendMessage}
+                            @attach-images=${this.handleAttachImages}
+                            @remove-image=${this.handleRemoveImage}
                             .disabled=${this.isLoading}
+                            .imagesEnabled=${this.imagesEnabled}
+                            .images=${this.attachedImages}
                             placeholder="How can I help you today?"
                         ></mas-chat-input>
                         <p class="chat-disclaimer">
@@ -2776,6 +3245,7 @@ export class MasChat extends LitElement {
     renderChatView() {
         return html`
             <div class="chat-page-container">
+                ${this.renderDropOverlay()}
                 <div class="chat-header">
                     <div class="chat-header-content">
                         <h2 class="chat-header-title">MASA</h2>
@@ -2811,11 +3281,7 @@ export class MasChat extends LitElement {
                             ? html`
                                   <div class="typing-indicator-row">
                                       <div class="message-avatar">${masaAvatar}</div>
-                                      <div class="typing-indicator">
-                                          <div class="typing-dot"></div>
-                                          <div class="typing-dot"></div>
-                                          <div class="typing-dot"></div>
-                                      </div>
+                                      ${typingIndicator}
                                       ${this.loadingLabel
                                           ? html`<span class="typing-status">${this.loadingLabel}</span>`
                                           : nothing}
@@ -2826,7 +3292,17 @@ export class MasChat extends LitElement {
                 </div>
 
                 <div class="chat-input">
-                    <mas-chat-input @send-message=${this.handleSendMessage} .disabled=${this.isLoading}></mas-chat-input>
+                    ${getInvestigationSession(this.currentSessionId).leaseId
+                        ? html`<mas-chat-masa-session .conversationId=${this.currentSessionId}></mas-chat-masa-session>`
+                        : nothing}
+                    <mas-chat-input
+                        @send-message=${this.handleSendMessage}
+                        @attach-images=${this.handleAttachImages}
+                        @remove-image=${this.handleRemoveImage}
+                        .disabled=${this.isLoading}
+                        .imagesEnabled=${this.imagesEnabled}
+                        .images=${this.attachedImages}
+                    ></mas-chat-input>
                     <p class="chat-disclaimer">
                         AI can make mistakes. Verify results before publishing or making bulk changes.
                     </p>

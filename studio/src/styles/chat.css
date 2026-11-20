@@ -222,6 +222,7 @@
 /* Message Card */
 :where(.mas-feature) .message-card {
     position: relative;
+    box-sizing: border-box;
     background: var(--spectrum-global-color-gray-75, #fdfdfd);
     border-radius: 16px;
     padding: var(--spectrum-global-dimension-size-200, 16px) var(--spectrum-global-dimension-size-250, 20px);
@@ -378,6 +379,7 @@
     background: var(--spectrum-global-color-gray-100, #f8f8f8);
     border-radius: var(--spectrum-global-dimension-size-75, 6px);
     border: 1px solid var(--spectrum-global-color-gray-300, #d5d5d5);
+    white-space: pre;
     overflow-x: auto;
 }
 
@@ -411,8 +413,13 @@
     text-decoration: underline;
 }
 
-:where(.mas-feature) .message-text table {
+/* A wide table scrolls inside its wrapper instead of widening the bubble. */
+:where(.mas-feature) .message-text .table-wrap {
     margin: var(--spectrum-global-dimension-size-150, 12px) 0;
+    overflow-x: auto;
+}
+
+:where(.mas-feature) .message-text table {
     border-collapse: collapse;
     width: 100%;
 }
@@ -897,6 +904,51 @@
 
 :where(.mas-feature) .input-actions sp-action-button[variant='accent'] sp-icon-send {
     color: white;
+}
+
+/* Attached image previews */
+:where(.mas-feature) .image-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spectrum-global-dimension-size-100, 8px);
+    margin-bottom: var(--spectrum-global-dimension-size-100, 8px);
+}
+
+:where(.mas-feature) .image-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-75, 6px);
+    margin: 0;
+    font-size: 12px;
+}
+
+:where(.mas-feature) .image-preview img {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* Drop overlay for dragged images */
+:where(.mas-feature) .chat-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 2px dashed var(--spectrum-global-color-blue-500, #2680eb);
+    border-radius: 8px;
+    background: var(--spectrum-global-color-blue-100, rgba(38, 128, 235, 0.08));
+    color: var(--spectrum-global-color-gray-900, #222);
+    font-size: 16px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+:where(.mas-feature) .image-preview sp-progress-circle {
+    flex: none;
 }
 
 /* Selected Offer Badge */
@@ -2679,13 +2731,27 @@
 /* ==========================================================================
    Thinking glow, chip stagger, micro-interactions (MWPW-183572)
    ========================================================================== */
-:where(.mas-feature) .typing-indicator-row {
+/* A MASA answer that is still on its way is the same typing row: mascot beside the glowing dots, no card. */
+:where(.mas-feature) .typing-indicator-row,
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-card {
     display: flex;
     align-items: flex-end;
     gap: var(--spectrum-global-dimension-size-100, 8px);
 }
 
-:where(.mas-feature) .typing-indicator-row .message-avatar {
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) {
+    padding: 0;
+}
+
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-card {
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+:where(.mas-feature) .typing-indicator-row .message-avatar,
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-avatar {
     animation: mas-feature-avatarPop 300ms var(--mas-ease-spring) both;
 }
 
@@ -2789,6 +2855,7 @@
     :where(.mas-feature) .msg-bloom .message-card,
     :where(.mas-feature) .msg-rise,
     :where(.mas-feature) .typing-indicator-row .message-avatar,
+    :where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-avatar,
     :where(.mas-feature) .welcome-chips sp-action-button {
         animation-name: mas-feature-reducedFade;
         animation-duration: 120ms;
@@ -3436,4 +3503,7 @@ mas-top-nav:has(.top-nav-search) .top-nav-search {
     --mod-search-border-color-hover: var(--spectrum-gray-400);
     --mod-search-border-color-focus: var(--spectrum-gray-500);
     --mod-search-background-color: var(--spectrum-gray-75);
+}
+:where(.mas-feature) .chat-input mas-chat-masa-session {
+    margin-bottom: var(--spectrum-global-dimension-size-100, 8px);
 }

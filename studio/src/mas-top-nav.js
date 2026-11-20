@@ -51,6 +51,12 @@ class MasTopNav extends LitElement {
     createRenderRoot() {
         return this;
     }
+    async signOut() {
+        const { endAllInvestigations } = await import('./mas-chat/investigation-session.js');
+        await endAllInvestigations();
+        window.adobeIMS.signOut();
+    }
+
     async profileBuilder() {
         try {
             const accessToken = window.adobeIMS.getAccessToken();
@@ -99,7 +105,7 @@ class MasTopNav extends LitElement {
             signOutLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 clearPersistedPromotionsLists();
-                window.adobeIMS.signOut();
+                void this.signOut();
             });
             studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');

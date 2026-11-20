@@ -40,6 +40,8 @@ on:
                 required: true
             VAULT_SECRET_ID:
                 required: true
+            MAS_AGENT_READER_APP_KEY:
+                required: false
         outputs:
             namespace:
                 description: 'I/O runtime workspace namespace the app was deployed to'
@@ -52,6 +54,8 @@ jobs:
         defaults:
             run:
                 working-directory: io/studio
+        outputs:
+            knowledge_sha256: ${{ steps.knowledge.outputs.sha256 }}
 
         steps:
             - name: Checkout repository
@@ -69,10 +73,32 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            # A short-lived, read-only token from the MASA knowledge reader app.
+            - name: Mint a mas-agent read token
+              id: masa-token
+              uses: actions/create-github-app-token@v3
+              with:
+                  app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
+                  private-key: ${{ secrets.MAS_AGENT_READER_APP_KEY }}
+                  owner: adobecom
+                  repositories: mas-agent
+                  permission-contents: read
+
+            # npm test fetches the mas-agent knowledge corpus first (pretest); the coverage tests need it.
             - name: Run tests
+              env:
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token }}
               run: npm test
 
+            - name: Record the tested knowledge export
+              id: knowledge
+              run: node --input-type=module -e "import { MASA_KNOWLEDGE } from './src/ai-chat/masa-knowledge.js'; console.log('sha256=' + MASA_KNOWLEDGE.sha256);" >> "$GITHUB_OUTPUT"
+
+    # Waits for the tests job so AI actions ship only the export it validated. Core actions still
+    # deploy whatever its outcome, so a knowledge outage cannot block them.
     deploy:
+        needs: tests
+        if: ${{ !cancelled() }}
         runs-on: self-hosted
         defaults:
             run:
@@ -155,9 +181,37 @@ jobs:
                   path: merch-at-scale/aio-studio/common
                   env-fields: ai_foundry_api_key
 
+            # A short-lived, read-only token from the MASA knowledge reader app.
+            - name: Mint a mas-agent read token
+              id: masa-token
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success'
+              continue-on-error: true
+              uses: actions/create-github-app-token@v3
+              with:
+                  app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
+                  private-key: ${{ secrets.MAS_AGENT_READER_APP_KEY }}
+                  owner: adobecom
+                  repositories: mas-agent
+                  permission-contents: read
+
+            - name: Fetch the mas-agent knowledge corpus
+              id: masa-knowledge
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && steps.masa-token.outcome == 'success'
+              continue-on-error: true
+              env:
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token }}
+                  MAS_AGENT_KNOWLEDGE_SHA256: ${{ needs.tests.outputs.knowledge_sha256 }}
+                  RUN_TESTS: ${{ inputs.run_tests }}
+              run: |
+                  if [ "$RUN_TESTS" = 'true' ] && [ -z "$MAS_AGENT_KNOWLEDGE_SHA256" ]; then
+                      echo '::error::The tests job did not validate a knowledge export.'
+                      exit 1
+                  fi
+                  npm run fetch:masa-knowledge -- --expected-sha256 "$MAS_AGENT_KNOWLEDGE_SHA256"
+
             - name: Deploy optional AI actions
               id: ai-deploy
-              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success'
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && steps.masa-knowledge.outcome == 'success'
               continue-on-error: true
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
@@ -174,5 +228,5 @@ jobs:
               run: node scripts/deploy-actions.mjs assistant
 
             - name: Report optional AI deployment failure
-              if: inputs.deploy_ai && (steps.ai-secrets.outcome == 'failure' || steps.ai-deploy.outcome == 'failure')
+              if: inputs.deploy_ai && (steps.ai-secrets.outcome == 'failure' || steps.masa-token.outcome == 'failure' || steps.masa-knowledge.outcome == 'failure' || steps.ai-deploy.outcome == 'failure')
               run: echo '::warning::AI actions were not updated. Core Studio actions were deployed successfully.'

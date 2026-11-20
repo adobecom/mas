@@ -351,7 +351,7 @@ describe('ai-chat-search-router', () => {
 
     describe('Variant / template search', () => {
         it('classifies "cards with template plans" with surface in context', () => {
-            const result = classifySearchIntent("I'm looking for cards with template Plans", {
+            const result = classifySearchIntent('find cards with template Plans', {
                 currentSurface: 'acom',
                 currentLocale: 'en_US',
             });
@@ -364,7 +364,7 @@ describe('ai-chat-search-router', () => {
         });
 
         it('classifies "template plans in ACOM" and strips the trailing surface from the variant token', () => {
-            const result = classifySearchIntent("I'm looking for cards with template Plans in ACOM");
+            const result = classifySearchIntent('find cards with template Plans in ACOM');
             expect(result.intent).to.equal('variant-search');
             expect(result.slots.variant).to.equal('plans');
         });
@@ -394,13 +394,13 @@ describe('ai-chat-search-router', () => {
         });
 
         it('is case-insensitive on the anchor and the variant', () => {
-            const result = classifySearchIntent('TEMPLATE PLANS', { currentSurface: 'acom' });
+            const result = classifySearchIntent('SHOW TEMPLATE PLANS', { currentSurface: 'acom' });
             expect(result.intent).to.equal('variant-search');
             expect(result.dispatch.operationParams.variant).to.equal('plans');
         });
 
         it('asks for surface when no context surface', () => {
-            const result = classifySearchIntent('cards with template Plans');
+            const result = classifySearchIntent('find cards with template Plans');
             expect(result.intent).to.equal('variant-search');
             expect(result.dispatch).to.equal(null);
             expect(result.missingSlot.slot).to.equal('surface');
@@ -470,7 +470,6 @@ describe('ai-chat-search-router', () => {
             // tolerate these.
             const inputs = [
                 'find cards with Plans template in acom.',
-                'find cards with Plans template in acom?',
                 'find cards with Plans template in acom!',
                 'find cards with Plans template in acom"',
                 "find cards with Plans template in acom'",
@@ -498,12 +497,12 @@ describe('ai-chat-search-router', () => {
             expect(result.dispatch.operationParams.query).to.equal('Photoshop plan');
         });
 
-        it('classifies a quoted title with the noun "cards"', () => {
+        it('abstains on a quoted phrase in a question without a search verb', () => {
             const result = classifySearchIntent("which cards have 'Premium tier' in them?", {
                 currentSurface: 'acom',
             });
-            expect(result.intent).to.equal('title-search');
-            expect(result.dispatch.operationParams.query).to.equal('Premium tier');
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
         });
 
         it('does not classify a casual quoted phrase without anchor', () => {
@@ -833,6 +832,84 @@ describe('ai-chat-search-router', () => {
         it('does not pick a surface name as an OSI candidate', () => {
             const result = classifySearchIntent('show me the sandbox folder');
             expect(result.intent).to.equal('unknown');
+        });
+    });
+
+    describe('no automatic search on questions', () => {
+        const REPORT =
+            'I created a group variation for FR so that the merch card has a green "recommended" banner. The mas fragment has returned from loc and I have published the Fr English and the Fr French mas fragments. I can see the changes on preview ( https://main--da-cc--adobecom.aem.page/fr/creativecloud/photography ) but not on live https://www.adobe.com/fr/creativecloud/photography.html . Please let me know what I\'m missing so that the offer appears on France';
+
+        it('abstains on question-shaped messages', () => {
+            const messages = [
+                'My merch card has a green "recommended" banner on preview but not on live. Why?',
+                'Why does the card show "Buy now" instead of "Free trial"?',
+                'How do I find the "Creative Cloud Pro" card',
+                'show me the "Creative Cloud Pro" card, let me know if it is broken',
+                REPORT,
+            ];
+            for (const message of messages) {
+                const result = classifySearchIntent(message, { currentSurface: 'acom' });
+                expect(result.intent, message).to.equal('unknown');
+                expect(result.dispatch, message).to.equal(null);
+                expect(result.missingSlot, message).to.equal(null);
+            }
+        });
+
+        it('abstains on multi-sentence messages', () => {
+            const result = classifySearchIntent('Find cards titled "Photoshop plans". Then publish them.', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on messages longer than 30 words', () => {
+            const filler = Array.from({ length: 30 }, () => 'word').join(' ');
+            const result = classifySearchIntent(`find cards titled "Photoshop plans" ${filler}`, {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('needs a search verb for a quoted title', () => {
+            const quiet = classifySearchIntent('the "Creative Cloud Pro" card is broken', { currentSurface: 'acom' });
+            expect(quiet.dispatch).to.equal(null);
+            const explicit = classifySearchIntent('show me the "Creative Cloud Pro" card', { currentSurface: 'acom' });
+            expect(explicit.intent).to.equal('title-search');
+            expect(explicit.dispatch.operationParams.query).to.equal('Creative Cloud Pro');
+        });
+
+        it('needs a search verb for a variant name', () => {
+            const quiet = classifySearchIntent('the Plans template cards look wrong', { currentSurface: 'acom' });
+            expect(quiet.dispatch).to.equal(null);
+            const explicit = classifySearchIntent('find plans template cards', { currentSurface: 'acom' });
+            expect(explicit.intent).to.equal('variant-search');
+            expect(explicit.dispatch.operationParams.variant).to.equal('plans');
+        });
+
+        it('still answers plain ID lookups', () => {
+            const result = classifySearchIntent(UUID);
+            expect(result.dispatch).to.deep.equal({ operationName: 'get_card', operationParams: { id: UUID } });
+        });
+
+        it('leaves troubleshooting questions that name an OSI or offer ID to the model', () => {
+            const messages = [
+                'Why is the price for osi A1b2C3d4E5f6G7h8 wrong on the FR page?',
+                `Why does offer id ${OFFER_ID} show the wrong price on live?`,
+                `Why does the card with offer id ${OFFER_ID} show the wrong price on live?`,
+            ];
+            for (const message of messages) {
+                const result = classifySearchIntent(message, { currentSurface: 'acom' });
+                expect(result.intent, message).to.equal('unknown');
+                expect(result.dispatch, message).to.equal(null);
+            }
+        });
+
+        it('still looks up a bare or keyword-tagged OSI or offer ID', () => {
+            expect(classifySearchIntent(REAL_OSI).intent).to.equal('osi-lookup');
+            expect(classifySearchIntent(OFFER_ID).intent).to.equal('osi-lookup');
+            expect(classifySearchIntent(`osi ${REAL_OSI}`).intent).to.equal('osi-lookup');
+            expect(classifySearchIntent(`find cards with offer id ${OFFER_ID}`).intent).to.equal('offer-id-lookup');
         });
     });
 });

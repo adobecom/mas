@@ -108,6 +108,8 @@ export class MasChatSessionSelector extends LitElement {
 
         try {
             const wasActive = sessionId === this.activeSessionId;
+            const { releaseConversationInvestigations } = await import('./mas-chat/investigation-session.js');
+            await releaseConversationInvestigations(sessionId);
             const newActiveSessionId = sessionManager.deleteSession(sessionId);
             this.loadSessions();
 
@@ -158,9 +160,9 @@ export class MasChatSessionSelector extends LitElement {
 
         try {
             const sessionIds = this.sessions.map((s) => s.id);
-            for (const id of sessionIds) {
-                sessionManager.deleteSession(id);
-            }
+            const { releaseConversationInvestigations } = await import('./mas-chat/investigation-session.js');
+            await Promise.all(sessionIds.map(releaseConversationInvestigations));
+            sessionIds.forEach((id) => sessionManager.deleteSession(id));
             this.loadSessions();
             this.dispatchEvent(
                 new CustomEvent('session-changed', {

@@ -150,6 +150,9 @@ export function buildEnvelopeResponseBody(envelope) {
         };
     }
 
+    // The hand-off carries no answer; the client forwards the question to MASA.
+    if (envelope.intent === 'ASK_MASA') return { type: 'message', message: '' };
+
     return {
         type: 'message',
         message:

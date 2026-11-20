@@ -218,24 +218,26 @@ describe('MasChat state regressions', () => {
             if (name === 'aem-fragment') return undefined;
             return getElement(name);
         });
-        let saved;
+        let tagged;
         sinon.stub(el, 'repository').get(() => ({
             aem: {
+                saveTags: async (fragment) => {
+                    tagged = fragment;
+                },
                 sites: {
                     cf: {
                         fragments: {
-                            create: async (data) => {
-                                saved = data;
-                                return null;
-                            },
+                            create: async () => ({ id: 'draft-id' }),
                         },
                     },
                 },
             },
         }));
         await el.saveDraftToAEM({ variant: 'catalog' }, { parentPath: '/content/dam/mas/sandbox/en_US', name: 'draft' });
-        expect(saved.tags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
-        expect(saved.tags).to.include('mas:product_code/PHSP');
+        // AEM create drops tags, so they must be saved on the created fragment.
+        expect(tagged.id).to.equal('draft-id');
+        expect(tagged.newTags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
+        expect(tagged.newTags).to.include('mas:product_code/PHSP');
     });
     for (const operationResult of [
         { success: true, operation: 'copy', newFragmentId: id, newFragmentTitle: 'Copy', message: 'Copied' },

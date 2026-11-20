@@ -112,7 +112,22 @@ export async function createReleaseCard({
         title,
         name,
     });
-    const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+    return createFragmentWithTags(repository, fragmentData);
+}
 
+/**
+ * Create a fragment, then save its tags. AEM's create request carries no tags
+ * (`Aem.createFragment` sends only title, name, description and fields), so tags
+ * passed to it are dropped unless saved on the created fragment.
+ *
+ * @param {Object} repository - the mas-repository element
+ * @param {Object} fragmentData - fragment payload, with optional `tags`
+ * @returns {Promise<Object>} the created fragment
+ */
+export async function createFragmentWithTags(repository, fragmentData) {
+    const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+    if (newFragment && fragmentData.tags?.length) {
+        await repository.aem.saveTags({ ...newFragment, newTags: fragmentData.tags });
+    }
     return newFragment;
 }

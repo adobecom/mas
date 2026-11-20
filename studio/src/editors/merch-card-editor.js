@@ -1187,9 +1187,12 @@ class MerchCardEditor extends LitElement {
         );
     }
 
+    get #parentWhatsIncludedDivider() {
+        return parseWhatsIncludedDivider(this.inheritanceParent?.getFieldValue(WHAT_IS_INCLUDED, 0)).divider;
+    }
+
     #restoreWhatsIncludedDivider() {
-        const parentHtml = this.inheritanceParent.getFieldValue(WHAT_IS_INCLUDED, 0) || '';
-        if (!this.#persistWhatsIncludedDividerColor(parseWhatsIncludedDivider(parentHtml).divider)) return;
+        if (!this.#persistWhatsIncludedDividerColor(this.#parentWhatsIncludedDivider)) return;
         this.#showRestoredToast(WHAT_IS_INCLUDED);
     }
 
@@ -2709,7 +2712,8 @@ class MerchCardEditor extends LitElement {
             this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
             return;
         }
-        const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
+        const divider = this.whatsIncludedElement ? this.whatsIncludedDividerFromMarkup : this.#parentWhatsIncludedDivider;
+        const element = this.createIncludedElement(label, values, bullets, divider);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 

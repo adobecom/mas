@@ -3217,6 +3217,46 @@
                                         expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
                                         editor.fragmentStore.previewStore.dispose();
                                     });
+
+                                    it('keeps the baseline divider color when an application is added on mini compare chart', async () => {
+                                        const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                        const editor = document.createElement('merch-card-editor');
+                                        editor.isVariation = false;
+                                        editor.fragmentStore = generateFragmentStore(
+                                            new Fragment({
+                                                ...structuredClone(baseMockData),
+                                                id: 'cleared-mcc-card',
+                                                path: '/content/dam/mas/nala/en_US/cleared-mcc-card',
+                                                fields: baseMockData.fields.map((field) => ({
+                                                    ...field,
+                                                    values: field.name === 'variant' ? ['mini-compare-chart'] : [],
+                                                })),
+                                            }),
+                                            null,
+                                            { lazy: true },
+                                        );
+                                        const html = editor.createIncludedElement('', [], [BULLET], DIVIDER).outerHTML;
+                                        const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                        editor.baselinesController.parent = baseline;
+                                        editor.baselinesController.hostUpdate = () => {};
+                                        editor.fragmentStore.setBaselineParent(baseline);
+                                        editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                        document.body.append(editor);
+                                        await editor.updateComplete;
+                                        const multifield = editor.querySelector(
+                                            '#whatsIncludedIconPicker mas-multifield[button-label="Add application"]',
+                                        );
+                                        multifield.value = [APPLICATION];
+                                        multifield.dispatchEvent(new Event('change', { bubbles: true }));
+                                        await editor.updateComplete;
+                                        expect(editor.whatsIncluded.values).to.have.length(1);
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        expect(
+                                            editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                        ).to.equal('inherited');
+                                        editor.remove();
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
                                 });
                             });
 

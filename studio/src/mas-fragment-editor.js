@@ -366,6 +366,13 @@ export default class MasFragmentEditor extends LitElement {
             box-shadow: none;
         }
 
+        .section.card-editor-section {
+            background: none;
+            border: 0;
+            box-shadow: none;
+            padding: 0;
+        }
+
         .section.compare-chart-section #author-path {
             flex: 0 0 auto;
             margin: 16px 16px 0;
@@ -2418,7 +2425,10 @@ export default class MasFragmentEditor extends LitElement {
             ${this.isPromoReadOnly
                 ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
                 : nothing}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
+            <div
+                class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}${this.fragment.model.path === CARD_MODEL_PATH ? ' card-editor-section' : ''}`}
+                ?inert=${this.isPromoReadOnly}
+            >
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;

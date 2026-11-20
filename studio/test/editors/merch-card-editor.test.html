@@ -342,6 +342,9 @@
                         const group = editor.querySelector('sp-field-group#callout');
                         expect(getComputedStyle(group).display).not.to.equal('none');
                         expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Legal Disclaimer');
+                        expect(
+                            editor.querySelector('sp-field-group#shortDescription sp-field-label').textContent.trim(),
+                        ).to.equal('Pricing subtext');
                         const field = group.querySelector('rte-field');
                         expect(field.value).to.equal(disclaimer);
 
@@ -1924,11 +1927,159 @@
 
                         const expectedGridOrder = [
                             'variant',
-                            'cardName',
+                            'size',
                             'fragment-title-group',
                             'fragment-description-group',
                             'fragment-enable-baselines-group',
                         ];
+
+                        const sectionTitleFor = (editor, el) => {
+                            const preceding = [...editor.querySelectorAll('.section-title')].filter(
+                                (heading) => heading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
+                            return preceding.at(-1).textContent.trim();
+                        };
+
+                        it('groups a plans card into the redesigned sections', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'section-order-plans',
+                            );
+                            await editor.toggleFields();
+                            expect(
+                                [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                            ).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                "What's included",
+                                "What's included",
+                                'Footer rows',
+                                'Custom fields',
+                                'Options and settings',
+                            ]);
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#planType'))).to.equal(
+                                'Price and Promo',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#secureLabel'))).to.equal(
+                                'Call to action',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#mnemonics'))).to.equal(
+                                'Card header',
+                            );
+                        });
+
+                        it('keeps the Visuals heading visible when only backgroundImage or backgrounds is visible', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'visuals-bg',
+                            );
+                            await editor.toggleFields();
+                            const visualsFields = editor.constructor.SECTION_FIELDS.Visuals;
+                            const heading = [...editor.querySelectorAll('.section-title')].find(
+                                (h) => h.textContent.trim() === 'Visuals',
+                            );
+                            for (const visible of ['backgroundImage', 'backgrounds']) {
+                                for (const id of visualsFields) {
+                                    const el = editor.querySelector(`#${id}`);
+                                    if (el) el.style.display = id === visible ? 'block' : 'none';
+                                }
+                                editor.toggleSectionHeadings();
+                                expect(heading.style.display).to.equal('block');
+                            }
+                        });
+
+                        it('wraps each section of a plans card in its own card', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'section-cards-plans',
+                            );
+                            await editor.toggleFields();
+                            const containers = [...editor.querySelectorAll('.editor-section')];
+                            expect(containers.map((c) => c.dataset.section)).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                "What's included",
+                                "What's included",
+                                'Footer rows',
+                                'Custom fields',
+                                'Options and settings',
+                            ]);
+                            expect(containers[0].querySelector('.section-title-status')).to.exist;
+                            expect(containers.filter((c) => c.classList.contains('editor-section--meta'))).to.deep.equal([
+                                containers[1],
+                            ]);
+                            const inside = (id, index) => expect(containers[index].querySelector(`#${id}`)).to.exist;
+                            inside('variant', 0);
+                            inside('cardName', 1);
+                            inside('ctas', 5);
+                            inside('secureLabel', 5);
+                            inside('customFields', 10);
+                        });
+
+                        it('hides the card of a section whose fields are all hidden', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'section-cards-hidden',
+                            );
+                            await editor.toggleFields();
+                            for (const id of editor.constructor.SECTION_FIELDS.Visuals) {
+                                const el = editor.querySelector(`#${id}`);
+                                if (el) el.style.display = 'none';
+                            }
+                            editor.querySelector('#customFields').style.display = 'none';
+                            editor.querySelector('#footerRows').style.display = 'none';
+                            editor.toggleSectionHeadings();
+                            const card = (name) => editor.querySelector(`.editor-section[data-section="${name}"]`);
+                            for (const name of ['Visuals', 'Custom fields', 'Footer rows']) {
+                                expect(getComputedStyle(card(name)).display).to.equal('none');
+                            }
+                            for (const name of ['Card framework', 'Meta data', 'Price and Promo']) {
+                                expect(getComputedStyle(card(name)).display).to.not.equal('none');
+                            }
+
+                            editor.querySelector('#backgroundImage').style.display = 'block';
+                            editor.toggleSectionHeadings();
+                            expect(getComputedStyle(card('Visuals')).display).to.not.equal('none');
+                        });
+
+                        it('uses the Figma default labels', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-labels',
+                            );
+                            const labelOf = (selector) => editor.querySelector(`${selector} sp-field-label`).textContent.trim();
+                            expect(labelOf('sp-field-group#size')).to.equal('Card Size');
+                            expect(labelOf('sp-field-group#cardName')).to.equal('Deep linking name');
+                            expect(labelOf('sp-field-group#title')).to.equal('Card title');
+                            const osiGroup = editor.querySelector('osi-field').closest('sp-field-group');
+                            expect(osiGroup.querySelector('sp-field-label').textContent.trim()).to.equal('OSI');
+                            expect(editor.querySelector('mas-plan-type-field').label).to.equal('Show plan type');
+                            expect(labelOf('sp-field-group#promoCode')).to.equal('Promo code');
+                            expect(labelOf('sp-field-group#promoText')).to.equal('Promo text');
+                        });
+
+                        it('places the Primary CTA label before the CTAs field', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'primary-cta-label',
+                            );
+                            const group = editor.querySelector('sp-field-group#ctas');
+                            const label = [...group.children].find((child) => child.localName === 'sp-field-label');
+                            expect(label.textContent.trim()).to.equal('Primary CTA');
+                            expect(label.compareDocumentPosition(group.querySelector('rte-field#ctas'))).to.equal(
+                                Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
+                        });
 
                         it('keeps the General info fields in order without a gap', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'no-locready-order');
@@ -1951,6 +2102,132 @@
                             editor.querySelector('sp-switch#fragment-enable-baselines').click();
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([true]);
+                        });
+                    });
+
+                    describe('Figma typography', () => {
+                        it('uses 18px section titles, 14px field labels and 12px field gaps', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-typography',
+                            );
+                            await editor.toggleFields();
+                            const title = getComputedStyle(editor.querySelector('.editor-section .section-title'));
+                            expect(title.fontSize).to.equal('18px');
+                            expect(title.lineHeight).to.equal('22px');
+                            const host = getComputedStyle(editor);
+                            expect(host.getPropertyValue('--mod-fieldlabel-font-size').trim()).to.equal('14px');
+                            expect(host.getPropertyValue('--mod-fieldlabel-min-height').trim()).to.equal('32px');
+                            const group = editor.querySelector('.editor-section > sp-field-group');
+                            expect(getComputedStyle(group).marginTop).to.equal('12px');
+                            const grid = editor.querySelector('.two-column-grid');
+                            expect(getComputedStyle(grid).rowGap).to.equal('12px');
+                        });
+                    });
+
+                    describe('Meta data collapse', () => {
+                        const toggleSelector = '.editor-section--meta .section-header-row sp-action-button.meta-data-toggle';
+
+                        it('starts expanded with an accessible toggle', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-default',
+                            );
+                            await editor.toggleFields();
+                            expect(editor.metaCollapsed).to.equal(false);
+                            const button = editor.querySelector(toggleSelector);
+                            const card = editor.querySelector('.editor-section--meta');
+                            expect(button).to.exist;
+                            expect(button.parentElement).to.equal(card.querySelector('.section-header-row'));
+                            expect(card.querySelector('.section-title').contains(button)).to.equal(false);
+                            expect(button.quiet).to.equal(true);
+                            expect(button.getAttribute('aria-expanded')).to.equal('true');
+                            expect(button.getAttribute('aria-label')).to.equal('Collapse Meta data');
+                            expect(button.querySelector('sp-icon-chevron-up')).to.exist;
+                            expect(button.querySelector('sp-icon-chevron-down')).to.not.exist;
+                            expect(button.getAttribute('aria-controls')).to.equal('meta-data-body');
+                            expect(card.querySelector('#meta-data-body')).to.exist;
+                            expect(editor.querySelector('#cardName').hidden).to.equal(false);
+                            expect(editor.querySelector('#tags').hidden).to.equal(false);
+                        });
+
+                        it('collapses and restores the fields without touching their values', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-toggle',
+                            );
+                            await editor.toggleFields();
+                            const setItemCalls = [];
+                            const originalSetItem = Storage.prototype.setItem;
+                            Storage.prototype.setItem = function (...args) {
+                                setItemCalls.push(args);
+                                return originalSetItem.apply(this, args);
+                            };
+                            try {
+                                const card = editor.querySelector('.editor-section--meta');
+                                const button = editor.querySelector(toggleSelector);
+                                const cardNameField = () => editor.querySelector('#cardName');
+                                const tagsField = () => editor.querySelector('#tags');
+                                const snapshot = () => ({
+                                    cardName: editor.querySelector('sp-textfield#card-name').value,
+                                    tags: editor.querySelector('#tags-field').getAttribute('value'),
+                                    stored: fragmentStore.get().getFieldValue('cardName'),
+                                });
+                                const cardStyle = getComputedStyle(card);
+                                const before = snapshot();
+                                const { backgroundColor, borderTopWidth } = cardStyle;
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('false');
+                                expect(button.getAttribute('aria-label')).to.equal('Expand Meta data');
+                                expect(button.querySelector('sp-icon-chevron-down')).to.exist;
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(true);
+                                    expect(getComputedStyle(field).display).to.equal('none');
+                                    expect(field.isConnected).to.equal(true);
+                                    expect(card.contains(field)).to.equal(true);
+                                }
+                                expect(card.querySelector('#meta-data-body').hidden).to.equal(true);
+                                expect(getComputedStyle(card.querySelector('.section-title')).display).to.not.equal('none');
+                                expect(card.classList.contains('editor-section--meta')).to.equal(true);
+                                expect(getComputedStyle(card).display).to.not.equal('none');
+                                expect(getComputedStyle(card).backgroundColor).to.equal(backgroundColor);
+                                expect(getComputedStyle(card).borderTopWidth).to.equal(borderTopWidth);
+                                expect(snapshot()).to.deep.equal(before);
+
+                                await editor.toggleFields();
+                                expect(getComputedStyle(cardNameField()).display).to.equal('none');
+                                expect(getComputedStyle(tagsField()).display).to.equal('none');
+                                expect(
+                                    [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                                ).to.deep.equal([
+                                    'Card framework',
+                                    'Meta data',
+                                    'Card header',
+                                    'Price and Promo',
+                                    'Product description',
+                                    'Call to action',
+                                    'Visuals',
+                                    "What's included",
+                                    "What's included",
+                                    'Footer rows',
+                                    'Custom fields',
+                                    'Options and settings',
+                                ]);
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('true');
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(false);
+                                    expect(getComputedStyle(field).display).to.not.equal('none');
+                                }
+                                expect(snapshot()).to.deep.equal(before);
+                                expect(setItemCalls).to.deep.equal([]);
+                            } finally {
+                                Storage.prototype.setItem = originalSetItem;
+                            }
                         });
                     });
 

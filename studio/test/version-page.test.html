@@ -92,6 +92,13 @@
                             expect(config.variant).to.exist;
                         });
 
+                        it('should use the Figma labels', () => {
+                            const config = versionPage.constructor.FIELD_CONFIG;
+                            expect(config.cardName.label).to.equal('Deep linking name');
+                            expect(config.shortDescription.label).to.equal('Pricing subtext');
+                            expect(config.cardTitle.label).to.equal('Card title');
+                        });
+
                         it('should have label and visible properties for each field', () => {
                             const config = versionPage.constructor.FIELD_CONFIG;
                             Object.entries(config).forEach(([fieldName, fieldConfig]) => {

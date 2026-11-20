@@ -8,15 +8,16 @@ function makeOffer({
     term = 'MONTHLY',
     currencyCode = 'USD',
 } = {}) {
-    const analytics = JSON.stringify({
-        offerId: 'ABC123',
-        currencyCode,
-    });
     const priceDetails = { price };
     if (priceWithoutDiscount !== undefined) {
         priceDetails.priceWithoutDiscount = priceWithoutDiscount;
     }
-    return { priceDetails, commitment, term, analytics };
+    return {
+        priceDetails,
+        commitment,
+        term,
+        priceInfo: { format: { currencyCode } },
+    };
 }
 
 function makeFields({
@@ -87,7 +88,7 @@ describe('injectJsonLd', () => {
         );
     });
 
-    it('uses currency code from offer analytics', () => {
+    it('uses currency code from priceInfo.format without analytics', () => {
         const offer = makeOffer({ currencyCode: 'JPY', price: 3300 });
         const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);
         const data = JSON.parse(script.textContent);
@@ -173,18 +174,47 @@ describe('injectJsonLd', () => {
         expect(result).to.be.null;
     });
 
-    it('returns null when analytics has no currencyCode', () => {
+    it('returns null when priceInfo.format has no currencyCode', () => {
         const offer = makeOffer();
-        offer.analytics = JSON.stringify({ offerId: 'ABC123' });
+        offer.priceInfo = { format: { currencySymbol: 'US$' } };
+        offer.analytics = JSON.stringify({ currencyCode: 'USD' });
         const result = injectJsonLd(makeFields(), offer, null, PAGE_URL);
         expect(result).to.be.null;
     });
 
-    it('returns null when analytics is malformed', () => {
+    it('returns null when priceInfo.format is missing', () => {
         const offer = makeOffer();
-        offer.analytics = 'not-json';
+        offer.priceInfo = { currencyCode: 'USD' };
+        expect(injectJsonLd(makeFields(), offer, null, PAGE_URL)).to.be.null;
+    });
+
+    it('returns null when priceInfo.format.currencyCode is empty', () => {
+        const offer = makeOffer({ currencyCode: '' });
+        expect(injectJsonLd(makeFields(), offer, null, PAGE_URL)).to.be.null;
+    });
+
+    it('returns null when priceInfo is missing', () => {
+        const offer = makeOffer();
+        delete offer.priceInfo;
         const result = injectJsonLd(makeFields(), offer, null, PAGE_URL);
         expect(result).to.be.null;
+    });
+
+    it('ignores malformed analytics when priceInfo.format has a currency code', () => {
+        const offer = makeOffer();
+        offer.analytics = 'not-json';
+        const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);
+        expect(script).to.not.be.null;
+        const data = JSON.parse(script.textContent);
+        expect(data.offers[0].priceCurrency).to.equal('USD');
+    });
+
+    it('uses priceInfo.format currency code when analytics has a different code', () => {
+        const offer = makeOffer({ currencyCode: 'CAD' });
+        offer.analytics = JSON.stringify({ currencyCode: 'USD' });
+        const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);
+        const data = JSON.parse(script.textContent);
+        expect(data.offers[0].priceCurrency).to.equal('CAD');
     });
 
     it('deduplicates by page URL', () => {
@@ -283,14 +313,14 @@ describe('injectJsonLd', () => {
         expect(data).to.not.have.property('image');
     });
 
-    it('supports CAD currency from offer analytics', () => {
+    it('supports CAD currency from priceInfo.format', () => {
         const offer = makeOffer({ currencyCode: 'CAD', price: 68.99 });
         const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);
         const data = JSON.parse(script.textContent);
         expect(data.offers[0].priceCurrency).to.equal('CAD');
     });
 
-    it('supports EUR currency from offer analytics', () => {
+    it('supports EUR currency from priceInfo.format', () => {
         const offer = makeOffer({ currencyCode: 'EUR', price: 35.99 });
         const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);
         const data = JSON.parse(script.textContent);

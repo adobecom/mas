@@ -29,7 +29,7 @@ describe('resolveFragmentId', () => {
         expect(resolveFragmentId('Creative Cloud Standard')).to.equal('a77d8129-320f-4eeb-bf51-a0836d864118');
         expect(resolveFragmentId('Adobe Firefly Standard')).to.equal('25542a46-df3d-4b6c-83dc-8fe4b8bce22b');
         expect(resolveFragmentId('Adobe Express Premium')).to.equal('b96244bb-9101-4b24-8f81-0808e7a815cf');
-        expect(resolveFragmentId('Adobe Express Premium', 'team')).to.equal('e6df1626-22e1-440f-8b98-bdc8137d79f8');
+        expect(resolveFragmentId('Adobe Express Premium', 'team')).to.equal('5c3fe2ac-0dbb-4495-9858-feac379ca19b');
         expect(resolveFragmentId('Adobe Express Premium', 'edu')).to.equal('413ea6c9-a6ac-422a-90ff-0db9ad30b7e1');
         expect(resolveFragmentId('Creative Cloud Standard', 'team')).to.equal('5c3fe2ac-0dbb-4495-9858-feac379ca19b');
     });
@@ -44,8 +44,8 @@ describe('resolveFragmentId', () => {
         [
             'Adobe Firefly Premium',
             'c34e7581-cbe7-4c55-ae9b-3fc87408e788',
-            '4d5fdc6e-00f4-4031-84c7-a94a6cca51ae',
-            'de8104d3-fdf2-4587-b6ca-993506da70c6',
+            '5c3fe2ac-0dbb-4495-9858-feac379ca19b',
+            '2b1a6493-e03b-4803-a150-eed983094a05',
         ],
         [
             'Adobe Firefly Pro Plus',

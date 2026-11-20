@@ -2605,6 +2605,23 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(trialEl.textContent).to.equal('Buy now');
     });
 
+    it('Free trial aria-label text becomes Buy now', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML.replace(
+            '<a ',
+            '<a aria-label="Free trial - Acrobat Pro" ',
+        );
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl.getAttribute('aria-label')).to.equal(
+            'Buy now - Acrobat Pro',
+        );
+        expect(trialEl.textContent).to.equal('Buy now');
+    });
+
     it('stripTrialCtas removes Free trial when the select CTA is in a neighbouring mas-field', async () => {
         const template = document.createElement('template');
         template.innerHTML = CTA_TRIAL_HTML;

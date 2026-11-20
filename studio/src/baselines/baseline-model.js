@@ -9,7 +9,7 @@ import {
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
 import Store from '../store.js';
-import { Fragment } from '../aem/fragment.js';
+import { Fragment, ICON_FIELDS } from '../aem/fragment.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
@@ -21,7 +21,7 @@ import { getOfferBaseline } from '../../../io/www/src/fragment/transformers/offe
 import { MERGE_CONFIG, NON_INHERITED_FIELDS } from '../../../io/www/src/fragment/transformers/customize.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
-const DEFAULT_MARKET_SEGMENT = 'com';
+export const DEFAULT_MARKET_SEGMENT = 'com';
 const MARKET_SEGMENTS_TAG_ROOT = '/content/cq:tags/mas/market_segments';
 const PRODUCT_ARRANGEMENT_CODE_TAG_ROOT = '/content/cq:tags/mas/product_arrangement_code';
 const LOADED_PATH_META = 'loadedPath';
@@ -36,12 +36,23 @@ const BASELINE_LAYERS = [
 
 const CARD_OWN_FIELDS = new Set([...NON_INHERITED_FIELDS, 'variant']);
 
-const OFFER_ICON_FIELDS = new Set(['mnemonicIcon', 'mnemonicAlt']);
-
 export const buildBaselineFolderPath = ({ surface, locale, template, productArrangementCode, marketSegment }) => {
     const folder = `${getBaselinesPath({ surface, locale })}/${template}/${productArrangementCode}`;
     const segment = marketSegment?.toLowerCase();
     return segment && segment !== DEFAULT_MARKET_SEGMENT ? `${folder}/${segment}` : folder;
+};
+
+const BASELINE_PATH = new RegExp(
+    `/${BASELINES_FOLDER}/(?<template>[^/]+)/(?<productArrangementCode>[^/]+)(?:/(?<marketSegment>[^/]+))?/[^/]+$`,
+);
+
+/**
+ * Template, PA code & market segment override (`undefined` for the default segment) of a baseline fragment path, the
+ * inverse of `buildBaselineFolderPath`; `null` for any other path.
+ */
+export const parseBaselinePath = (path) => {
+    const groups = path?.match(BASELINE_PATH)?.groups;
+    return groups ? { ...groups } : null;
 };
 
 /**
@@ -166,7 +177,7 @@ const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
 /**
  * Baselines a card would inherit from (ADR CONT-0005), looked up like the `offer` transformer does: in the default locale
  * of the card locale, for the PA code & market segment of its offer and its template. `null` without offer, template or
- * PA code; each missing baseline is `null`.
+ * PA code; each missing baseline is `null`. Also returns the PA code & market segment they were looked up with.
  */
 export async function findCardBaselines(fragmentsApi, { surface, locale, osi, template }) {
     const defaultLocale = getDefaultLocaleCode(surface, locale);
@@ -181,7 +192,13 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
         getFragmentByPathOrNull(fragmentsApi, templatePath),
         segmentPath === templatePath ? null : getFragmentByPathOrNull(fragmentsApi, segmentPath),
     ]);
-    return { offerBaseline: offerBaseline ? toAuthorFragment(offerBaseline) : null, fragmentBaseline, fragmentSegmentBaseline };
+    return {
+        productArrangementCode,
+        marketSegment,
+        offerBaseline: offerBaseline ? toAuthorFragment(offerBaseline) : null,
+        fragmentBaseline,
+        fragmentSegmentBaseline,
+    };
 }
 
 /**
@@ -208,7 +225,7 @@ export function buildBaselineParent(baselines, card) {
     for (const [key, source] of BASELINE_LAYERS) {
         for (const field of baselines[key]?.fields ?? []) {
             if (CARD_OWN_FIELDS.has(field.name) || !hasContent(field.values)) continue;
-            if (source === 'offer' && hasOwnIcon && OFFER_ICON_FIELDS.has(field.name)) continue;
+            if (source === 'offer' && hasOwnIcon && ICON_FIELDS.has(field.name)) continue;
             const lower = arraysToMerge.includes(field.name) && fields.get(field.name);
             fields.set(field.name, lower ? { ...field, values: [...lower.values, ...field.values] } : field);
             sources[field.name] = source;

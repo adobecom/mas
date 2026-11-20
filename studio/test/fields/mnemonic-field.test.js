@@ -6,6 +6,45 @@ import '../../src/fields/mnemonic-field.js';
 import { spTheme } from '../utils.js';
 
 describe('Mnemonic field', () => {
+    it('shows that a visual comes from the baseline', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-field icon="baseline.svg" data-field-state="baseline"></mas-mnemonic-field>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        const note = el.shadowRoot.querySelector('.field-status-indicator--baseline');
+        expect(note.textContent.trim()).to.equal('From baseline');
+    });
+
+    it('does not show a baseline note for other visuals', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" data-field-state="overridden"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        expect(el.shadowRoot.querySelector('.field-status-indicator--baseline')).to.be.null;
+    });
+
+    it('offers to restore an overridden visual', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" data-field-state="overridden"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        const link = el.shadowRoot.querySelector('.field-status-restore-link');
+        expect(link.textContent).to.include('Click to restore');
+        const restore = oneEvent(el, 'restore-field');
+        link.click();
+        const event = await restore;
+        expect(event.composed).to.be.true;
+    });
+
+    it('leaves the status of an icon library control to its badge section', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" data-field-state="overridden"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        el.iconLibrary = true;
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.field-status-indicator')).to.be.null;
+    });
+
     it('should render without default properties', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
         expect(el.icon).to.equal('');

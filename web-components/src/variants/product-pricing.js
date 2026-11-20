@@ -28,6 +28,10 @@ const SYNCED_ROWS = [
         getElement: (card) => card.shadowRoot?.querySelector('.fine'),
     },
     {
+        name: 'addon',
+        getElement: (card) => card.querySelector('[slot="addon"]'),
+    },
+    {
         name: 'footer',
         getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
@@ -68,6 +72,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     shortDescription: { tag: 'div', slot: 'short-description' },
     ctas: { slot: 'footer', size: 'm' },
     planType: true,
+    addon: true,
     style: 'consonant',
 };
 
@@ -128,8 +133,23 @@ export class ProductPricing extends VariantLayout {
         return host;
     }
 
+    async adjustAddon() {
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        addon.setAttribute('custom-checkbox', '');
+        const price = this.card.querySelector(
+            `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        if (!price) return;
+        await price.onceSettled?.();
+        const planType = price.value?.[0]?.planType;
+        if (planType) addon.planType = planType;
+    }
+
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
+        await this.adjustAddon();
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
         this.flagPriceRow();
@@ -216,6 +236,7 @@ export class ProductPricing extends VariantLayout {
                             <slot name="legal"></slot>
                             <slot name="short-description"></slot>
                         </div>
+                        <slot name="addon"></slot>
                     </div>
                     <footer><slot name="footer"></slot></footer>
                 </div>
@@ -320,6 +341,17 @@ export class ProductPricing extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
+        }
+
+        /* Cards without an add-on reserve its row (box + 16px margin) so prices
+           and buttons line up with their neighbors, as in Figma. Unset var =
+           invalid calc = no reserve, so a row with no add-on is unchanged. */
+        :host([variant='product-pricing']) slot[name='addon'] {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(
+                var(--consonant-merch-card-product-pricing-addon-height) + 16px
+            );
         }
 
         /* Legal + short-description share this row; a card shows one. */

@@ -15,6 +15,17 @@ import { VARIATION_FILTER, VARIATION_FILTER_OPTIONS } from './fragments/variatio
 let editorContextInstance = null;
 
 // Store definition with default values - no URL parsing here
+const RENDER_MODE_COOKIE = 'mas-render-mode';
+// A cookie without an expiry lasts for the browser session and is shared by all its tabs (sessionStorage is per tab).
+const savedRenderMode = () =>
+    document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith(`${RENDER_MODE_COOKIE}=`))
+        ?.split('=')[1];
+export const saveRenderMode = (mode) => {
+    document.cookie = `${RENDER_MODE_COOKIE}=${mode}; path=/; SameSite=Lax`;
+};
+
 const Store = {
     fragments: {
         list: {
@@ -75,7 +86,7 @@ const Store = {
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
-    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    renderMode: new ReactiveStore(savedRenderMode() || 'table'),
     viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
@@ -206,6 +217,12 @@ const Store = {
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
+        baselinesList: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        allBaselines: new ReactiveStore([]),
+        displayBaselines: new ReactiveStore([]),
         offerDataCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
         groupedVariationsData: new ReactiveStore(new Map()),
@@ -223,6 +240,16 @@ const Store = {
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
+    },
+    baselines: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({}),
+        allBaselines: new ReactiveStore([]),
+        displayBaselines: new ReactiveStore([]),
     },
     bulkEditProjects: {
         list: {
@@ -369,6 +396,7 @@ function pageValidator(value) {
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
+        PAGE_NAMES.PROMOTIONS_HISTORY,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
         PAGE_NAMES.AI_ASSISTANT,

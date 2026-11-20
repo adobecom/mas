@@ -129,6 +129,11 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.deep.equal(['ja_JP']);
         });
 
+        it('includes pt_PT for express pt_BR (MWPW-214992)', () => {
+            const result = action.getValidVariationsLocales('express', 'pt_BR');
+            expect(result).to.deep.equal(['pt_BR', 'pt_PT']);
+        });
+
         it('returns default locale + region locales for de_DE (acom)', () => {
             const result = action.getValidVariationsLocales('acom', 'de_DE');
             expect(result).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
@@ -279,6 +284,23 @@ describe('cleanup-variations/index.js', () => {
             const putFields = putArgs[3].fields;
             const variationsField = putFields.find((f) => f.name === 'variations');
             expect(variationsField.values).to.deep.equal(['/content/dam/mas/sandbox/de_AT/live-card']);
+        });
+
+        it('keeps a pt_PT variation of an Express pt_BR fragment (MWPW-214992)', async () => {
+            const fragment = makeFragment('frag-express-pt', '/content/dam/mas/express/pt_BR/pt-card', [
+                '/content/dam/mas/express/pt_PT/pt-card',
+            ]);
+
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/express/pt_BR/pt-card']));
+            fetchFragmentByPathStub.resolves({ fragment, status: 200, etag: fragment.etag });
+
+            const result = await action.main({ ...baseParams, surface: 'express', locale: 'pt_BR', dryRun: false });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.processed).to.equal(1);
+            expect(result.body.removed).to.equal(0);
+            expect(result.body.details).to.be.empty;
+            expect(putToOdinStub).to.not.have.been.called;
         });
 
         it('adds error to summary and continues when putToOdin fails', async () => {
@@ -511,7 +533,11 @@ describe('cleanup-variations/index.js', () => {
                     return match ? match[1] : null;
                 }),
             );
-            expect(surfacesTouched.size).to.equal(10);
+            // all 13 surfaces in DEFAULT_LOCALES should appear at least once
+            expect(surfacesTouched.size).to.equal(13);
+            expect(surfacesTouched).to.include('genuine');
+            expect(surfacesTouched).to.include('dalp');
+            expect(surfacesTouched).to.include('elements');
             expect(surfacesTouched).to.include('acom');
             expect(surfacesTouched).to.include('acom-edu');
             expect(surfacesTouched).to.include('ccd');

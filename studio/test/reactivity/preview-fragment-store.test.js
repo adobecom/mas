@@ -235,6 +235,76 @@ describe('PreviewFragmentStore', () => {
         store.dispose();
     });
 
+    it('drops a resolve result when the value changes mid-resolve and applies the follow-up resolve', async () => {
+        const clock = sandbox.useFakeTimers();
+        const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+        let settleStale;
+        const getResolved = sandbox.stub(store, 'getResolvedFragment');
+        getResolved.onFirstCall().returns(new Promise((resolve) => (settleStale = resolve)));
+        getResolved.onSecondCall().resolves(createFragment({ fields: [{ name: 'title', values: ['Fresh'] }] }));
+
+        store.resolveFragment(true);
+        store.refreshFrom(createFragment({ fields: [{ name: 'title', values: ['Clean'] }] }));
+        settleStale(createFragment({ fields: [{ name: 'title', values: ['Baseline'] }] }));
+        await clock.tickAsync(0);
+
+        expect(store.value.getFieldValue('title')).to.equal('Clean');
+
+        await clock.tickAsync(200);
+
+        expect(getResolved.callCount).to.equal(2);
+        expect(store.value.getFieldValue('title')).to.equal('Fresh');
+        store.dispose();
+    });
+
+    it('drops a resolve result when an internal field changes mid-resolve', async () => {
+        const clock = sandbox.useFakeTimers();
+        const store = new PreviewFragmentStore(createFragment({ fields: [{ name: 'title', values: ['Clean'] }] }), null, {
+            lazy: true,
+        });
+        let settleStale;
+        const getResolved = sandbox.stub(store, 'getResolvedFragment');
+        getResolved.onFirstCall().returns(new Promise((resolve) => (settleStale = resolve)));
+        getResolved.onSecondCall().resolves(createFragment({ fields: [{ name: 'title', values: ['Fresh'] }] }));
+
+        store.resolveFragment(true);
+        store.updateFieldInternal('previewLocaleOverride', 'fr_FR');
+        settleStale(createFragment({ fields: [{ name: 'title', values: ['Stale'] }] }));
+        await clock.tickAsync(0);
+
+        expect(store.value.getFieldValue('title')).to.equal('Clean');
+
+        await clock.tickAsync(200);
+
+        expect(getResolved.callCount).to.equal(2);
+        expect(store.value.getFieldValue('title')).to.equal('Fresh');
+        store.dispose();
+    });
+
+    it('re-resolves placeholders from the authored fields when the preview locale changes', async () => {
+        sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+        Store.placeholders.previewByLocale.value = { en_US: { 'card-title': 'US title' }, en_AU: { 'card-title': 'AU title' } };
+        const store = new PreviewFragmentStore(
+            createFragment({
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['{{card-title}}'] },
+                ],
+            }),
+            null,
+            { lazy: true },
+        );
+
+        store.replaceFrom(await store.getResolvedFragment());
+        expect(store.value.getFieldValue('cardTitle')).to.equal('US title');
+
+        store.setPreviewLocaleOverride('en_AU');
+        const result = await store.getResolvedFragment();
+
+        expect(result.fields.find(({ name }) => name === 'cardTitle').values).to.deep.equal(['AU title']);
+        store.dispose();
+    });
+
     it('previewLocale getter prefers the override over the global locale', () => {
         const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
         expect(store.previewLocale).to.equal('en_US');
@@ -308,7 +378,11 @@ describe('PreviewFragmentStore', () => {
             repository = {
                 getPromotionsPath: () => '/content/dam/mas/promotions',
                 searchFragmentList: sandbox.stub().resolves([rawProject()]),
-                loadPromotions: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().callsFake(async () => {
+                    const fragments = await repository.searchFragmentList({ path: repository.getPromotionsPath() });
+                    Store.promotions.list.data.set(fragments.map((fragment) => ({ get: () => fragment })));
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                }),
             };
             service = { settings: { instant: '2026-02-05T00:00:00Z' } };
             const query = sandbox.stub(document, 'querySelector').callThrough();
@@ -363,7 +437,7 @@ describe('PreviewFragmentStore', () => {
             expect(store.value.cdtStart).to.be.undefined;
 
             store.replaceFrom(result);
-            store.value.updateField('description', ['<p>Offer without a timer</p>']);
+            store.updateField('description', ['<p>Offer without a timer</p>']);
             const cleared = await store.getResolvedFragment();
 
             expect(cleared.cdtStart).to.be.undefined;
@@ -503,13 +577,12 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
-        it('takes a promo variation dates from its tagged project via a cold raw search, never loadPromotions', async () => {
+        it('loads the shared promotions list once for a promo variation dates', async () => {
             const store = createStore(variation());
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             await store.getCountdownDates(SENTINEL_FIELDS);
-            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(repository.loadPromotions.calledOnceWithExactly({ rethrow: true })).to.be.true;
             expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/promotions');
-            expect(repository.loadPromotions.called).to.be.false;
             expect(store.previewPublishedFragment.called).to.be.false;
             store.dispose();
         });

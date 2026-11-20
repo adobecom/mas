@@ -21,11 +21,11 @@ export const VARIATION_SEARCH_TABS = {
  */
 export function classifyVariationByPath(path) {
     if (!path) return { isVariation: false, tab: null };
-    if (Fragment.isGroupedVariationPath(path)) {
-        return { isVariation: true, tab: VARIATION_SEARCH_TABS.GROUPED };
-    }
     if (isPromoVariationPath(path)) {
         return { isVariation: true, tab: VARIATION_SEARCH_TABS.PROMOTION };
+    }
+    if (Fragment.isGroupedVariationPath(path)) {
+        return { isVariation: true, tab: VARIATION_SEARCH_TABS.GROUPED };
     }
     const localeCode = extractLocaleFromPath(path);
     const surface = extractSurfaceFromPath(path);

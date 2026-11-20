@@ -22,7 +22,7 @@ Geography-only and audience-only variations remain supported.
 `transformers/render.js` is available for direct execution only. It is **not**
 registered in the pipeline, and does not change production responses or fetch
 offers. It imports the shared framework-free implementation directly from
-`price/src/index.js` via a relative path, following the server's existing
+`price/src/price.js` and `price/src/offers.js` via relative paths, following the server's existing
 cross-directory import convention. No installed price package or workspace
 symlink is required; keep the repository's `price/src/` directory alongside
 `io/www` when running or bundling the server. `parse5` remains a runtime dependency.
@@ -80,7 +80,7 @@ parameters. These are prerequisites for the separate activation ticket.
 The selected cache is `context.body.wcs[environment]`. Cache keys follow the WCS
 producer: final OSI, lowercased country, `mult` except for GB, then the lowercased
 effective promotion code if present. Raw cached offers are copied and normalized
-using `applyPlanType` imported from `price/src/index.js` before offer
+using `applyPlanType` imported from `price/src/offers.js` before offer
 selection. Its mapping preserves the browser's existing tacocat behavior;
 web-components is unchanged and continues using its current helper.
 The server does not depend on Dexter or Pandora for normalization.
@@ -146,6 +146,26 @@ Baselines are fields only: their references are not hydrated.
 Baselines' own variations are ignored. Each customized fragment exposes `offerBaselineId` / `fragmentBaselineId` / `fragmentSegmentBaselineId`, and the root `fields.osi` is forced to the `offer` param.
 
 Nothing is requested twice, whatever the collection size: distinct offers are resolved in one WCS batch whose artifacts are reused by the `wcs` transformer (and always shipped in `body.wcs`). Fragment baselines are fetched in bulk, in parallel with WCS, with one (paginated) listing of `/content/dam/mas/<surface>/<locale>/baselines/<template>` per template used; offer baselines are fetched once per locale. Both are kept in a single-flight SWR cache (5 min TTL) shared by all fragments and requests, absence included.
+
+## Orion stage testing
+
+The optional fragment query parameter `serveLatest=true` requests latest offers
+from WCS configurations whose `env` is `stage`. Production WCS requests are
+unchanged. Both the offer transformer's early WCS lookup and final prefill use
+the same mode, reusing artifacts under `body.wcs["stage-latest"]` rather than
+`body.wcs.stage`. The existing OSI/country/language/promotion keys are unchanged.
+Direct render callers can select this cache with `environment: 'stage-latest'`.
+
+Latest requests use a separate request metadata/ETag key only when a Stage WCS
+configuration is present. Without one, normal metadata is reused because prefill
+is unchanged. The fragment URL
+contains `serveLatest=true`; the deployed CDN must retain this query parameter
+in its cache key and forward it to the action. Verify normal/latest cache
+isolation on stage and coordinate WCS cache expiry or purge when its
+`wcs.feature.enableServeLatest` flag changes.
+
+The offers sync does not fetch WCS pricing and is unchanged. The agent/flatten
+runtime continues using its production configuration and production prefill.
 
 ## configuration
 

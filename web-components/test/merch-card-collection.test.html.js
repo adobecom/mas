@@ -285,7 +285,24 @@ runTests(async () => {
             await collectionElement.checkReady();
             const merchCard = collectionElement.querySelector('merch-card');
             expect(merchCard).to.exist;
+            expect(merchCard.hasAttribute('consonant')).to.be.true;
         });
+
+        for (const spectrum of ['css', 'swc']) {
+            it(`uses the consumer's explicit Spectrum ${spectrum} setup for collection cards`, async () => {
+                collectionElement.setAttribute('spectrum', spectrum);
+                render();
+                await collectionElement.checkReady();
+                const cards = [
+                    ...collectionElement.querySelectorAll('merch-card'),
+                ];
+                expect(cards.length).to.be.greaterThan(0);
+                for (const card of cards) {
+                    expect(card.getAttribute('spectrum')).to.equal(spectrum);
+                    expect(card.hasAttribute('consonant')).to.be.false;
+                }
+            });
+        }
 
         it('sets variation-id on the host when the collection fragment payload includes variationId', async () => {
             render();

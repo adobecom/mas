@@ -4,6 +4,7 @@ on:
     pull_request:
         branches:
             - main
+            - rcp-main
         types: [opened, synchronize, labeled, unlabeled]
     # Re-evaluate when a review lands, so an already-labeled PR starts Nala
     # as soon as it reaches the required approval count.
@@ -84,12 +85,14 @@ jobs:
                       core.setOutput('superseded-runs', JSON.stringify(supersededRuns));
 
     identity:
+        if: ${{ contains(fromJSON('["main", "rcp-main"]'), github.event.pull_request.base.ref) }}
         uses: ./.github/workflows/resolve-aio-identity.yaml
         with:
             login: ${{ github.event.pull_request.user.login }}
 
     check-paths:
         name: Check Changed Paths
+        if: ${{ contains(fromJSON('["main", "rcp-main"]'), github.event.pull_request.base.ref) }}
         runs-on: ubuntu-latest
         # No concurrency group: a cancelled result would stick to a gate re-run.
         outputs:
@@ -111,7 +114,10 @@ jobs:
     check-approvals:
         name: Check Label and Approvals
         needs: cancel-superseded-runs
-        if: ${{ !cancelled() && (needs.cancel-superseded-runs.result == 'success' || needs.cancel-superseded-runs.result == 'skipped') }}
+        if: |
+            !cancelled() &&
+            contains(fromJSON('["main", "rcp-main"]'), github.event.pull_request.base.ref) &&
+            (needs.cancel-superseded-runs.result == 'success' || needs.cancel-superseded-runs.result == 'skipped')
         runs-on: ubuntu-latest
         # Explicit requests (new commit, 're-added run nala') get their own group so an
         # incidental review or label change cannot cancel them before Nala starts.
@@ -345,7 +351,7 @@ jobs:
         # still pending.
         name: Nala Gate
         needs: [cancel-superseded-runs, check-paths, check-approvals, run-nala-studio-tests, run-nala-docs-tests]
-        if: always()
+        if: ${{ always() && contains(fromJSON('["main", "rcp-main"]'), github.event.pull_request.base.ref) }}
         runs-on: ubuntu-latest
         timeout-minutes: 55
         steps:

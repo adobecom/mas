@@ -21,6 +21,7 @@ import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
 import { startOdinTelemetry } from './utils/odin-telemetry.js';
+import { startNetworkLatencyMonitor } from './utils/network-latency.js';
 
 const LAZY_IMPORT_RETRIES = 2;
 const LAZY_IMPORT_RETRY_DELAY = 1000;
@@ -33,6 +34,7 @@ const BUCKET_TO_ENV = {
 
 router.start();
 startOdinTelemetry();
+startNetworkLatencyMonitor();
 
 class MasStudio extends LitElement {
     static properties = {
@@ -167,6 +169,7 @@ class MasStudio extends LitElement {
     profile = new StoreController(this, Store.profile);
     landscape = new StoreController(this, Store.landscape);
     viewMode = new StoreController(this, Store.viewMode);
+    promotionId = new StoreController(this, Store.promotions.promotionId);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
@@ -228,6 +231,12 @@ class MasStudio extends LitElement {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
         if (!this.#lazyLoad('mas-promotions-editor', './promotions/mas-promotions-editor.js')) return nothing;
         return html`<mas-promotions-editor></mas-promotions-editor>`;
+    }
+
+    get promotionsHistory() {
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS_HISTORY) return nothing;
+        if (!this.#lazyLoad('mas-promotion-history', './promotions/mas-promotion-history.js')) return nothing;
+        return html`<mas-promotion-history .projectId=${this.promotionId.value}></mas-promotion-history>`;
     }
 
     get translation() {
@@ -294,7 +303,7 @@ class MasStudio extends LitElement {
     }
 
     get pickersToHide() {
-        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
+        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
             return [PICKERS.FOLDER, PICKERS.LOCALE];
         }
         return [];
@@ -362,6 +371,8 @@ class MasStudio extends LitElement {
                 return this.promotions;
             case PAGE_NAMES.PROMOTIONS_EDITOR:
                 return this.promotionsEditor;
+            case PAGE_NAMES.PROMOTIONS_HISTORY:
+                return this.promotionsHistory;
             case PAGE_NAMES.VERSION:
                 return this.versionPage;
             case PAGE_NAMES.TRANSLATIONS:

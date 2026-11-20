@@ -21,6 +21,7 @@ import {
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
+import { computeRegionLocale } from '../../src/fragment/transformers/defaultLanguage.js';
 
 describe('locales', function () {
     describe('Lingo Phase 5 ACOM markets', function () {
@@ -365,6 +366,16 @@ describe('locales', function () {
             expect(result.length).to.equal(0);
         });
 
+        it('should return ACOM locales for genuine, acom-edu, dalp and elements', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            for (const surface of ['genuine', 'acom-edu', 'dalp', 'elements']) {
+                const result = getSurfaceLocales(surface);
+                expect(result, surface).to.not.be.empty;
+                expect(result, surface).to.deep.equal(acomLocales);
+                expect(getDefaultLocales(surface), surface).to.deep.equal(getDefaultLocales('acom'));
+            }
+        });
+
         it('should return same locales for acom-cc as acom', function () {
             const acomLocales = getSurfaceLocales('acom');
             const acomCcLocales = getSurfaceLocales('acom-cc');
@@ -625,6 +636,28 @@ describe('locales', function () {
         });
         it('does not throw on undefined locale', () => {
             expect(restrictCountryToLocaleMarket('acom', undefined, 'US')).to.equal('US');
+        });
+        it('keeps PT for express pt_BR and still restricts other countries (MWPW-214992)', () => {
+            expect(restrictCountryToLocaleMarket('express', 'pt_BR', 'PT')).to.equal('PT');
+            expect(restrictCountryToLocaleMarket('express', 'pt_BR', 'BR')).to.equal('BR');
+            expect(restrictCountryToLocaleMarket('express', 'pt_BR', 'US')).to.equal('BR');
+        });
+    });
+
+    describe('Express pt_BR resolves PT visitors to pt_PT (MWPW-214992)', () => {
+        it('keeps PT as the commerce country', () => {
+            expect(resolveCommerceCountries('express', 'pt_BR', 'PT')).to.deep.equal({ country: 'PT', wcsCountry: 'PT' });
+        });
+        it('computes pt_PT as the region locale', () => {
+            expect(
+                computeRegionLocale({ surface: 'express', locale: 'pt_BR', defaultLocale: 'pt_BR', country: 'PT' }),
+            ).to.equal('pt_PT');
+        });
+        it('does not change acom pt_PT resolution or the acom and ccd pt_BR entries', () => {
+            expect(getDefaultLocale('acom', 'pt_PT')).to.deep.equal({ lang: 'pt', country: 'PT' });
+            const find = (surface) => getDefaultLocales(surface).find((l) => l.lang === 'pt' && l.country === 'BR');
+            expect(find('acom')).to.deep.equal({ lang: 'pt', country: 'BR', regions: ['MO'] });
+            expect(find('ccd')).to.deep.equal({ lang: 'pt', country: 'BR' });
         });
     });
 

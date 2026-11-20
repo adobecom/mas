@@ -2014,6 +2014,18 @@ describe('mas-field – tooltip icon-button rendering', () => {
             svg.getAttribute('class') || '',
             'milo info icon class',
         ).to.contain('icon-milo-info');
+        expect(svg.getAttribute('viewBox'), 'Spectrum 2 viewBox').to.equal(
+            '0 0 20 20',
+        );
+        expect(svg.getAttribute('class')).to.equal('icon-milo icon-milo-info');
+        expect(svg.getAttribute('aria-hidden')).to.equal('true');
+        expect(svg.getAttribute('height')).to.equal('18');
+        expect(svg.getAttribute('width')).to.equal('18');
+        const paths = svg.querySelectorAll('path');
+        expect(paths.length, 'InfoCircle has three paths').to.equal(3);
+        paths.forEach((path) =>
+            expect(path.getAttribute('fill')).to.equal('currentcolor'),
+        );
         expect(
             btn.getBoundingClientRect().width,
             'glyph occupies space',
@@ -2590,6 +2602,23 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
         expect(trialEl).to.exist;
         expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(trialEl.textContent).to.equal('Buy now');
+    });
+
+    it('Free trial aria-label text becomes Buy now', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML.replace(
+            '<a ',
+            '<a aria-label="Free trial - Acrobat Pro" ',
+        );
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl.getAttribute('aria-label')).to.equal(
+            'Buy now - Acrobat Pro',
+        );
         expect(trialEl.textContent).to.equal('Buy now');
     });
 

@@ -54,7 +54,7 @@ describe('placeholder-references', () => {
             await findPlaceholderReferences(aem, { key: 'buy-now', surface: 'sandbox', locale: 'en_US' });
 
             const calls = aem.sites.cf.fragments.search.getCalls();
-            expect(calls).to.have.lengthOf(2);
+            expect(calls).to.have.lengthOf(1);
             for (const call of calls) {
                 expect(call.args[0].modelIds).to.have.members([
                     TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],

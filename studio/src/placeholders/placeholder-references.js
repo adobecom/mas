@@ -5,7 +5,7 @@ import {
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
-import { showToast } from '../utils.js';
+import { showToast, extractLocaleFromPath } from '../utils.js';
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
@@ -30,7 +30,7 @@ export function matchesPlaceholderKey(fragmentLike, key) {
     );
 }
 
-async function findReferences(aem, path, key, excludePath, signal) {
+async function findReferences(aem, path, key, excludePath, signal, locale) {
     const modelIds = [
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
@@ -53,6 +53,7 @@ async function findReferences(aem, path, key, excludePath, signal) {
             if (excludePath && item.path === excludePath) continue;
             if (seenPaths.has(item.path)) continue;
             if (!matchesPlaceholderKey(item, key)) continue;
+            if (locale && locale !== extractLocaleFromPath(item.path)) continue;
             seenPaths.add(item.path);
             references.push(item);
             refsFound++;
@@ -72,15 +73,18 @@ async function findReferences(aem, path, key, excludePath, signal) {
 export async function findPlaceholderReferences(aem, { key, excludePath, signal, surface, locale } = {}) {
     showToast('Searching for references ...');
     let references = [];
-    if (locale === 'en_US') {
-        references = await findReferences(aem, `${ROOT_PATH}/${surface}`, key, excludePath, signal);
-        if (!references.length && surface !== 'acom') {
-            references = await findReferences(aem, `${ROOT_PATH}/acom`, key, excludePath, signal);
+
+    if (surface === 'acom') {
+        if (locale === 'en_US') {
+            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal);
+        } else {
+            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal, locale);
         }
     } else {
-        references = await findReferences(aem, `${ROOT_PATH}/${surface}/${locale}`, key, excludePath, signal);
-        if (!references.length && surface !== 'acom') {
-            references = await findReferences(aem, `${ROOT_PATH}/acom/${locale}`, key, excludePath, signal);
+        if (locale === 'en_US') {
+            references = await findReferences(aem, `${ROOT_PATH}/${surface}`, key, excludePath, signal);
+        } else {
+            references = await findReferences(aem, `${ROOT_PATH}/${surface}/${locale}`, key, excludePath, signal);
         }
     }
 

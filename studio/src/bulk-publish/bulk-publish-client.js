@@ -3,6 +3,7 @@ const REVERT_ENDPOINT = '/bulk-revert';
 const RESET_ENDPOINT = '/bulk-publish-reset';
 const CHECK_MODIFICATIONS_ENDPOINT = '/bulk-check-modifications';
 const SAVE_SNAPSHOT_ENDPOINT = '/bulk-save-snapshot';
+const REPORT_ENDPOINT = '/bulk-report';
 
 export class BulkPublishError extends Error {
     constructor(message, { status = null, body = null } = {}) {
@@ -69,6 +70,17 @@ export async function resetAction({ ioBaseUrl, projectId, token }) {
 
 export async function checkModificationsAction({ ioBaseUrl, entries, token }) {
     return callAction(ioBaseUrl, CHECK_MODIFICATIONS_ENDPOINT, { entries }, token);
+}
+
+/**
+ * Requests the live-status report of a completed bulk publish project.
+ * @returns {Promise<object>} report with summary, missingIndexes and rows
+ */
+export async function reportAction({ ioBaseUrl, projectId, token, aemOdinEndpoint }) {
+    if (!projectId) throw new BulkPublishError('projectId is required');
+    const payload = { projectId };
+    if (aemOdinEndpoint) payload.aemOdinEndpoint = aemOdinEndpoint;
+    return callAction(ioBaseUrl, REPORT_ENDPOINT, payload, token);
 }
 
 export async function saveSnapshotAction({ ioBaseUrl, projectId, token }) {

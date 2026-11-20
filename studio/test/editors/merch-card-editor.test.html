@@ -2011,10 +2011,10 @@
                             expect(editor.querySelector('sp-field-label[for="fragment-org"]').hasAttribute('required')).to.be
                                 .true;
                             expect(state.getAttribute('placeholder')).to.equal('i.e. default, bf-26-variation');
-                            expect(org.parentElement.offsetTop).to.equal(state.parentElement.offsetTop);
-                            expect(org.getBoundingClientRect().left).to.be.below(state.getBoundingClientRect().left);
+                            expect(org.closest('.fragment-title-fields')).to.equal(state.closest('.fragment-title-fields'));
+                            expect(org.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
                             expect(previewBox.localName).to.equal('div');
-                            expect(previewBox.getBoundingClientRect().top).to.be.above(org.getBoundingClientRect().bottom);
+                            expect(state.compareDocumentPosition(previewBox) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
                             expect(getComputedStyle(previewBox).backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
                         });
 

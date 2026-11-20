@@ -128,9 +128,7 @@ export default class StudioPage {
         // Create dialog elements
         this.createButton = page.locator('sp-button:has-text("Create")').first();
         this.createDialog = page.locator('mas-create-dialog');
-        this.createDialogTemplatePicker = this.createDialog.locator('variant-picker#template sp-picker[label="Card Template"]');
-        this.createDialogOrgInput = this.createDialog.locator('sp-textfield#fragment-org input');
-        this.createDialogStateInput = this.createDialog.locator('sp-textfield#fragment-state input');
+        this.createDialogTitleInput = this.createDialog.locator('sp-textfield#fragment-title input');
         this.createDialogOSIButton = this.createDialog.locator('osi-field#osi #offerSelectorToolButtonOSI');
         this.createDialogCreateButton = this.createDialog.locator('sp-button:has-text("Create")');
         this.createDialogMerchCardOption = page.getByRole('menuitem', { name: 'Merch Card', exact: true }).first();
@@ -431,13 +429,9 @@ export default class StudioPage {
 
         await expect(this.createDialog).toBeVisible({ timeout: 15000 });
 
-        await expect(this.createDialogTemplatePicker).toBeVisible({ timeout: 10000 });
-        await expect(this.createDialogTemplatePicker).toBeEnabled({ timeout: 10000 });
-        await this.editor.selectPickerValue(this.createDialogTemplatePicker, variant);
-        await expect(this.createDialogOrgInput).toBeVisible({ timeout: 10000 });
-        await this.createDialogOrgInput.fill('NALA');
+        await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
         const titleWithRunId = getTitle();
-        await this.createDialogStateInput.fill(titleWithRunId);
+        await this.createDialogTitleInput.fill(titleWithRunId);
 
         await expect(this.createDialogOSIButton).toBeVisible({ timeout: 10000 });
         await this.createDialogOSIButton.click();

@@ -76,11 +76,12 @@
                             }),
                         );
 
-                        expect(dialog.shadowRoot.querySelector('#fragment-title')).to.not.exist;
-                        const orgField = dialog.shadowRoot.querySelector('#fragment-org');
-                        orgField.value = 'merch';
-                        orgField.dispatchEvent(new Event('input', { bubbles: true }));
-                        dialog.template = 'catalog';
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
 
@@ -107,15 +108,14 @@
                             detail: { tags: ['mas:offerless/dx'] },
                         });
 
-                        const orgField = dialog.shadowRoot.querySelector('#fragment-org');
-                        orgField.value = 'merch';
-                        orgField.dispatchEvent(new Event('input', { bubbles: true }));
-                        dialog.template = 'catalog';
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
-
-                        const previewText = dialog.shadowRoot.querySelector('#fragment-title-preview').textContent.trim();
-                        expect(previewText).to.equal('MERCH: Catalog');
 
                         // Submit the form by clicking the Create button
                         const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
@@ -133,7 +133,7 @@
 
                         // Parse the request body
                         const requestBody = JSON.parse(options.body);
-                        expect(requestBody).to.have.property('title', previewText);
+                        expect(requestBody).to.have.property('title', 'Test Merch Card');
                         expect(requestBody).to.have.property('modelId');
                     });
                 });

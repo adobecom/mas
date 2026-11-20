@@ -301,7 +301,7 @@ test.describe('M@S Studio feature test suite', () => {
             const fragmentTitle = await titleCell.textContent();
             expect(fragmentTitle).toBeTruthy();
             expect(fragmentTitle.trim().length).toBeGreaterThan(0);
-            expect(fragmentTitle.trim()).toContain(expectedTitle);
+            expect(fragmentTitle.trim()).toBe(expectedTitle);
         });
 
         await test.step('step-6: Open editor from table view and verify fragment details', async () => {

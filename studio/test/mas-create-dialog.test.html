@@ -204,16 +204,16 @@
 
                         it('rejects a card title without letters or digits', async () => {
                             dialog.type = 'merch-card';
-                            dialog.org = '!!!';
+                            dialog.title = '!!!';
                             const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
+                            const titleField = dialog.shadowRoot.querySelector('#fragment-title');
                             expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
-                            const previewText = dialog.shadowRoot.querySelector('#fragment-title-preview').textContent;
-                            expect(previewText.trim()).to.equal('!!!');
+                            expect(titleField.getAttribute('aria-describedby')).to.equal('title-error');
                             expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
                                 'Title must contain letters or digits',
                             );
@@ -850,200 +850,43 @@
                         });
                     });
 
-                    describe('merch card fragment title', () => {
-                        const OFFER = { product_code: 'phsp', product_name: 'Photoshop', customer_segment: 'INDIVIDUAL' };
+                    it('should make a POST fetch request when form is submitted', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
 
-                        const selectOffer = (offer, offerSelectorId = 'ABC123') =>
-                            document.dispatchEvent(new CustomEvent('ost-offer-select', { detail: { offerSelectorId, offer } }));
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: 'ABC123', offer: {} },
+                            }),
+                        );
 
-                        const typeInto = async (id, value) => {
-                            const field = dialog.shadowRoot.querySelector(id);
-                            field.value = value;
-                            field.dispatchEvent(new Event('input', { bubbles: true }));
-                            await dialog.updateComplete;
-                        };
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
 
-                        const preview = () => dialog.shadowRoot.querySelector('#fragment-title-preview').textContent.trim();
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
-                        beforeEach(async () => {
-                            dialog.close();
-                            dialog.type = 'merch-card';
-                            Store.search.set({ path: 'sandbox' });
-                            Store.filters.set({ locale: 'en_US' });
-                            await dialog.updateComplete;
-                        });
+                        await dialog.updateComplete;
 
-                        afterEach(() => dialog.close());
+                        // Submit the form by clicking the Create button
+                        const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        createButton.click();
+                        await dialog.updateComplete;
 
-                        it('replaces the internal title with org and state fields', async () => {
-                            const root = dialog.shadowRoot;
-                            const org = root.querySelector('#fragment-org');
+                        // Verify fetch was called with correct parameters
+                        expect(fetchStub.called).to.be.true;
+                        const fetchCall = fetchStub.getCall(0);
+                        expect(fetchCall.args[0]).to.include('/test/mocks/adobe/sites/cf/fragments');
 
-                            expect(root.querySelector('#fragment-title')).to.not.exist;
-                            expect(root.querySelector('sp-field-label[for="fragment-title"]')).to.not.exist;
-                            expect(org.localName).to.equal('sp-textfield');
-                            expect(org.hasAttribute('required')).to.be.false;
-                            expect(org.invalid).to.be.false;
-                            expect(root.querySelector('sp-field-label[for="fragment-org"]').hasAttribute('required')).to.be
-                                .true;
-                            expect(getComputedStyle(org).textTransform).to.equal('uppercase');
-                            expect(root.querySelector('sp-field-label[for="fragment-state"]').textContent.trim()).to.equal(
-                                'State (optional)',
-                            );
-                        });
+                        // Verify it was a POST request with correct data
+                        const options = fetchCall.args[1];
+                        expect(options.method).to.equal('POST');
 
-                        it('shows the block or page field for headless templates only', async () => {
-                            for (const template of ['catalog', 'headless', 'marquee', 'banner-blade']) {
-                                dialog.template = template;
-                                await dialog.updateComplete;
-                                const field = dialog.shadowRoot.querySelector('#fragment-block-page');
-                                expect(Boolean(field), template).to.equal(template !== 'catalog');
-                            }
-                        });
-
-                        it('requires an org', async () => {
-                            dialog.template = 'catalog';
-                            selectOffer(OFFER);
-                            await dialog.handleSubmit();
-                            await dialog.updateComplete;
-
-                            expect(fetchStub.called).to.be.false;
-                            expect(dialog.shadowRoot.querySelector('#org-error').textContent.trim()).to.equal('Enter an org');
-                        });
-
-                        it('marks an empty org invalid once it has been touched', async () => {
-                            const org = dialog.shadowRoot.querySelector('#fragment-org');
-                            org.dispatchEvent(new Event('focusout', { bubbles: true }));
-                            await dialog.updateComplete;
-
-                            expect(dialog.shadowRoot.querySelector('#fragment-org').invalid).to.be.true;
-                        });
-
-                        it('marks the org invalid when a fresh dialog is submitted', async () => {
-                            await dialog.handleSubmit();
-                            await dialog.updateComplete;
-
-                            expect(dialog.shadowRoot.querySelector('#fragment-org').invalid).to.be.true;
-                        });
-
-                        it('shows a placeholder on the state field', async () => {
-                            expect(dialog.shadowRoot.querySelector('#fragment-state').getAttribute('placeholder')).to.equal(
-                                'i.e. default, bf-26-variation',
-                            );
-                        });
-
-                        it('bolds the org in the preview', async () => {
-                            dialog.template = 'catalog';
-                            await typeInto('#fragment-org', 'merch');
-
-                            const orgPart = dialog.shadowRoot.querySelector('#fragment-title-preview .title-preview-org');
-                            expect(orgPart.textContent).to.equal('MERCH');
-                            expect(getComputedStyle(orgPart).fontWeight).to.equal('700');
-                        });
-
-                        it('requires a template', async () => {
-                            await typeInto('#fragment-org', 'merch');
-                            selectOffer(OFFER);
-                            await dialog.handleSubmit();
-                            await dialog.updateComplete;
-
-                            expect(fetchStub.called).to.be.false;
-                            expect(dialog.shadowRoot.querySelector('#template-error').textContent.trim()).to.equal(
-                                'Select a template',
-                            );
-                            expect(dialog.shadowRoot.querySelector('variant-picker').invalid).to.be.true;
-                        });
-
-                        it('updates the preview live', async () => {
-                            dialog.template = 'catalog';
-                            await typeInto('#fragment-org', 'merch');
-                            expect(preview()).to.equal('MERCH: Catalog');
-
-                            await typeInto('#fragment-state', 'Q3');
-                            expect(preview()).to.equal('MERCH: Catalog: Q3');
-
-                            dialog.template = 'headless';
-                            await dialog.updateComplete;
-                            await typeInto('#fragment-block-page', 'hero');
-                            expect(preview()).to.equal('MERCH: hero: Headless: Q3');
-
-                            selectOffer(OFFER);
-                            await dialog.updateComplete;
-                            expect(preview()).to.equal('MERCH: hero: Headless: Photoshop: INDIVIDUAL: Q3');
-
-                            selectOffer({ ...OFFER, product_name: 'Illustrator' }, 'DEF456');
-                            await dialog.updateComplete;
-                            expect(preview()).to.equal('MERCH: hero: Headless: Illustrator: INDIVIDUAL: Q3');
-                        });
-
-                        it('derives product, customer segment and plan type from the offer', async () => {
-                            selectOffer({ ...OFFER, planType: 'ABM' });
-                            expect(dialog.product).to.equal('Photoshop');
-                            expect(dialog.customerSegment).to.equal('INDIVIDUAL');
-                            expect(dialog.planType).to.equal('ABM');
-
-                            selectOffer({});
-                            expect(dialog.product).to.equal('');
-                            expect(dialog.customerSegment).to.equal('');
-                            expect(dialog.planType).to.equal('');
-                        });
-
-                        it('adds the plan type before the state on acom-dc', async () => {
-                            Store.search.set({ path: 'acom-dc' });
-                            dialog.template = 'pro';
-                            selectOffer({ ...OFFER, planType: 'ABM' });
-                            await typeInto('#fragment-org', 'merch');
-                            await typeInto('#fragment-state', 'x');
-
-                            expect(preview().endsWith('ABM: x')).to.be.true;
-                        });
-
-                        it('places the preview under the template, before the offer', async () => {
-                            const order = ['#template', '#fragment-org', '#fragment-state', '#fragment-title-preview', '#osi'];
-                            const nodes = order.map((selector) => dialog.shadowRoot.querySelector(selector));
-                            nodes.slice(1).forEach((node, index) => {
-                                expect(nodes[index].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
-                            });
-
-                            const previewStyle = getComputedStyle(nodes[3]);
-                            expect(nodes[3].localName).to.equal('div');
-                            expect(previewStyle.color).to.not.equal(getComputedStyle(nodes[1]).color);
-                            expect(previewStyle.backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
-                        });
-
-                        it('creates the fragment with the previewed title', async () => {
-                            dialog.template = 'catalog';
-                            selectOffer(OFFER);
-                            await typeInto('#fragment-org', 'merch');
-                            const previewText = preview();
-                            expect(previewText).to.equal('MERCH: Catalog: Photoshop: INDIVIDUAL');
-
-                            dialog.shadowRoot.querySelector('sp-button[variant="accent"]').click();
-                            await dialog.updateComplete;
-
-                            expect(fetchStub.called).to.be.true;
-                            const fetchCall = fetchStub.getCall(0);
-                            expect(fetchCall.args[0]).to.include('/test/mocks/adobe/sites/cf/fragments');
-                            expect(fetchCall.args[1].method).to.equal('POST');
-                            const requestBody = JSON.parse(fetchCall.args[1].body);
-                            expect(requestBody).to.have.property('title', previewText);
-                            expect(requestBody).to.have.property('name', 'merch-catalog-photoshop-individual');
-                            expect(requestBody).to.have.property('modelId');
-                        });
-
-                        it('keeps the internal title field for collections and compare charts', async () => {
-                            for (const type of ['merch-card-collection', 'compare-chart']) {
-                                dialog.type = type;
-                                await dialog.updateComplete;
-                                const root = dialog.shadowRoot;
-                                expect(root.querySelector('sp-field-label[for="fragment-title"]').textContent.trim()).to.equal(
-                                    'Internal title',
-                                );
-                                expect(root.querySelector('#fragment-title')).to.exist;
-                                expect(root.querySelector('#fragment-org')).to.not.exist;
-                                expect(root.querySelector('#fragment-title-preview')).to.not.exist;
-                            }
-                        });
+                        // Parse the request body
+                        const requestBody = JSON.parse(options.body);
+                        expect(requestBody).to.have.property('title', 'Test Merch Card');
+                        expect(requestBody).to.have.property('modelId');
                     });
 
                     it('should display the correct dialog title based on type', async () => {

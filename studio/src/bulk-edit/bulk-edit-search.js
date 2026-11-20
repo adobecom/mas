@@ -2,42 +2,49 @@ import { html } from 'lit';
 import { Fragment } from '../aem/fragment.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, stripHtml } from '../utils.js';
 import { getLocaleByCode } from '../locales.js';
-import { parseCtas, normalizePznTagIds, normalizePznTagToLocaleCode, pznTagsValue } from '../editors/variation-utils.js';
+import { normalizePznTagIds, normalizePznTagToLocaleCode, pznTagsValue } from '../editors/variation-utils.js';
 import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
 
-/** Authored text fields supported by Find and replace. */
+/** Search scopes and source fields supported by backend Find. */
 export const SEARCH_FIELDS = [
-    { value: 'badge', label: 'Badge' },
-    { value: 'ctas', label: 'Button labels' },
-    { value: 'callout', label: 'Callout text' },
-    { value: 'fragmentDescription', label: 'Fragment description' },
-    { value: 'fragmentTitle', label: 'Fragment title' },
-    { value: 'description', label: 'Product description' },
-    { value: 'promoText', label: 'Promo text' },
-    { value: 'subtitle', label: 'Subtitle' },
-    { value: 'tags', label: 'Tags' },
+    { value: 'prices', label: 'Prices', fields: ['prices'] },
+    { value: 'ctas', label: 'Button labels', fields: ['ctas'] },
+    { value: 'calloutText', label: 'Callout text', fields: ['callout'] },
+    { value: 'fragmentDescription', label: 'Fragment description', fields: ['fragmentDescription'] },
+    { value: 'fragmentTitle', label: 'Fragment title', fields: ['fragmentTitle'] },
+    {
+        value: 'productDescription',
+        label: 'Product description',
+        fields: ['cardTitle', 'description', 'features', 'compareChart', 'shortDescription'],
+    },
+    { value: 'promoText', label: 'Promo text', fields: ['promoText', 'promoCode'] },
+    { value: 'subtitle', label: 'Subtitle', fields: ['subtitle'] },
+    { value: 'tags', label: 'Tags', fields: ['tags'] },
 ];
 
 const plainText = (value) => (/[<&]/.test(value) ? stripHtml(value) : value);
 const textPattern = (query, matchCase, global = false) =>
     new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), `${global ? 'g' : ''}${matchCase ? '' : 'i'}`);
 
-/** Builds display/search text once per fragment, without searching HTML attributes or CTA destinations. */
+/** Builds escaped display text and individual raw search values, including HTML and CTA destinations. */
 export function buildSearchRow(raw) {
     const fragment = new Fragment(raw);
-    const text = {
-        fragmentTitle: fragment.title ?? '',
-        fragmentDescription: fragment.description ?? '',
+    const values = {
+        fragmentTitle: [raw.title ?? ''],
+        fragmentDescription: [raw.description ?? ''],
     };
-    for (const { value } of SEARCH_FIELDS) {
-        if (value === 'fragmentTitle' || value === 'fragmentDescription') continue;
-        const values = fragment.getFieldValues(value);
-        text[value] =
-            value === 'ctas'
-                ? values.flatMap((markup) => parseCtas(markup).map((cta) => cta.text)).join(', ')
-                : values.map(plainText).join(', ');
+    for (const { fields } of SEARCH_FIELDS) {
+        for (const field of fields) {
+            if (field === 'fragmentTitle' || field === 'fragmentDescription') continue;
+            values[field] = raw.fields?.find(({ name }) => name === field)?.values ?? [];
+        }
     }
+    values.tags =
+        raw.fields?.find(({ name }) => name === 'tags')?.values ?? raw.tags?.map(({ id, title }) => id || title || '') ?? [];
+    const text = Object.fromEntries(
+        Object.entries(values).map(([field, entries]) => [field, entries.map((value) => String(value ?? '')).join(', ')]),
+    );
     return {
         id: fragment.id,
         fragment: raw,
@@ -48,6 +55,7 @@ export function buildSearchRow(raw) {
         offerType: fragment.getCurrentTagTitle('mas:offer_type/') ?? '',
         status: fragment.status,
         text,
+        values,
     };
 }
 
@@ -87,11 +95,22 @@ export async function loadSearchVariations(row, repository, controller) {
     };
 }
 
-/** Matches literal text against the selected fields. */
+/** Matches raw values independently within the selected backend scopes, never across joined display values. */
 export function findSearchRows(rows, query, fields, matchCase) {
     if (!query || !fields.length) return [];
-    const pattern = textPattern(query, matchCase);
-    return rows.filter((row) => fields.some((field) => pattern.test(row.text[field])));
+    const scopes = fields.includes('*') ? SEARCH_FIELDS : SEARCH_FIELDS.filter(({ value }) => fields.includes(value));
+    const needle = matchCase ? query : query.toLowerCase();
+    return rows.filter((row) =>
+        scopes.some(({ fields }) =>
+            fields.some((field) =>
+                row.values[field].some((value) => {
+                    if (value == null) return false;
+                    const text = String(value);
+                    return (matchCase ? text : text.toLowerCase()).includes(needle);
+                }),
+            ),
+        ),
+    );
 }
 
 /** Highlights literal matches or previews replacements using escaped Lit text, never authored HTML. */

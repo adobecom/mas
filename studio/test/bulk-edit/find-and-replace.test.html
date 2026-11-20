@@ -297,8 +297,8 @@
                             await waitUntil(() => everywhere.getBoundingClientRect().width > 0, 'Search in menu should open');
                             await click(everywhere);
                             expect(editor.searchFields).to.deep.equal([]);
-                            await click(root.querySelector('sp-checkbox[value="badge"]'));
-                            await click(root.querySelector('sp-checkbox[value="callout"]'));
+                            await click(root.querySelector('sp-checkbox[value="prices"]'));
+                            await click(root.querySelector('sp-checkbox[value="calloutText"]'));
                             await waitUntil(() => editor.searchFields.length === 2, 'Two fields should be selected');
                             expect(editor.searchInLabel).to.equal('2 fields selected');
                             expect(everywhere.checked).to.be.false;
@@ -329,7 +329,7 @@
                                 await editor.updateComplete;
                                 editor.scrollIntoView({ block: 'start' });
                                 editor.findText = 'school';
-                                editor.searchFields = ['callout'];
+                                editor.searchFields = ['calloutText'];
                                 await editor.updateComplete;
                                 await editor.searchFragments();
                                 await editor.updateComplete;

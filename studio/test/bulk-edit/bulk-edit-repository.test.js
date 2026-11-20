@@ -5,11 +5,84 @@ import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { trackPendingProject } from '../../src/common/utils/project-list-utils.js';
 import {
+    buildBulkEditReplaceRequest,
     getBulkEditProjectsPath,
     isBulkEditProjectTitleTaken,
     isValidBulkEditProjectTitle,
     loadBulkEditProjects,
 } from '../../src/bulk-edit/bulk-edit-repository.js';
+
+describe('buildBulkEditReplaceRequest', () => {
+    let sandbox;
+    let meta;
+    let storedToken;
+    let ims;
+    let previousIms;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        meta = document.createElement('meta');
+        meta.name = 'io-base-url';
+        meta.content = 'https://14257-masstudio-stage.adobeioruntime.net/api/v1/web/MerchAtScaleStudio';
+        document.head.append(meta);
+        storedToken = sandbox.stub(sessionStorage, 'getItem').withArgs('masAccessToken').returns('stored-token');
+        ims = sandbox.stub().returns({ token: 'ims-token' });
+        previousIms = Object.getOwnPropertyDescriptor(window, 'adobeIMS');
+        Object.defineProperty(window, 'adobeIMS', { configurable: true, value: { getAccessToken: ims } });
+    });
+
+    afterEach(() => {
+        meta.remove();
+        sandbox.restore();
+        if (previousIms) Object.defineProperty(window, 'adobeIMS', previousIms);
+        else delete window.adobeIMS;
+    });
+
+    it('prepares an authenticated dry-run request using the configured IO deployment without sending it', () => {
+        const fetch = sandbox.stub(window, 'fetch');
+        const request = buildBulkEditReplaceRequest('find-job-id');
+        expect(request).to.deep.equal({
+            url: `${meta.content}/bulk-edit-replace`,
+            init: {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer stored-token',
+                    'x-gw-ims-org-id': '3B962FB55F5F922E0A495C88',
+                },
+                body: JSON.stringify({ findJobId: 'find-job-id', dryRun: true }),
+            },
+        });
+        expect(ims.called).to.be.false;
+        expect(fetch.called).to.be.false;
+    });
+
+    it('falls back to the IMS token when there is no session token', () => {
+        storedToken.returns(null);
+        const { init } = buildBulkEditReplaceRequest('find-job-id');
+        expect(init.headers.Authorization).to.equal('Bearer ims-token');
+    });
+
+    it('prepares live mode only when explicitly requested', () => {
+        const { init } = buildBulkEditReplaceRequest('find-job-id', { dryRun: false });
+        expect(JSON.parse(init.body)).to.deep.equal({ findJobId: 'find-job-id', dryRun: false });
+    });
+
+    it('reports a missing backend Find job ID', () => {
+        expect(() => buildBulkEditReplaceRequest('')).to.throw('A completed backend Find job ID is required.');
+    });
+
+    it('reports missing IO configuration', () => {
+        meta.remove();
+        expect(() => buildBulkEditReplaceRequest('find-job-id')).to.throw('Studio IO base URL is not configured.');
+    });
+
+    it('reports missing credentials', () => {
+        storedToken.returns(null);
+        ims.returns(undefined);
+        expect(() => buildBulkEditReplaceRequest('find-job-id')).to.throw('An IMS access token is required');
+    });
+});
 
 describe('loadBulkEditProjects', () => {
     let initialSearch;

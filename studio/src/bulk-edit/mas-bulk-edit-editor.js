@@ -47,7 +47,7 @@ const RESULT_COLUMNS = [
     { value: 'offer', label: 'Offer' },
     { value: 'fragmentTitle', label: 'Fragment title' },
     { value: 'offerId', label: 'Offer ID' },
-    { value: 'badge', label: 'Badge' },
+    { value: 'prices', label: 'Prices' },
     { value: 'ctas', label: 'Button label' },
     { value: 'callout', label: 'Callout text' },
     { value: 'fragmentDescription', label: 'Fragment description' },
@@ -55,7 +55,12 @@ const RESULT_COLUMNS = [
     { value: 'subtitle', label: 'Subtitle' },
     { value: 'tags', label: 'Tags' },
     { value: 'offerType', label: 'Offer type' },
-    { value: 'description', label: 'Production description' },
+    { value: 'cardTitle', label: 'Card title' },
+    { value: 'description', label: 'Product description' },
+    { value: 'features', label: 'Features' },
+    { value: 'compareChart', label: 'Compare chart' },
+    { value: 'shortDescription', label: 'Short description' },
+    { value: 'promoCode', label: 'Promo code' },
     { value: 'status', label: 'Status' },
 ];
 
@@ -104,6 +109,7 @@ class MasBulkEditEditor extends LitElement {
     #locale = null;
     #savedConfiguration;
     displayRows = [];
+    searchSourceFields = [];
     selectableRows = [];
     selectedDisplayedCount = 0;
     constructor() {
@@ -165,7 +171,15 @@ class MasBulkEditEditor extends LitElement {
             const project = store.get();
             this.findText = project.getFieldValue('searchTerm') ?? '';
             this.replaceText = project.getFieldValue('replaceTerm') ?? '';
-            this.searchFields = project.getField('fieldNames')?.values ?? this.searchFields;
+            const savedFields = project.getField('fieldNames')?.values;
+            if (savedFields) {
+                const legacyScopes = { callout: 'calloutText', description: 'productDescription' };
+                const scopes = savedFields.map((field) => legacyScopes[field] ?? field);
+                this.searchFields = SEARCH_FIELDS.filter(({ value }) => scopes.includes(value)).map(({ value }) => value);
+                if (savedFields.includes('badge')) {
+                    showToast('Badge is no longer a supported Find field. Review Search in before continuing.', 'warning');
+                }
+            }
             const items = JSON.parse(project.getFieldValue('items') || '{}');
             this.matchCase = items.matchCase ?? false;
             this.resultFilters = items.resultFilters ?? this.resultFilters;
@@ -192,6 +206,11 @@ class MasBulkEditEditor extends LitElement {
     }
 
     willUpdate(changed) {
+        if (changed.has('searchFields')) {
+            this.searchSourceFields = SEARCH_FIELDS.filter(({ value }) => this.searchFields.includes(value)).flatMap(
+                ({ fields }) => fields,
+            );
+        }
         const surface = getSearchSurface(this.searchContext.value?.path);
         const surfaceChanged = this.#surface !== null && surface !== this.#surface;
         const locale = this.filters.value.locale;
@@ -302,8 +321,7 @@ class MasBulkEditEditor extends LitElement {
     filterSearchResults() {
         const cursor = this.#searchCursor;
         const rows = [...cursor.rows.values()];
-        const literalFilter = !this.searchEverywhere || this.matchCase || /\s/.test(cursor.query);
-        this.searchResults = literalFilter ? findSearchRows(rows, cursor.query, this.searchFields, this.matchCase) : rows;
+        this.searchResults = findSearchRows(rows, cursor.query, this.searchFields, this.matchCase);
     }
 
     async loadNextSearchPage() {
@@ -682,7 +700,7 @@ class MasBulkEditEditor extends LitElement {
                 Press Enter in Find to search ${this.filters.value.locale}. Expand an offer to select its Locale, Promotion, or
                 Grouped variations. Enter Replace text to preview changes in the selected Search in fields. Save preserves your
                 search settings, filters, and selections; it does not change fragment content. File actions are not available
-                yet.
+                yet. Find matches raw authored values, including HTML and links. Tags are searchable but are not replaced.
             </sp-help-text>
         `;
     }
@@ -823,8 +841,16 @@ class MasBulkEditEditor extends LitElement {
                               })
                             : nothing
                         : html`<span class="title-clamp">
-                              ${this.searchFields.includes(value)
-                                  ? highlightSearchText(text, this.searchedQuery, this.matchCase, this.replaceText)
+                              ${this.searchSourceFields.includes(value)
+                                  ? row.values[value].map(
+                                        (entry, index) =>
+                                            html`${index ? ', ' : ''}${highlightSearchText(
+                                                String(entry ?? ''),
+                                                this.searchedQuery,
+                                                this.matchCase,
+                                                value === 'tags' ? '' : this.replaceText,
+                                            )}`,
+                                    )
                                   : text}
                           </span>`}
                 </sp-table-cell>`;

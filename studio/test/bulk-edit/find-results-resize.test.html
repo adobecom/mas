@@ -27,6 +27,7 @@
             import { expect, waitUntil } from '@open-wc/testing';
             import { ignoreWindowResizeObserverLoopErrors } from '@lit-labs/virtualizer/support/resize-observer-errors.js';
             import Store from '../../src/store.js';
+            import { BULK_EDIT_PROJECT_MODEL_ID } from '../../src/constants.js';
             import { __tagCacheStores } from '../../src/aem/tag-cache.js';
             import { buildSearchRow } from '../../src/bulk-edit/bulk-edit-search.js';
             import {
@@ -154,12 +155,91 @@
 
                         it('provides accessible resize handles for result columns, not fixed gutters', async () => {
                             const handles = table().querySelectorAll('.column-resize-handle');
-                            expect(handles).to.have.lengthOf(13);
+                            expect(handles).to.have.lengthOf(18);
                             expect(handle('callout').getAttribute('aria-label')).to.equal('Resize Callout text column');
                             expect(handle('callout').getAttribute('role')).to.equal('separator');
                             expect(handle('callout').tabIndex).to.equal(0);
                             expect(header('selection').querySelector('.column-resize-handle')).to.not.exist;
                             expect(header('expansion').querySelector('.column-resize-handle')).to.not.exist;
+                        });
+
+                        it('previews raw backend fields safely, expands scopes, and keeps tags read-only', async () => {
+                            await populate();
+                            const raw = {
+                                ...parent.fragment,
+                                fields: [
+                                    { name: 'prices', values: ['School price'] },
+                                    { name: 'ctas', values: ['<a href="/school">Buy now</a>'] },
+                                    { name: 'callout', values: ['<img src=x onerror=alert(1)>school'] },
+                                    { name: 'cardTitle', values: ['School plan'] },
+                                    { name: 'description', values: ['School details'] },
+                                    { name: 'features', values: ['School features'] },
+                                    { name: 'compareChart', values: ['School chart'] },
+                                    { name: 'shortDescription', values: ['School summary'] },
+                                    { name: 'promoCode', values: ['SCHOOL10'] },
+                                    { name: 'tags', values: ['mas:school'] },
+                                ],
+                            };
+                            editor.searchResults = [buildSearchRow(raw)];
+                            editor.expandedRows = new Set();
+                            await editor.updateComplete;
+                            const root = editor.shadowRoot;
+                            await waitUntil(() => root.querySelector('.promoCode ins'));
+                            expect(root.querySelector('.ctas .title-clamp').textContent).to.include('href="/school');
+                            expect(root.querySelector('.callout .title-clamp img')).to.not.exist;
+                            expect(root.querySelector('.tags mark').textContent).to.equal('school');
+                            expect(root.querySelector('.tags ins')).to.not.exist;
+                            for (const field of [
+                                'prices',
+                                'cardTitle',
+                                'description',
+                                'features',
+                                'compareChart',
+                                'shortDescription',
+                                'promoCode',
+                            ]) {
+                                expect(root.querySelector(`.${field} ins`).textContent).to.equal('university');
+                            }
+                            editor.searchFields = ['productDescription'];
+                            await editor.updateComplete;
+                            await waitUntil(() => !root.querySelector('.promoCode ins'));
+                            expect(root.querySelector('.features ins')).to.exist;
+                            expect(root.querySelector('.prices ins')).to.not.exist;
+                            expect(raw.fields.find(({ name }) => name === 'promoCode').values).to.deep.equal(['SCHOOL10']);
+                        });
+
+                        it('restores legacy scopes using backend names and removes Badge with a warning', async () => {
+                            Store.bulkEditProjects.projectId.set('legacy-scopes');
+                            Object.defineProperty(editor, 'repository', {
+                                value: {
+                                    async getFragmentById() {
+                                        return {
+                                            id: 'legacy-scopes',
+                                            model: { id: BULK_EDIT_PROJECT_MODEL_ID },
+                                            fields: [
+                                                { name: 'title', values: ['School-MWPW-1'] },
+                                                { name: 'fieldNames', values: ['badge', 'callout', 'description'] },
+                                            ],
+                                        };
+                                    },
+                                },
+                            });
+                            await editor.connectedCallback();
+                            await editor.updateComplete;
+                            expect(editor.loadFailed).to.be.false;
+                            expect(editor.searchFields).to.deep.equal(['calloutText', 'productDescription']);
+                            expect(editor.searchSourceFields).to.include.members([
+                                'callout',
+                                'features',
+                                'compareChart',
+                                'shortDescription',
+                            ]);
+                            expect(editor.hasChanges).to.be.false;
+                            const fields = editor.shadowRoot.querySelector('.search-in-popover');
+                            expect(fields.querySelector('[value="badge"]')).to.not.exist;
+                            expect(fields.querySelector('[value="prices"]')).to.exist;
+                            expect(fields.querySelector('[value="calloutText"]').checked).to.be.true;
+                            expect(fields.querySelector('[value="productDescription"]').checked).to.be.true;
                         });
 
                         it('drags a column wider to reveal previews while keeping parent and variation cells aligned', async () => {

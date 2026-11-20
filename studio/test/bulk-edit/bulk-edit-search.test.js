@@ -31,7 +31,7 @@ describe('bulk edit text matching', () => {
         expect(getAemSearchTerm('   ')).to.equal('');
     });
 
-    it('extracts metadata and visible field text, excluding CTA destinations and HTML attributes', () => {
+    it('searches and displays raw authored values, including CTA destinations and HTML attributes', () => {
         const row = buildSearchRow(
             rawFragment(
                 'card',
@@ -44,23 +44,24 @@ describe('bulk edit text matching', () => {
                 { title: 'Education', description: 'Fragment notes' },
             ),
         );
-        expect(row.text.badge).to.equal('School & college');
-        expect(row.text.ctas).to.equal('Buy now');
-        expect(row.text.callout).to.equal('Back to school');
+        expect(row.text.ctas).to.equal('<a href="/school" title="School">Buy now</a>');
+        expect(row.text.callout).to.equal('<p>Back to <strong>school</strong></p>');
         expect(row.text.fragmentTitle).to.equal('Education');
         expect(row.text.fragmentDescription).to.equal('Fragment notes');
         expect(row.text.tags).to.equal('mas:segment/school, mas:product/photoshop');
-        expect(findSearchRows([row], 'school', ['ctas'], false)).to.have.lengthOf(0);
+        expect(findSearchRows([row], '/school', ['ctas'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([row], '<strong>', ['calloutText'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([row], 'school', ['badge'], false)).to.have.lengthOf(0);
     });
 
     it('matches literal text in selected fields and honors case and multiple values', () => {
-        const row = buildSearchRow(rawFragment('card', { badge: ['School.*', 'University'], description: 'College' }));
-        expect(findSearchRows([row], 'school.*', ['badge'], false)).to.have.lengthOf(1);
-        expect(findSearchRows([row], 'school.*', ['badge'], true)).to.have.lengthOf(0);
-        expect(findSearchRows([row], 'University', ['badge'], true)).to.have.lengthOf(1);
-        expect(findSearchRows([row], 'school', ['description'], false)).to.have.lengthOf(0);
+        const row = buildSearchRow(rawFragment('card', { prices: ['School.*', 'University'], description: 'College' }));
+        expect(findSearchRows([row], 'school.*', ['prices'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([row], 'school.*', ['prices'], true)).to.have.lengthOf(0);
+        expect(findSearchRows([row], 'University', ['prices'], true)).to.have.lengthOf(1);
+        expect(findSearchRows([row], 'school', ['productDescription'], false)).to.have.lengthOf(0);
         expect(findSearchRows([row], 'school', [], false)).to.have.lengthOf(0);
-        expect(findSearchRows([row], '', ['badge'], false)).to.have.lengthOf(0);
+        expect(findSearchRows([row], '', ['prices'], false)).to.have.lengthOf(0);
     });
 
     it('includes offer type, product description and fragment status for result columns', () => {
@@ -72,9 +73,24 @@ describe('bulk edit text matching', () => {
             ),
         );
         expect(row.offerType).to.equal('Base offer');
-        expect(row.text.description).to.equal('Product details');
+        expect(row.text.description).to.equal('<p>Product details</p>');
         expect(row.status).to.equal('PUBLISHED');
         expect(buildSearchRow(rawFragment('no-offer-type', {})).offerType).to.equal('');
+    });
+
+    it('covers every product and promotion source field and matches values without joining boundaries', () => {
+        for (const field of ['cardTitle', 'description', 'features', 'compareChart', 'shortDescription']) {
+            const row = buildSearchRow(rawFragment('card', { [field]: ['School', 'University'] }));
+            expect(findSearchRows([row], 'school', ['productDescription'], false)).to.have.lengthOf(1);
+            expect(findSearchRows([row], 'School, University', ['productDescription'], false)).to.have.lengthOf(0);
+        }
+        const row = buildSearchRow(rawFragment('card', { prices: 'School price', promoCode: 'SCHOOL10' }));
+        expect(findSearchRows([row], 'school', ['prices'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([row], 'school', ['promoText'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([row], 'school', ['promoText'], true)).to.have.lengthOf(0);
+        const tags = buildSearchRow(rawFragment('card', {}, { tags: [{ id: 'mas:segment/school', title: 'Education' }] }));
+        expect(findSearchRows([tags], 'school', ['tags'], false)).to.have.lengthOf(1);
+        expect(findSearchRows([tags], 'Education', ['tags'], false)).to.have.lengthOf(0);
     });
 
     it('highlights matches without rendering HTML from authored content or the query', async () => {
@@ -258,7 +274,7 @@ describe('progressive Enter-to-find search', () => {
         expect(editor.searchResults).to.have.lengthOf(0);
         await submit('School');
         expect(editor.searchResults).to.have.lengthOf(1);
-        editor.searchFields = ['badge'];
+        editor.searchFields = ['prices'];
         await editor.updateComplete;
         await waitUntil(() => !editor.searching);
         expect(editor.searchResults).to.have.lengthOf(0);
@@ -275,7 +291,7 @@ describe('progressive Enter-to-find search', () => {
         await connect();
         await submit('school');
         editor.replaceText = 'university';
-        editor.searchFields = ['callout'];
+        editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         for (const kind of ['locale', 'promotion', 'grouped']) {
             const fragment = rawFragment(kind, { callout: 'Back to School', badge: 'School offer' });
@@ -435,7 +451,7 @@ describe('progressive Enter-to-find search', () => {
         const candidates = [
             rawFragment('matching', { callout: 'Back to high school' }, { title: 'School offer' }),
             rawFragment('wrong-order', { callout: 'school high' }, { title: 'School offer' }),
-            rawFragment('wrong-field', { badge: 'high school' }, { title: 'School offer' }),
+            rawFragment('wrong-field', { prices: 'high school' }, { title: 'School offer' }),
         ];
         const fetch = sinon.stub(window, 'fetch').resolves(
             new Response(JSON.stringify({ items: candidates }), {
@@ -447,7 +463,7 @@ describe('progressive Enter-to-find search', () => {
         repository.aem = new AEM('test-bucket', 'https://aem.example.com');
         repository.processError = sinon.stub();
         await connect();
-        editor.searchFields = ['callout'];
+        editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         await submit('high school');
         expect(fetch.calledOnce).to.be.true;
@@ -462,7 +478,7 @@ describe('progressive Enter-to-find search', () => {
         expect(editor.hasMoreResults).to.be.false;
     });
 
-    it('keeps all 12 server matches in Everywhere even when only 7 have literal matches, and still narrows explicit fields and case', async () => {
+    it('applies backend literal matching even in Everywhere instead of retaining unrelated server candidates', async () => {
         const literal = Array.from({ length: 7 }, (_, index) =>
             rawFragment(`literal-${index}`, { callout: 'school offer' }, { title: `school offer ${index}` }),
         );
@@ -484,15 +500,15 @@ describe('progressive Enter-to-find search', () => {
         await connect();
         expect(findSearchRows(candidates.map(buildSearchRow), 'school', editor.searchFields, false)).to.have.lengthOf(7);
         await submit('school');
-        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(candidates.map(({ id }) => id));
-        expect(editor.searchResults).to.have.lengthOf(12);
+        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(literal.map(({ id }) => id));
+        expect(editor.searchResults).to.have.lengthOf(7);
         expect(editor.hasMoreResults).to.be.false;
         const request = new URL(fetch.firstCall.args[0]);
         expect(JSON.parse(request.searchParams.get('query')).filter.fullText).to.deep.equal({
             text: 'school',
             queryMode: 'EDGES',
         });
-        editor.searchFields = ['callout'];
+        editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         await waitUntil(() => !editor.searching);
         expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(literal.map(({ id }) => id));
@@ -504,7 +520,7 @@ describe('progressive Enter-to-find search', () => {
         editor.matchCase = false;
         await editor.updateComplete;
         await waitUntil(() => !editor.searching);
-        expect(editor.searchResults).to.have.lengthOf(12);
+        expect(editor.searchResults).to.have.lengthOf(7);
         expect(fetch.calledOnce).to.be.true;
         await submit('school offer');
         expect(editor.searchResults).to.have.lengthOf(7);
@@ -515,7 +531,7 @@ describe('progressive Enter-to-find search', () => {
         const next = sinon.stub();
         next.onFirstCall().resolves({ value: matchingPage(0), done: false });
         next.onSecondCall().resolves({
-            value: [rawFragment('badge-match', { badge: 'school' })],
+            value: [rawFragment('prices-match', { prices: 'school' })],
             done: false,
         });
         next.onThirdCall().resolves({ done: true });
@@ -523,7 +539,7 @@ describe('progressive Enter-to-find search', () => {
         await connect();
         await submit('school');
         expect(next.calledOnce).to.be.true;
-        editor.searchFields = ['badge'];
+        editor.searchFields = ['prices'];
         await editor.updateComplete;
         expect(editor.searchResults).to.have.lengthOf(0);
         expect(editor.searchedQuery).to.equal('school');
@@ -534,10 +550,10 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         expect(editor.searchResults).to.have.lengthOf(25);
         expect(next.calledOnce).to.be.true;
-        editor.searchFields = ['badge'];
+        editor.searchFields = ['prices'];
         await editor.updateComplete;
         await editor.loadNextSearchPage();
-        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['badge-match']);
+        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['prices-match']);
         expect(repository.searchFragmentPages.calledOnce).to.be.true;
         expect(next.callCount).to.equal(3);
         editor.searchFields = SEARCH_FIELDS.map(({ value }) => value);
@@ -553,21 +569,21 @@ describe('progressive Enter-to-find search', () => {
         await connect();
         const search = submit('school');
         await waitUntil(() => resolvePage);
-        editor.searchFields = ['badge'];
+        editor.searchFields = ['prices'];
         await editor.updateComplete;
         expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.false;
         resolvePage({
-            value: [fragments[0], rawFragment('badge-match', { badge: 'school' })],
+            value: [fragments[0], rawFragment('prices-match', { prices: 'school' })],
             done: false,
         });
         await search;
-        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['badge-match']);
+        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['prices-match']);
         expect(repository.searchFragmentPages.calledOnce).to.be.true;
         expect(next.calledOnce).to.be.true;
         expect(editor.hasMoreResults).to.be.true;
         editor.searchFields = SEARCH_FIELDS.map(({ value }) => value);
         await editor.updateComplete;
-        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['school', 'badge-match']);
+        expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['school', 'prices-match']);
         expect(next.calledOnce).to.be.true;
     });
 
@@ -610,7 +626,7 @@ describe('progressive Enter-to-find search', () => {
         const next = sinon.stub().resolves({ value: [fragments[1]], done: false });
         repository.searchFragmentPages.returns({ next });
         await connect();
-        editor.searchFields = ['callout'];
+        editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         await submit('school');
         expect(next.callCount).to.equal(MasRepository.MAX_REFILL_ROUNDS);
@@ -754,18 +770,18 @@ describe('progressive Enter-to-find search', () => {
     });
 
     it('keeps server ordering and deduplicates across pages without listing variation copies as parents', async () => {
-        const hidden = rawFragment('hidden', { badge: 'School' }, { path: '/content/dam/mas/acom/en_US/baselines/hidden' });
-        const grouped = rawFragment('grouped', { badge: 'School' }, { path: '/content/dam/mas/acom/en_US/school/pzn/edu' });
+        const hidden = rawFragment('hidden', { prices: 'School' }, { path: '/content/dam/mas/acom/en_US/baselines/hidden' });
+        const grouped = rawFragment('grouped', { prices: 'School' }, { path: '/content/dam/mas/acom/en_US/school/pzn/edu' });
         const promotion = rawFragment(
             'promotion',
-            { badge: 'School' },
+            { prices: 'School' },
             {
                 path: '/content/dam/mas/acom/en_US/promotions/sale/school',
             },
         );
         const taggedPromotion = rawFragment(
             'tagged-promotion',
-            { badge: 'School' },
+            { prices: 'School' },
             {
                 tags: [{ id: 'mas:promotion/sale' }],
             },
@@ -845,7 +861,7 @@ describe('progressive Enter-to-find search', () => {
         editor.handleFragmentSelection({ target: { checked: true } }, editor.displayRows[2]);
         const state = editor.variationStates.get(parent.id);
         const calls = repository.searchFragmentPages.callCount;
-        editor.searchFields = ['badge'];
+        editor.searchFields = ['prices'];
         await editor.updateComplete;
         expect(editor.searchResults).to.have.lengthOf(0);
         expect(editor.expandedRows.has(parent.id)).to.be.true;

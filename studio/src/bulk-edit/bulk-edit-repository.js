@@ -5,6 +5,34 @@ import { getSearchSurface, loadProjectList, mergePendingProjects } from '../comm
 
 const PROJECT_TITLE_PATTERN = /^\S.*-(MWPW|DOTCOM)-\d+$/;
 
+/**
+ * Prepares, but does not send, a replacement request for a completed backend Find job.
+ * Uses Studio's environment-resolved IO URL and IMS credentials, defaulting to a dry run.
+ * @param {string} findJobId completed backend Find job ID, not a Studio project ID
+ * @param {{ dryRun?: boolean }} [options] set dryRun to false only for an intentional live replacement
+ * @returns {{ url: string, init: RequestInit }} URL and options for fetch
+ */
+export function buildBulkEditReplaceRequest(findJobId, { dryRun = true } = {}) {
+    const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+    const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
+    if (!findJobId) throw new Error('A completed backend Find job ID is required.');
+    if (!ioBaseUrl) throw new Error('Studio IO base URL is not configured.');
+    if (!token) throw new Error('An IMS access token is required for bulk replacement.');
+
+    return {
+        url: `${ioBaseUrl}/bulk-edit-replace`,
+        init: {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                'x-gw-ims-org-id': '3B962FB55F5F922E0A495C88',
+            },
+            body: JSON.stringify({ findJobId, dryRun }),
+        },
+    };
+}
+
 export function isValidBulkEditProjectTitle(title) {
     return PROJECT_TITLE_PATTERN.test(title ?? '');
 }

@@ -102,7 +102,7 @@ describe('mas-bulk-edit-editor', () => {
             'Offer',
             'Fragment title',
             'Offer ID',
-            'Badge',
+            'Prices',
             'Button label',
             'Callout text',
             'Fragment description',
@@ -110,7 +110,12 @@ describe('mas-bulk-edit-editor', () => {
             'Subtitle',
             'Tags',
             'Offer type',
-            'Production description',
+            'Card title',
+            'Product description',
+            'Features',
+            'Compare chart',
+            'Short description',
+            'Promo code',
             'Status',
         ]);
         expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
@@ -129,7 +134,7 @@ describe('mas-bulk-edit-editor', () => {
         ]);
         const fields = [...popover.querySelectorAll('sp-field-group sp-checkbox')];
         expect(fields.map((field) => field.textContent.trim())).to.deep.equal([
-            'Badge',
+            'Prices',
             'Button labels',
             'Callout text',
             'Fragment description',
@@ -150,10 +155,10 @@ describe('mas-bulk-edit-editor', () => {
         expect(el.searchInLabel).to.equal('Select fields');
         expect([...el.shadowRoot.querySelectorAll('.search-in-popover sp-checkbox')].every((field) => !field.checked)).to.be
             .true;
-        await setSearchCheckbox(el, 'sp-checkbox[value="badge"]', true);
-        expect(el.searchInLabel).to.equal('Badge');
+        await setSearchCheckbox(el, 'sp-checkbox[value="prices"]', true);
+        expect(el.searchInLabel).to.equal('Prices');
         await setSearchCheckbox(el, 'sp-checkbox[value="ctas"]', true);
-        expect(el.searchFields).to.deep.equal(['badge', 'ctas']);
+        expect(el.searchFields).to.deep.equal(['prices', 'ctas']);
         expect(el.searchInLabel).to.equal('2 fields selected');
         expect(el.searchEverywhere).to.be.false;
         expect(el.hasChanges).to.be.true;
@@ -278,7 +283,7 @@ describe('mas-bulk-edit-editor', () => {
     for (const [property, value] of [
         ['findText', 'school'],
         ['replaceText', 'university'],
-        ['searchFields', ['badge']],
+        ['searchFields', ['prices']],
         ['matchCase', true],
         ['resultFilters', { tagPaths: {}, tags: [], statuses: ['DRAFT'], locales: [] }],
         ['selectedFragments', new Map([['locale-child', { id: 'locale-child', path: '/content/dam/mas/acom/en_AU/offer' }]])],
@@ -324,7 +329,7 @@ describe('mas-bulk-edit-editor', () => {
         stubRepository(el, { createFragment });
         el.findText = 'school';
         el.replaceText = 'university';
-        el.searchFields = ['badge', 'ctas'];
+        el.searchFields = ['prices', 'ctas'];
         el.matchCase = true;
         el.resultFilters = {
             tagPaths: { product: ['/content/cq:tags/mas/product_code/photoshop'] },
@@ -346,7 +351,7 @@ describe('mas-bulk-edit-editor', () => {
         const project = el.project.get();
         expect(project.getFieldValue('searchTerm')).to.equal('school');
         expect(project.getFieldValue('replaceTerm')).to.equal('university');
-        expect(project.getFieldValues('fieldNames')).to.deep.equal(['badge', 'ctas']);
+        expect(project.getFieldValues('fieldNames')).to.deep.equal(['prices', 'ctas']);
         expect(project.getFieldValues('fragments')).to.deep.equal(selection.map(({ path }) => path));
         expect(JSON.parse(project.getFieldValue('items'))).to.deep.equal({
             matchCase: true,
@@ -361,7 +366,7 @@ describe('mas-bulk-edit-editor', () => {
         await reopened.updateComplete;
         expect(reopened.findText).to.equal('school');
         expect(reopened.replaceText).to.equal('university');
-        expect(reopened.searchFields).to.deep.equal(['badge', 'ctas']);
+        expect(reopened.searchFields).to.deep.equal(['prices', 'ctas']);
         expect(reopened.matchCase).to.be.true;
         expect(reopened.resultFilters).to.deep.equal(el.resultFilters);
         expect([...reopened.selectedFragments.values()]).to.deep.equal(selection);
@@ -433,7 +438,7 @@ describe('mas-bulk-edit-editor', () => {
                 fields: [
                     ...rawProject('Existing-MWPW-1').fields,
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: ['/old-selection'] },
-                    { name: 'fieldNames', type: 'text', multiple: true, values: ['badge'] },
+                    { name: 'fieldNames', type: 'text', multiple: true, values: ['prices'] },
                 ],
             }),
         );

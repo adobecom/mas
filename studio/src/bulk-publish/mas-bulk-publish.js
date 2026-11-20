@@ -10,7 +10,7 @@ import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting, resetToDraft } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
-import { itemTypeFromPath } from './bulk-publish-utils.js';
+import { isResolvedItem, itemTypeFromPath } from './bulk-publish-utils.js';
 import {
     formatProjectDate,
     getProjectField,
@@ -175,7 +175,11 @@ class MasBulkPublish extends LitElement {
         const data = projectStore.get();
         const surface = Store.search.get()?.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
         const title = e.detail.title;
-        const items = getProjectField(data, 'items', '[]');
+        const items = JSON.stringify(
+            this.parseItems(getProjectField(data, 'items', '[]')).map((item) =>
+                item.status === 'valid' ? { ...item, status: 'resolved' } : item,
+            ),
+        );
         const fragments = getProjectFieldList(data, 'fragments');
         const locales = getProjectFieldList(data, 'locales');
         this.duplicating = true;
@@ -219,7 +223,7 @@ class MasBulkPublish extends LitElement {
     countByType(items) {
         const counts = { fragment: 0, collection: 0, placeholder: 0 };
         for (const item of items) {
-            if (!item || item.status !== 'valid') continue;
+            if (!item || !isResolvedItem(item)) continue;
             const type = item.type ?? 'fragment';
             const bucket = counts[type] !== undefined ? type : 'fragment';
             counts[bucket] += 1;
@@ -294,7 +298,7 @@ class MasBulkPublish extends LitElement {
         if (items.length) return items;
         return getProjectFieldList(data, 'fragments').map((path) => ({
             path,
-            status: 'valid',
+            status: 'resolved',
             type: itemTypeFromPath(path),
         }));
     }

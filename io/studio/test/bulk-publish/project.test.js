@@ -74,6 +74,21 @@ describe('project.js', () => {
             expect(mod.getProjectPaths(fragment)).to.deep.equal(['/content/dam/mas/a/en_US/card1']);
         });
 
+        it('accepts resolved items alongside legacy valid items in the items-only fallback', () => {
+            const items = [
+                { path: '/content/dam/mas/a/en_US/resolved', status: 'resolved' },
+                { path: '/content/dam/mas/a/en_US/legacy', status: 'valid' },
+                { path: '/content/dam/mas/a/en_US/invalid', status: 'invalid' },
+                { status: 'resolved' },
+            ];
+            const fragment = makeFragment([{ name: 'items', values: [JSON.stringify(items)] }]);
+
+            expect(mod.getProjectPaths(fragment)).to.deep.equal([
+                '/content/dam/mas/a/en_US/resolved',
+                '/content/dam/mas/a/en_US/legacy',
+            ]);
+        });
+
         it('returns empty array when both fragments and items are absent', () => {
             const fragment = makeFragment([{ name: 'title', values: ['Test'] }]);
             expect(mod.getProjectPaths(fragment)).to.deep.equal([]);

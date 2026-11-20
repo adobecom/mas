@@ -4,7 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { AEM, filterByTags } from './aem/aem.js';
+import { AEM, filterByTags, buildFragmentSavePayload } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import {
@@ -1788,10 +1788,8 @@ export class MasRepository extends LitElement {
                 expectedEtag === undefined
                     ? null
                     : {
-                          title: fragment.title,
-                          description: fragment.description,
-                          fields: structuredClone(fragment.fields),
-                          tags: fragment.tags?.map(({ id }) => id) ?? [],
+                          ...structuredClone(buildFragmentSavePayload(fragment)),
+                          tags: fragment.newTags ?? fragment.tags?.map(({ id }) => id) ?? [],
                       };
             const saved = await this.aem.sites.cf.fragments.save(expected ? { ...fragment, etag: expectedEtag } : fragment, {
                 refetchEtag: !expected,
@@ -1802,8 +1800,11 @@ export class MasRepository extends LitElement {
             }
             if (
                 expected &&
-                (saved.title !== expected.title ||
-                    saved.description !== expected.description ||
+                (saved.id !== fragment.id ||
+                    saved.path !== fragment.path ||
+                    !saved.etag ||
+                    saved.title !== expected.title ||
+                    (saved.description ?? '') !== (expected.description ?? '') ||
                     (saved.tags?.length ?? 0) !== expected.tags.length ||
                     expected.tags.some((id) => !saved.tags?.some((tag) => tag.id === id)) ||
                     saved.fields.length !== expected.fields.length ||

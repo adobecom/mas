@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { keyed } from 'lit/directives/keyed.js';
 import { PAGE_NAMES } from '../constants.js';
 import { buildProjectDeepLink, showToast } from '../utils.js';
 import { canAccessBulkPublish } from '../groups.js';
@@ -34,7 +35,7 @@ class MasPromotionPublishDialog extends LitElement {
     `;
 
     #resolveConfirmation;
-    #cancelled = false;
+    #request;
 
     constructor() {
         super();
@@ -45,16 +46,14 @@ class MasPromotionPublishDialog extends LitElement {
     }
 
     updated(changedProperties) {
-        if (changedProperties.has('phase') && this.phase === 'submitting') {
+        if (changedProperties.has('phase') && (this.phase === 'loading' || this.phase === 'submitting')) {
             this.shadowRoot.querySelector('.progress').focus();
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.phase === 'loading' || this.phase === 'confirm') this.#cancelled = true;
-        this.#resolveConfirmation?.({ confirmed: false, checked: false });
-        this.#resolveConfirmation = null;
+        if (this.phase === 'loading' || this.phase === 'confirm') this.close();
     }
 
     async requestPublish(repository, promotion) {
@@ -62,29 +61,28 @@ class MasPromotionPublishDialog extends LitElement {
             showToast('Close the current publish result before starting another request.', 'info');
             return;
         }
+        const request = new AbortController();
+        this.#request = request;
+        const cancelled = new Promise((resolve) => {
+            request.signal.addEventListener('abort', () => resolve({ confirmed: false, checked: false }), { once: true });
+        });
         this.phase = 'loading';
-        this.#cancelled = false;
         this.checked = true;
         this.result = null;
         this.plan = { promotionId: promotion.id, targetCount: 0, groups: [], warnings: [] };
         try {
-            const choice = await confirmPublishDespiteUnpublishedPromoVariations(
-                repository.aem,
-                promotion,
-                (title, message, options) => {
-                    if (this.#cancelled) return Promise.resolve({ confirmed: false, checked: false });
+            const choice = await Promise.race([
+                confirmPublishDespiteUnpublishedPromoVariations(repository.aem, promotion, (title, message, options) => {
+                    if (request.signal.aborted) return Promise.resolve({ confirmed: false, checked: false });
                     this.plan = options.plan;
                     this.phase = 'confirm';
                     return new Promise((resolve) => {
                         this.#resolveConfirmation = resolve;
                     });
-                },
-            );
-            if (this.#cancelled || !choice.confirmed) {
-                this.phase = 'confirm';
-                this.close();
-                return;
-            }
+                }),
+                cancelled,
+            ]);
+            if (request.signal.aborted) return;
             const allowed = this.dispatchEvent(
                 new CustomEvent('promotion-publish-confirm', {
                     bubbles: true,
@@ -99,11 +97,13 @@ class MasPromotionPublishDialog extends LitElement {
                 return;
             }
             this.phase = 'submitting';
-            this.result = await publishPromotionProject(repository, promotion, {
+            const result = await publishPromotionProject(repository, promotion, {
                 plan: this.plan,
                 publishVariations: choice.skippedCount === 0,
             });
+            this.result = result;
         } catch (error) {
+            if (request.signal.aborted) return;
             console.error('Failed to prepare promotion publishing', error);
             this.result = {
                 promotionId: promotion.id,
@@ -134,7 +134,9 @@ class MasPromotionPublishDialog extends LitElement {
     }
 
     close() {
-        if (this.phase === 'closed' || this.phase === 'loading' || this.phase === 'submitting') return;
+        if (this.phase === 'closed' || this.phase === 'submitting') return;
+        this.#request?.abort();
+        this.#request = null;
         this.#resolveConfirmation?.({ confirmed: false, checked: false });
         this.#resolveConfirmation = null;
         this.phase = 'closed';
@@ -142,7 +144,7 @@ class MasPromotionPublishDialog extends LitElement {
     }
 
     #handleKeydown(event) {
-        if (event.key === 'Escape' && (this.phase === 'loading' || this.phase === 'submitting')) {
+        if (event.key === 'Escape' && this.phase === 'submitting') {
             event.preventDefault();
             event.stopPropagation();
         }
@@ -169,6 +171,10 @@ class MasPromotionPublishDialog extends LitElement {
                       <p>
                           Publishing starts now, including for scheduled promotions. Final results are available in Bulk
                           Publish.
+                      </p>
+                      <p>
+                          Your promotion publish request is accepted first. A Bulk Publish failure does not undo that request or
+                          stop other surfaces. Unused drafts are removed only when they are confirmed not to have started.
                       </p>
                       ${!canAccessBulkPublish()
                           ? html`<p>
@@ -207,19 +213,21 @@ class MasPromotionPublishDialog extends LitElement {
                     (project) => project.id,
                     (project) => html`
                         <li>
-                            <sp-link
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                href=${new URL(
-                                    buildProjectDeepLink(
-                                        PAGE_NAMES.BULK_PUBLISH_EDITOR,
-                                        'bulkPublishProjectId',
-                                        project.id,
-                                        project.surface,
-                                    ),
-                                ).hash}
-                                >${project.surface}: ${project.title}</sp-link
-                            >
+                            ${project.cleanupStatus === 'deleted'
+                                ? html`${project.surface}: ${project.title} - Unused draft deleted`
+                                : html`<sp-link
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      href=${new URL(
+                                          buildProjectDeepLink(
+                                              PAGE_NAMES.BULK_PUBLISH_EDITOR,
+                                              'bulkPublishProjectId',
+                                              project.id,
+                                              project.surface,
+                                          ),
+                                      ).hash}
+                                      >${project.surface}: ${project.title}</sp-link
+                                  >`}
                             -
                             ${{
                                 accepted: 'Request accepted',
@@ -232,7 +240,7 @@ class MasPromotionPublishDialog extends LitElement {
                     `,
                 )}
             </ul>
-            ${this.result.projects.length
+            ${this.result.projects.some((project) => project.cleanupStatus !== 'deleted')
                 ? html`<p>Requests accepted does not mean publishing has finished. Use the project links to check results.</p>`
                 : nothing}
         `;
@@ -240,16 +248,23 @@ class MasPromotionPublishDialog extends LitElement {
 
     render() {
         if (this.phase === 'closed') return nothing;
-        return html`
-            <sp-overlay type="modal" open @sp-closed=${this.close} @keydown=${this.#handleKeydown}>
+        const request = this.#request;
+        const close = () => {
+            if (this.#request === request) this.close();
+        };
+        return keyed(
+            request,
+            html`<sp-overlay type="modal" open @sp-closed=${close} @keydown=${this.#handleKeydown}>
                 <sp-dialog-wrapper
                     headline="Publish promotion"
                     underlay
                     .confirmLabel=${this.phase === 'confirm' ? 'Publish' : this.phase === 'result' ? 'Close' : ''}
-                    .cancelLabel=${this.phase === 'confirm' ? 'Cancel' : ''}
-                    @confirm=${this.confirm}
-                    @cancel=${this.close}
-                    @close=${this.close}
+                    .cancelLabel=${this.phase === 'confirm' || this.phase === 'loading' ? 'Cancel' : ''}
+                    @confirm=${() => {
+                        if (this.#request === request) this.confirm();
+                    }}
+                    @cancel=${close}
+                    @close=${close}
                 >
                     ${this.phase === 'confirm'
                         ? this.confirmationTemplate
@@ -260,12 +275,12 @@ class MasPromotionPublishDialog extends LitElement {
                                 <span
                                     >${this.phase === 'loading'
                                         ? 'Finding promo variations...'
-                                        : 'Creating projects and requesting publishing...'}</span
+                                        : 'Requesting promotion publishing, then creating and starting Bulk Publish projects...'}</span
                                 >
                             </div>`}
                 </sp-dialog-wrapper>
-            </sp-overlay>
-        `;
+            </sp-overlay>`,
+        );
     }
 }
 

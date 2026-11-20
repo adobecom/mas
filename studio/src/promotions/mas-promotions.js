@@ -71,6 +71,7 @@ class MasPromotions extends LitElement {
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
+        publishError: { type: String, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         dialogCheckboxChecked: { type: Boolean, state: true },
@@ -89,6 +90,7 @@ class MasPromotions extends LitElement {
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
+        this.publishError = null;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.dialogCheckboxChecked = false;
@@ -150,12 +152,13 @@ class MasPromotions extends LitElement {
     }
 
     renderError() {
-        if (!this.error) return nothing;
+        const errors = [...new Set([this.error, this.publishError].filter(Boolean))];
+        if (!errors.length) return nothing;
 
         return html`
             <div class="error-message" role="alert">
                 <sp-icon-alert></sp-icon-alert>
-                <span>${this.error}</span>
+                <span>${errors.join(' ')}</span>
             </div>
         `;
     }
@@ -510,13 +513,16 @@ class MasPromotions extends LitElement {
             .get()
             .find((item) => item.get().id === detail.promotionId)
             ?.get();
-        this.error = detail.error ? `${promotion?.title ?? detail.promotionId}: ${detail.error}` : null;
+        this.publishError = detail.error ? `${promotion?.title ?? detail.promotionId}: ${detail.error}` : null;
         if (detail.promotion.status === 'accepted' || detail.promotion.status === 'unknown') {
             try {
                 await this.loadPromotions();
             } catch (error) {
                 console.error('Failed to refresh promotions after publishing', error);
-                this.error = [this.error, `Could not refresh promotions: ${error.message}`].filter(Boolean).join(' ');
+                const refreshError = `Could not refresh promotions: ${error.message}`;
+                if (!this.error?.includes(refreshError)) {
+                    this.error = [this.error, refreshError].filter(Boolean).join(' ');
+                }
             }
         }
     }
@@ -548,7 +554,7 @@ class MasPromotions extends LitElement {
             return;
         }
         this.publishBusy = true;
-        this.error = null;
+        this.publishError = null;
         try {
             await this.promotionPublishDialog.requestPublish(this.repository, fragment);
         } finally {

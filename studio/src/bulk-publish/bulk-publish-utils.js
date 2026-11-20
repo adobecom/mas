@@ -28,9 +28,13 @@ export function itemTypeFromFragment(fragment) {
     return itemTypeFromPath(fragment?.path);
 }
 
+export function isResolvedItem(item) {
+    return item.status === 'resolved' || item.status === 'valid';
+}
+
 export function buildItemsMetadata(items) {
     const meta = items
-        .filter((item) => item.status === 'valid' && item.path)
-        .map((item) => ({ path: item.path, type: item.type ?? itemTypeFromPath(item.path), status: 'valid' }));
+        .filter((item) => isResolvedItem(item) && item.path)
+        .map((item) => ({ path: item.path, type: item.type ?? itemTypeFromPath(item.path), status: 'resolved' }));
     return JSON.stringify(meta);
 }

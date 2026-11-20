@@ -2,6 +2,26 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-items.js';
 
 describe('mas-bulk-publish-items', () => {
+    for (const status of ['resolved', 'valid']) {
+        it(`labels ${status} items as Fragment found without claiming content validation`, async () => {
+            const el = await fixture(html`
+                <mas-bulk-publish-items .items=${[{ url: '/x', path: '/x', status }]}></mas-bulk-publish-items>
+            `);
+            const cell = el.shadowRoot.querySelector('[data-testid="item-row"] .status-cell');
+
+            expect(cell.textContent.trim()).to.equal('Fragment found');
+            expect(cell.querySelector('sp-icon-checkmark-circle')).to.exist;
+        });
+
+        it(`keeps staged status ahead of ${status} resolution status`, async () => {
+            const el = await fixture(html`
+                <mas-bulk-publish-items .items=${[{ url: '/x', path: '/x', status, staged: true }]}></mas-bulk-publish-items>
+            `);
+
+            expect(el.shadowRoot.querySelector('[data-testid="item-row"] .status-cell').textContent.trim()).to.equal('Staged');
+        });
+    }
+
     it('prevents plain-click navigation on the full-row overlay', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items

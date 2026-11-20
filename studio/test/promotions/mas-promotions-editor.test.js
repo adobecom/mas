@@ -2895,7 +2895,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
 
-        it('does not fall back to direct publishing when the checked Bulk Publish flow cannot be prepared', async () => {
+        it('publishes the promotion and shows a top error without directly publishing variations when Bulk setup fails', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
@@ -2923,12 +2923,13 @@ describe('MasPromotionsEditor', () => {
                 [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
             });
             const getWithEtag = sandbox.stub();
-            getWithEtag
-                .withArgs('promo-1')
-                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-1').resolves(promotion);
             getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
             const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
             const publishFragments = sandbox.stub().resolves();
+            const publish = sandbox.stub().resolves({
+                items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }],
+            });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     getFragmentByPath: sandbox.stub().resolves({
@@ -2938,8 +2939,8 @@ describe('MasPromotionsEditor', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getById: sandbox.stub().resolves(null),
-                                publish: sandbox.stub().resolves(),
+                                getById: sandbox.stub().resolves(promotion),
+                                publish,
                                 publishFragments,
                                 getWithEtag,
                                 getByPath,
@@ -2966,8 +2967,12 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
 
             expect(publishFragments.called).to.be.false;
+            expect(publish.calledOnce).to.be.true;
             expect(el.promotionPublishError).to.include('ioBaseUrl');
             expect(el.promotionPublishDialog.phase).to.equal('result');
+            expect(el.promotionPublishDialog.result.promotion.status).to.equal('accepted');
+            expect(el.renderRoot.querySelector('[role="alert"]').textContent).to.include('ioBaseUrl');
+            expect(el.fragment.status).to.equal('DRAFT');
         });
     });
 

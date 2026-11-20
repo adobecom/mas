@@ -58,7 +58,7 @@ function getProjectPaths(fragment) {
     if (!raw) return [];
     try {
         const items = JSON.parse(raw);
-        return items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+        return items.filter((i) => (i.status === 'resolved' || i.status === 'valid') && i.path).map((i) => i.path);
     } catch {
         return [];
     }

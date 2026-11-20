@@ -44,19 +44,29 @@ describe('promotion Bulk Publish integration', () => {
                 ],
             })),
         };
+        const projects = new Map();
         const fragments = {
             getWithEtag: sandbox.stub().callsFake(async (id) => {
                 if (id === promotion.id) return promotion;
-                return plan.groups.flatMap((group) => group.variations).find((variation) => variation.id === id);
+                return (
+                    projects.get(id) ??
+                    plan.groups.flatMap((group) => group.variations).find((variation) => variation.id === id)
+                );
             }),
             publish: sandbox.stub().resolves({ items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }] }),
             publishFragments: sandbox.stub(),
-            create: sandbox.stub().callsFake(async (payload) => ({
-                ...payload,
-                id: `project-${payload.parentPath.split('/').at(-2)}`,
-                path: `${payload.parentPath}/${payload.name}`,
-                status: 'DRAFT',
-            })),
+            create: sandbox.stub().callsFake(async (payload) => {
+                const project = {
+                    ...payload,
+                    id: `project-${payload.parentPath.split('/').at(-2)}`,
+                    path: `${payload.parentPath}/${payload.name}`,
+                    status: 'DRAFT',
+                    etag: '"project-revision"',
+                };
+                projects.set(project.id, project);
+                return project;
+            }),
+            delete: sandbox.stub().resolves(),
         };
         repository = {
             aem: { baseUrl: 'https://author.example', sites: { cf: { fragments } } },
@@ -87,11 +97,12 @@ describe('promotion Bulk Publish integration', () => {
         sandbox.restore();
     });
 
-    it('creates every surface before publishing the promotion and dispatching each actual project ID', async () => {
+    it('publishes the promotion before creating and starting each surface independently', async () => {
         const result = await publishPromotionProject(repository, promotion, { plan });
         const { create, publish, publishFragments } = repository.aem.sites.cf.fragments;
         expect(create.callCount).to.equal(2);
-        expect(create.secondCall.calledBefore(publish.firstCall)).to.be.true;
+        expect(publish.firstCall.calledBefore(create.firstCall)).to.be.true;
+        expect(fetchStub.firstCall.calledBefore(create.secondCall)).to.be.true;
         expect(publish.firstCall.calledBefore(fetchStub.firstCall)).to.be.true;
         expect(result.promotion.status).to.equal('accepted');
         expect(result.projects.map((project) => project.dispatchStatus)).to.deep.equal(['accepted', 'accepted']);
@@ -100,6 +111,7 @@ describe('promotion Bulk Publish integration', () => {
             'project-acom-cc',
         ]);
         expect(publishFragments.called).to.be.false;
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
     });
 
     it('preserves explicit surface paths, collection metadata and a shared title timestamp', async () => {
@@ -115,7 +127,7 @@ describe('promotion Bulk Publish integration', () => {
                 {
                     path: fields.fragments[0],
                     type: 'collection',
-                    status: 'valid',
+                    status: 'resolved',
                 },
             ]);
         }
@@ -178,14 +190,20 @@ describe('promotion Bulk Publish integration', () => {
 
                 const result = await publishPromotionProject(repository, promotion, { plan });
 
-                expect(result.promotion.status).to.equal(concurrentEdit ? 'not-started' : 'accepted');
+                expect(result.promotion.status).to.equal('accepted');
                 expect(latest.fields.find((field) => field.name === 'cardTitle').values).to.deep.equal([
                     concurrentEdit ? 'NEWER CONCURRENT CONTENT' : 'NEW SAVED CONTENT',
                 ]);
                 expect(latest.fields.find((field) => field.name === 'tags').values).to.deep.equal(
                     concurrentEdit ? [STAGED.TAG] : [],
                 );
-                if (concurrentEdit) expect(fetchStub.calledWith('https://io.example/bulk-publish')).to.be.false;
+                if (concurrentEdit) {
+                    expect(result.projects[0].cleanupStatus).to.equal('deleted');
+                    expect(
+                        fetchStub.getCalls().filter(({ args }) => args[0] === 'https://io.example/bulk-publish'),
+                    ).to.have.lengthOf(1);
+                    expect(result.projects[1].dispatchStatus).to.equal('accepted');
+                }
                 const put = fetchStub.getCalls().find(({ args }) => args[1].method === 'PUT');
                 expect(put.args[1].headers['If-Match']).to.equal('"2"');
                 expect(aem.getFragmentWithEtag.called).to.be.false;
@@ -203,16 +221,18 @@ describe('promotion Bulk Publish integration', () => {
         ).to.deep.equal([plan.groups[0].variations[0].path]);
     });
 
-    it('stops without staged changes or publishing if any project cannot be created or read back', async () => {
-        repository.aem.sites.cf.fragments.create.onSecondCall().rejects(new Error('Readback failed'));
+    it('preserves promotion acceptance and continues other surfaces when creation fails', async () => {
+        repository.aem.sites.cf.fragments.create.onFirstCall().rejects(new Error('Readback failed'));
         const result = await publishPromotionProject(repository, promotion, { plan });
         expect(result.projects).to.have.lengthOf(1);
-        expect(result.projects[0].id).to.equal('project-acom');
-        expect(result.promotion.status).to.equal('not-started');
+        expect(result.projects[0].id).to.equal('project-acom-cc');
+        expect(result.projects[0].dispatchStatus).to.equal('accepted');
+        expect(result.promotion.status).to.equal('accepted');
         expect(result.error).to.include('Readback failed');
-        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
-        expect(repository.clearStagedTag.called).to.be.false;
-        expect(fetchStub.called).to.be.false;
+        expect(result.error).to.include('acom');
+        expect(repository.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+        expect(fetchStub.callCount).to.equal(1);
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
     });
 
     for (const [status, expected] of [
@@ -223,7 +243,9 @@ describe('promotion Bulk Publish integration', () => {
             repository.aem.sites.cf.fragments.publish.resolves({ items: [{ path: promotion.path, status }] });
             const result = await publishPromotionProject(repository, promotion, { plan });
             expect(result.promotion.status).to.equal(expected);
-            expect(result.projects).to.have.lengthOf(2);
+            expect(result.projects).to.deep.equal([]);
+            expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
+            expect(repository.clearStagedTag.callCount).to.equal(1);
             expect(fetchStub.called).to.be.false;
         });
     }
@@ -257,12 +279,24 @@ describe('promotion Bulk Publish integration', () => {
         expect(fetchStub.callCount).to.equal(2);
     });
 
-    it('rejects missing IO configuration before creating a project', async () => {
+    it('publishes the promotion but creates no drafts when IO configuration is missing', async () => {
         meta.remove();
         const result = await publishPromotionProject(repository, promotion, { plan });
         expect(result.error).to.include('ioBaseUrl');
         expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
-        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
+        expect(result.promotion.status).to.equal('accepted');
+        expect(repository.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+    });
+
+    it('publishes the promotion but creates no drafts when the Bulk Publish token is unavailable', async () => {
+        sessionStorage.removeItem('masAccessToken');
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.promotion.status).to.equal('accepted');
+        expect(result.error).to.include('sign-in token');
+        expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
+        expect(fetchStub.called).to.be.false;
     });
 
     it('can publish only the promotion without Bulk Publish configuration', async () => {
@@ -288,15 +322,17 @@ describe('promotion Bulk Publish integration', () => {
         expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
     });
 
-    it('does not publish when a fresh variation has no revision', async () => {
+    it('keeps the promotion and other surface running when a variation revision is unavailable', async () => {
         const variation = plan.groups[0].variations[0];
         repository.aem.sites.cf.fragments.getWithEtag.withArgs(variation.id).resolves({ ...variation, etag: null });
 
         const result = await publishPromotionProject(repository, promotion, { plan });
 
         expect(result.error).to.include('latest revision');
-        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
-        expect(fetchStub.called).to.be.false;
+        expect(result.promotion.status).to.equal('accepted');
+        expect(result.projects[0].cleanupStatus).to.equal('deleted');
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        expect(fetchStub.callCount).to.equal(1);
     });
 
     it('uses only the promotion revision produced by its own staged-tag save', async () => {
@@ -312,18 +348,12 @@ describe('promotion Bulk Publish integration', () => {
         ).to.have.lengthOf(1);
     });
 
-    it('cannot publish a different promotion revision after project creation', async () => {
+    it('cannot publish a different promotion revision changed while preparing its staged save', async () => {
         let serverRevision = '"1"';
-        const { getWithEtag, create } = repository.aem.sites.cf.fragments;
+        const { getWithEtag } = repository.aem.sites.cf.fragments;
         getWithEtag.withArgs(promotion.id).callsFake(async () => ({ ...promotion, etag: serverRevision }));
-        create.onSecondCall().callsFake(async (payload) => {
-            serverRevision = '"2"';
-            return {
-                ...payload,
-                id: 'project-acom-cc',
-                path: `${payload.parentPath}/${payload.name}`,
-                status: 'DRAFT',
-            };
+        repository.clearStagedTag.callsFake(async (fragment) => {
+            if (fragment.id === promotion.id) serverRevision = '"2"';
         });
         const aem = new AEM('test', repository.aem.baseUrl);
         repository.aem.sites.cf.fragments.publish = aem.publishFragment.bind(aem);
@@ -340,6 +370,7 @@ describe('promotion Bulk Publish integration', () => {
         expect(result.promotion.status).not.to.equal('accepted');
         expect(result.error).to.include('412');
         expect(fetchStub.calledWith('https://io.example/bulk-publish')).to.be.false;
+        expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
         expect(fetchStub.firstCall.args[1].headers['If-Match']).to.equal('"1"');
     });
 
@@ -347,17 +378,19 @@ describe('promotion Bulk Publish integration', () => {
         repository.aem.sites.cf.fragments.publish.rejects(new Error('Response lost'));
         const result = await publishPromotionProject(repository, promotion, { plan });
         expect(result.promotion.status).to.equal('unknown');
-        expect(result.projects).to.have.lengthOf(2);
+        expect(result.projects).to.deep.equal([]);
         expect(repository.aem.sites.cf.fragments.publish.callCount).to.equal(1);
         expect(fetchStub.called).to.be.false;
     });
 
-    it('does not invent a project link or publish after a malformed creation response', async () => {
+    it('keeps promotion acceptance without inventing project links after malformed creation responses', async () => {
         repository.aem.sites.cf.fragments.create.resolves({ fields: [] });
         const result = await publishPromotionProject(repository, promotion, { plan });
         expect(result.projects).to.deep.equal([]);
         expect(result.error).to.include('Could not confirm');
-        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
+        expect(result.promotion.status).to.equal('accepted');
+        expect(repository.aem.sites.cf.fragments.create.callCount).to.equal(2);
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
     });
 
     it('does not replay a dispatch response without confirmed acceptance', async () => {
@@ -366,6 +399,214 @@ describe('promotion Bulk Publish integration', () => {
         const result = await publishPromotionProject(repository, promotion, { plan });
         expect(result.projects[0].dispatchStatus).to.equal('unknown');
         expect(fetchStub.callCount).to.equal(1);
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
+    });
+
+    for (const status of [400, 401, 403, 404, 422]) {
+        it(`deletes only the unused draft when dispatch is explicitly rejected with ${status}`, async () => {
+            fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Rejected' }), { status }));
+
+            const result = await publishPromotionProject(repository, promotion, { plan });
+
+            expect(result.promotion.status).to.equal('accepted');
+            expect(result.projects[0].cleanupStatus).to.equal('deleted');
+            expect(result.projects[0].dispatchStatus).to.equal('failed');
+            expect(result.projects[1].dispatchStatus).to.equal('accepted');
+            expect(repository.aem.sites.cf.fragments.delete.callCount).to.equal(1);
+            expect(repository.aem.sites.cf.fragments.delete.firstCall.args[0].id).to.equal('project-acom');
+            expect(repository.aem.sites.cf.fragments.delete.firstCall.args[0].etag).to.equal('"project-revision"');
+            expect(result.error).to.include('acom');
+            expect(result.error).to.include('Rejected');
+        });
+    }
+
+    for (const failure of ['network', 'server']) {
+        it(`retains an unknown-acceptance project after a ${failure} dispatch failure`, async () => {
+            if (failure === 'network') fetchStub.onFirstCall().rejects(new Error('Response lost'));
+            else fetchStub.onFirstCall().resolves(new Response('{}', { status: 500 }));
+
+            const result = await publishPromotionProject(repository, promotion, { plan });
+
+            expect(result.projects[0].dispatchStatus).to.equal('unknown');
+            expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
+            expect(result.projects[1].dispatchStatus).to.equal('accepted');
+            expect(fetchStub.callCount).to.equal(2);
+        });
+    }
+
+    it('reports cleanup failures with the retained project instead of hiding them', async () => {
+        fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Rejected' }), { status: 403 }));
+        repository.aem.sites.cf.fragments.delete.rejects(new Error('Delete denied'));
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.projects[0].cleanupStatus).to.equal('failed');
+        expect(result.projects[0].id).to.equal('project-acom');
+        expect(result.error).to.include('Delete denied');
+        expect(result.error).to.include('Rejected');
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
+    });
+
+    it('does not create projects or touch variation staged flags when promotion preparation fails', async () => {
+        repository.clearStagedTag.onFirstCall().rejects(new Error('Promotion save conflict'));
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.promotion.status).to.equal('not-started');
+        expect(result.error).to.include('Promotion save conflict');
+        expect(repository.clearStagedTag.callCount).to.equal(1);
+        expect(repository.aem.sites.cf.fragments.create.called).to.be.false;
+        expect(repository.aem.sites.cf.fragments.publish.called).to.be.false;
+    });
+
+    it('cleans an unused draft after variation preparation fails and still starts the next surface', async () => {
+        repository.clearStagedTag.callsFake(async (fragment) => {
+            if (fragment.id === 'variation-acom') throw new Error('Variation save conflict');
+        });
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.promotion.status).to.equal('accepted');
+        expect(result.projects[0].cleanupStatus).to.equal('deleted');
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        expect(result.error).to.include('prepare promo variations for acom');
+        expect(result.error).to.include('Variation save conflict');
+        expect(fetchStub.callCount).to.equal(1);
+    });
+
+    it('preserves accepted work when a later surface cannot be created', async () => {
+        repository.aem.sites.cf.fragments.create.onSecondCall().rejects(new Error('Cannot create'));
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.projects).to.have.lengthOf(1);
+        expect(result.projects[0].dispatchStatus).to.equal('accepted');
+        expect(result.promotion.status).to.equal('accepted');
+        expect(result.error).to.include('acom-cc');
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
+    });
+
+    it('does not delete a project when its cleanup revision cannot be fetched', async () => {
+        fetchStub.onFirstCall().resolves(new Response('{}', { status: 403 }));
+        repository.aem.sites.cf.fragments.getWithEtag.withArgs('project-acom').rejects(new Error('Lookup unavailable'));
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.projects[0].cleanupStatus).to.equal('failed');
+        expect(result.error).to.include('Lookup unavailable');
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        expect(repository.aem.sites.cf.fragments.delete.called).to.be.false;
+    });
+
+    it('does not delete a draft whose creation response supplied no revision', async () => {
+        const { create, delete: remove } = repository.aem.sites.cf.fragments;
+        create.onFirstCall().callsFake(async (payload) => ({
+            ...payload,
+            id: 'project-acom',
+            path: `${payload.parentPath}/${payload.name}`,
+            fields: payload.fields,
+        }));
+        repository.aem.sites.cf.fragments.getWithEtag.withArgs('project-acom').resolves({ etag: '"later"' });
+        fetchStub.onFirstCall().resolves(new Response('{}', { status: 403 }));
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.projects[0].cleanupStatus).to.equal('failed');
+        expect(remove.called).to.be.false;
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
+    });
+
+    it('retains a project already being tracked instead of dispatching it twice or deleting it', async () => {
+        const { create, delete: remove } = repository.aem.sites.cf.fragments;
+        create.onFirstCall().callsFake(async (payload) => {
+            Store.bulkPublishProjects.publishing.set({ 'project-acom': true });
+            return {
+                ...payload,
+                id: 'project-acom',
+                path: `${payload.parentPath}/${payload.name}`,
+                etag: '"project-revision"',
+            };
+        });
+
+        try {
+            const result = await publishPromotionProject(repository, promotion, { plan });
+
+            expect(result.projects[0].dispatchStatus).to.equal('unknown');
+            expect(result.projects[0].error).to.include('already in progress');
+            expect(remove.called).to.be.false;
+            expect(fetchStub.callCount).to.equal(1);
+            expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        } finally {
+            const publishing = { ...Store.bulkPublishProjects.publishing.get() };
+            delete publishing['project-acom'];
+            Store.bulkPublishProjects.publishing.set(publishing);
+        }
+    });
+
+    it('does not delete a project that began tracking while its unused draft was being checked', async () => {
+        const { getWithEtag, create, delete: remove } = repository.aem.sites.cf.fragments;
+        fetchStub.onFirstCall().resolves(new Response('{}', { status: 403 }));
+        getWithEtag.withArgs('project-acom').callsFake(async () => {
+            Store.bulkPublishProjects.publishing.set({ 'project-acom': true });
+            return create.firstCall.returnValue;
+        });
+
+        try {
+            const result = await publishPromotionProject(repository, promotion, { plan });
+
+            expect(result.projects[0].cleanupStatus).to.equal('failed');
+            expect(remove.called).to.be.false;
+            expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        } finally {
+            const publishing = { ...Store.bulkPublishProjects.publishing.get() };
+            delete publishing['project-acom'];
+            Store.bulkPublishProjects.publishing.set(publishing);
+        }
+    });
+
+    for (const change of ['revision', 'status', 'identity', 'missing-revision']) {
+        it(`retains a draft whose ${change} cannot be confirmed unchanged before cleanup`, async () => {
+            fetchStub.onFirstCall().resolves(new Response('{}', { status: 403 }));
+            const { getWithEtag, create, delete: remove } = repository.aem.sites.cf.fragments;
+            getWithEtag.withArgs('project-acom').callsFake(async () => {
+                const raw = await create.firstCall.returnValue;
+                if (change === 'revision') return { ...raw, etag: '"changed"' };
+                if (change === 'identity') return { ...raw, path: '/content/dam/mas/other-project' };
+                if (change === 'missing-revision') return { ...raw, etag: null };
+                return {
+                    ...raw,
+                    fields: raw.fields.map((field) => (field.name === 'status' ? { ...field, values: ['Publishing'] } : field)),
+                };
+            });
+
+            const result = await publishPromotionProject(repository, promotion, { plan });
+
+            expect(remove.called).to.be.false;
+            expect(result.projects[0].cleanupStatus).to.equal('failed');
+            expect(result.error).to.include('could not be confirmed');
+            expect(result.projects[1].dispatchStatus).to.equal('accepted');
+        });
+    }
+
+    it('uses the real delete API If-Match and retains the project when deletion conflicts', async () => {
+        const aem = new AEM('test', repository.aem.baseUrl);
+        repository.aem.sites.cf.fragments.delete = aem.deleteFragment.bind(aem);
+        fetchStub.callsFake(async (url, options) => {
+            if (options.method === 'DELETE') {
+                expect(options.headers['If-Match']).to.equal('"project-revision"');
+                return new Response('{}', { status: 412 });
+            }
+            const { projectId } = JSON.parse(options.body);
+            return projectId === 'project-acom'
+                ? new Response(JSON.stringify({ error: 'Rejected' }), { status: 403 })
+                : new Response(JSON.stringify({ accepted: true }), { status: 202 });
+        });
+
+        const result = await publishPromotionProject(repository, promotion, { plan });
+
+        expect(result.projects[0].cleanupStatus).to.equal('failed');
+        expect(result.error).to.include('412');
+        expect(result.projects[1].dispatchStatus).to.equal('accepted');
     });
 
     it('discovers grouped and MODIFIED variations without filtering validation errors', async () => {

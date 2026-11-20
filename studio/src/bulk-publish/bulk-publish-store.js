@@ -21,6 +21,27 @@ function finishPublishing(project) {
     Store.bulkPublishProjects.publishing.set(current);
 }
 
+function trackPublishingNotifications() {
+    const stores = [Store.page, Store.promotions.promotionId, Store.bulkPublishProjects.projectId];
+    let active = true;
+    const release = () => {
+        for (const store of stores) store.unsubscribe(onChange);
+    };
+    const onChange = (value, previous) => {
+        if (value !== previous) {
+            active = false;
+            queueMicrotask(release);
+        }
+    };
+    for (const store of stores) store.subscribe(onChange);
+    return {
+        get active() {
+            return active;
+        },
+        release,
+    };
+}
+
 async function monitorPublishing({ project, repository, pollIntervalMs, maxPolls, sleepFn }) {
     const terminalStatuses = new Set([
         BULK_PUBLISH_STATUS.PUBLISHED,
@@ -64,6 +85,7 @@ export async function startPublishing({
         [project.id]: true,
     });
 
+    const notifications = waitForCompletion ? null : trackPublishingNotifications();
     let monitor;
     try {
         const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
@@ -86,17 +108,23 @@ export async function startPublishing({
         if (waitForCompletion) return await monitor;
         monitor.then(
             (outcome) => {
-                if (outcome.timedOut)
+                if (notifications.active && outcome.timedOut)
                     showToast(`Bulk Publish ${project.id} is still processing. Check the project.`, 'warning');
+                notifications.release();
             },
             (error) => {
                 console.error(`Failed to track Bulk Publish ${project.id}`, error);
-                showToast(`Could not track Bulk Publish ${project.id}. Check the project.`, 'negative');
+                if (notifications.active)
+                    showToast(`Could not track Bulk Publish ${project.id}. Check the project.`, 'negative');
+                notifications.release();
             },
         );
         return { accepted: true, activationId: acceptance.activationId ?? null };
     } finally {
-        if (!monitor) finishPublishing(project);
+        if (!monitor) {
+            finishPublishing(project);
+            notifications?.release();
+        }
     }
 }
 

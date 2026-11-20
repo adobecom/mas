@@ -1,4 +1,5 @@
 import { BULK_PUBLISH_STATUS, OPERATIONS } from '../constants.js';
+import Store from '../store.js';
 import { extractSurfaceFromPath, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -232,7 +233,7 @@ async function createPromotionBulkProject(repository, group, title) {
             group.variations.map((variation) => ({
                 path: variation.path,
                 type: itemTypeFromFragment(variation),
-                status: 'valid',
+                status: 'resolved',
             })),
         ),
     });
@@ -252,6 +253,23 @@ async function createPromotionBulkProject(repository, group, title) {
             error: null,
         },
     };
+}
+
+async function removeUnusedPromotionBulkProject(repository, { store, entry }) {
+    const created = store.get();
+    const latest = await repository.aem.sites.cf.fragments.getWithEtag(created.id);
+    if (
+        !created.etag ||
+        latest?.etag !== created.etag ||
+        latest.id !== created.id ||
+        latest.path !== created.path ||
+        latest.fields.find((field) => field.name === 'status')?.values[0] !== BULK_PUBLISH_STATUS.DRAFT ||
+        Store.bulkPublishProjects.publishing.get()[created.id]
+    ) {
+        throw new Error('The unused draft could not be confirmed unchanged. Check the project before removing it.');
+    }
+    await repository.aem.sites.cf.fragments.delete(latest);
+    entry.cleanupStatus = 'deleted';
 }
 
 /**
@@ -281,37 +299,14 @@ export async function publishPromotionProject(repository, promotionFragment, { p
         repository.operation.set(OPERATIONS.PUBLISH);
         const publishPlan = plan ?? (await getPromotionPublishPlan(repository.aem, promotionFragment));
         const groups = publishVariations ? publishPlan.groups : [];
-        const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
-        const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
-        if (groups.length && !ioBaseUrl) throw new Error('ioBaseUrl is required');
-        if (groups.length && !token) throw new Error('A sign-in token is required');
         const current = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
         if (!current?.etag) throw new Error('Failed to fetch promotion revision for publish');
         if (promotionFragment.etag && current.etag !== promotionFragment.etag) {
             throw new Error('The promotion has changed. Refresh it before publishing.');
         }
-        const prepared = [];
-        const title = `${promotionFragment.title}-${new Date().toISOString()}`;
-        for (const group of groups) {
-            stage = `create Bulk Publish project for ${group.surface}`;
-            const project = await createPromotionBulkProject(repository, group, title);
-            prepared.push(project);
-            result.projects.push(project.entry);
-        }
         stage = 'publish promotion';
         const promotion = new Fragment(current);
-        await processConcurrently(
-            [promotion, ...groups.flatMap((group) => group.variations)],
-            async (fragment) => {
-                const latest =
-                    fragment === promotion
-                        ? fragment
-                        : new Fragment(await repository.aem.sites.cf.fragments.getWithEtag(fragment.id));
-                if (!latest.etag) throw new Error(`Failed to fetch the latest revision for ${fragment.path}`);
-                await repository.clearStagedTag(latest, { expectedEtag: latest.etag });
-            },
-            VARIATIONS_CONCURRENCY_LIMIT,
-        );
+        await repository.clearStagedTag(promotion, { expectedEtag: promotion.etag });
         result.promotion.status = 'unknown';
         const response = await repository.aem.sites.cf.fragments.publish(promotion, []);
         const item = response?.items?.find((entry) => entry.path === promotion.path);
@@ -320,10 +315,33 @@ export async function publishPromotionProject(repository, promotionFragment, { p
             throw new Error(`Promotion publish was not confirmed (${item?.status ?? 'missing response item'}).`);
         }
         result.promotion.status = 'accepted';
-        for (const { store, entry } of prepared) {
+        const title = `${promotionFragment.title}-${new Date().toISOString()}`;
+        for (const group of groups) {
+            let project;
+            let dispatchAttempted = false;
             try {
+                stage = `prepare Bulk Publish for ${group.surface}`;
+                const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+                const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
+                if (!ioBaseUrl) throw new Error('ioBaseUrl is required');
+                if (!token) throw new Error('A sign-in token is required');
+                stage = `create Bulk Publish project for ${group.surface}`;
+                project = await createPromotionBulkProject(repository, group, title);
+                result.projects.push(project.entry);
+                stage = `prepare promo variations for ${group.surface}`;
+                await processConcurrently(
+                    group.variations,
+                    async (fragment) => {
+                        const latest = new Fragment(await repository.aem.sites.cf.fragments.getWithEtag(fragment.id));
+                        if (!latest.etag) throw new Error(`Failed to fetch the latest revision for ${fragment.path}`);
+                        await repository.clearStagedTag(latest, { expectedEtag: latest.etag });
+                    },
+                    VARIATIONS_CONCURRENCY_LIMIT,
+                );
+                stage = `start Bulk Publish for ${group.surface}`;
+                dispatchAttempted = true;
                 const acceptance = await startPublishing({
-                    project: store,
+                    project: project.store,
                     repository,
                     ioBaseUrl,
                     token,
@@ -336,13 +354,28 @@ export async function publishPromotionProject(repository, promotionFragment, { p
                     publishReferences: false,
                 });
                 if (!acceptance.accepted) throw new Error('A request is already in progress. Check the Bulk Publish project.');
-                entry.dispatchStatus = 'accepted';
-                entry.activationId = acceptance.activationId;
+                project.entry.dispatchStatus = 'accepted';
+                project.entry.activationId = acceptance.activationId;
             } catch (error) {
-                console.error(`Failed to start Bulk Publish for ${entry.surface}`, error);
-                entry.dispatchStatus = [400, 401, 403, 404, 422].includes(error.status) ? 'failed' : 'unknown';
-                entry.error = error.message;
-                result.error = 'Some Bulk Publish requests could not be confirmed. Check the project links.';
+                console.error(`Failed to ${stage}`, error);
+                let message = `Could not ${stage}: ${error.message}`;
+                if (project) {
+                    const rejected = !dispatchAttempted || [400, 401, 403, 404, 422].includes(error.status);
+                    project.entry.dispatchStatus = rejected ? 'failed' : 'unknown';
+                    if (rejected) {
+                        try {
+                            await removeUnusedPromotionBulkProject(repository, project);
+                        } catch (cleanupError) {
+                            console.error(`Failed to remove unused Bulk Publish project ${project.entry.id}`, cleanupError);
+                            project.entry.cleanupStatus = 'failed';
+                            message += ` Could not remove unused draft: ${cleanupError.message}`;
+                        }
+                    }
+                    project.entry.error = message;
+                } else {
+                    message += ' Check the Bulk Publish project list before trying again.';
+                }
+                result.error = [result.error, message].filter(Boolean).join(' ');
             }
         }
     } catch (error) {

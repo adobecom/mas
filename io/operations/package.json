@@ -7,10 +7,10 @@
     "dependencies": {
         "@adobe/aio-lib-ims": "^7.0.2",
         "@adobe/aio-lib-state": "^5.1.0",
-        "@adobe/aio-sdk": "^6",
         "node-fetch": "^2.6.0"
     },
     "devDependencies": {
+        "@adobe/aio-sdk": "^6",
         "chai": "^4.3.6",
         "eslint": "^8",
         "mocha": "^10.2.0"

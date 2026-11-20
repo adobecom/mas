@@ -351,7 +351,7 @@ const EXPRESS = [
     { lang: 'ko', country: 'KR' },
     { lang: 'nb', country: 'NO' },
     { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pt', country: 'BR' },
+    { lang: 'pt', country: 'BR', regions: ['PT'] },
     { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
     { lang: 'sv', country: 'SE' },
     { lang: 'zh', country: 'CN' },

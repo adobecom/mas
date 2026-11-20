@@ -7,18 +7,18 @@ export default class MasProductPricing {
                 'border-top-left-radius': '16px',
                 'border-top-color': 'rgb(235, 235, 235)',
             },
-            icon: { width: '24px', height: '24px' },
+            icon: { width: '32px', height: '32px' },
             title: {
+                color: 'rgb(0, 0, 0)',
+                'font-size': '24px',
+                'font-weight': '900',
+                'line-height': '24px',
+            },
+            price: {
                 color: 'rgb(0, 0, 0)',
                 'font-size': '18px',
                 'font-weight': '900',
                 'line-height': '18px',
-            },
-            price: {
-                color: 'rgb(0, 0, 0)',
-                'font-size': '16px',
-                'font-weight': '700',
-                'line-height': '20px',
             },
             description: {
                 color: 'rgb(92, 92, 92)',

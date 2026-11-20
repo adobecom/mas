@@ -614,6 +614,34 @@ describe('bulk-publish permissions', () => {
         });
 
         for (const missing of [{ items: [] }, null]) {
+            it(`publishes available targets when a requested localization is missing: ${JSON.stringify(missing)}`, async () => {
+                const localizedPath = path.replace('/en_US/', '/fr_FR/');
+                readProject.resolves({
+                    fragment: { ...project, fields: [...project.fields, { name: 'locales', values: ['fr_FR'] }] },
+                });
+                request.onCall(1).resolves(missing === null ? { ok: false, status: 404 } : response(missing));
+                const publishResolved = sinon.stub().resolves([
+                    { path, status: 'published' },
+                    { path: localizedPath, status: 'failed', reason: 'not-found' },
+                ]);
+                const updateProjectFragment = sinon.stub().resolves();
+
+                const result = await require('../../src/bulk-publish/bulk-publish-worker.js').runWorker(input, {
+                    authorizeProject: permissions.authorizeProject,
+                    recordSnapshot: sinon.stub().resolves({ entries: [], failures: [] }),
+                    createSnapshot: sinon.stub().resolves({ entries: [], expandedPaths: [path], failures: [] }),
+                    publishResolved,
+                    publishDictionaryIndexes: sinon.stub().resolves([]),
+                    updateProjectFragment,
+                    logger: { info: sinon.stub(), error: sinon.stub() },
+                });
+
+                expect(publishResolved.firstCall.args[0]).to.deep.equal([path, localizedPath]);
+                expect(result.published).to.equal(1);
+                expect(result.failures).to.deep.equal([{ path: localizedPath, reason: 'not-localized' }]);
+                expect(updateProjectFragment.lastCall.args[3].status).to.equal('Partially published');
+            });
+
             it(`fails closed when an implicit dependency cannot be resolved: ${JSON.stringify(missing)}`, async () => {
                 request.onCall(0).resolves(
                     response({

@@ -71,6 +71,37 @@ describe('mas-bulk-publish-editor', () => {
         expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.true;
     });
 
+    for (const [status, action] of [
+        [BULK_PUBLISH_STATUS.LOCKED, QUICK_ACTION.DELETE],
+        [BULK_PUBLISH_STATUS.PUBLISHING, QUICK_ACTION.DELETE],
+        [BULK_PUBLISH_STATUS.PUBLISHING, QUICK_ACTION.LOCK],
+        [BULK_PUBLISH_STATUS.PUBLISHING, QUICK_ACTION.REVERT],
+    ]) {
+        it(`keeps ${action} disabled for ${status} projects with inaccessible items`, async () => {
+            Store.profile.set({ email: 'curator@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            Store.search.set({ path: 'ccd' });
+            const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+            Store.bulkPublishProjects.inEdit.set(
+                new FragmentStore(
+                    new Fragment({
+                        id: 'ccd-project',
+                        path: '/content/dam/mas/ccd/bulk-publish-projects/project',
+                        fields: [
+                            { name: 'status', values: [status] },
+                            { name: 'fragments', values: ['/content/dam/mas/express/en_US/card'] },
+                            { name: 'locales', values: [] },
+                            { name: 'snapshots', values: ['snapshot'] },
+                        ],
+                    }),
+                ),
+            );
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('mas-quick-actions').disabled.has(action)).to.be.true;
+        });
+    }
+
     it('renders empty state (textarea visible, PUBLISH disabled)', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
         await el.updateComplete;

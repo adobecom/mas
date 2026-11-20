@@ -159,10 +159,7 @@ async function readReference(input, target, request) {
         : `/adobe/sites/cf/fragments/${target}?references=direct-hydrated`;
     const data = await readTarget(input.odinEndpoint, uri, input.authToken, request);
     const fragment = byPath ? data?.items?.[0] : data;
-    if (!fragment) {
-        if (input.includeWorkflowReferences) fail(502, 'Unable to verify bulk publish targets');
-        return null;
-    }
+    if (!fragment) return null;
     surfaceOf(fragment.path);
     if (input.includeWorkflowReferences && (byPath ? fragment.path !== target : fragment.id !== target)) {
         fail(502, 'Unable to verify bulk publish targets');
@@ -190,7 +187,10 @@ async function authorizePaths(input, assertPaths, request = fetchOdin) {
             if (explicit ? record.explicit : record.workflow) continue;
         }
         const fragment = record?.fragment ?? (await readReference(input, target, request));
-        if (!fragment) continue;
+        if (!fragment) {
+            if (includeWorkflowReferences && !explicit) fail(502, 'Unable to verify bulk publish targets');
+            continue;
+        }
         if (explicit || PUBLISH_REFERENCE_STATUSES.includes(fragment.status)) {
             assertPaths([fragment.path]);
         } else if (fragment.status !== 'PUBLISHED') {

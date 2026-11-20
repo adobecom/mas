@@ -163,136 +163,220 @@ describe('pipeline end to end', () => {
         );
     });
 
-    for (const { title, refreshedAt, fallback } of [
-        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
-        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
-    ]) {
-        it(`should ${fallback ? '' : 'not '}serve the previous stored response (${title}) when the rebuild fails`, async () => {
-            setupFragmentMocks(fetchStub, {
-                id: 'some-en-us-fragment',
-                path: 'someFragment',
-            });
-            fetchStub
-                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
-                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(500, {})), 30)));
-            const state = new MockState();
+    // a stored response with its metadata, refreshed `age` ago
+    const storeResponse = (age, body = '{"stale":true}') => {
+        const state = new MockState();
+        if (age !== undefined) {
             state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
                 hash: 'old-hash',
                 lastModified: RANDOM_OLD_DATE,
-                refreshedAt,
+                refreshedAt: Date.now() - age,
             });
-            const files = new MockFiles();
-            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
-                hash: 'old-hash',
-                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
-            });
-            const output = sinon.stub(console, 'log');
-            const request = { id: 'some-en-us-fragment', state, files, locale: 'fr_FR' };
-            let results;
-            try {
-                results = await Promise.all([getFragment(request), getFragment(request)]);
-            } finally {
-                output.restore();
-            }
-            const lines = output.getCalls().map(({ args }) => args[0]);
-            if (!fallback) {
-                expect(results[0].statusCode).to.be.at.least(500);
-                expect(lines.filter((line) => line.includes('cache stale-error'))).to.be.empty;
-                return;
-            }
-            for (const result of results) {
-                expect(result.statusCode).to.equal(200);
-                expect(result.body).to.deep.equal({ stale: true });
-                expect(result.headers.ETag).to.equal('old-hash');
-            }
-            // the request that started the rebuild falls back, the concurrent one already got the stale response
-            expect(lines.filter((line) => line.includes('cache stale-error'))).to.have.lengthOf(1);
-            expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
-            expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
-                /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\)$/,
-            );
-        });
-    }
-
-    for (const { title, refreshedAt, fallback } of [
-        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
-        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
-    ]) {
-        it(`should not store a degraded rebuild, ${fallback ? 'but serve' : 'nor serve'} the previous stored response (${title})`, async () => {
-            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
-            fetchStub
-                .withArgs(
-                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/fr_FR/dictionary/index',
-                )
-                .returns(createResponse(500, {}));
-            const metadata = JSON.stringify({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt });
-            const response = JSON.stringify({
-                hash: 'old-hash',
-                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
-            });
-            const state = new MockState();
-            state.store['req-some-en-us-fragment-fr_FR'] = metadata;
-            const files = new MockFiles();
-            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = response;
-            const output = sinon.stub(console, 'log');
-            let result;
-            try {
-                result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
-            } finally {
-                output.restore();
-            }
-            const summary = output
-                .getCalls()
-                .map(({ args }) => args[0])
-                .find((line) => line.includes('pipeline completed'));
-            expect(state.store['req-some-en-us-fragment-fr_FR']).to.equal(metadata);
-            expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']).to.equal(response);
-            expect(result.statusCode).to.equal(200);
-            if (fallback) {
-                expect(result.body).to.deep.equal({ stale: true });
-                expect(summary).to.match(
-                    /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild degraded by dictionary acom\/fr_FR\)/,
-                );
-                return;
-            }
-            expect(result.body.id).to.equal('some-fr-fr-fragment');
-            expect(summary).to.match(
-                /cache miss req-some-en-us-fragment-fr_FR \(degraded by dictionary acom\/fr_FR, not stored\)/,
-            );
-        });
-    }
-
-    it('should serve the previous stored response rather than time out when the rebuild is slow, then store the rebuild', async () => {
-        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
-            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 300)));
-        const state = new MockState();
-        await state.put('configuration', '{"networkConfig":{"mainTimeout":200,"retries":1}}');
-        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            lastModified: RANDOM_OLD_DATE,
-            refreshedAt: Date.now() - 6 * 60 * 1000,
-        });
+        }
         const files = new MockFiles();
         files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
             hash: 'old-hash',
-            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            body: zlib.brotliCompressSync(body).toString('base64'),
         });
+        return { state, files };
+    };
+
+    it('should not serve a stored response older than an hour when the rebuild fails', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(createResponse(500, {}));
+        const { state, files } = storeResponse(61 * 60 * 1000);
+        const result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+        expect(result.statusCode).to.be.at.least(500);
+    });
+
+    it('should not store a degraded rebuild', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/fr_FR/dictionary/index')
+            .returns(createResponse(500, {}));
+        const { state, files } = storeResponse(61 * 60 * 1000);
+        const metadata = state.store['req-some-en-us-fragment-fr_FR'];
+        const response = files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'];
         const output = sinon.stub(console, 'log');
         let result;
         try {
             result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
-            await new Promise((resolve) => setTimeout(resolve, 300));
         } finally {
             output.restore();
         }
+        const summary = output
+            .getCalls()
+            .map(({ args }) => args[0])
+            .find((line) => line.includes('pipeline completed'));
+        expect(state.store['req-some-en-us-fragment-fr_FR']).to.equal(metadata);
+        expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']).to.equal(response);
         expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.equal({ stale: true });
-        expect(output.getCalls().find(({ args }) => args[0].includes('pipeline completed')).args[0]).to.match(
-            /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 6m\d+s ago, rebuild timed out\)/,
-        );
-        expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+        expect(result.body.id).to.equal('some-fr-fr-fragment');
+        expect(summary).to.match(/cache miss req-some-en-us-fragment-fr_FR \(degraded by dictionary acom\/fr_FR, not stored\)/);
+    });
+
+    describe('serving a stale response while refreshing it in the background', () => {
+        const request = { id: 'some-en-us-fragment', locale: 'fr_FR' };
+        let invoke;
+        const deps = () => ({ openwhiskFactory: () => ({ actions: { invoke } }) });
+        const fragmentFetches = () =>
+            fetchStub.getCalls().filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        const logs = async (run) => {
+            const output = sinon.stub(console, 'log');
+            const errors = sinon.stub(console, 'error');
+            try {
+                return {
+                    result: await run(),
+                    lines: [...output.getCalls(), ...errors.getCalls()].map(({ args }) => args[0]),
+                };
+            } finally {
+                output.restore();
+                errors.restore();
+            }
+        };
+        const summaries = (lines) => lines.filter((line) => line.includes('pipeline completed'));
+
+        beforeEach(() => {
+            process.env.__OW_ACTION_NAME = '/namespace/MerchAtScale/fragment';
+            invoke = sinon.stub().resolves({ activationId: 'some-activation' });
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        });
+
+        afterEach(() => {
+            delete process.env.__OW_ACTION_NAME;
+            Date.now.restore?.();
+        });
+
+        for (const { title, age, detail } of [
+            { title: 'a frequent request, 5 minutes after the last refresh', age: 5 * 60 * 1000 + 2000, detail: /5m\d+s/ },
+            { title: 'an infrequent request, 59 minutes after the last refresh', age: 59 * 60 * 1000, detail: /59m\d+s/ },
+        ]) {
+            it(`should serve ${title} the stored response, and trigger a refresh once`, async () => {
+                const { state, files } = storeResponse(age);
+                const { result: results, lines } = await logs(async () => [
+                    await getFragment(
+                        { ...request, state, files, __ow_method: 'get', __ow_headers: { 'x-request-id': 'some-request' } },
+                        deps(),
+                    ),
+                    await getFragment({ ...request, state, files, __ow_method: 'get' }, deps()),
+                ]);
+                for (const result of results) {
+                    expect(result.statusCode).to.equal(200);
+                    expect(result.body).to.deep.equal({ stale: true });
+                    expect(result.headers.ETag).to.equal('old-hash');
+                    expect(result.headers['Cache-Control']).to.equal('public, max-age=30, stale-while-revalidate=86400');
+                }
+                expect(fragmentFetches()).to.be.empty;
+                expect(invoke.calledOnce).to.be.true;
+                expect(invoke.firstCall.args[0]).to.deep.equal({
+                    name: '/namespace/MerchAtScale/fragment',
+                    params: { api_key: 'wcms-commerce-ims-ro-user-milo', ...request, state, files, refresh: 'some-request' },
+                    blocking: false,
+                });
+                const [first, second] = summaries(lines);
+                expect(first).to.match(
+                    /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(refreshed .*, refresh triggered \(activation some-activation\)\)$/,
+                );
+                expect(first).to.match(detail);
+                expect(second).to.match(
+                    /cache stale req-some-en-us-fragment-fr_FR \(refreshed .*, refresh already triggered\)$/,
+                );
+            });
+        }
+
+        it('should send stale responses with the configured CDN max-age', async () => {
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            await state.put('configuration', '{"networkConfig":{"staleCacheMaxAge":10}}');
+            const result = await getFragment({ ...request, state, files }, deps());
+            expect(result.headers['Cache-Control']).to.equal('public, max-age=10, stale-while-revalidate=86400');
+        });
+
+        it('should trigger a refresh again a minute later', async () => {
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            await getFragment({ ...request, state, files }, deps());
+            const now = Date.now();
+            sinon.stub(Date, 'now').returns(now + 61 * 1000);
+            await getFragment({ ...request, state, files }, deps());
+            expect(invoke.calledTwice).to.be.true;
+        });
+
+        it('should rebuild a stored response older than an hour while the request waits', async () => {
+            const { state, files } = storeResponse(61 * 60 * 1000);
+            const { result, lines } = await logs(() => getFragment({ ...request, state, files }, deps()));
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+            expect(invoke.called).to.be.false;
+            expect(summaries(lines)[0]).to.match(/cache miss req-some-en-us-fragment-fr_FR \| timings/);
+        });
+
+        it('should rebuild and store the response on a refresh invocation', async () => {
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            const { result, lines } = await logs(() =>
+                getFragment({ ...request, state, files, refresh: 'some-request' }, deps()),
+            );
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(invoke.called).to.be.false;
+            expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+            // every line of the refresh is marked with the id of the request triggering it
+            expect(lines.every((line) => line.includes('[refresh-some-request]'))).to.be.true;
+            expect(summaries(lines)[0]).to.match(/cache refresh req-some-en-us-fragment-fr_FR \| timings/);
+        });
+
+        it('should not rebuild on a refresh invocation when the stored response is fresh', async () => {
+            const { state, files } = storeResponse(60 * 1000);
+            const { lines } = await logs(() => getFragment({ ...request, state, files, refresh: 'some-request' }, deps()));
+            expect(fragmentFetches()).to.be.empty;
+            expect(summaries(lines)[0]).to.include('cache hit');
+        });
+
+        it('should ignore refresh on a web request', async () => {
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            const result = await getFragment({ ...request, state, files, refresh: 'some-request', __ow_method: 'get' }, deps());
+            expect(result.body).to.deep.equal({ stale: true });
+            expect(fragmentFetches()).to.be.empty;
+            expect(invoke.calledOnce).to.be.true;
+        });
+
+        it('should not trigger a refresh while this container rebuilds the response', async () => {
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            const { result: results, lines } = await logs(() =>
+                Promise.all([
+                    getFragment({ ...request, state, files, refresh: 'some-request' }, deps()),
+                    getFragment({ ...request, state, files }, deps()),
+                ]),
+            );
+            expect(results[1].body).to.deep.equal({ stale: true });
+            expect(invoke.called).to.be.false;
+            expect(summaries(lines).find((line) => line.includes('cache stale'))).to.match(/, rebuild in progress\)$/);
+        });
+
+        for (const { title, setup, error } of [
+            { title: 'fails', setup: () => invoke.rejects(new Error('throttled')), error: 'throttled' },
+            { title: 'is slow', setup: () => invoke.returns(new Promise(() => {})), error: 'timed out after 500ms' },
+        ]) {
+            it(`should serve the stale response when triggering the refresh ${title}, and retry next time`, async () => {
+                setup();
+                const { state, files } = storeResponse(10 * 60 * 1000);
+                const { result, lines } = await logs(async () => {
+                    const first = await getFragment({ ...request, state, files }, deps());
+                    await getFragment({ ...request, state, files }, deps());
+                    return first;
+                });
+                expect(result.body).to.deep.equal({ stale: true });
+                expect(invoke.calledTwice).to.be.true;
+                expect(
+                    lines.some((line) =>
+                        line.includes(`failed to trigger the refresh of req-some-en-us-fragment-fr_FR: ${error}`),
+                    ),
+                ).to.be.true;
+                expect(summaries(lines)[0]).to.match(/cache stale .*, refresh trigger failed\)$/);
+            });
+        }
     });
 
     describe('re-reading State before rebuilding', () => {
@@ -367,7 +451,7 @@ describe('pipeline end to end', () => {
         });
 
         it('should rebuild when the State re-read fails', async () => {
-            const state = await storedState(6 * 60 * 1000);
+            const state = await storedState(2 * 60 * 60 * 1000);
             const get = state.get.bind(state);
             sinon
                 .stub(state, 'get')
@@ -381,7 +465,7 @@ describe('pipeline end to end', () => {
 
         it('should not re-read what was just read from State', async () => {
             const state = new MockState();
-            state.store[requestKey] = JSON.stringify(metadata(6 * 60 * 1000));
+            state.store[requestKey] = JSON.stringify(metadata(2 * 60 * 60 * 1000));
             const get = sinon.spy(state, 'get');
             const read = sinon.spy(files, 'read');
             const result = await getFragment(request(state));
@@ -421,12 +505,11 @@ describe('pipeline end to end', () => {
         expect(lines.filter((line) => line.includes('cache joined'))).to.be.empty;
     });
 
-    for (const { title, refreshedAt, detail } of [
-        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
-        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000 },
+    for (const { title, refreshedAt } of [
+        { title: 'refreshed 2 hours ago', refreshedAt: Date.now() - 2 * 60 * 60 * 1000 },
         { title: 'never refreshed' },
     ]) {
-        it(`should ${detail ? 'serve' : 'not serve'} the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
+        it(`should make concurrent requests wait for the rebuild of a stored response ${title}`, async () => {
             setupFragmentMocks(fetchStub, {
                 id: 'some-en-us-fragment',
                 path: 'someFragment',
@@ -453,25 +536,14 @@ describe('pipeline end to end', () => {
             } finally {
                 output.restore();
             }
-            const [first, second] = results;
-            expect(first.body).to.deep.include(EXPECTED_BODY);
-            expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
-            expect(second.statusCode).to.equal(200);
+            for (const result of results) {
+                expect(result.statusCode).to.equal(200);
+                expect(result.body).to.deep.include(EXPECTED_BODY);
+                expect(result.headers.ETag).to.equal(EXPECTED_BODY_HASH);
+            }
             const lines = output.getCalls().map(({ args }) => args[0]);
             expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
-            if (!detail) {
-                // older than STALE_MAX_AGE: the concurrent request waits for the rebuild
-                expect(second.body).to.deep.include(EXPECTED_BODY);
-                expect(lines.filter((line) => line.includes('cache joined'))).to.have.lengthOf(1);
-                return;
-            }
-            expect(second.body).to.deep.equal({ stale: true });
-            expect(second.headers.ETag).to.equal('old-hash');
-            const stale = lines.find((line) => line.includes('cache stale'));
-            expect(stale).to.match(
-                /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\)$/,
-            );
-            expect(stale).to.match(detail);
+            expect(lines.filter((line) => line.includes('cache joined'))).to.have.lengthOf(1);
         });
     }
 

@@ -7,6 +7,7 @@ import {
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
 import '../src/merch-card-collection.js';
+import { hydrate } from '../src/hydrate.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
 let ProductPricing;
@@ -17,7 +18,6 @@ before(async () => {
 
 describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
-        const layout = Object.create(ProductPricing.prototype);
         const rect = { width: 0 };
         const heights = {
             'heading-s': 18,
@@ -26,7 +26,7 @@ describe('ProductPricing.resyncOnReflow', () => {
             fine: 0,
         };
         const box = (h) => ({ getBoundingClientRect: () => ({ height: h }) });
-        layout.card = {
+        const layout = new ProductPricing({
             getBoundingClientRect: () => rect,
             querySelector: (sel) => {
                 const slot = sel.match(/slot="([^"]+)"/)?.[1];
@@ -38,7 +38,7 @@ describe('ProductPricing.resyncOnReflow', () => {
                 querySelector: (sel) =>
                     sel.includes('.fine') ? box(heights.fine) : null,
             },
-        };
+        });
         const sync = sinon.stub(layout, 'syncHeights');
 
         layout.resyncOnReflow();
@@ -65,6 +65,53 @@ describe('ProductPricing.resyncOnReflow', () => {
         const sync = sinon.stub(layout, 'syncHeights');
         layout.resyncOnReflow();
         expect(sync.calledOnce).to.be.true;
+    });
+
+    it('keys on the sizes the observer reports instead of measuring', () => {
+        const RealObserver = window.ResizeObserver;
+        let observer;
+        window.ResizeObserver = class {
+            constructor(callback) {
+                this.callback = callback;
+                observer = this;
+            }
+            observe() {}
+            disconnect() {}
+        };
+        try {
+            const measured = sinon.spy(() => ({ width: 1, height: 1 }));
+            const desc = { getBoundingClientRect: measured };
+            const card = {
+                addEventListener: () => {},
+                getBoundingClientRect: measured,
+                querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+            };
+            const layout = new ProductPricing(card);
+            card.variantLayout = layout;
+            const sync = sinon.stub(layout, 'syncHeights');
+            layout.connectedCallbackHook();
+            const entry = (target, width, height) => ({
+                target,
+                borderBoxSize: [{ inlineSize: width, blockSize: height }],
+            });
+
+            observer.callback([entry(card, 300, 400), entry(desc, 300, 54)]);
+            expect(sync.calledOnce, 'syncs on the first report').to.be.true;
+
+            observer.callback([entry(card, 300, 420)]);
+            expect(sync.calledOnce, 'a card height change is not a reflow').to
+                .be.true;
+
+            observer.callback([entry(desc, 300, 72)]);
+            expect(sync.calledTwice, 'a description reflow re-syncs').to.be
+                .true;
+
+            observer.callback([entry(card, 0, 0), entry(desc, 0, 0)]);
+            expect(sync.calledTwice, 'a hidden card is skipped').to.be.true;
+            expect(measured.called, 'nothing was measured').to.be.false;
+        } finally {
+            window.ResizeObserver = RealObserver;
+        }
     });
 });
 
@@ -170,6 +217,41 @@ describe('ProductPricing.syncHeights across a collection', () => {
         }
     });
 
+    it('reserves the add-on row for siblings without one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const withAddon = makeCard({ heights: { addon: 52 } });
+        const without = makeCard({ heights: {} });
+        const layout = layoutFor([withAddon, without]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(withAddon.__styles[prop]).to.equal('52px');
+            expect(
+                without.__styles[prop],
+                'card without an add-on reserves the row',
+            ).to.equal('52px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('leaves the add-on row unset when no card in the row has one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const a = makeCard({ heights: {} });
+        const b = makeCard({ heights: {} });
+        const layout = layoutFor([a, b]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(a.__styles[prop]).to.be.undefined;
+            expect(b.__styles[prop]).to.be.undefined;
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
     it('does not sync on mobile (stacked cards are each their own row)', () => {
         const prop = '--consonant-merch-card-product-pricing-heading-s-height';
         const a = makeCard({ top: 0, heights: { 'heading-s': 40 } });
@@ -186,15 +268,20 @@ describe('ProductPricing.syncHeights across a collection', () => {
 });
 
 describe('ProductPricing reflow wiring', () => {
-    it('observes the card + description and listens for price resolution', () => {
+    it('observes the card + description and re-checks after a price resolves', () => {
         const observed = [];
+        const unobserved = [];
         const RealObserver = window.ResizeObserver;
         class FakeObserver {
             constructor(callback) {
                 this.callback = callback;
+                FakeObserver.last = this;
             }
             observe(el) {
                 observed.push(el);
+            }
+            unobserve(el) {
+                unobserved.push(el);
             }
             disconnect() {
                 this.disconnected = true;
@@ -217,6 +304,7 @@ describe('ProductPricing reflow wiring', () => {
                 },
             };
             const layout = new ProductPricing(card);
+            card.variantLayout = layout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
 
             layout.connectedCallbackHook();
@@ -228,14 +316,25 @@ describe('ProductPricing reflow wiring', () => {
             expect(listeners[EVENT_TYPE_RESOLVED], 'listens for resolve').to
                 .exist;
 
+            observed.length = 0;
             listeners[EVENT_TYPE_RESOLVED]();
-            expect(resync.calledOnce, 'a resolved price re-syncs').to.be.true;
+            expect(resync.called, 'a resolved price is not measured in place')
+                .to.be.false;
+            expect(unobserved, 'asks for a fresh card report').to.deep.equal([
+                card,
+            ]);
+            expect(observed).to.deep.equal([card]);
+
+            FakeObserver.last.callback([]);
+            expect(resync.calledOnce, 'the report re-syncs').to.be.true;
 
             layout.disconnectedCallbackHook();
             expect(
                 card.removeEventListener.calledWith(EVENT_TYPE_RESOLVED),
                 'removes the resolve listener',
             ).to.be.true;
+            expect(FakeObserver.last.disconnected, 'drops the observer').to.be
+                .true;
         } finally {
             window.ResizeObserver = RealObserver;
         }
@@ -487,7 +586,7 @@ describe('ProductPricing price row collapse', () => {
         const card = document.createElement('merch-card');
         card.setAttribute('variant', 'product-pricing');
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="body-xs">Copy</div>
             ${withPrice ? '<p slot="heading-xs">US$9.99/mo</p>' : ''}
             <div slot="footer"><a href="#">Buy</a></div>`;
@@ -541,7 +640,7 @@ describe('ProductPricing row alignment', () => {
         wrap.innerHTML = cardsHtml
             .map(
                 (inner) => `<merch-card variant="product-pricing">
-                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+                    <h2 slot="heading-s">Title</h2>${inner}</merch-card>`,
             )
             .join('');
         document.body.appendChild(wrap);
@@ -691,7 +790,7 @@ describe('ProductPricing CTAs', () => {
         card.setAttribute('variant', 'product-pricing');
         card.style.width = width;
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="footer">
                 ${links(labels)}
             </div>`;
@@ -743,6 +842,143 @@ describe('ProductPricing CTAs', () => {
             const link = card.querySelector('[slot="footer"] a');
             expect(link.scrollWidth).to.be.at.most(link.clientWidth);
             expect(link.offsetHeight).to.be.above(40);
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('ProductPricing hydrated title', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    it('renders the title as an h2 in slot heading-s', async () => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        try {
+            await hydrate(
+                {
+                    id: 'product-pricing-title',
+                    fields: {
+                        variant: 'product-pricing',
+                        cardTitle: 'Photoshop',
+                    },
+                },
+                card,
+            );
+            const title = card.querySelector('[slot="heading-s"]');
+            expect(title).to.exist;
+            expect(title.tagName).to.equal('H2');
+            expect(title.textContent).to.equal('Photoshop');
+            expect(card.querySelector('h3[slot="heading-s"]')).to.be.null;
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('ProductPricing add-on', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    const renderCard = async (fields = {}) => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        await hydrate(
+            {
+                id: 'product-pricing-addon',
+                fields: {
+                    variant: 'product-pricing',
+                    cardTitle: 'Photoshop',
+                    ...fields,
+                },
+            },
+            card,
+        );
+        await card.updateComplete;
+        return card;
+    };
+
+    it('projects the add-on between .fine and footer with custom-checkbox', async () => {
+        const card = await renderCard({
+            addon: '<p>Add a free trial of Adobe Stock.</p>',
+        });
+        try {
+            const addon = card.querySelector('merch-addon[slot="addon"]');
+            expect(addon).to.exist;
+            const slot = card.shadowRoot.querySelector('slot[name="addon"]');
+            expect(slot.assignedElements()).to.include(addon);
+            const fine = card.shadowRoot.querySelector('.fine');
+            const footer = card.shadowRoot.querySelector('footer');
+            expect(
+                fine.compareDocumentPosition(slot) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).to.be.ok;
+            expect(
+                slot.compareDocumentPosition(footer) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).to.be.ok;
+            await card.variantLayout.adjustAddon();
+            expect(addon.hasAttribute('custom-checkbox')).to.be.true;
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('styles the add-on box, checkbox and label', async () => {
+        const card = await renderCard({
+            addon: '<p>Add a free trial of Adobe Stock.</p>',
+        });
+        try {
+            const addon = card.querySelector('merch-addon[slot="addon"]');
+            await addon.updateComplete;
+            const box = getComputedStyle(addon);
+            expect(box.paddingTop).to.equal('16px');
+            expect(box.paddingLeft).to.equal('12px');
+            expect(box.borderTopWidth).to.equal('1px');
+            expect(box.borderTopLeftRadius).to.equal('8px');
+            expect(box.columnGap).to.equal('8px');
+            expect(box.marginTop).to.equal('16px');
+            expect(
+                box.getPropertyValue('--merch-addon-checkbox-size'),
+            ).to.equal('20px');
+            const label = getComputedStyle(addon.querySelector('p'));
+            expect(label.fontSize).to.equal('14px');
+            expect(label.lineHeight).to.equal('18px');
+            expect(label.fontWeight).to.equal('700');
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('renders no add-on box without an add-on', async () => {
+        const card = await renderCard();
+        try {
+            expect(card.querySelector('merch-addon')).to.be.null;
+            const slot = card.shadowRoot.querySelector('slot[name="addon"]');
+            expect(slot.assignedElements()).to.be.empty;
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('swaps the checkout link OSI when the add-on is toggled', async () => {
+        const card = await renderCard();
+        try {
+            const link = {
+                value: [{ offerType: 'BASE', planType: 'ABM' }],
+                dataset: { wcsOsi: 'main-osi' },
+            };
+            Object.defineProperty(card, 'checkoutLinks', {
+                get: () => [link],
+                configurable: true,
+            });
+            const addon = { checked: true, getOsi: () => 'addon-osi' };
+            card.toggleAddon(addon);
+            expect(link.dataset.wcsOsi).to.equal('main-osi,addon-osi');
+            addon.checked = false;
+            card.toggleAddon(addon);
+            expect(link.dataset.wcsOsi).to.equal('main-osi');
         } finally {
             card.remove();
         }

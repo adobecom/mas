@@ -83,7 +83,9 @@ jobs:
                   STUDIO_BASE_URL: https://mas.adobe.com/studio.html
                   AOS_URL: ${{ env.AOS_URL }}
                   AOS_API_KEY: ${{ env.AOS_API_KEY }}
-              run: aio app deploy --all
+              # Deploys all actions by default (there is no --all flag); --no-publish
+              # skips the Exchange publish this standalone app doesn't need.
+              run: aio app deploy --no-publish
 
             - name: Verify deployment
               run: aio runtime action list

@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { mockDictionary } from './replace.test.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import zlib from 'zlib';
@@ -10,6 +12,7 @@ import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type:
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -83,7 +86,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // promotions folder — no active promotions by default
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
+        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions&limit=50`)
         .returns(createResponse(200, { items: [] }));
 
     // WCS prefill — hardcoded prod config is always merged in; return empty offers
@@ -97,9 +100,74 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // Includes the settings, price literals and countdown-copy placeholder.
-const EXPECTED_BODY_HASH = '306da70c01f5149b51ce6317675859b545fa99a5107ffecc900b4e75045d2eeb';
+const EXPECTED_BODY_HASH = '74e46522f6ff8fee5c5e49aee0e3d2ba19ed2363fee3c3b293ae55c4d2c4fbf6';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
+
+describe('Orion fragment pipeline', () => {
+    beforeEach(() => {
+        resetCache();
+        clearSettingsCache();
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake(() => createResponse(404, {}));
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment' });
+        fetchStub
+            .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
+            .callsFake((url) =>
+                createResponse(200, {
+                    resolvedOffers: [{ offerId: new URL(url).searchParams.has('serveLatest') ? 'orion' : 'legacy' }],
+                }),
+            );
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+        resetCache();
+        clearSettingsCache();
+    });
+
+    it('returns isolated latest prefill and keeps production requests unchanged', async () => {
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({
+                wcsConfiguration: [
+                    { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+                ],
+            }),
+        );
+        const response = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            serveLatest: 'true',
+            state,
+        });
+        expect(response.statusCode).to.equal(200);
+        expect(response.body.wcs).to.have.property('stage-latest');
+        expect(response.body.wcs).not.to.have.property('stage');
+        const latest = Object.values(response.body.wcs['stage-latest']).flat();
+        expect(latest).not.to.be.empty;
+        expect(latest.every(({ offerId }) => offerId === 'orion')).to.be.true;
+        expect(
+            Object.values(response.body.wcs.prod)
+                .flat()
+                .every(({ offerId }) => offerId === 'legacy'),
+        ).to.be.true;
+    });
+
+    it('uses normal response metadata for latest requests without a Stage configuration', async () => {
+        const state = new MockState();
+        const response = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            serveLatest: 'true',
+            state,
+        });
+        expect(response.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(response.body.wcs).to.have.all.keys('prod');
+    });
+});
 
 const runOnFilledState = async (fetchStub, entry, headers) => {
     setupFragmentMocks(fetchStub, {
@@ -128,6 +196,7 @@ describe('collection placeholders', () => {
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
         clearSettingsCache();
+        clearDictionaryCache();
     });
 
     afterEach(function () {
@@ -173,6 +242,7 @@ describe('pipeline corner cases', () => {
         mockDictionary(false, fetchStub);
         resetCache();
         clearSettingsCache();
+        clearPromoCache();
     });
 
     afterEach(() => {
@@ -412,7 +482,7 @@ describe('pipeline corner cases', () => {
         expect(result).to.deep.equal({
             headers: EXPECTED_HEADERS,
             body: {
-                message: 'requested parameters id & locale are not present',
+                message: 'requested parameters id (or offer, template & surface) & locale are not present',
             },
             statusCode: 400,
         });

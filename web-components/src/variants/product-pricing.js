@@ -28,6 +28,10 @@ const SYNCED_ROWS = [
         getElement: (card) => card.shadowRoot?.querySelector('.fine'),
     },
     {
+        name: 'addon',
+        getElement: (card) => card.querySelector('[slot="addon"]'),
+    },
+    {
         name: 'footer',
         getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
@@ -62,18 +66,18 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 's' },
     // Plain text badge; merch-badge pill styling is stripped in product-pricing.css.js.
     badge: { tag: 'div', slot: 'badge' },
-    title: { tag: 'h3', slot: 'heading-s' },
+    title: { tag: 'h2', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'div', slot: 'short-description' },
     ctas: { slot: 'footer', size: 'm' },
     planType: true,
+    addon: true,
     style: 'consonant',
 };
 
 export class ProductPricing extends VariantLayout {
-    #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => this.requestReflowCheck();
     lastSyncKey = null;
 
     getGlobalCSS() {
@@ -129,8 +133,23 @@ export class ProductPricing extends VariantLayout {
         return host;
     }
 
+    async adjustAddon() {
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        addon.setAttribute('custom-checkbox', '');
+        const price = this.card.querySelector(
+            `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        if (!price) return;
+        await price.onceSettled?.();
+        const planType = price.value?.[0]?.planType;
+        if (planType) addon.planType = planType;
+    }
+
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
+        await this.adjustAddon();
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
         this.flagPriceRow();
@@ -169,14 +188,12 @@ export class ProductPricing extends VariantLayout {
 
     // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
     resyncOnReflow() {
-        const width = this.card.getBoundingClientRect().width;
+        const width = this.boxOf(this.card).width;
         if (width <= 2) return;
         const key = [
             Math.round(width),
             ...SYNCED_ROWS.map(({ getElement }) =>
-                Math.round(
-                    getElement(this.card)?.getBoundingClientRect().height || 0,
-                ),
+                this.heightOf(getElement(this.card)),
             ),
         ].join(':');
         if (key === this.lastSyncKey) return;
@@ -186,13 +203,11 @@ export class ProductPricing extends VariantLayout {
 
     connectedCallbackHook() {
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
-        if (typeof ResizeObserver === 'undefined') return;
-        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-        this.#sizeObserver.observe(this.card);
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        if (desc) this.#sizeObserver.observe(desc);
-        const shortDesc = this.card.querySelector('[slot="short-description"]');
-        if (shortDesc) this.#sizeObserver.observe(shortDesc);
+        this.observeReflow(
+            this.card,
+            this.card.querySelector('[slot="body-xs"]'),
+            this.card.querySelector('[slot="short-description"]'),
+        );
     }
 
     disconnectedCallbackHook() {
@@ -200,8 +215,7 @@ export class ProductPricing extends VariantLayout {
             EVENT_TYPE_RESOLVED,
             this.#onPriceResolved,
         );
-        this.#sizeObserver?.disconnect();
-        this.#sizeObserver = null;
+        this.disconnectReflow();
     }
 
     renderLayout() {
@@ -222,6 +236,7 @@ export class ProductPricing extends VariantLayout {
                             <slot name="legal"></slot>
                             <slot name="short-description"></slot>
                         </div>
+                        <slot name="addon"></slot>
                     </div>
                     <footer><slot name="footer"></slot></footer>
                 </div>
@@ -251,7 +266,7 @@ export class ProductPricing extends VariantLayout {
         :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             padding: 24px 24px 32px;
         }
 
@@ -326,6 +341,17 @@ export class ProductPricing extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
+        }
+
+        /* Cards without an add-on reserve its row (box + 16px margin) so prices
+           and buttons line up with their neighbors, as in Figma. Unset var =
+           invalid calc = no reserve, so a row with no add-on is unchanged. */
+        :host([variant='product-pricing']) slot[name='addon'] {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(
+                var(--consonant-merch-card-product-pricing-addon-height) + 16px
+            );
         }
 
         /* Legal + short-description share this row; a card shows one. */

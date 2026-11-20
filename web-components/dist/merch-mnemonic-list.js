@@ -1,7 +1,7 @@
-var o=Object.defineProperty;var r=(e,t,i)=>t in e?o(e,t,{enumerable:!0,configurable:!0,writable:!0,value:i}):e[t]=i;var n=(e,t,i)=>r(e,typeof t!="symbol"?t+"":t,i);import{html as l,css as p,LitElement as a}from"./lit-all.min.js";var s=class extends a{constructor(){super()}render(){return l`
-            <slot name="icon"></slot>
+var d=Object.defineProperty;var r=e=>{throw TypeError(e)};var h=(e,t,s)=>t in e?d(e,t,{enumerable:!0,configurable:!0,writable:!0,value:s}):e[t]=s;var o=(e,t,s)=>h(e,typeof t!="symbol"?t+"":t,s),m=(e,t,s)=>t.has(e)||r("Cannot "+s);var l=(e,t,s)=>t.has(e)?r("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,s);var c=(e,t,s)=>(m(e,t,"access private method"),s);import{html as x,css as g,LitElement as u}from"./lit-all.min.js";var n,a,i=class extends u{constructor(){super();l(this,n)}render(){return x`
+            <slot name="icon" @slotchange=${c(this,n,a)}></slot>
             <slot name="description">${this.description}</slot>
-        `}};n(s,"styles",p`
+        `}};n=new WeakSet,a=function(){this.querySelector('[slot="description"]')?.textContent.trim()&&this.querySelectorAll("merch-icon").forEach(p=>{p.alt=""})},o(i,"styles",g`
         :host {
             display: flex;
             flex-wrap: nowrap;
@@ -26,4 +26,4 @@ var o=Object.defineProperty;var r=(e,t,i)=>t in e?o(e,t,{enumerable:!0,configura
         :host .hidden {
             display: none;
         }
-    `),n(s,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",s);export{s as MerchMnemonicList};
+    `),o(i,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",i);export{i as MerchMnemonicList};

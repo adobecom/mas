@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../../../web-components/dist/mas.js';
 
-import { EVENT_OST_SELECT } from '../../src/constants.js';
+import { EVENT_OST_CLOSE, EVENT_OST_SELECT } from '../../src/constants.js';
 import Store from '../../src/store.js';
 
 describe('onPlaceholderSelect', () => {
@@ -466,6 +466,8 @@ describe('closeOfferSelectorTool', () => {
 
     before(async () => {
         ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+        const ostRoot = document.getElementById('ost');
+        if (typeof ostRoot.dispatchEvent.restore === 'function') ostRoot.dispatchEvent.restore();
     });
 
     beforeEach(() => {
@@ -512,6 +514,28 @@ describe('closeOfferSelectorTool', () => {
         closeOfferSelectorTool();
 
         expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+
+    it('dispatches a bubbling ost-close event when an OST session was open', async () => {
+        const listener = sinon.spy();
+        document.addEventListener(EVENT_OST_CLOSE, listener);
+
+        await openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+        document.removeEventListener(EVENT_OST_CLOSE, listener);
+
+        expect(listener.calledOnce).to.be.true;
+        expect(listener.firstCall.args[0].bubbles).to.be.true;
+    });
+
+    it('does not dispatch ost-close when no OST session is open', () => {
+        const listener = sinon.spy();
+        document.addEventListener(EVENT_OST_CLOSE, listener);
+
+        closeOfferSelectorTool();
+        document.removeEventListener(EVENT_OST_CLOSE, listener);
+
+        expect(listener.notCalled).to.be.true;
     });
 });
 

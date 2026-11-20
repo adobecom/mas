@@ -31,6 +31,31 @@ describe('commerce service', () => {
     });
 
     describe(`component "${TAG_NAME_SERVICE}"`, () => {
+        it('exposes shared checkout decisions before connection and after activation', () => {
+            const disconnected = document.createElement(TAG_NAME_SERVICE);
+            const context = {
+                modal: 'crm',
+                fallbackStep: 'payment',
+                checkoutWorkflowStep: 'segmentation',
+                threeInOneEnabled: false,
+            };
+            const expected = {
+                checkoutWorkflowStep: 'payment',
+                modal: undefined,
+                fallbackUsed: true,
+            };
+            expect(
+                disconnected.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+            const service = initMasCommerceService();
+            expect(service.checkoutDecisions).to.equal(
+                disconnected.checkoutDecisions,
+            );
+            expect(
+                service.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+        });
+
         describe('feature flags', () => {
             it('considers feature flags', async () => {
                 let el = await initMasCommerceService();
@@ -129,6 +154,22 @@ describe('commerce service', () => {
                     expect(service.settings.aupSelect).to.equal(enabled);
                 });
             }
+
+            it('updates settings when the attribute is set after initialization', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+                service.setAttribute('aup-select', 'on');
+                expect(service.settings.aupSelect).to.be.true;
+                service.setAttribute('aup-select', 'off');
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('ignores aup-select changes that do not alter the setting', () => {
+                const service = initMasCommerceService();
+                service.setAttribute('aup-select', 'on');
+                service.setAttribute('aup-select', 'true');
+                expect(service.settings.aupSelect).to.be.true;
+            });
         });
 
         it('returns "Defaults" object', async () => {

@@ -235,6 +235,76 @@ describe('PreviewFragmentStore', () => {
         store.dispose();
     });
 
+    it('drops a resolve result when the value changes mid-resolve and applies the follow-up resolve', async () => {
+        const clock = sandbox.useFakeTimers();
+        const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+        let settleStale;
+        const getResolved = sandbox.stub(store, 'getResolvedFragment');
+        getResolved.onFirstCall().returns(new Promise((resolve) => (settleStale = resolve)));
+        getResolved.onSecondCall().resolves(createFragment({ fields: [{ name: 'title', values: ['Fresh'] }] }));
+
+        store.resolveFragment(true);
+        store.refreshFrom(createFragment({ fields: [{ name: 'title', values: ['Clean'] }] }));
+        settleStale(createFragment({ fields: [{ name: 'title', values: ['Baseline'] }] }));
+        await clock.tickAsync(0);
+
+        expect(store.value.getFieldValue('title')).to.equal('Clean');
+
+        await clock.tickAsync(200);
+
+        expect(getResolved.callCount).to.equal(2);
+        expect(store.value.getFieldValue('title')).to.equal('Fresh');
+        store.dispose();
+    });
+
+    it('drops a resolve result when an internal field changes mid-resolve', async () => {
+        const clock = sandbox.useFakeTimers();
+        const store = new PreviewFragmentStore(createFragment({ fields: [{ name: 'title', values: ['Clean'] }] }), null, {
+            lazy: true,
+        });
+        let settleStale;
+        const getResolved = sandbox.stub(store, 'getResolvedFragment');
+        getResolved.onFirstCall().returns(new Promise((resolve) => (settleStale = resolve)));
+        getResolved.onSecondCall().resolves(createFragment({ fields: [{ name: 'title', values: ['Fresh'] }] }));
+
+        store.resolveFragment(true);
+        store.updateFieldInternal('previewLocaleOverride', 'fr_FR');
+        settleStale(createFragment({ fields: [{ name: 'title', values: ['Stale'] }] }));
+        await clock.tickAsync(0);
+
+        expect(store.value.getFieldValue('title')).to.equal('Clean');
+
+        await clock.tickAsync(200);
+
+        expect(getResolved.callCount).to.equal(2);
+        expect(store.value.getFieldValue('title')).to.equal('Fresh');
+        store.dispose();
+    });
+
+    it('re-resolves placeholders from the authored fields when the preview locale changes', async () => {
+        sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+        Store.placeholders.previewByLocale.value = { en_US: { 'card-title': 'US title' }, en_AU: { 'card-title': 'AU title' } };
+        const store = new PreviewFragmentStore(
+            createFragment({
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['{{card-title}}'] },
+                ],
+            }),
+            null,
+            { lazy: true },
+        );
+
+        store.replaceFrom(await store.getResolvedFragment());
+        expect(store.value.getFieldValue('cardTitle')).to.equal('US title');
+
+        store.setPreviewLocaleOverride('en_AU');
+        const result = await store.getResolvedFragment();
+
+        expect(result.fields.find(({ name }) => name === 'cardTitle').values).to.deep.equal(['AU title']);
+        store.dispose();
+    });
+
     it('previewLocale getter prefers the override over the global locale', () => {
         const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
         expect(store.previewLocale).to.equal('en_US');
@@ -264,8 +334,12 @@ describe('PreviewFragmentStore', () => {
 
     describe('countdown dates', () => {
         const SENTINEL_FIELDS = [{ name: 'description', values: ['<p>Ends <a href="#">countdown-timer</a></p>'] }];
-        const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' };
-        const NONE = { cdtStart: undefined, cdtEnd: undefined };
+        const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z', countdownStatus: 'ready' };
+        // The preview reads the authored dates as local time, like the live pipeline serves them.
+        const READY = { cdtStart: '2026-02-01T00:00:00', cdtEnd: '2026-02-10T00:00:00', countdownStatus: 'ready' };
+        const NONE = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
+        const FAILED = { ...NONE, countdownStatus: 'lookup-failed' };
+        const NO_PROJECT = { ...NONE, countdownStatus: 'no-project' };
         let repository;
         let service;
         let originalList;
@@ -285,6 +359,7 @@ describe('PreviewFragmentStore', () => {
         const createStore = (overrides) => {
             const store = new PreviewFragmentStore(createFragment(overrides), null, { lazy: true });
             sandbox.stub(store, 'previewPublishedFragment').resolves({
+                status: 200,
                 body: { promoProject: 'Black Friday' },
                 promoProjects: [{ label: 'Black Friday', project: DATES }],
             });
@@ -303,7 +378,11 @@ describe('PreviewFragmentStore', () => {
             repository = {
                 getPromotionsPath: () => '/content/dam/mas/promotions',
                 searchFragmentList: sandbox.stub().resolves([rawProject()]),
-                loadPromotions: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().callsFake(async () => {
+                    const fragments = await repository.searchFragmentList({ path: repository.getPromotionsPath() });
+                    Store.promotions.list.data.set(fragments.map((fragment) => ({ get: () => fragment })));
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                }),
             };
             service = { settings: { instant: '2026-02-05T00:00:00Z' } };
             const query = sandbox.stub(document, 'querySelector').callThrough();
@@ -314,6 +393,16 @@ describe('PreviewFragmentStore', () => {
         afterEach(() => {
             originalList.set(originalListValue);
             originalList.removeMeta('listFetched');
+        });
+
+        it('reports an unloaded project, not an unlinked card, when the tag matches no loaded project', async () => {
+            repository.searchFragmentList.resolves([]);
+            const store = createStore({ ...variation(), tags: [{ id: 'mas:promotion/unloaded' }] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({
+                ...NONE,
+                countdownStatus: 'project-not-loaded',
+            });
+            store.dispose();
         });
 
         it('makes no read for a card without the sentinel', async () => {
@@ -340,18 +429,20 @@ describe('PreviewFragmentStore', () => {
             const result = await store.getResolvedFragment();
 
             expect(result.fields.find((field) => field.name === 'description').values).to.deep.equal([description]);
-            expect(result).to.include({ ...DATES, previewLocale: 'ko_KR' });
+            expect(result).to.include({ ...READY, previewLocale: 'ko_KR' });
             expect(source.getFieldValue('description')).to.equal('{{offer-description}}');
             expect(source.cdtStart).to.be.undefined;
             expect(source.previewLocale).to.be.undefined;
+            expect(source.countdownStatus).to.be.undefined;
             expect(store.value.cdtStart).to.be.undefined;
 
             store.replaceFrom(result);
-            store.value.updateField('description', ['<p>Offer without a timer</p>']);
+            store.updateField('description', ['<p>Offer without a timer</p>']);
             const cleared = await store.getResolvedFragment();
 
             expect(cleared.cdtStart).to.be.undefined;
             expect(cleared.cdtEnd).to.be.undefined;
+            expect(cleared.countdownStatus).to.be.undefined;
             expect(cleared.previewLocale).to.equal('ko_KR');
             expect(store.previewPublishedFragment.calledOnce).to.be.true;
             expect(repository.searchFragmentList.called).to.be.false;
@@ -360,7 +451,7 @@ describe('PreviewFragmentStore', () => {
 
         it('takes a default card dates from the pipeline-selected project provenance', async () => {
             const store = createStore({ id: 'card-id' });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(store.previewPublishedFragment.calledOnce).to.be.true;
             // Only the saved fragment id and request settings leave: never the unsaved authored fields.
             expect(store.previewPublishedFragment.firstCall.args).to.deep.equal([
@@ -403,8 +494,8 @@ describe('PreviewFragmentStore', () => {
             const store = createStore();
             store.previewPublishedFragment.onFirstCall().rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(store.previewPublishedFragment.callCount).to.equal(2);
             store.dispose();
         });
@@ -422,16 +513,58 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
-        it('clears dates when the pipeline selects no project', async () => {
+        it('reports missing membership without inheriting the source card project for a clone', async () => {
+            const store = createStore({ path: '/content/dam/mas/test/en_US/card-copy' });
+            const project = rawProject();
+            project.fields.push({ name: 'fragments', values: ['/content/dam/mas/test/en_US/card'] });
+            repository.searchFragmentList.resolves([project]);
+            store.previewPublishedFragment.resolves({ status: 200, body: {}, promoProjects: [] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NO_PROJECT);
+            store.dispose();
+        });
+
+        it('distinguishes an associated project that does not apply to the preview', async () => {
+            const store = createStore({ path: '/content/dam/mas/test/en_GB/card' });
+            const project = rawProject();
+            project.fields.push({ name: 'fragments', values: ['/content/dam/mas/test/en_US/card'] });
+            repository.searchFragmentList.resolves([project]);
+            store.previewPublishedFragment.resolves({ status: 200, body: {}, promoProjects: [] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({ ...NONE, countdownStatus: 'no-match' });
+            store.dispose();
+        });
+
+        it('reports selected projects with missing countdown dates', async () => {
             const store = createStore();
-            store.previewPublishedFragment.resolves({ body: {}, promoProjects: [] });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            store.previewPublishedFragment.resolves({
+                status: 200,
+                body: { promoProject: 'Black Friday' },
+                promoProjects: [{ label: 'Black Friday', project: { cdtStart: DATES.cdtStart } }],
+            });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({ ...NONE, countdownStatus: 'missing-dates' });
+            store.dispose();
+        });
+
+        it('does not cache non-200 pipeline responses or misreport them as missing configuration', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.onFirstCall().resolves({ status: 503, body: {} });
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
+        it('reports incomplete project provenance as a failed lookup', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.resolves({ status: 200, body: { promoProject: 'Missing' }, promoProjects: [] });
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 
         it('skips the pipeline for a card that cannot be a MAS default card', async () => {
             const store = createStore({ path: '/somewhere/else' });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NO_PROJECT);
             expect(store.previewPublishedFragment.called).to.be.false;
             store.dispose();
         });
@@ -440,17 +573,16 @@ describe('PreviewFragmentStore', () => {
             const store = createStore();
             store.previewPublishedFragment.rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 
-        it('takes a promo variation dates from its tagged project via a cold raw search, never loadPromotions', async () => {
+        it('loads the shared promotions list once for a promo variation dates', async () => {
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             await store.getCountdownDates(SENTINEL_FIELDS);
-            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(repository.loadPromotions.calledOnceWithExactly({ rethrow: true })).to.be.true;
             expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/promotions');
-            expect(repository.loadPromotions.called).to.be.false;
             expect(store.previewPublishedFragment.called).to.be.false;
             store.dispose();
         });
@@ -458,7 +590,7 @@ describe('PreviewFragmentStore', () => {
         it('uses the loaded promotions list for a promo variation instead of searching', async () => {
             Store.promotions.list.data.set([{ get: () => new Promotion(rawProject()) }]);
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(repository.searchFragmentList.called).to.be.false;
             store.dispose();
         });
@@ -467,7 +599,7 @@ describe('PreviewFragmentStore', () => {
             repository.searchFragmentList.rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 

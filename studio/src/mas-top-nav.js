@@ -7,6 +7,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
 import { extractLocaleFromPath, debounce } from './utils.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { clearPersistedPromotionsLists } from './promotions/promotions-repository.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -97,6 +98,7 @@ class MasTopNav extends LitElement {
             });
             signOutLink.addEventListener('click', (e) => {
                 e.preventDefault();
+                clearPersistedPromotionsLists();
                 window.adobeIMS.signOut();
             });
             studioContentEl?.addEventListener('click', () => {
@@ -156,6 +158,10 @@ class MasTopNav extends LitElement {
 
     get isWelcomePage() {
         return this.page.value === PAGE_NAMES.WELCOME;
+    }
+
+    get isBaselinesPage() {
+        return this.page.value === PAGE_NAMES.BASELINES;
     }
 
     get isFragmentEditorPage() {
@@ -222,7 +228,7 @@ class MasTopNav extends LitElement {
     }
 
     get isLocalePickerDisabled() {
-        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
+        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage || this.isBaselinesPage) {
             return false;
         }
         if (this.isFragmentEditorPage) {
@@ -354,6 +360,19 @@ class MasTopNav extends LitElement {
             return [
                 { label: 'Fragments', handler: handlers.content },
                 { label: 'Editor', handler: handlers.editor },
+                { label: 'Version history' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_HISTORY) {
+            return [
+                { label: 'Promotions', handler: handlers.promotions },
+                {
+                    label: this.promotions.inEdit.get()?.get()?.getFieldValue('title') || 'Promotion project',
+                    handler: () => {
+                        Store.promotions.inEdit.set(null);
+                        router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                    },
+                },
                 { label: 'Version history' },
             ];
         }
@@ -521,9 +540,15 @@ class MasTopNav extends LitElement {
                                     </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
-                                  <button class="icon-button" title="Help">
+                                  <a
+                                      class="icon-button"
+                                      title="Help"
+                                      href="https://adobe.enterprise.slack.com/archives/C02RZERR9CH"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                  >
                                       <sp-icon-help size="m"></sp-icon-help>
-                                  </button>
+                                  </a>
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>

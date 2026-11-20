@@ -6,6 +6,7 @@
 //   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456
 //   node .github/scripts/consolidate-dependabot-prs.mjs --ticket MWPW-123456 --execute
 //     # creates the consolidated PR, then comments on and closes each original Dependabot PR.
+//     # When web-components or the root lockfile changes, web-components dist/docs are rebuilt and committed.
 //
 // The ticket is used as the branch name, so re-running with the same ticket while the
 // consolidated PR is still open refreshes its branch with main, merges any newly opened
@@ -211,9 +212,36 @@ export function mergePrHead({ number, remote, run = runCommand, log = console.lo
     }
 }
 
+const WEB_COMPONENTS_BUILD_PATHS = ['web-components/dist', 'web-components/docs'];
+
+// Rebuilt web-components output committed by a previous run stays on a refreshed branch, so it is not a manifest change.
 export function getChangedManifestPaths({ remote, run = runCommand } = {}) {
     const stdout = run('git', ['diff', '--name-only', `${remote}/main...HEAD`]);
-    return stdout.split('\n').filter(Boolean);
+    return stdout
+        .split('\n')
+        .filter(Boolean)
+        .filter((path) => !WEB_COMPONENTS_BUILD_PATHS.some((dir) => path.startsWith(`${dir}/`)));
+}
+
+export function needsWebComponentsBuild(changedPaths) {
+    return changedPaths.some((path) => path === 'package-lock.json' || path.startsWith('web-components/'));
+}
+
+// web-components/dist and docs are committed, so dependency bumps affecting them must ship rebuilt artifacts.
+export function rebuildWebComponents({ branch, changedPaths, run = runCommand, log = console.log }) {
+    if (!needsWebComponentsBuild(changedPaths)) return false;
+    log('\nRebuilding web-components with the consolidated dependencies...');
+    // Merged third-party packages must not run install scripts on the maintainer's machine.
+    run('npm', ['ci', '--ignore-scripts']);
+    run('npm', ['run', 'build:bundle'], { cwd: 'web-components' });
+    run('npm', ['run', 'build:docs'], { cwd: 'web-components' });
+    if (!run('git', ['status', '--porcelain', '--', ...WEB_COMPONENTS_BUILD_PATHS]).trim()) {
+        log('  web-components build output unchanged');
+        return false;
+    }
+    run('git', ['add', '--', ...WEB_COMPONENTS_BUILD_PATHS]);
+    run('git', ['commit', '-m', `${branch} rebuild web-components`]);
+    return true;
 }
 
 export function createConsolidatedPr({ title, bodyFile, branch, repo = REPO, run = runCommand }) {
@@ -289,6 +317,7 @@ export function consolidate({
 
     const changedPaths = getChangedManifestPaths({ remote, run });
     assertOnlyManifestPaths(changedPaths);
+    rebuildWebComponents({ branch, changedPaths, run, log });
     run('git', ['push', '-u', remote, branch]);
 
     const title = `${branch} chore(deps): consolidate ${mergeRows(previousRows, prs).length} Dependabot update(s)`;

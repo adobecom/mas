@@ -3,6 +3,7 @@ import {
     CHECKOUT_CTA_TEXTS,
     EVENT_OST_SELECT,
     EVENT_OST_OFFER_SELECT,
+    EVENT_OST_CLOSE,
     EVENT_OST_MULTI_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     PLACEHOLDER_CTA_SURFACES,
@@ -120,6 +121,7 @@ const OST_IS_MAPPING = {
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',
+    'discount-amount': 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {
@@ -280,7 +282,7 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
                 searchParameters.append('text', offerElement.innerText);
             }
             const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
-            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            const isDiscount = template === 'discount' || template === 'discount-amount';
             // A soft-bundle placeholder carries every bundled OSI comma-joined
             // (and is not a discount, whose second OSI is a reference price).
             // Reopen it in bundle mode with all offers so the author edits the
@@ -441,4 +443,5 @@ export function closeOfferSelectorTool() {
     closeFunction();
     closeFunction = null;
     restoreAuthoringCommerceServiceLocale();
+    ostRoot.dispatchEvent(new CustomEvent(EVENT_OST_CLOSE, { bubbles: true }));
 }

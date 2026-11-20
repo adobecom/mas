@@ -5,13 +5,18 @@ import {
     ERROR_MESSAGE_OFFER_NOT_FOUND,
 } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
-import { selectOffers, sumOffers, getService } from './utilities.js';
+import { getService } from './utilities.js';
+import { selectOffers, sumOffers } from '../../price/src/offers.js';
 import { Defaults } from './defaults.js';
 import {
     defaultLiterals,
     formatLiteral,
     renderSpan,
-} from './price/template.js';
+} from '../../price/src/price/template.js';
+import { createLog, Log } from './log.js';
+
+const literalLog = createLog('ConsonantTemplates/price');
+const offerLog = Log.module('utilities');
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
 const BUSINESS = 'TEAM_COM';
@@ -274,7 +279,7 @@ export async function resolvePriceOffers(
         throw new Error(ERROR_MESSAGE_OFFER_NOT_FOUND);
     }
     let offers = selectedOffers;
-    const offer = sumOffers(selectedOffers);
+    const offer = sumOffers(selectedOffers, { logger: offerLog });
 
     if (featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
         if (priceOptions.displayPerUnit === undefined) {
@@ -320,7 +325,11 @@ export async function resolvePriceOffers(
     }
 
     // Dual-OSI discount: use individual prices for cross-offer percentage
-    if (options.template === 'discount' && offers.length === 2) {
+    if (
+        (options.template === 'discount' ||
+            options.template === 'discount-amount') &&
+        offers.length === 2
+    ) {
         const [discountedOffer, referenceOffer] = offers;
         return [
             {
@@ -336,7 +345,7 @@ export async function resolvePriceOffers(
     }
 
     // Sum the final offers for rendering
-    return [sumOffers(offers)];
+    return [sumOffers(offers, { logger: offerLog })];
 }
 
 /**
@@ -354,7 +363,13 @@ function renderPriceUnavailable({
 }) {
     const literals = { ...defaultLiterals, ...priceLiterals };
     const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
-    const text = formatLiteral(literals, locale, 'priceUnavailableLabel', {});
+    const text = formatLiteral(
+        literals,
+        locale,
+        'priceUnavailableLabel',
+        {},
+        literalLog,
+    );
     return renderSpan('price-unavailable', text);
 }
 
@@ -431,7 +446,11 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
 
     connectedCallback() {
         this.masElement.connectedCallback();
-        this.addEventListener('click', this.handleClick);
+        // only prices inside a link or button need the re-dispatch; a click
+        // listener on plain text makes screen readers announce it as "clickable"
+        if (this.closest('a, button')) {
+            this.addEventListener('click', this.handleClick);
+        }
     }
 
     disconnectedCallback() {

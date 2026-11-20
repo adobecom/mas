@@ -6,31 +6,23 @@ import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 import {
-    countdownDatesOfProvenance,
-    countdownDatesOfTag,
+    countdownPreviewOfProvenance,
+    countdownPreviewOfTag,
+    countdownProjectTargetsPath,
     hasCountdownSentinel,
     toCountdownProject,
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
+import { getPromotionProjectsForProbe } from '../promotions/promotions-repository.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
-const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
 
-/**
- * Reads the promotion projects without side effects: the loaded list when available, otherwise
- * a (briefly cached) search. Never repository.loadPromotions(): it unpublishes expired projects.
- */
+/** Reads the promotion projects through the shared promotions list, revalidated when stale since countdowns are cached. */
 async function readCountdownProjects() {
-    const list = Store.promotions.list.data;
-    if (list.get()?.length || list.hasMeta('listFetched'))
-        return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
     const repository = document.querySelector('mas-repository');
-    return cachedCountdownProjects(repository, () =>
-        repository
-            .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
-            .then((fragments) => fragments.map(toCountdownProject)),
-    );
+    const projects = await getPromotionProjectsForProbe(() => repository.loadPromotions({ rethrow: true }), { fresh: true });
+    return projects.map(toCountdownProject);
 }
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
@@ -94,10 +86,13 @@ export class PreviewFragmentStore extends FragmentStore {
     previewLocaleOverride = null;
     #resolving = false;
     #resolvePending = false;
+    #valueVersion = 0;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
     #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
+    /** Fields before resolution: `this.value` holds the resolved result, which lost the placeholder keys and inherited-setting markers. */
+    #sourceFields = [];
 
     /**
      * @param {Fragment} initialValue
@@ -107,6 +102,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
         this.lazy = lazy;
+        this.#captureSourceFields();
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
             if (this.lazy || !Store.previewDictionaryReady(this.previewLocale)) return;
@@ -130,27 +126,43 @@ export class PreviewFragmentStore extends FragmentStore {
            rather than (in this case) "super.set(value)"
         */
         this.value.replaceFrom(value, false);
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateField(name, value) {
         this.value.updateField(name, value);
+        const field = this.value.getField(name);
+        const index = this.#sourceFields.findIndex((sourceField) => sourceField.name === name);
+        if (index !== -1) this.#sourceFields[index] = structuredClone(field);
+        else if (field) this.#sourceFields.push(structuredClone(field));
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateFieldInternal(name, value) {
         this.value.updateFieldInternal(name, value);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     refreshFrom(value) {
         this.value.refreshFrom(value);
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     discardChanges() {
         this.value.discardChanges();
+        this.#captureSourceFields();
+        this.#valueVersion++;
         this.resolveFragment();
+    }
+
+    #captureSourceFields() {
+        this.#sourceFields = structuredClone(this.value.fields);
     }
 
     get previewLocale() {
@@ -229,13 +241,14 @@ export class PreviewFragmentStore extends FragmentStore {
 
         this.#resolving = true;
         const dictionarySig = this.previewLocale;
+        const valueVersion = this.#valueVersion;
         this.getResolvedFragment()
             .then((result) => {
-                if (result) {
-                    this.#resolvedDictionarySig = dictionarySig;
-                    this.replaceFrom(result);
-                    this.refreshAemFragment(true);
-                }
+                // The value changed mid-resolve: drop the outdated result, the follow-up resolve applies the fresh one.
+                if (!result || valueVersion !== this.#valueVersion) return;
+                this.#resolvedDictionarySig = dictionarySig;
+                this.replaceFrom(result);
+                this.refreshAemFragment(true);
             })
             .catch((error) => {
                 console.error('[PreviewFragmentStore] Failed to resolve fragment:', error);
@@ -257,6 +270,7 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
+        body.fields = structuredClone(this.#sourceFields);
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 
@@ -300,19 +314,14 @@ export class PreviewFragmentStore extends FragmentStore {
         return result;
     }
 
-    /**
-     * Countdown dates for the preview payload; keys are always present so stale dates get cleared.
-     * A promo variation takes its tagged project (drafts included). A default card takes the project
-     * the production pipeline selects for its saved version, even if the saved description has no
-     * sentinel. Unsaved authored content is never sent anywhere.
-     */
+    /** Resolves preview-only dates and diagnostics. Unsaved authored content never leaves the browser. */
     async getCountdownDates(fields) {
-        const none = { cdtStart: undefined, cdtEnd: undefined };
+        const none = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
         if (!hasCountdownSentinel(fields)) return none;
         try {
             const tag = getPromotionTagFromFragment(this.value);
-            if (tag) return { ...none, ...countdownDatesOfTag(await readCountdownProjects(), tag) };
-            if (!canProbePromoVariationsForFragment(this.value)) return none;
+            if (tag) return { ...none, ...countdownPreviewOfTag(await readCountdownProjects(), tag) };
+            if (!canProbePromoVariationsForFragment(this.value)) return { ...none, countdownStatus: 'no-project' };
             const instant = getService()?.settings?.instant;
             const key = `${this.value.id}|${this.previewLocale}|${instant ?? ''}`;
             // The saved version's project does not change while the author types.
@@ -322,12 +331,22 @@ export class PreviewFragmentStore extends FragmentStore {
                     country: this.previewLocale.split('_')[1],
                     ...(instant && { instant }),
                     fullContext: true,
-                }).then(countdownDatesOfProvenance),
+                }).then((context) => {
+                    if (context.status !== 200) throw new Error('Countdown preview lookup failed');
+                    const preview = countdownPreviewOfProvenance(context);
+                    if (preview.countdownStatus === 'lookup-failed') throw new Error('Selected promotion was not returned');
+                    return preview;
+                }),
             );
+            if (published.countdownStatus === 'no-project') {
+                const projects = await readCountdownProjects();
+                const linked = projects.some((project) => countdownProjectTargetsPath(project, this.value.path));
+                return { ...none, countdownStatus: linked ? 'no-match' : 'no-project' };
+            }
             return { ...none, ...published };
         } catch (error) {
             console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
-            return none;
+            return { ...none, countdownStatus: 'lookup-failed' };
         }
     }
 

@@ -86,6 +86,8 @@ function openOfferSelectorTool(options) {
         promotionCode,
         offerSelectorPlaceholderOptions,
         defaultPlaceholderOptions,
+        onCancel,
+        onSelect,
     };
 
     if (dialog) {

@@ -233,29 +233,3 @@ export function fragmentIsPromoVariation(fragment) {
     if (isPromoVariationPath(fragment.path)) return true;
     return Boolean(getPromotionTagFromFragment(fragment));
 }
-
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isFragmentNotFoundError(error) {
-    const status = error?.status ?? error?.response?.status;
-    if (status === 404) return true;
-    const message = error?.message?.toLowerCase() ?? '';
-    return message.includes('404') || message.includes('not found');
-}
-
-/**
- * @param {{ getByPath: (path: string, options?: object) => Promise<unknown> }} fragmentsApi
- * @param {string} path
- * @param {object} [options]
- * @returns {Promise<object|null>}
- */
-export async function getFragmentByPathOrNull(fragmentsApi, path, options) {
-    try {
-        return (await fragmentsApi.getByPath(path, options)) ?? null;
-    } catch (error) {
-        if (isFragmentNotFoundError(error)) return null;
-        throw error;
-    }
-}

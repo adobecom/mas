@@ -1,9 +1,13 @@
 import { expect } from '@esm-bundle/chai';
+import { oneEvent, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
+import MasPromotionsEditor, {
+    PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS,
+    PROMOTION_ITEM_GROUPED_VARIATION_CELLS,
+} from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import {
     CARD_MODEL_PATH,
@@ -72,6 +76,36 @@ function isPromotionQuickActionDisabled(el, title) {
     const button = [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.title === title);
     return button.disabled === true || button.hasAttribute('disabled');
 }
+
+describe('promotion item grouped variation table config', () => {
+    const columnKeys = PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.map(({ key }) => key);
+
+    it('puts the select column first since the row renders its checkbox before the cells', () => {
+        expect(columnKeys[0]).to.equal('select');
+    });
+
+    it('has exactly one cell per column after the select column', () => {
+        expect(PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.length - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.length);
+    });
+
+    it('places promoCode at the same position as PromoCodeValue', () => {
+        expect(columnKeys.indexOf('promoCode') - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.indexOf('PromoCodeValue'));
+    });
+
+    it('pairs every column key with its matching cell renderer', () => {
+        const pairs = columnKeys.slice(1).map((key, index) => [key, PROMOTION_ITEM_GROUPED_VARIATION_CELLS[index]]);
+        expect(pairs).to.deep.equal([
+            ['offer', 'OfferName'],
+            ['fragmentTitle', 'Title'],
+            ['path', 'StudioPath'],
+            ['pznTags', 'PersonalizationTags'],
+            ['promoCode', 'PromoCodeValue'],
+            ['offerId', 'OfferId'],
+            ['osi', 'Osi'],
+            ['status', 'Status'],
+        ]);
+    });
+});
 
 describe('MasPromotionsEditor', () => {
     let sandbox;
@@ -153,7 +187,6 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
-            getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
             clearStagedTag: sandbox.stub().resolves(null),
@@ -198,6 +231,58 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
     }
+
+    describe('countdown date feedback', () => {
+        const start = '2026-11-02T04:00:00Z';
+        const end = '2026-11-13T14:00:00Z';
+
+        for (const [name, cdtStart, cdtEnd, message] of [
+            ['missing start', '', end, 'Set both countdown timer start and end dates'],
+            ['missing end', start, '', 'Set both countdown timer start and end dates'],
+            ['invalid date', 'bad', end, 'Set valid dates for countdown timer start and end.'],
+            ['equal dates', start, start, 'Countdown end must be later than countdown start.'],
+            ['reversed dates', end, start, 'Countdown end must be later than countdown start.'],
+        ]) {
+            it(`shows accessible inline feedback for ${name} without saving`, async () => {
+                const repo = makeRepo();
+                const el = await mountEditor(repo);
+                el.fragmentStore.updateField('cdtStart', [cdtStart]);
+                el.fragmentStore.updateField('cdtEnd', [cdtEnd]);
+                await el.updateComplete;
+
+                const notice = el.renderRoot.querySelector('#countdown-date-error');
+                expect(notice.textContent).to.include(message);
+                expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
+                expect(notice.getAttribute('role')).to.equal('status');
+                for (const id of ['cdtStart', 'cdtEnd']) {
+                    const input = el.renderRoot.querySelector(`#${id}`);
+                    expect(input.getAttribute('aria-invalid')).to.equal('true');
+                    expect(input.getAttribute('aria-describedby')).to.equal('countdown-date-error');
+                }
+                expect(repo.saveFragment.called).to.be.false;
+                expect(repo.publishFragment.called).to.be.false;
+            });
+        }
+
+        it('clears date feedback when corrected or both optional dates are removed', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('cdtStart', [end]);
+            el.fragmentStore.updateField('cdtEnd', [start]);
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#countdown-date-error')).to.exist;
+
+            for (const [cdtStart, cdtEnd] of [
+                [start, end],
+                ['', ''],
+            ]) {
+                el.fragmentStore.updateField('cdtStart', [cdtStart]);
+                el.fragmentStore.updateField('cdtEnd', [cdtEnd]);
+                await el.updateComplete;
+                expect(el.renderRoot.querySelector('#countdown-date-error')).to.not.exist;
+                expect(el.renderRoot.querySelector('#cdtEnd').hasAttribute('aria-invalid')).to.be.false;
+            }
+        });
+    });
 
     describe('tiered permissions', () => {
         function setGroups(groups) {
@@ -599,26 +684,24 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            let finishClassification;
-            const classification = new Promise((resolve) => {
-                finishClassification = resolve;
-            });
-            const { el } = await mountEditorWithRepo({
-                getCollectionPathsForSurfaces: sandbox.stub().returns(classification),
-            });
+            const { el } = await mountEditorWithRepo();
             await waitForEditorConnect(el);
             Store.promotions.selectedOffers.set(['offer-1']);
             el.selectedItemsViewTab = TABLE_TYPE.CARDS;
             el.isSelectedItemsOpen = true;
             await el.updateComplete;
             expect(Store.promotions.selectedCards.value).to.deep.equal([collectionPath]);
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            const cardsTable = selector.shadowRoot.querySelector('mas-promotions-items-table');
             const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
                 (button) => button.textContent.trim() === 'Edit',
             );
             edit.click();
             await el.updateComplete;
-            finishClassification(new Set([collectionPath]));
-            await classification;
+            cardsTable.dispatchEvent(
+                new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }),
+            );
             await el.updateComplete;
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
 
@@ -1058,13 +1141,14 @@ describe('MasPromotionsEditor', () => {
                 'Copy link',
                 'Copy variation links',
                 'Lock project',
+                'Version history',
                 'Delete',
             ]);
             expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
             expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
         });
 
-        it('disables every quick action for a non-editor (view-only)', async () => {
+        it('allows history but disables write actions for a non-editor (view-only)', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.profile.set({ email: 'viewer@adobe.com' });
             Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
@@ -1083,8 +1167,13 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await el.updateComplete;
             for (const title of getPromotionQuickActionTitles(el)) {
-                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+                expect(isPromotionQuickActionDisabled(el, title), title).to.equal(title !== 'Version history');
             }
+        });
+
+        it('disables history before a new project is saved', async () => {
+            const el = await mountEditor();
+            expect(isPromotionQuickActionDisabled(el, 'Version history')).to.be.true;
         });
 
         it('disables general info fields and surface controls for a non-editor (view-only)', async () => {
@@ -2206,10 +2295,11 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
         });
 
-        it('refines the card/collection split in the background from a surface collection search', async () => {
+        it('re-buckets collections flagged by the cards table, keeping selection edits made meanwhile', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
             Store.promotions.inEdit.set(
                 new FragmentStore(
                     makePromotion({
@@ -2219,45 +2309,19 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const getCollectionPathsForSurfaces = sandbox.stub().resolves(new Set([collectionPath]));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-2');
-            el.disconnectedCallback();
-            await el.connectedCallback();
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
             await el.updateComplete;
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
-            expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
-            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
-            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
-        });
-
-        it('does not clobber a selection the user edited while the classification search was in flight', async () => {
-            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
-            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
-            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
-            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
-            Store.promotions.inEdit.set(
-                new FragmentStore(
-                    makePromotion({
-                        id: 'promo-race',
-                        surfaces: ['sandbox'],
-                        fragments: [cardPath, collectionPath],
-                    }),
-                ),
-            );
-            let releaseSearch;
-            const getCollectionPathsForSurfaces = sandbox
-                .stub()
-                .callsFake(() => new Promise((resolve) => (releaseSearch = () => resolve(new Set([collectionPath])))));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-race');
-            el.disconnectedCallback();
-            await el.connectedCallback();
-            await el.updateComplete;
-            // User adds a card while the surface search is still pending.
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
             Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
-            releaseSearch();
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            selector.shadowRoot
+                .querySelector('mas-promotions-items-table')
+                .dispatchEvent(new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }));
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
@@ -3420,7 +3484,7 @@ describe('MasPromotionsEditor', () => {
                 expect(plainText).to.include('query=variation-id');
                 expect(htmlText).to.include('<a href=');
                 expect(htmlText).to.include('query=variation-id');
-                expect(htmlText).to.include('merch-card: SANDBOX : Variation');
+                expect(htmlText).to.include('SANDBOX / merch-card : Variation');
             } finally {
                 clipboard.restore();
             }
@@ -3644,7 +3708,7 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('reopening the add-items dialog', () => {
-        it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
+        it('clears search results on close while preserving cached card details for the selection sidebar', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
             const { el, repo } = await mountEditorWithRepo();
@@ -3669,7 +3733,7 @@ describe('MasPromotionsEditor', () => {
 
             expect(Store.promotions.allCards.value).to.deep.equal([]);
             expect(Store.promotions.displayCards.value).to.deep.equal([]);
-            expect(Store.promotions.cardsByPaths.value.size).to.equal(0);
+            expect([...Store.promotions.cardsByPaths.value.keys()]).to.deep.equal(['/card/a', '/card/b']);
             expect(Store.promotions.selectedCards.value).to.deep.equal(['/card/a', '/card/b']);
             expect(repo.searchFragments.called).to.be.true;
         });
@@ -3755,6 +3819,26 @@ describe('MasPromotionsEditor', () => {
         }
 
         describe('picker (non-viewOnly) mas-items-selector', () => {
+            async function openPicker(el) {
+                el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+                await el.updateComplete;
+                el.renderRoot.querySelector('.promotion-empty-panel sp-button').click();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                return selector;
+            }
+
+            async function selectPickerOffer(el, selector, value) {
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                const picker = cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter');
+                picker.value = value;
+                picker.dispatchEvent(new Event('change', { bubbles: true }));
+                await el.updateComplete;
+                await selector.updateComplete;
+                await cardsFilter.updateComplete;
+            }
+
             it('renders exactly two picker tabs: fragments and collections', async () => {
                 const { el } = await mountEditorWithRepo();
                 await el.updateComplete;
@@ -3769,14 +3853,110 @@ describe('MasPromotionsEditor', () => {
                 expect(selector.shadowRoot.querySelector('.import-url-btn')).to.exist;
             });
 
-            it('keeps the offer-based product filter active after leaving and returning from Import via URL', async () => {
+            it('opens the fragment picker without pre-applied offer or product filters', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
                 el.fragmentStore.updateField('surfaces', ['sandbox']);
+                const selector = await openPicker(el);
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+                expect(cardsFilter.offerFilterValue).to.equal('');
+                expect(Store.filters.get().tags).to.be.undefined;
+                expect(cardsFilter.matchVariationsAndTags).to.be.true;
+                const collectionsFilter = [...selector.searchFilterElements].find(
+                    (filter) => filter.type === TABLE_TYPE.COLLECTIONS,
+                );
+                expect(collectionsFilter.matchVariationsAndTags).to.be.false;
+            });
+
+            it('does not apply product filters after delayed hydration without an explicit offer selection', async () => {
+                const { el, repo } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.delete('delayed-offer');
+                Store.promotions.selectedOffers.set(['delayed-offer']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                const selector = await openPicker(el);
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                await cardsFilter.updateComplete;
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+                Store.promotions.allCards.set([
+                    { id: 'photoshop', path: '/phsp', fields: [], tags: [{ id: 'mas:product_code/phsp' }] },
+                    { id: 'other', path: '/other', fields: [], tags: [{ id: 'mas:product_code/other' }] },
+                ]);
+                repo.searchFragments.resetHistory();
+
+                Store.promotions.offerRecordsCache.set('delayed-offer', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
                 await el.updateComplete;
+                await selector.updateComplete;
+                await cardsFilter.updateComplete;
+
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+                expect(Store.filters.get().tags).to.be.undefined;
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop', 'other']);
+                expect(repo.searchFragments.called).to.be.false;
+            });
+
+            it('does not reapply a deleted product chip while searching or clearing the query', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                const selector = await openPicker(el);
+                await selectPickerOffer(el, selector, 'offer-1');
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                cardsFilter.productOptions = [{ id: 'mas:product_code/phsp', title: 'Photoshop' }];
+                await cardsFilter.updateComplete;
+                const chip = cardsFilter.shadowRoot.querySelector('sp-tag');
+                expect(chip).to.exist;
+                chip.dispatchEvent(new Event('delete'));
+                await cardsFilter.updateComplete;
+                expect(cardsFilter.productFilter, 'product filter after deleting its chip').to.deep.equal([]);
+                expect(Store.filters.get().tags, 'repository product filter after deleting its chip').to.be.undefined;
+
+                for (const query of ['s', 'smb', '']) {
+                    selector.searchQuery = query;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.productFilter, `product filter after query "${query}"`).to.deep.equal([]);
+                }
+
+                selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                await selector.updateComplete;
+                const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                importTabs.selected = TABLE_TYPE.CARDS;
+                importTabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+                const restoredFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                expect(restoredFilter.productFilter, 'product filter after returning from import').to.deep.equal([]);
+            });
+
+            it('finds a grouped variation from the promotion picker search input', async () => {
+                const { el } = await mountEditorWithRepo();
                 const selector = pickerSelector(el);
                 await selector.updateComplete;
+                const variationId = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+                Store.promotions.allCards.set([
+                    { id: 'parent', path: '/card', tags: [], fields: [], groupedVariations: [{ id: variationId }] },
+                ]);
+                const search = selector.shadowRoot.querySelector('sp-search');
+                search.value = variationId;
+                search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                await cardsFilter.updateComplete;
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+            });
+
+            it('keeps the offer-based product filter active after leaving and returning from Import via URL', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                const selector = await openPicker(el);
+                await selectPickerOffer(el, selector, 'offer-1');
                 const cardsFilterBefore = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
@@ -3793,6 +3973,321 @@ describe('MasPromotionsEditor', () => {
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
                 expect(cardsFilterAfter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+            });
+
+            describe('offer picker filtering', () => {
+                let el;
+                let selector;
+                let cardsFilter;
+                let originalFirstPageLoaded;
+
+                beforeEach(async () => {
+                    originalFirstPageLoaded = Store.fragments.list.firstPageLoaded.get();
+                    Store.fragments.list.firstPageLoaded.set(true);
+                    ({ el } = await mountEditorWithRepo());
+                    Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                    Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                    Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    selector = await openPicker(el);
+                    cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                    Store.promotions.allCards.set([
+                        { id: 'photoshop', path: '/phsp', fields: [], tags: [{ id: 'mas:product_code/phsp' }] },
+                        { id: 'illustrator', path: '/ilst', fields: [], tags: [{ id: 'mas:product_code/ilst' }] },
+                        { id: 'other', path: '/other', fields: [], tags: [{ id: 'mas:product_code/other' }] },
+                    ]);
+                    await cardsFilter.updateComplete;
+                });
+
+                afterEach(() => {
+                    Store.fragments.list.firstPageLoaded.set(originalFirstPageLoaded);
+                });
+
+                async function selectOffer(value) {
+                    await selectPickerOffer(el, selector, value);
+                }
+
+                it('shows all cards without restricting results to project offers by default', async () => {
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal([
+                        'photoshop',
+                        'illustrator',
+                        'other',
+                    ]);
+                });
+
+                it('filters by the chosen offer and restores all project offers when All offers is selected', async () => {
+                    await selectOffer('offer-2');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                    await selectOffer('all');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop', 'illustrator']);
+                });
+
+                it('preserves the chosen offer when returning from Import via URL', async () => {
+                    await selectOffer('offer-1');
+                    selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                    await selector.updateComplete;
+                    const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                    importTabs.selected = TABLE_TYPE.CARDS;
+                    importTabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                    await selector.updateComplete;
+                    const restoredFilter = [...selector.searchFilterElements].find(
+                        (filter) => filter.type === TABLE_TYPE.CARDS,
+                    );
+                    expect(restoredFilter.offerFilterValue).to.equal('offer-1');
+                    expect(restoredFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+                });
+
+                it('removes all offer restrictions after Clear all without changing the project offers', async () => {
+                    await selectOffer('all');
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal([
+                        'photoshop',
+                        'illustrator',
+                        'other',
+                    ]);
+                    expect(Store.filters.get().tags).to.be.undefined;
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                    expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
+                });
+
+                it('preserves Clear all after offer hydration', async () => {
+                    await selectOffer('all');
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal([]);
+                    expect(Store.filters.get().tags).to.be.undefined;
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                });
+
+                it('preserves a manually removed product filter after offer hydration', async () => {
+                    await selectOffer('all');
+                    cardsFilter.productOptions = [
+                        { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                        { id: 'mas:product_code/ilst', title: 'Illustrator' },
+                    ];
+                    await cardsFilter.updateComplete;
+                    cardsFilter.shadowRoot.querySelector('sp-tag').dispatchEvent(new Event('delete'));
+                    await cardsFilter.updateComplete;
+                    const remainingProducts = [...cardsFilter.productFilter];
+                    expect(remainingProducts).to.have.length(1);
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(remainingProducts);
+                    expect(Store.filters.get().tags).to.equal(remainingProducts.join(','));
+                });
+
+                it('refreshes only the chosen offer after delayed hydration', async () => {
+                    Store.promotions.offerRecordsCache.delete('offer-2');
+                    await selectOffer('offer-2');
+                    expect(cardsFilter.productFilter).to.deep.equal([]);
+
+                    Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                });
+
+                for (const selection of ['unchanged', 'reordered', 'empty']) {
+                    it(`refreshes All offers after Product Code Apply (${selection} selection)`, async () => {
+                        Store.promotions.offerRecordsCache.delete('delayed-offer');
+                        if (selection === 'empty') {
+                            Store.promotions.offerRecordsCache.delete('offer-1');
+                            Store.promotions.offerRecordsCache.delete('offer-2');
+                        }
+                        Store.promotions.selectedOffers.set(['offer-1', 'offer-2', 'delayed-offer']);
+                        await selectOffer('all');
+                        const productPicker = cardsFilter.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                        await productPicker.updateComplete;
+                        productPicker.tempValue = [...productPicker.value];
+                        if (selection === 'reordered') productPicker.tempValue.reverse();
+
+                        const changed = oneEvent(productPicker, 'change');
+                        await productPicker.applySelection();
+                        await changed;
+                        await cardsFilter.updateComplete;
+                        await el.updateComplete;
+                        Store.promotions.offerRecordsCache.set('delayed-offer', {
+                            tags: [{ id: 'mas:product_code/other' }],
+                        });
+                        Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+
+                        const expectedProducts =
+                            selection === 'empty'
+                                ? ['mas:product_code/other']
+                                : ['mas:product_code/phsp', 'mas:product_code/ilst', 'mas:product_code/other'];
+                        expect(cardsFilter.productFilter).to.have.members(expectedProducts);
+                        expect(Store.filters.get().tags.split(',')).to.have.members(expectedProducts);
+                        expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(
+                            selection === 'empty' ? ['other'] : ['photoshop', 'illustrator', 'other'],
+                        );
+                    });
+                }
+
+                it('preserves an actual Product Code Apply change after offer hydration', async () => {
+                    await selectOffer('all');
+                    const productPicker = cardsFilter.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                    await productPicker.updateComplete;
+                    productPicker.tempValue = ['/content/cq:tags/mas/product_code/other'];
+                    const changed = oneEvent(productPicker, 'change');
+                    await productPicker.applySelection();
+                    await changed;
+                    await cardsFilter.updateComplete;
+                    await el.updateComplete;
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/other']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/other');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['other']);
+                });
+
+                it('applies only the chosen offer after Clear all', async () => {
+                    await selectOffer('all');
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    await selectOffer('offer-2');
+
+                    expect(cardsFilter.offerFilterValue).to.equal('offer-2');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
+                    expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
+                });
+
+                it('updates All offers when an offer is removed from the project', async () => {
+                    await selectOffer('all');
+                    Store.promotions.selectedOffers.set(['offer-2']);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.offerFilterValue).to.equal('all');
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
+                });
+
+                it('keeps Clear all applied across UUID searches, result refreshes and Import via URL', async () => {
+                    await selectOffer('all');
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await cardsFilter.updateComplete;
+                    const search = selector.shadowRoot.querySelector('sp-search');
+                    for (const query of ['09f5c8af-4a7d-497b-a579-70d2f3794a2c', 'test', '']) {
+                        search.value = query;
+                        search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+                        Store.promotions.allCards.set([...Store.promotions.allCards.get()]);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+                        expect(cardsFilter.productFilter).to.deep.equal([]);
+                        expect(Store.filters.get().tags).to.be.undefined;
+                    }
+                    selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                    await selector.updateComplete;
+                    const tabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                    tabs.selected = TABLE_TYPE.CARDS;
+                    tabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                    await selector.updateComplete;
+                    const restoredFilter = [...selector.searchFilterElements].find(
+                        (filter) => filter.type === TABLE_TYPE.CARDS,
+                    );
+                    expect(restoredFilter.productFilter).to.deep.equal([]);
+                    expect(restoredFilter.offerFilterValue).to.equal('');
+                });
+
+                it('reopens the dialog without restoring previously selected offer filters', async () => {
+                    await selectOffer('all');
+                    el.renderRoot
+                        .querySelector('.add-items-dialog')
+                        .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
+                    await el.updateComplete;
+                    selector = await openPicker(el);
+                    cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                    expect(cardsFilter.productFilter).to.deep.equal([]);
+                    expect(Store.filters.get().tags).to.be.undefined;
+                });
+
+                for (const filterState of ['unfiltered', 'offer', 'removed product', 'cleared']) {
+                    it(`preserves ${filterState} filters when switching surfaces`, async () => {
+                        el.fragmentStore.updateField('surfaces', ['sandbox,acom']);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+                        if (filterState !== 'unfiltered') await selectOffer('all');
+                        if (filterState === 'removed product') {
+                            cardsFilter.productOptions = [
+                                { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                                { id: 'mas:product_code/ilst', title: 'Illustrator' },
+                            ];
+                            await cardsFilter.updateComplete;
+                            cardsFilter.shadowRoot.querySelector('sp-tag').dispatchEvent(new Event('delete'));
+                            await cardsFilter.updateComplete;
+                            expect(cardsFilter.productFilter).to.have.length(1);
+                        }
+                        if (filterState === 'cleared') {
+                            cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                            await el.updateComplete;
+                            await selector.updateComplete;
+                            await cardsFilter.updateComplete;
+                        }
+                        const expectedProducts = [...cardsFilter.productFilter];
+                        const expectedOffer = cardsFilter.offerFilterValue;
+                        const repo = el.repository;
+                        repo.searchFragments.resetHistory();
+                        repo.loadAllCollections.resetHistory();
+
+                        cardsFilter.dispatchEvent(
+                            new CustomEvent('promotion-surface-change', {
+                                bubbles: true,
+                                composed: true,
+                                detail: { value: 'acom' },
+                            }),
+                        );
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+
+                        expect(Store.promotions.itemPickerSurface.get()).to.equal('acom');
+                        expect(cardsFilter.productFilter).to.deep.equal(expectedProducts);
+                        expect(cardsFilter.offerFilterValue).to.equal(expectedOffer);
+                        expect(Store.filters.get().tags).to.equal(expectedProducts.join(',') || undefined);
+                        expect(repo.searchFragments.calledOnce).to.be.true;
+                        expect(repo.loadAllCollections.calledOnceWithExactly(Store.promotions)).to.be.true;
+
+                        Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+                        expect(cardsFilter.productFilter).to.deep.equal(expectedProducts);
+                    });
+                }
             });
 
             describe('Import via URL restrictions (surface + offer)', () => {
@@ -3938,6 +4433,74 @@ describe('MasPromotionsEditor', () => {
                 expect(cardsFilter.promotionSurfaceOptions.map((o) => o.id)).to.deep.equal(['sandbox', 'acom']);
             });
 
+            it('keeps selected grouped variations visible in the sidebar after switching surfaces', async () => {
+                const { Fragment } = await import('../../src/aem/fragment.js');
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                const { el, repo } = await mountEditorWithRepo();
+                repo.aem.getFragmentByPath = sandbox.stub().resolves(null);
+                el.fragmentStore.updateField('surfaces', ['sandbox,acom']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const card = {
+                    id: 'selected-parent',
+                    path: '/content/dam/mas/sandbox/en_US/card',
+                    title: 'Selected parent',
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                };
+                const variation = {
+                    ...card,
+                    id: 'selected-edu',
+                    path: `${card.path}/pzn/edu`,
+                    title: 'Selected EDU variation',
+                };
+                const unselected = { ...variation, path: `${card.path}/pzn/smb` };
+                repo.aem.getFragmentByPath.withArgs(card.path).resolves(card);
+                Store.promotions.cardsByPaths.set(new Map([[card.path, card]]));
+                Store.promotions.groupedVariationsByParent.set(
+                    new Map([[card.path, new Map([variation, unselected].map((item) => [item.path, item]))]]),
+                );
+                Store.promotions.groupedVariationsData.set(new Map([variation, unselected].map((item) => [item.path, item])));
+                Store.promotions.selectedCards.set([card.path, variation.path]);
+                Store.promotions.showSelected.set(true);
+                const sidebar = selector.shadowRoot.querySelector('mas-selected-items');
+                await sidebar.updateComplete;
+                expect([...sidebar.shadowRoot.querySelectorAll('.title')].map((item) => item.textContent)).to.deep.equal([
+                    card.title,
+                    variation.title,
+                ]);
+                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (filter) => filter.type === TABLE_TYPE.CARDS,
+                );
+
+                cardsFilter.dispatchEvent(
+                    new CustomEvent('promotion-surface-change', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { value: 'acom' },
+                    }),
+                );
+                await flushPromises();
+                const previousResults = Store.fragments.list.data.get();
+                const nextCard = { ...card, path: '/content/dam/mas/acom/en_US/other-card', title: 'Other surface card' };
+                try {
+                    Store.fragments.list.data.set([new FragmentStore(new Fragment(nextCard))]);
+                    await waitUntil(() => Store.promotions.cardsByPaths.get().has(nextCard.path));
+                    await sidebar.updateComplete;
+
+                    expect([...sidebar.shadowRoot.querySelectorAll('.title')].map((item) => item.textContent)).to.deep.equal([
+                        card.title,
+                        variation.title,
+                    ]);
+                    expect(Store.promotions.selectedCards.get()).to.deep.equal([card.path, variation.path]);
+                    expect(Store.promotions.cardsByPaths.get().has(unselected.path)).to.be.false;
+                } finally {
+                    Store.fragments.list.data.set(previousResults);
+                }
+            });
+
             it('sets Store.search.query directly when the search input is a UUID', async () => {
                 const { el } = await mountEditorWithRepo();
                 await el.updateComplete;
@@ -3947,6 +4510,46 @@ describe('MasPromotionsEditor', () => {
                 search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
                 await selector.updateComplete;
                 expect(Store.search.get().query).to.equal('12345678-1234-1234-1234-123456789012');
+            });
+
+            it('marks a UUID search as loading before the repository debounce runs', async () => {
+                const { el, repo } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                Store.fragments.list.loading.set(false);
+                repo.searchFragments.resetHistory();
+                const search = selector.shadowRoot.querySelector('sp-search');
+                search.value = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+
+                search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+
+                expect(repo.searchFragments.called).to.be.false;
+                expect(Store.fragments.list.loading.get()).to.be.true;
+            });
+
+            it('keeps loading when replacing a UUID with text before the new repository search starts', async () => {
+                const { el } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                selector.onSearchChange('09f5c8af-4a7d-497b-a579-70d2f3794a2c');
+                Store.fragments.list.loading.set(false);
+
+                selector.onSearchChange('SMB');
+
+                expect(Store.fragments.list.loading.get()).to.be.true;
+            });
+
+            it('clears the repository UUID restriction when replacing it with text', async () => {
+                const { el } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                selector.onSearchChange('12345678-1234-1234-1234-123456789012');
+                Store.search.setMeta('uuid-query', '12345678-1234-1234-1234-123456789012');
+
+                selector.onSearchChange('SMB');
+
+                expect(Store.search.get().query).to.equal('');
+                expect(Store.search.getMeta('uuid-query')).to.be.null;
             });
 
             it('resetFilters delegates to the picker mas-items-selector', async () => {

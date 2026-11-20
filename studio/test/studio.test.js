@@ -35,6 +35,7 @@ const PAGE_GETTERS = [
     { getter: 'fragmentEditor', matchingPages: [PAGE_NAMES.FRAGMENT_EDITOR], tag: 'mas-fragment-editor' },
     { getter: 'promotions', matchingPages: [PAGE_NAMES.PROMOTIONS], tag: 'mas-promotions' },
     { getter: 'promotionsEditor', matchingPages: [PAGE_NAMES.PROMOTIONS_EDITOR], tag: 'mas-promotions-editor' },
+    { getter: 'promotionsHistory', matchingPages: [PAGE_NAMES.PROMOTIONS_HISTORY], tag: 'mas-promotion-history' },
     { getter: 'translation', matchingPages: [PAGE_NAMES.TRANSLATIONS], tag: 'mas-translation' },
     { getter: 'translationEditor', matchingPages: [PAGE_NAMES.TRANSLATION_EDITOR], tag: 'mas-translation-editor' },
     { getter: 'bulkPublish', matchingPages: [PAGE_NAMES.BULK_PUBLISH], tag: 'mas-bulk-publish' },
@@ -42,6 +43,7 @@ const PAGE_GETTERS = [
     { getter: 'bulkEdit', matchingPages: [PAGE_NAMES.BULK_EDIT], tag: 'mas-bulk-edit' },
     { getter: 'bulkEditEditor', matchingPages: [PAGE_NAMES.BULK_EDIT_EDITOR], tag: 'mas-bulk-edit-editor' },
     { getter: 'advancedTools', matchingPages: [PAGE_NAMES.ADVANCED_TOOLS], tag: 'mas-advanced-tools' },
+    { getter: 'baselines', matchingPages: [PAGE_NAMES.BASELINES], tag: 'mas-baselines' },
 ];
 
 // Pre-register stubs so customElements.get(tag) returns a constructor in template tests,
@@ -73,6 +75,14 @@ describe('MasStudio – page getters', () => {
         el = document.createElement('mas-studio');
     });
 
+    it('routes the Baselines page through currentPage', () => {
+        el.page.value = PAGE_NAMES.BASELINES;
+
+        const result = el.currentPage;
+
+        expect(result.strings.some((s) => s.includes('<mas-baselines'))).to.be.true;
+    });
+
     for (const { getter, matchingPages, tag } of PAGE_GETTERS) {
         describe(getter, () => {
             it('returns nothing when a non-matching page is active', () => {
@@ -90,6 +100,34 @@ describe('MasStudio – page getters', () => {
             }
         });
     }
+});
+
+describe('MasStudio promotion history routing', () => {
+    it('updates the active history project when only the promotion ID changes', async () => {
+        const previousPage = Store.page.get();
+        const previousId = Store.promotions.promotionId.get();
+        const el = document.createElement('mas-studio');
+        const render = sinon.stub(el, 'render').callsFake(() => el.currentPage);
+        Store.page.set(PAGE_NAMES.PROMOTIONS_HISTORY);
+        Store.promotions.promotionId.set('first-project');
+        LitElement.prototype.connectedCallback.call(el);
+        try {
+            await el.updateComplete;
+            const history = el.querySelector('mas-promotion-history');
+            expect(history.projectId).to.equal('first-project');
+
+            Store.promotions.promotionId.set('second-project');
+            await el.updateComplete;
+
+            expect(el.querySelector('mas-promotion-history')).to.equal(history);
+            expect(history.projectId).to.equal('second-project');
+        } finally {
+            LitElement.prototype.disconnectedCallback.call(el);
+            render.restore();
+            Store.page.set(previousPage);
+            Store.promotions.promotionId.set(previousId);
+        }
+    });
 });
 
 describe('MasStudio – Bulk Publish authorization', () => {

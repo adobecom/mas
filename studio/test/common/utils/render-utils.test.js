@@ -30,6 +30,15 @@ import {
 } from '../../../src/constants.js';
 
 describe('render-utils', () => {
+    it('labels surface baseline selections as Baseline instead of Default', () => {
+        expect(
+            getItemTypeLabel({
+                path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                model: { path: CARD_MODEL_PATH },
+            }),
+        ).to.equal('Baseline');
+    });
+
     describe('renderFragmentStatusCell', () => {
         it('returns nothing when status is missing', () => {
             expect(renderFragmentStatusCell()).to.equal(nothing);
@@ -326,12 +335,12 @@ describe('render-utils', () => {
             Store.promotions.itemPickerSurface.set(null);
         });
 
-        it('returns the prefixed studio path (authorPath) for the active surface', () => {
+        it('returns the studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
             expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
-            expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
+            expect(getStudioFragmentDisplayPath(fragment)).to.match(/^ACOM \/ merch-card/);
         });
 
         it('returns an empty string when no web component maps to the model', () => {

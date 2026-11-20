@@ -13,6 +13,14 @@ export function debounce(func, delay) {
     };
 }
 
+export function swapAriaLabel(label, from, to) {
+    const text = from?.trim();
+    if (!label || !text) return null;
+    const index = label.toLowerCase().indexOf(text.toLowerCase());
+    if (index === -1) return null;
+    return label.slice(0, index) + to + label.slice(index + text.length);
+}
+
 export const getSlotText = (element, name) =>
     element?.querySelector(`[slot="${name}"]`)?.textContent?.trim();
 
@@ -202,6 +210,23 @@ export function discoverService(getConfig, { once = false } = {}) {
 
 export function getService() {
     return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
+}
+
+/**
+ * Normalizes variant names for consistency.
+ * Converts any variant starting with 'plans' to just 'plans'.
+ * The 'pro' variant also normalizes to 'plans' so it shares the plans
+ * merch-card-collection column classes and styling (it does not carry the
+ * 'plans' prefix, so it needs an explicit mapping).
+ * @param {string} variant - The variant name to normalize
+ * @returns {string} The normalized variant name
+ */
+export function normalizeVariant(variant) {
+    if (!variant) return variant;
+    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
+    if (variant === 'pro') return 'plans';
+    if (variant.startsWith('plans')) return 'plans';
+    return variant;
 }
 
 export function historyPushState(queryParams) {

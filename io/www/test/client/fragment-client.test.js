@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
 import { transformer as settingsTransformer } from '../../src/fragment/transformers/settings.js';
+import { transformer as wcsTransformer } from '../../src/fragment/transformers/wcs.js';
 import { resetCache as resetConfigCache } from '../../src/fragment/utils/configuration.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
@@ -377,7 +378,7 @@ describe('FragmentClient', () => {
             expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
             expect(localStorageStub.getItem('offer-mapping-acom')).to.be.null;
             expect(localStorageStub.getItem('unrelated')).to.equal('keep');
-            expect(errorLog.callCount).to.equal(3);
+            expect(errorLog.callCount).to.equal(5);
         } finally {
             localStorageStub.setItem.callsFake((key, value) => {
                 storage[key] = value.toString();
@@ -385,6 +386,55 @@ describe('FragmentClient', () => {
             errorLog.restore();
             delete storage.unrelated;
         }
+    });
+
+    it('resets the baselines preview cache on clearCaches', () => {
+        delete storage['mas-preview-cache-revision:baselines'];
+        clearCaches();
+        const revision = localStorageStub.getItem('mas-preview-cache-revision:baselines');
+        expect(revision).to.be.a('string');
+        clearCaches();
+        expect(localStorageStub.getItem('mas-preview-cache-revision:baselines')).to.not.equal(revision);
+    });
+
+    it('fetches WCS offers again after clearCaches', async () => {
+        const wcsFetch = fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=CLEAR-CACHE-OSI')))
+            .returns(createResponse(200, { resolvedOffers: [{ offerSelectorIds: ['CLEAR-CACHE-OSI'] }] }));
+        const context = () => ({
+            api_key: 'testing_wcs',
+            locale: 'en_US',
+            preview: { url: baseUrl },
+            promises: { wcs: Promise.resolve([]) },
+            wcsConfiguration: [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }],
+            body: { fields: { prices: '<span data-wcs-osi="CLEAR-CACHE-OSI"></span>' } },
+        });
+        await wcsTransformer.process(context());
+        await wcsTransformer.process(context());
+        expect(wcsFetch.callCount).to.equal(1);
+
+        clearCaches();
+        await wcsTransformer.process(context());
+
+        expect(wcsFetch.callCount).to.equal(2);
+    });
+
+    it('lists the fragment baselines of the card template when previewing a card with an offer', async () => {
+        const id = 'preview-card-with-offer';
+        const card = {
+            id,
+            path: '/content/dam/mas/sandbox/en_US/card-with-offer',
+            fields: [
+                { name: 'variant', type: 'text', multiple: false, values: ['plans'] },
+                { name: 'osi', type: 'text', multiple: false, values: ['some-osi'] },
+                { name: 'enableBaselines', type: 'boolean', multiple: false, values: [true] },
+            ],
+        };
+        fetchStub.withArgs(`${baseUrl}/${id}?references=all-hydrated`).returns(createResponse(200, card));
+        const result = await previewFragment(id, { surface: 'sandbox', locale: 'en_US' });
+        expect(result.fields.variant).to.equal('plans');
+        const urls = fetchStub.getCalls().map(({ args: [url] }) => url);
+        expect(urls.some((url) => url.includes('path=/content/dam/mas/sandbox/en_US/baselines/plans&'))).to.be.true;
     });
 
     describe('previewStudioFragment', () => {

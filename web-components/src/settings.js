@@ -18,6 +18,15 @@ import { resolveMasIOUrl } from './utils.js';
 const isAupSelectEnabled = (value) =>
     value != null && value !== 'off' && value !== 'false';
 
+export const getAupSelect = (service) =>
+    isAupSelectEnabled(
+        getParameter(
+            'aup-select',
+            { 'aup-select': service.getAttribute('aup-select') },
+            { search: true, storage: false },
+        ),
+    );
+
 const PREVIEW_REGISTERED_SURFACE = {
     'wcms-commerce-ims-ro.+': 'acom',
     'CreativeCloud_.+': 'ccd',
@@ -120,6 +129,20 @@ function getSettings(config = {}, service) {
         wcsURL = WCS_STAGE_URL;
     }
 
+    const orion =
+        isStage &&
+        ['on', 'true'].includes(
+            getParameter(
+                'mas.orion',
+                {
+                    'mas.orion': document.querySelector(
+                        'meta[name="mas.orion"]',
+                    )?.content,
+                },
+                { storage: false },
+            )?.toLowerCase(),
+        );
+
     const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config.preview;
     const preview =
         typeof previewParam != 'undefined' &&
@@ -135,13 +158,7 @@ function getSettings(config = {}, service) {
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
-        aupSelect: isAupSelectEnabled(
-            getParameter(
-                'aup-select',
-                { 'aup-select': service.getAttribute('aup-select') },
-                { search: true, storage: false },
-            ),
-        ),
+        aupSelect: getAupSelect(service),
         displayOldPrice,
         checkoutClientId,
         checkoutWorkflowStep,
@@ -161,6 +178,7 @@ function getSettings(config = {}, service) {
         wcsURL,
         landscape,
         masIOUrl,
+        ...(orion && { orion }),
         ...(preselectPlan && { preselectPlan }), // only add if defined
         ...(instant && { instant }),
     };

@@ -1,17 +1,18 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
 import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 
 export const styles = [
     skeletonStyles,
     tableHeaderBaseStyles,
     tableBodyBaseStyles,
     tableCellBaseStyles,
+    pageContainerStyles,
     css`
         :host {
             display: block;
             position: relative;
-            padding: 32px;
             height: 100%;
             box-sizing: border-box;
             overflow-y: auto;

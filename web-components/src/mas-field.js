@@ -5,8 +5,10 @@ import {
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
+    MERCH_CARD_LOAD_TIMEOUT,
+    TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
-import { getService, hydrateHeadlessCta } from './utils.js';
+import { getService, hydrateHeadlessCta, swapAriaLabel } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
 import {
     applyDisplayAnnualDefault,
@@ -31,6 +33,8 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
+export const CHECKOUT_STYLE_PATTERN =
+    /\b(accent|primary|secondary)\b(-\b(outline|link)\b)?/g;
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -58,20 +62,98 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
-function stripTrialCtas(html, indexed) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
+// CTAs that lead to purchase; keep identical to the list in hydrate.js.
+const QUALIFYING_CTA_SELECTOR = TRIAL_TO_BUY_CTA_ANALYTICS_IDS.map(
+    (id) => `a[data-analytics-id="${id}"]`,
+).join(',');
+
+export async function stripTrialCtas(template, indexed, self) {
+    let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
     );
-    // Hand back the original string so non-trial markup never round-trips
-    // through serialization, which could renormalize attribute quoting.
-    if (trials.length === 0) return html;
-    // All CTAs are trials: an indexed ref renders nothing, while the plain
-    // field keeps them all so a card is never left with no CTA.
-    if (trials.length === anchors.length) return indexed ? null : html;
-    trials.forEach((anchor) => anchor.remove());
+    if (trials.length === 0) return template.innerHTML;
+
+    if (indexed && !qualifyingCta) {
+        // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
+        const thisField = self.getAttribute('field');
+
+        const masFieldsReadyPromises = [];
+        const masFields =
+            self.parentElement.querySelectorAll('mas-field').length > 1
+                ? self.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  )
+                : self.parentElement.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  );
+        masFields.forEach((c) => {
+            if (c.getAttribute('field') !== thisField) {
+                masFieldsReadyPromises.push(c.checkReady());
+            }
+        });
+        const settleAll = Promise.all(masFieldsReadyPromises);
+        let timeoutId;
+        const timeout = new Promise((resolve) => {
+            timeoutId = setTimeout(() => resolve([]), MERCH_CARD_LOAD_TIMEOUT);
+        });
+        const fieldsReady = await Promise.race([settleAll, timeout]);
+        clearTimeout(timeoutId);
+
+        if (masFieldsReadyPromises.length && !fieldsReady.length) {
+            return template.innerHTML;
+        }
+
+        if (fieldsReady.some((c) => c === true)) {
+            masFields.forEach((c) => {
+                if (c.getAttribute('field') !== thisField) {
+                    qualifyingCta ??= c.querySelector(QUALIFYING_CTA_SELECTOR);
+                }
+            });
+        }
+    }
+
+    let trialCtaSwapped = false;
+    trials.forEach((anchor) => {
+        if (anchor.hasAttribute('data-replaced-osi')) {
+            const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
+            if (qualifyingCta || !buyNowText || buyNowText === 'buy-now') {
+                anchor.remove();
+            } else {
+                const ariaLabel = swapAriaLabel(
+                    anchor.getAttribute('aria-label'),
+                    anchor.textContent,
+                    buyNowText,
+                );
+                if (ariaLabel !== null)
+                    anchor.setAttribute('aria-label', ariaLabel);
+                else anchor.removeAttribute('aria-label');
+                anchor.setAttribute('data-analytics-id', 'buy-now');
+                if (anchor.hasAttribute('data-modal'))
+                    anchor.setAttribute('data-modal', 'crm');
+                anchor.textContent = buyNowText;
+            }
+            trialCtaSwapped = true;
+        } else {
+            anchor.remove();
+        }
+    });
+
+    const buyNowCtaNew =
+        template.content.querySelector(QUALIFYING_CTA_SELECTOR) ||
+        qualifyingCta;
+    if (buyNowCtaNew && trialCtaSwapped) {
+        if (buyNowCtaNew.className.trim()) {
+            buyNowCtaNew.className
+                .match(CHECKOUT_STYLE_PATTERN)
+                ?.forEach((styleClass) => {
+                    buyNowCtaNew.classList.remove(styleClass);
+                });
+        }
+        buyNowCtaNew.classList.add('button', 'con-button', 'blue');
+    }
+
     return template.innerHTML;
 }
 
@@ -432,12 +514,12 @@ class MasField extends HTMLElement {
     };
 
     /** Extracts the target field from the fragment data and renders it as innerHTML. */
-    #onFragmentLoad = (event) => {
+    #onFragmentLoad = async (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
         this.settings = event.detail?.settings ?? null;
         this.#loaded = true;
-        this.#renderField();
+        await this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
         // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(
@@ -591,7 +673,7 @@ class MasField extends HTMLElement {
             this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 
-    #renderField() {
+    async #renderField() {
         if (!this.#fields || !this.#field) return;
         this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
@@ -628,8 +710,10 @@ class MasField extends HTMLElement {
                     return;
                 }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                    html = stripTrialCtas(html, true);
-                    if (html === null) {
+                    const template = document.createElement('template');
+                    template.innerHTML = html;
+                    html = await stripTrialCtas(template, true, this);
+                    if (!html.trim()) {
                         this.hidden = true;
                         return;
                     }
@@ -701,8 +785,10 @@ class MasField extends HTMLElement {
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                html = stripTrialCtas(html, index !== null);
-                if (html === null) {
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                html = await stripTrialCtas(template, index !== null, this);
+                if (!html.trim()) {
                     this.hidden = true;
                     return;
                 }
@@ -786,7 +872,7 @@ class MasField extends HTMLElement {
             if (!icon.querySelector('svg')) {
                 icon.insertAdjacentHTML(
                     'afterbegin',
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" height="18" width="18" class="icon-milo icon-milo-info" aria-hidden="true"><path fill="currentcolor" d="M10.075,6A1.075,1.075,0,1,1,9,4.925H9A1.075,1.075,0,0,1,10.075,6Zm.09173,6H10V8.2A.20005.20005,0,0,0,9.8,8H7.83324S7.25,8.01612,7.25,8.5c0,.48365.58325.5.58325.5H8v3H7.83325s-.58325.01612-.58325.5c0,.48365.58325.5.58325.5h2.3335s.58325-.01635.58325-.5C10.75,12.01612,10.16673,12,10.16673,12ZM9,.5A8.5,8.5,0,1,0,17.5,9,8.5,8.5,0,0,0,9,.5ZM9,15.6748A6.67481,6.67481,0,1,1,15.67484,9,6.67481,6.67481,0,0,1,9,15.6748Z"></path></svg>',
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" height="18" width="18" class="icon-milo icon-milo-info" aria-hidden="true"><path fill="currentcolor" d="m10,18.75c-4.8252,0-8.75-3.9248-8.75-8.75S5.1748,1.25,10,1.25s8.75,3.9248,8.75,8.75-3.9248,8.75-8.75,8.75Zm0-16c-3.99805,0-7.25,3.25195-7.25,7.25s3.25195,7.25,7.25,7.25,7.25-3.25195,7.25-7.25-3.25195-7.25-7.25-7.25Z"></path><path fill="currentcolor" d="m10.00064,5.26036c.23065-.00813.45538.07387.62661.22862.33033.36505.33033.92102,0,1.28607-.16935.15851-.39483.24308-.62664.23504-.23635.00948-.46589-.08035-.63302-.24775-.16207-.1679-.24916-.39432-.24137-.62755-.01238-.23497.06959-.46515.2277-.6394.17358-.16474.40786-.24988.64671-.23503Z"></path><path fill="currentcolor" d="m10,15.0625c-.41406,0-.75-.33594-.75-.75v-4.83496c0-.41406.33594-.75.75-.75s.75.33594.75.75v4.83496c0,.41406-.33594.75-.75.75Z"></path></svg>',
                 );
             }
             if (!icon.hasAttribute('tabindex'))

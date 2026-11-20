@@ -190,6 +190,8 @@
             const reason = swapReason(swap, mepState);
             if (merged) return { ...merged, reason: `${reason}; ${merged.reason}` };
             if (!hasFields(requestedData)) return { ...UNKNOWN, reason: `${reason}; ${unavailable(budgetSpent)}` };
+            const swappedBaseline = baselineSource(stamps, requestedData, cardRaw);
+            if (swappedBaseline) return { ...swappedBaseline, reason: `${reason}; ${swappedBaseline.reason}` };
             const { type, audiences, promotionName } = deps().parser.classifyVariation(requestedData);
             return { ...describe(type, audiences, promotionName), reason, promotion: promotionOf(type, promotionName) };
         }

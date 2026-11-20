@@ -4,6 +4,10 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { createContext, runInContext } = require('node:vm');
 
+const POPUP_HTML = readFileSync(resolve(__dirname, '../../popup/popup.html'), 'utf8');
+const PARSER_SCRIPTS = [...POPUP_HTML.matchAll(/<script src="\.\.\/(utils\/(?:locales|fragment-parser)\.js)">/g)].map(
+    ([, src]) => src,
+);
 const POPUP = readFileSync(resolve(__dirname, '../../popup/popup.js'), 'utf8');
 const ADOBE_TAB = { id: 1, url: 'https://www.stage.adobe.com/' };
 
@@ -62,6 +66,11 @@ async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {}, un
         document: {
             readyState: 'complete',
             getElementById: element,
+            createElement: () => ({
+                set textContent(value) {
+                    this.innerHTML = value;
+                },
+            }),
             querySelector: element,
             querySelectorAll: () => [],
         },
@@ -69,9 +78,15 @@ async function openPopup({ tab = ADOBE_TAB, tabs = [tab], reply, stored = {}, un
         MASSourceLegend: require('../../utils/source-legend.js'),
     };
     sandbox.window = sandbox;
-    runInContext(POPUP, createContext(sandbox), { filename: 'popup.js' });
+    const context = createContext(sandbox);
+    for (const src of PARSER_SCRIPTS) {
+        runInContext(readFileSync(resolve(__dirname, '../..', src), 'utf8'), context, { filename: src });
+    }
+    runInContext(POPUP, context, { filename: 'popup.js' });
     for (let tick = 0; tick < 10; tick++) await new Promise(setImmediate);
     return {
+        sandbox,
+        details: element('.card-item-details[data-fragment-id="f1"] .card-details-content'),
         hint: element('#noCards .hint').textContent,
         noCards: element('noCards').style.display,
         legend: element('sourcesLegend'),
@@ -148,4 +163,10 @@ test('toggling Show sources still updates the other tabs when one tab has no con
     } finally {
         process.off('unhandledRejection', onRejection);
     }
+});
+
+test('card details render the variation section of a grouped variation', async () => {
+    const { sandbox, details } = await openPopup({ reply: () => NO_CARDS });
+    sandbox.renderCardDetails('f1', { path: '/content/dam/mas/acom/en_US/ccsn/pzn/cc-lapsed', fields: {} });
+    assert.match(details.innerHTML, /<span class="variation-type [^"]*">Grouped/);
 });

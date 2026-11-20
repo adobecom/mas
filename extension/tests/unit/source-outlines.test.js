@@ -368,3 +368,16 @@ test('a catalog card outlines its title and its price in their own sources', asy
         ['default', 'promo'],
     );
 });
+
+test('a literal price with no price marker is outlined when no other field shares its slot', async () => {
+    const slots = { catalog: { title: { tag: 'h3', slot: 'heading-m' }, prices: { tag: 'h3', slot: 'heading-xs' } } };
+    const { outlines, cardElement } = createFixture({
+        variant: 'catalog',
+        slots,
+        cardEntries: [sourceEntry('card-1', 'prices', 'promo', 'Promo variation', 'IO applied promo')],
+    });
+    const price = fakeElement();
+    cardElement.querySelectorAll = (selector) => (selector === ':scope > h3[slot="heading-xs"]' ? [price] : []);
+    await outlines.enable();
+    assert.equal(price.classList.contains('mas-ext-src-outline-promo'), true);
+});

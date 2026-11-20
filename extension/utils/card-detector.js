@@ -575,6 +575,9 @@ class CardDetector {
         if (this.observer) {
             this.observer.disconnect();
         }
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        this.hiddenElements.clear();
         this.detectedCards.clear();
     }
 }

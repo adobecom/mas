@@ -2,6 +2,7 @@ let initialized = false;
 let extensionEnabled = true;
 // Show sources is on, so cards detected later are outlined as they arrive.
 let outlinesOn = false;
+let outlineCommands = 0;
 
 function enableSourceOutlines() {
     outlinesOn = true;
@@ -99,6 +100,7 @@ function initialize() {
         });
     });
 
+    const initialCommands = outlineCommands;
     chrome.storage.local.get(['masExtensionEnabled', 'masShowSources'], (result) => {
         extensionEnabled = result.masExtensionEnabled !== false;
 
@@ -106,7 +108,7 @@ function initialize() {
 
         if (!extensionEnabled) {
             window.MASCardOverlay.hide();
-        } else if (result.masShowSources === true) {
+        } else if (result.masShowSources === true && initialCommands === outlineCommands) {
             enableSourceOutlines();
         }
     });
@@ -148,10 +150,12 @@ function initialize() {
             sendResponse({ success: true, cards, serviceConfig: window.MASCardDetector.getServiceConfig() });
         } else if (message.type === 'SET_EXTENSION_ENABLED') {
             extensionEnabled = message.enabled;
+            outlineCommands += 1;
+            const requestedCommands = outlineCommands;
             if (extensionEnabled) {
                 window.MASCardOverlay.show();
                 chrome.storage.local.get(['masShowSources'], (result) => {
-                    if (extensionEnabled && result.masShowSources === true) {
+                    if (requestedCommands === outlineCommands && result.masShowSources === true) {
                         enableSourceOutlines();
                     }
                 });
@@ -161,6 +165,7 @@ function initialize() {
             }
             sendResponse({ success: true });
         } else if (message.type === 'SET_SOURCE_OUTLINES') {
+            outlineCommands += 1;
             if (message.enabled && extensionEnabled) {
                 enableSourceOutlines();
             } else {

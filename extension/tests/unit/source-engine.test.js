@@ -592,3 +592,14 @@ test('an exhausted fetch budget is named in the unavailable reason', () => {
     );
     assert.equal(entry.reason, 'Variation fields unavailable (page fetch limit reached, Refresh to retry)');
 });
+
+test('a swapped field a baseline supplies is attributed to the baseline with its supplier link', () => {
+    const stamps = { ...LOADED_DESCRIPTION, variationId: null, resolvedId: GROUPED };
+    const requestedData = { ...F.groupedData, offerBaselineId: OFFER_BASELINE };
+    const entry = resolveField(stamps, {
+        ...F.inputs,
+        requestedData,
+        cardRaw: { id: GROUPED, fields: { cardTitle: 'Title' } },
+    });
+    assert.deepEqual(plain([entry.source, entry.supplierId]), ['baseline', OFFER_BASELINE]);
+});

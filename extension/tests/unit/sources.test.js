@@ -267,6 +267,7 @@ test('the fetch carries the element locale, country and service config', async (
     await sources.getSourcesFor('field-2');
     assert.deepEqual(plain(messages), [
         { type: 'FETCH_FRAGMENT_DATA', fragmentId: PROMO_VAR, locale: 'en_US', country: 'US', ...SERVICE_CONFIG },
+        { type: 'FETCH_FRAGMENT_DATA', fragmentId: AUTHORED, locale: 'en_US', country: 'US', ...SERVICE_CONFIG },
         { type: 'FETCH_FRAGMENT_DATA', fragmentId: GROUPED, locale: 'en_US', country: 'US', ...SERVICE_CONFIG },
     ]);
 });
@@ -285,7 +286,10 @@ test('a failed field is labeled with the reason IO gives for refusing it', async
 test('a field the detector has not badged yet fetches with the page locale', async () => {
     const { sources, messages } = loadSources({ fields: [masField(F.stamps.shortDescription)] });
     await sources.getPageGroups();
-    assert.deepEqual(plain(messages.map(({ locale, country }) => ({ locale, country }))), [{ locale: 'en_US', country: 'US' }]);
+    assert.deepEqual(plain(messages.map(({ locale, country }) => ({ locale, country }))), [
+        { locale: 'en_US', country: 'US' },
+        { locale: 'en_US', country: 'US' },
+    ]);
 });
 
 test('a regional locale notes that a regional promo may also apply', async () => {
@@ -444,10 +448,9 @@ test('a card-level PZN fallback is attributed and included in the page trace', a
 
 test('a field authored with an id in mas-overrides is not swapped once the fresh map lists other swaps', async () => {
     const title = masField({ ...F.stamps.description, field: 'title', failed: false, resolvedId: GROUPED });
-    const { sources, fetched } = loadSources({ fields: [title] });
+    const { sources } = loadSources({ fields: [title] });
     const [group] = await sources.getPageGroups();
     assert.deepEqual([group.groupKey, group.entries[0].swapped], [GROUPED, false]);
-    assert.equal(fetched.includes(GROUPED), false);
 });
 
 function wholeCard() {
@@ -515,4 +518,55 @@ test('resetting the budget lets fetches through again', () => {
     sources.consumeBudget(50);
     sources.resetBudget();
     assert.equal(sources.consumeBudget(), true);
+});
+
+test('resetting the budget forgets a cached miss so Refresh retries it', async () => {
+    const misses = { [GROUPED]: { kind: 'not-found' } };
+    const { sources } = loadSources({}, { misses });
+    await sources.fetchFragment(GROUPED);
+    delete misses[GROUPED];
+    sources.resetBudget();
+    assert.deepEqual(plain(await sources.fetchFragment(GROUPED)), plain(F.groupedData));
+});
+
+test('a localized whole card reads the raw record of the fragment IO resolved', async () => {
+    const baseline = 'b0b0b0b0-1111-4222-8333-444455556666';
+    const localized = {
+        id: AUTHORED_RESOLVED,
+        fields: { cardTitle: 'Titre', description: 'Texte' },
+        offerBaselineId: baseline,
+    };
+    const { sources } = loadSources(
+        { detected: [[AUTHORED, badged(wholeCard(), 'card', { variant: 'plans' })]] },
+        {
+            fragments: { [AUTHORED]: localized },
+            records: {
+                [AUTHORED]: { id: AUTHORED, fields: { cardTitle: 'Title' } },
+                [AUTHORED_RESOLVED]: localized,
+            },
+        },
+    );
+    const result = await sources.getSourcesFor(AUTHORED);
+    assert.equal(result.entries.find((e) => e.field === 'description').source, 'default');
+});
+
+test('an unswapped inline field a baseline supplies is not called the default card', async () => {
+    const baseline = 'b0b0b0b0-1111-4222-8333-444455556666';
+    const stamps = unvaried({
+        ...F.stamps.shortDescription,
+        field: 'description',
+        requestedId: AUTHORED,
+        resolvedId: AUTHORED,
+    });
+    const field = masField(stamps);
+    const authored = { ...AUTHORED_DATA, offerBaselineId: baseline, fields: { cardTitle: 'CC Pro', description: 'Own' } };
+    const { sources } = loadSources(
+        { fields: [field], detected: [['field-1', badged(field, 'field')]] },
+        {
+            fragments: { ...FRAGMENTS, [AUTHORED]: authored },
+            records: { [AUTHORED]: { id: AUTHORED, fields: { cardTitle: 'CC Pro' } } },
+        },
+    );
+    const result = await sources.getSourcesFor('field-1');
+    assert.equal(result.entries[0].source, 'baseline');
 });

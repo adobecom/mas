@@ -17,6 +17,9 @@ global.ResizeObserver = class {
     unobserve(target) {
         this.targets.delete(target);
     }
+    disconnect() {
+        this.targets.clear();
+    }
 };
 global.getComputedStyle = (element) => ({ display: element.display ?? 'block' });
 const watched = () => resizeObservers.reduce((count, observer) => count + observer.targets.size, 0);
@@ -734,3 +737,18 @@ for (const [name, page, expected] of [
         }
     });
 }
+
+test('destroy stops watching hidden cards for resizes', async () => {
+    const d = new CardDetector();
+    const before = watched();
+    await d.processCard(fakeCard({ fragmentId: 'frag-destroyed', visible: false }));
+    d.destroy();
+    assert.equal(watched(), before);
+});
+
+test('destroy forgets the hidden cards it was waiting on', async () => {
+    const d = new CardDetector();
+    await d.processCard(fakeCard({ fragmentId: 'frag-forgotten', visible: false }));
+    d.destroy();
+    assert.equal(d.hiddenElements.size, 0);
+});

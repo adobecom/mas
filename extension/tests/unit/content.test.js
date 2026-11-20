@@ -165,3 +165,12 @@ test('a stored Show sources read that lands after the extension is turned off ou
     detect(badge('field-1'));
     assert.deepEqual(outlined, []);
 });
+
+test('a stored Show sources read released after Show sources is turned off outlines nothing', () => {
+    const { detect, send, releaseStorage, outlined } = loadContent({ stored: { masShowSources: true }, deferStorage: true });
+    send({ type: 'SET_EXTENSION_ENABLED', enabled: true });
+    send({ type: 'SET_SOURCE_OUTLINES', enabled: false });
+    releaseStorage();
+    detect(badge('field-1'));
+    assert.deepEqual(outlined, []);
+});

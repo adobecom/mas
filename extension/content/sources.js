@@ -10,6 +10,7 @@
 
     let fetchCount = 0;
     const fragmentCache = new Map();
+    const missKeys = new Set();
 
     const detector = () => window.MASCardDetector;
     const engine = () => window.MASSourceEngine;
@@ -18,6 +19,8 @@
     // Lets Refresh start over: cached responses stay, and only new requests spend the budget again.
     function resetBudget() {
         fetchCount = 0;
+        missKeys.forEach((key) => fragmentCache.delete(key));
+        missKeys.clear();
     }
 
     // Shared with content.js's card-name fetches; once spent, it returns false without consuming.
@@ -58,6 +61,7 @@
                 key,
                 requestFragment(id, locale, country, raw).then((response) => {
                     if (!response.success && !response.miss) fragmentCache.delete(key);
+                    if (response.miss) missKeys.add(key);
                     return response;
                 }),
             );
@@ -121,13 +125,12 @@
         if (stamps.loading) return inputs;
         const ownId = stamps.requestedId ?? stamps.resolvedId;
         if (stamps.failed) return { ...inputs, miss: await fetchMiss(ownId, locale, country) };
-        const requestedId = wholeCard || isSwapped(stamps, page) ? ownId : null;
         const load = (id) => fetchFragment(id, locale, country);
         const [variationResponse, maskData, requestedData] = await Promise.all(
-            [stamps.variationId, stamps.maskId, requestedId].map(load),
+            [stamps.variationId, stamps.maskId, ownId].map(load),
         );
         const variationData = await unmergedVariation(stamps.variationId, variationResponse);
-        const cardRaw = hasBaseline(requestedData) ? await fetchFragment(ownId, null, null, true) : null;
+        const cardRaw = hasBaseline(requestedData) ? await fetchFragment(requestedData.id ?? ownId, null, null, true) : null;
         return {
             ...inputs,
             variationData,

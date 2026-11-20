@@ -93,8 +93,10 @@
     }
 
     // Some variants (catalog) render the title and the price as separate elements of one slot.
-    function pricesShareSlot(slots, tag, slot) {
-        return slots.prices?.slot === slot && (slots.prices.tag ?? '') === tag;
+    function pricesShareSlot(slots, field, tag, slot) {
+        const sharesSlot = (other) => other?.slot === slot && (other.tag ?? '') === tag;
+        if (field !== 'prices') return sharesSlot(slots.prices);
+        return Object.entries(slots).some(([name, other]) => name !== 'prices' && sharesSlot(other));
     }
 
     // The page supplies tag and slot, so neither reaches a selector unless it is a plain name.
@@ -102,7 +104,7 @@
         const { tag = '', slot } = FIXED_SLOTS[field] ?? slots[FIELD_ALIASES[field] ?? field] ?? {};
         if (!isName(slot) || (tag !== '' && !isName(tag))) return [];
         const elements = [...card.querySelectorAll(`:scope > ${tag}[slot="${slot}"]`)];
-        if (!pricesShareSlot(slots, tag, slot)) return elements;
+        if (!pricesShareSlot(slots, field, tag, slot)) return elements;
         return elements.filter((element) => holdsPrice(element) === (field === 'prices'));
     }
 

@@ -21,7 +21,7 @@ export function variationFieldShouldInheritParent(sourceValues, isMultiple = fal
 
 /**
  * Fills the empty fields of preview data with the parent values (in place). Fields listed in `arraysToMerge` keep their
- * own values after the parent ones, as `deepMerge` of the `customize` transformer does..
+ * own values after the parent ones, as `deepMerge` of the `customize` transformer does.
  * @param {{ fields: Array }} previewData
  * @param {{ fields?: Array }} parentFragment
  * @param {string[]} [arraysToMerge]

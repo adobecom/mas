@@ -117,7 +117,7 @@ describe('release-cards createReleaseCard', () => {
     it('creates the fragment through the repository and returns it', async () => {
         const newFragment = { id: 'frag-1', title: 'Adobe Acrobat - Plans', path: `${parentPath}/card` };
         const create = sinon.stub().resolves(newFragment);
-        const repository = { aem: { saveTags: sinon.stub().resolves(), sites: { cf: { fragments: { create } } } } };
+        const repository = { aem: { saveValidTags: sinon.stub().resolves([]), sites: { cf: { fragments: { create } } } } };
         const result = await createReleaseCard({ product, variant: 'plans', baseOsi, parentPath, repository });
         expect(create.calledOnce).to.equal(true);
         expect(create.firstCall.args[0].parentPath).to.equal(parentPath);
@@ -126,7 +126,7 @@ describe('release-cards createReleaseCard', () => {
 
     it('still creates the fragment when the offer maps to no plan type', async () => {
         const create = sinon.stub().resolves({ id: 'frag-2' });
-        const repository = { aem: { saveTags: sinon.stub().resolves(), sites: { cf: { fragments: { create } } } } };
+        const repository = { aem: { saveValidTags: sinon.stub().resolves([]), sites: { cf: { fragments: { create } } } } };
         const baseOffer = { commitment: 'TERM_LICENSE', term: 'P3Y' };
         const result = await createReleaseCard({ product, variant: 'plans', baseOsi, baseOffer, parentPath, repository });
         expect(create.calledOnce).to.equal(true);
@@ -134,15 +134,18 @@ describe('release-cards createReleaseCard', () => {
         expect(result).to.deep.equal({ id: 'frag-2' });
     });
 
-    it('saves the plan_type tag on the created fragment, since AEM create drops tags', async () => {
+    it('saves the lowercased tags, plan_type included, on the created fragment', async () => {
         const create = sinon.stub().resolves({ id: 'frag-3' });
-        const saveTags = sinon.stub().resolves();
-        const repository = { aem: { saveTags, sites: { cf: { fragments: { create } } } } };
+        const saveValidTags = sinon.stub().resolves([]);
+        const repository = { aem: { saveValidTags, sites: { cf: { fragments: { create } } } } };
         const baseOffer = { commitment: 'YEAR', term: 'MONTHLY' };
         await createReleaseCard({ product, variant: 'plans', baseOsi, baseOffer, parentPath, repository });
-        expect(saveTags.calledOnce).to.equal(true);
-        expect(saveTags.firstCall.args[0].id).to.equal('frag-3');
-        expect(saveTags.firstCall.args[0].newTags).to.include('mas:plan_type/abm');
+        expect(saveValidTags.calledOnce).to.equal(true);
+        const [id, tags] = saveValidTags.firstCall.args;
+        expect(id).to.equal('frag-3');
+        expect(tags).to.include('mas:plan_type/abm');
+        expect(tags).to.include('mas:product_code/antr');
+        expect(tags.every((tag) => tag === tag.toLowerCase())).to.equal(true);
     });
 
     it('throws when no repository is available', async () => {

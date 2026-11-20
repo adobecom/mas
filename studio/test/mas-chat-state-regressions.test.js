@@ -221,8 +221,8 @@ describe('MasChat state regressions', () => {
         let tagged;
         sinon.stub(el, 'repository').get(() => ({
             aem: {
-                saveTags: async (fragment) => {
-                    tagged = fragment;
+                saveValidTags: async (id, tags) => {
+                    tagged = { id, tags };
                 },
                 sites: {
                     cf: {
@@ -236,8 +236,8 @@ describe('MasChat state regressions', () => {
         await el.saveDraftToAEM({ variant: 'catalog' }, { parentPath: '/content/dam/mas/sandbox/en_US', name: 'draft' });
         // AEM create drops tags, so they must be saved on the created fragment.
         expect(tagged.id).to.equal('draft-id');
-        expect(tagged.newTags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
-        expect(tagged.newTags).to.include('mas:product_code/PHSP');
+        expect(tagged.tags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
+        expect(tagged.tags).to.include('mas:product_code/phsp');
     });
     for (const operationResult of [
         { success: true, operation: 'copy', newFragmentId: id, newFragmentTitle: 'Copy', message: 'Copied' },

@@ -118,7 +118,9 @@ export async function createReleaseCard({
 /**
  * Create a fragment, then save its tags. AEM's create request carries no tags
  * (`Aem.createFragment` sends only title, name, description and fields), so tags
- * passed to it are dropped unless saved on the created fragment.
+ * passed to it are dropped unless saved on the created fragment. AEM tag ids are
+ * lowercase and unknown ids are skipped, as in the IO create path
+ * (studio-operations.createCard).
  *
  * @param {Object} repository - the mas-repository element
  * @param {Object} fragmentData - fragment payload, with optional `tags`
@@ -127,7 +129,8 @@ export async function createReleaseCard({
 export async function createFragmentWithTags(repository, fragmentData) {
     const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
     if (newFragment && fragmentData.tags?.length) {
-        await repository.aem.saveTags({ ...newFragment, newTags: fragmentData.tags });
+        const tags = fragmentData.tags.map((tag) => tag.toLowerCase());
+        await repository.aem.saveValidTags(newFragment.id, tags);
     }
     return newFragment;
 }

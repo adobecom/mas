@@ -159,6 +159,7 @@ class MasAdvancedTools extends LitElement {
     page = new StoreController(this, Store.page);
     profile = new StoreController(this, Store.profile);
     users = new StoreController(this, Store.users);
+    search = new StoreController(this, Store.search);
 
     openBulkPublish = () => {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)();

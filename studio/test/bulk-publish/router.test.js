@@ -115,6 +115,34 @@ describe('router + bulk publish', () => {
         expect(Store.page.get()).to.equal(PAGE_NAMES.BULK_PUBLISH);
     });
 
+    for (const surface of ['ccd', 'adobe-home']) {
+        it(`allows a CCDAH curator opening bulk publish on ${surface}`, () => {
+            setUser(['GRP-ODIN-MAS-CCDAH-CURATORS']);
+            router.location.hash = `#page=bulkPublish&path=${surface}`;
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BULK_PUBLISH);
+        });
+    }
+
+    it('rejects a CCDAH curator opening an Express project by hash', () => {
+        setUser(['GRP-ODIN-MAS-CCDAH-CURATORS']);
+        router.location.hash = '#page=bulkPublishEditor&path=express&bulkPublishProjectId=abc';
+        router.start();
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        expect(Store.bulkPublishProjects.projectId.get()).to.be.null;
+    });
+
+    it('rechecks access when a CCDAH curator switches to an unauthorized surface', async () => {
+        setUser(['GRP-ODIN-MAS-CCDAH-CURATORS']);
+        router.location.hash = '#page=bulkPublish&path=ccd';
+        router.start();
+        expect(Store.page.get()).to.equal(PAGE_NAMES.BULK_PUBLISH);
+        router.location.hash = '#page=bulkPublish&path=express';
+        window.dispatchEvent(new Event('hashchange'));
+        await delay(60);
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+    });
+
     it('redirects a cold-load bulk publish hash after users finish loading', async () => {
         Store.profile.set({});
         Store.users.set([]);

@@ -4,7 +4,12 @@ const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
 const SURFACE_EDITOR_PREFIX = 'GRP-ODIN-MAS-';
 const SURFACE_EDITOR_SUFFIX = '-EDITORS';
 
-const MAS_BULK_PUBLISH_GROUP = 'GRP-ODIN-MAS-ACOM-CURATORS';
+const MAS_CCDAH_CURATORS_GROUP = 'GRP-ODIN-MAS-CCDAH-CURATORS';
+const CURATOR_SURFACES_BY_GROUP = new Map([
+    [MAS_ADMIN_GROUP, null],
+    ['GRP-ODIN-MAS-ACOM-CURATORS', null],
+    [MAS_CCDAH_CURATORS_GROUP, new Set(['ccd', 'adobe-home'])],
+]);
 
 const MAS_PROMO_EDITORS_GROUP = 'GRP-ODIN-MAS-PROMO-EDITORS';
 const MAS_PROMO_POWERUSERS_GROUP = 'GRP-ODIN-MAS-PROMO-POWERUSERS';
@@ -28,7 +33,7 @@ function normalizeSurface(surface) {
 }
 
 function getCurrentUserNormalizedGroups() {
-    const { email } = Store.profile.get();
+    const email = Store.profile.get()?.email;
     if (!email) return null;
     const normalizedEmail = email.toLowerCase();
     const user = Store.users.get().find((u) => u.userPrincipalName?.toLowerCase() === normalizedEmail);
@@ -42,20 +47,26 @@ export function isMasAdmin() {
     return groups.includes(MAS_ADMIN_GROUP);
 }
 
-function isAdminOrInGroup(group) {
-    const groups = getCurrentUserNormalizedGroups();
+function hasCuratorAccess(surface, groups = getCurrentUserNormalizedGroups()) {
     if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP) || groups.includes(group);
+    for (const [group, surfaces] of CURATOR_SURFACES_BY_GROUP) {
+        if (groups.includes(group) && (!surfaces || surfaces.has(normalizeSurface(surface)))) return true;
+    }
+    return false;
 }
 
-/** Studio UI access across all surfaces; AEM publish permissions remain unchanged. */
-export function canAccessBulkPublish() {
-    const email = Store.profile.get().email?.toLowerCase();
+/** Curator UI access for the selected surface; Odin controls effective publish permissions. */
+export function canAccessBulkPublish(surface = Store.surface()) {
+    const email = Store.profile.get()?.email?.toLowerCase();
     if (email?.endsWith('@adobetest.com')) {
         const access = Store.users.getMeta('imsBulkPublishAccess');
-        return access?.email === email && access.allowed === true;
+        return (
+            access?.email === email &&
+            access.allowed === true &&
+            (!access.surfaces || access.surfaces.includes(normalizeSurface(surface)))
+        );
     }
-    return isAdminOrInGroup(MAS_BULK_PUBLISH_GROUP);
+    return hasCuratorAccess(surface);
 }
 
 /** Global promo editors, powerusers and admins can perform basic promotion authoring. */
@@ -109,9 +120,28 @@ export function getUserSurfaces() {
     return surfaces.length > 0 ? surfaces : Store.folders?.data?.value || [];
 }
 
-/** Masks authoring is an advanced, per-surface capability gated like settings. */
+/** Masks can be edited by surface powerusers and the scoped CCD/AH curators. */
 export function canAccessMasks(surface) {
-    return canAccessSettings(surface);
+    const groups = getCurrentUserNormalizedGroups();
+    return (
+        canAccessSettings(surface) ||
+        !!(
+            groups?.includes(MAS_CCDAH_CURATORS_GROUP) &&
+            CURATOR_SURFACES_BY_GROUP.get(MAS_CCDAH_CURATORS_GROUP).has(normalizeSurface(surface))
+        )
+    );
+}
+
+/** Limits CCDAH curators while preserving existing Odin-controlled dictionary editing. */
+export function canEditPlaceholders(surface) {
+    const groups = getCurrentUserNormalizedGroups();
+    const editorGroup = `${SURFACE_EDITOR_PREFIX}${normalizeSurface(surface).toUpperCase()}${SURFACE_EDITOR_SUFFIX}`;
+    return (
+        !groups?.includes(MAS_CCDAH_CURATORS_GROUP) ||
+        hasCuratorAccess(surface, groups) ||
+        groups.includes(editorGroup) ||
+        canAccessSettings(surface)
+    );
 }
 
 /** Offer mapping is an advanced, per-surface capability gated like settings (for now). */

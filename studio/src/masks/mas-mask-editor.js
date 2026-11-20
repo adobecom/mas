@@ -5,7 +5,8 @@ import router from '../router.js';
 import { PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { normalizeKey } from '../utils.js';
+import { normalizeKey, extractSurfaceFromPath, showToast } from '../utils.js';
+import { canAccessMasks } from '../groups.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import '../mas-quick-actions.js';
 import '../rte/rte-field.js';
@@ -264,6 +265,9 @@ class MasMaskEditor extends LitElement {
         Store.masks.editingName,
         Store.masks.creating,
         Store.masks.loading,
+        Store.search,
+        Store.profile,
+        Store.users,
     ]);
 
     constructor() {
@@ -279,6 +283,16 @@ class MasMaskEditor extends LitElement {
 
     get isCreating() {
         return Store.masks.creating.get() && !Store.masks.fragmentId.get();
+    }
+
+    get hasAccess() {
+        return canAccessMasks(this.fragment ? extractSurfaceFromPath(this.fragment.path) : Store.surface());
+    }
+
+    checkEditingAccess() {
+        if (this.hasAccess) return true;
+        showToast('You do not have access to masks for this surface.', 'negative');
+        return false;
     }
 
     update(changedProperties) {
@@ -390,6 +404,7 @@ class MasMaskEditor extends LitElement {
     }
 
     async #createMask() {
+        if (!this.checkEditingAccess()) return;
         const name = this.name.trim();
         if (!name) return;
         const displayTitle = this.title.trim() || name;
@@ -408,6 +423,7 @@ class MasMaskEditor extends LitElement {
     }
 
     #save = async () => {
+        if (!this.checkEditingAccess()) return;
         if (!this.fragment) return;
         const saved = await Store.masks.saveMask(this.fragment);
         if (saved) {
@@ -417,6 +433,7 @@ class MasMaskEditor extends LitElement {
     };
 
     #publish = async () => {
+        if (!this.checkEditingAccess()) return;
         if (!this.fragment) return;
         const fresh = await Store.masks.publishMask(this.fragment.id);
         if (fresh) {
@@ -426,6 +443,7 @@ class MasMaskEditor extends LitElement {
     };
 
     #delete = async () => {
+        if (!this.checkEditingAccess()) return;
         if (!this.fragment) return;
         const confirmed = await confirmation({
             title: 'Delete mask',
@@ -695,6 +713,7 @@ class MasMaskEditor extends LitElement {
     }
 
     render() {
+        if (!this.hasAccess) return html`<p>You do not have access to masks for this surface.</p>`;
         if (this.isCreating) {
             return html`${this.createTemplate} ${this.previewTemplate}`;
         }

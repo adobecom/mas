@@ -8,6 +8,7 @@ const {
     removePendingMarker,
 } = require('./project.js');
 const { exposeRequestId } = require('../response-headers.js');
+const { authorizeProject } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-publish-reset', { level: 'info' });
 
@@ -41,6 +42,7 @@ async function main(params) {
             return errorResponse(500, `Failed to read project fragment: ${err.message}`, logger);
         }
 
+        await authorizeProject({ projectId, odinEndpoint, authToken }, fragment, 'reset');
         const entries = getProjectSnapshots(fragment);
         const fields = { status: PROJECT_STATUS.DRAFT, lastError: '' };
         if (entries.length) fields.snapshots = removePendingMarker(entries);
@@ -54,6 +56,7 @@ async function main(params) {
         logger.info(JSON.stringify({ event: 'project-reset-complete', projectId }));
         return { statusCode: 200, body: { status: PROJECT_STATUS.DRAFT } };
     } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
         logger.error(JSON.stringify({ event: 'reset-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }

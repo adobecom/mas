@@ -47,9 +47,13 @@ async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, logge
     return results;
 }
 
+function isDictionaryIndex(path) {
+    return path.endsWith(INDEX_SUFFIX);
+}
+
 async function publishResolved(resolved, odinEndpoint, authToken, logger) {
     const chunks = [false, true].flatMap((replicate) => {
-        const paths = resolved.filter((path) => path.endsWith(INDEX_SUFFIX) === replicate);
+        const paths = resolved.filter((path) => isDictionaryIndex(path) === replicate);
         return groupAndChunk(paths, MAX_CHUNK_SIZE).map((chunk) => ({ ...chunk, replicate }));
     });
     logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
@@ -108,4 +112,12 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     return indexDetails;
 }
 
-module.exports = { publishResolved, publishDictionaryIndexes, extractLocale, groupAndChunk, STATUS, MAX_CHUNK_SIZE };
+module.exports = {
+    publishResolved,
+    publishDictionaryIndexes,
+    isDictionaryIndex,
+    extractLocale,
+    groupAndChunk,
+    STATUS,
+    MAX_CHUNK_SIZE,
+};

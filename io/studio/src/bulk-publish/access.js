@@ -1,8 +1,6 @@
 const { errorResponse, getBearerToken, isAllowed } = require('../../utils.js');
 const { exposeRequestId } = require('../response-headers.js');
-
-const STUDIO_ORG_ID = '3B962FB55F5F922E0A495C88';
-const BULK_PUBLISH_GROUPS = new Set(['GRP-ODIN-MAS-ACOM-CURATORS', 'GRP-ODIN-MAS-ADMINS']);
+const { getPermissions } = require('./permissions.js');
 
 async function main(params) {
     if ((params.__ow_method || 'get').toLowerCase() !== 'get') {
@@ -17,29 +15,14 @@ async function main(params) {
     }
 
     try {
-        const response = await fetch('https://ims-na1.adobelogin.com/ims/organizations/v5', {
-            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-            redirect: 'error',
-            signal: AbortSignal.timeout(10000),
-        });
-        if (!response.ok) {
-            const statusCode = [401, 403].includes(response.status) ? response.status : 502;
-            return errorResponse(statusCode, 'Unable to verify IMS membership');
-        }
-        const organizations = await response.json();
-        const organization = organizations.find(
-            ({ orgRef }) =>
-                orgRef?.authSrc === 'AdobeOrg' && [STUDIO_ORG_ID, `${STUDIO_ORG_ID}@AdobeOrg`].includes(orgRef.ident),
-        );
-        const allowed =
-            organization?.groups?.some(({ groupName }) => BULK_PUBLISH_GROUPS.has(groupName?.toUpperCase())) ?? false;
+        const permissions = await getPermissions(token);
         return {
             statusCode: 200,
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-            body: { allowed },
+            body: permissions,
         };
-    } catch {
-        return errorResponse(502, 'Unable to verify IMS membership');
+    } catch (error) {
+        return errorResponse(error.statusCode ?? 502, error.message);
     }
 }
 

@@ -3,6 +3,7 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, par
 const { revertSnapshot } = require('./snapshot.js');
 const { PROJECT_STATUS, readProjectFragment, updateProjectFragment, getProjectSnapshots } = require('./project.js');
 const { exposeRequestId } = require('../response-headers.js');
+const { authorizeProject, authorizeEntries } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-revert', { level: 'info' });
 
@@ -31,6 +32,12 @@ async function main(params) {
             return errorResponse(400, 'entries must be a non-empty array', logger);
         }
 
+        try {
+            await authorizeEntries({ entries, odinEndpoint, authToken });
+        } catch (error) {
+            if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
+            throw error;
+        }
         const result = await revertSnapshot({ entries, odinEndpoint, authToken });
         return { statusCode: 200, body: result };
     } catch (error) {
@@ -51,6 +58,12 @@ async function revertWithProject(params, odinEndpoint, authToken) {
         return errorResponse(500, `Failed to read project fragment: ${err.message}`, logger);
     }
 
+    try {
+        await authorizeProject({ projectId, odinEndpoint, authToken }, fragment, 'revert');
+    } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
+        throw error;
+    }
     const entries = getProjectSnapshots(fragment);
 
     if (!entries.length) {

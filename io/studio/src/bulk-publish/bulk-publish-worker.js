@@ -3,9 +3,10 @@ const { publishResolved, publishDictionaryIndexes } = require('./publish-core.js
 const { resolvePaths } = require('./resolver.js');
 const { buildResult } = require('./summary.js');
 const { createSnapshot, recordSnapshot } = require('./snapshot.js');
+const { authorizeProject } = require('./permissions.js');
+const { errorResponse } = require('../../utils.js');
 const {
     PROJECT_STATUS,
-    readProjectFragment,
     updateProjectFragment,
     getProjectPaths,
     getProjectLocales,
@@ -82,7 +83,6 @@ function terminalStatus(result) {
 
 async function runWorker(input, deps = {}) {
     const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
-    const readProject = deps.readProjectFragment || readProjectFragment;
     const projPaths = deps.getProjectPaths || getProjectPaths;
     const projLocales = deps.getProjectLocales || getProjectLocales;
     const projTitle = deps.getProjectTitle || getProjectTitle;
@@ -98,7 +98,15 @@ async function runWorker(input, deps = {}) {
     const { projectId, odinEndpoint, authToken, publishedBy = '', includeCards = false, includeVariations = false } = input;
     const startedAt = now().toISOString();
 
-    const { fragment } = await readProject(odinEndpoint, projectId, authToken);
+    let context;
+    try {
+        context = await (deps.authorizeProject || authorizeProject)(input);
+    } catch (error) {
+        throw Object.assign(new Error(error.statusCode ? error.message : 'Unable to verify bulk publish permissions'), {
+            statusCode: error.statusCode ?? 503,
+        });
+    }
+    const { fragment, assertPaths, permissions } = context;
     const paths = projPaths(fragment);
     const locales = projLocales(fragment);
     const title = projTitle(fragment);
@@ -142,7 +150,9 @@ async function runWorker(input, deps = {}) {
             authToken,
             includeCards,
             includeVariations,
+            assertPaths: permissions?.surfaces ? assertPaths : undefined,
         });
+        assertPaths(snapExpanded);
         expandedPaths = snapExpanded;
         // Pre-recorded entries hold green (pre-publish) versionIds for top-level fragments.
         // Cascaded fragments discovered by createSnapshot are not in the pre-recorded set,
@@ -155,7 +165,12 @@ async function runWorker(input, deps = {}) {
             lastError: snapshotError,
         });
     } else {
-        const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
+        const { entries: fresh, failures: recordFailures } = await record({
+            paths,
+            odinEndpoint,
+            authToken,
+            assertPaths: permissions?.surfaces ? assertPaths : undefined,
+        });
         const {
             expandedPaths: snapExpanded,
             entries: snapEntries,
@@ -168,7 +183,9 @@ async function runWorker(input, deps = {}) {
             authToken,
             includeCards,
             includeVariations,
+            assertPaths: permissions?.surfaces ? assertPaths : undefined,
         });
+        assertPaths(snapExpanded);
         expandedPaths = snapExpanded;
         // Fresh path: use the Pre-bulk-publish versionId (from createSnapshot) for every entry so
         // the parent is reverted to the state that includes any variations added since the last
@@ -190,6 +207,7 @@ async function runWorker(input, deps = {}) {
 
     const publishPaths = (includeCards || includeVariations) && expandedPaths ? expandedPaths : paths;
     const resolved = resolve(publishPaths, locales);
+    assertPaths(resolved);
     const details = await publish(resolved, odinEndpoint, authToken, logger);
     relabelNotLocalized(details);
     details.push(...(await publishIndexes(details, odinEndpoint, authToken, logger)));
@@ -264,6 +282,7 @@ async function main(params, deps = {}) {
         const result = await doRunWorker(input, deps);
         return { statusCode: 200, body: result };
     } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
         logger.error(JSON.stringify({ event: 'worker-error', error: error.message || String(error) }));
         await recoverStuckProject(error, input, deps, logger);
         return { statusCode: 500, body: { error: error.message } };

@@ -7,6 +7,7 @@ import {
     canAccessMasks,
     canAccessOfferMapping,
     canAccessBulkPublish,
+    canEditPlaceholders,
     canEditPromotions,
     canManagePromotions,
     isMasAdmin,
@@ -18,11 +19,13 @@ describe('groups', () => {
     let originalProfile;
     let originalUsers;
     let originalImsAccess;
+    let originalSearch;
 
     beforeEach(() => {
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
         originalImsAccess = Store.users.getMeta('imsBulkPublishAccess');
+        originalSearch = structuredClone(Store.search.get());
         Store.users.setMeta('imsBulkPublishAccess', null);
     });
 
@@ -31,6 +34,7 @@ describe('groups', () => {
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
         Store.users.setMeta('imsBulkPublishAccess', originalImsAccess);
+        Store.search.set(originalSearch);
     });
 
     it('isMasAdmin is true only for GRP-ODIN-MAS-ADMINS', () => {
@@ -60,6 +64,86 @@ describe('groups', () => {
         Store.profile.set({ email: 'a@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
         expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    for (const surface of ['ccd', 'adobe-home', '/CCD/en_US']) {
+        it(`allows CCDAH curators to use bulk publish on ${surface}`, () => {
+            Store.profile.set({ email: 'a@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            expect(canAccessBulkPublish(surface)).to.be.true;
+        });
+
+        it(`allows CCDAH curators to edit masks on ${surface}`, () => {
+            Store.profile.set({ email: 'a@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            expect(canAccessMasks(surface)).to.be.true;
+        });
+    }
+
+    for (const surface of ['acom', 'express', 'ccd-other', '', undefined]) {
+        it(`does not grant CCDAH curator capabilities on ${surface}`, () => {
+            Store.profile.set({ email: 'a@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            expect(canAccessBulkPublish(surface)).to.be.false;
+            expect(canAccessMasks(surface)).to.be.false;
+            expect(canEditPlaceholders(surface)).to.be.false;
+        });
+    }
+
+    it('does not grant CCDAH curators settings or offer mapping on their surfaces', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        for (const surface of ['ccd', 'adobe-home']) {
+            expect(canAccessSettings(surface)).to.be.false;
+            expect(canAccessOfferMapping(surface)).to.be.false;
+            expect(canEditPlaceholders(surface)).to.be.true;
+        }
+    });
+
+    it('preserves existing permissions when CCDAH membership is combined with another role', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([
+            { userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS', 'GRP-ODIN-MAS-ACOM-CURATORS'] },
+        ]);
+        expect(canAccessBulkPublish('express')).to.be.true;
+        expect(canEditPlaceholders('acom')).to.be.true;
+    });
+
+    it('does not turn global bulk publish access into global masks access when curator groups are combined', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([
+            { userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS', 'GRP-ODIN-MAS-CCDAH-CURATORS'] },
+        ]);
+        expect(canAccessMasks('express')).to.be.false;
+    });
+
+    it('preserves independently granted dictionary editing when an Express editor becomes a CCDAH curator', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([
+            { userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-EXPRESS-EDITORS', 'GRP-ODIN-MAS-CCDAH-CURATORS'] },
+        ]);
+        expect(canEditPlaceholders('express')).to.be.true;
+    });
+
+    it('does not grant dictionary editing on unrelated surfaces through a different editor membership', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([
+            { userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCD-EDITORS', 'GRP-ODIN-MAS-CCDAH-CURATORS'] },
+        ]);
+        expect(canEditPlaceholders('express')).to.be.false;
+    });
+
+    it('restricts IMS-approved CCDAH test users to the approved surfaces', () => {
+        Store.profile.set({ email: 'automation@adobetest.com' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', {
+            email: 'automation@adobetest.com',
+            allowed: true,
+            surfaces: ['ccd', 'adobe-home'],
+        });
+        expect(canAccessBulkPublish('ccd')).to.be.true;
+        expect(canAccessBulkPublish('adobe-home')).to.be.true;
+        expect(canAccessBulkPublish('express')).to.be.false;
     });
 
     it('canAccessBulkPublish allows an IMS-approved test identity missing from LDAP', () => {
@@ -135,6 +219,26 @@ describe('groups', () => {
         await element.updateComplete;
         expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
     });
+
+    for (const [from, to, visible] of [
+        ['express', 'ccd', true],
+        ['ccd', 'express', false],
+        ['express', 'adobe-home', true],
+        ['adobe-home', 'express', false],
+    ]) {
+        it(`updates the bulk publish card when CCDAH curators switch from ${from} to ${to}`, async () => {
+            Store.profile.set({ email: 'a@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            Store.search.set((current) => ({ ...current, path: from }));
+            const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+            expect(Boolean(element.shadowRoot.querySelector('sp-icon-publish'))).to.equal(!visible);
+
+            Store.search.set((current) => ({ ...current, path: to }));
+            await element.updateComplete;
+
+            expect(Boolean(element.shadowRoot.querySelector('sp-icon-publish'))).to.equal(visible);
+        });
+    }
 
     it('canAccessSettings denies sandbox for non-admin', () => {
         Store.profile.set({ email: 'a@adobe.com' });

@@ -115,7 +115,8 @@ async function main(params) {
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
         const aosClient = new AOSClient(authManager, { baseUrl: params.AOS_URL, apiKey: params.AOS_API_KEY });
-        if (!(await aosClient.validateOfferFields({ osi }, arrangement_code))) {
+        const resolvedBySelector = new Map();
+        if (!(await aosClient.validateOfferFields({ osi }, arrangement_code, resolvedBySelector))) {
             return { statusCode: 400, body: { error: 'Offer selector did not resolve to the requested product' } };
         }
         if (trialOsi && !(await aosClient.validateOfferFields({ osi: trialOsi }, arrangement_code))) {
@@ -159,10 +160,7 @@ async function main(params) {
             product.market_segments.forEach((s) => tags.push(`mas:market_segments/${s}`));
         }
         if (osi) {
-            const [baseOffer] = await aosClient.resolveOfferSelector(osi, undefined, {
-                arrangementCode: arrangement_code,
-                verifyIdentity: true,
-            });
+            const [baseOffer] = resolvedBySelector.get(osi) ?? [];
             const planType = baseOffer && aosClient.calculatePlanType(baseOffer.commitment, baseOffer.term);
             if (RELEASE_PLAN_TYPES.includes(planType)) tags.push(`mas:plan_type/${planType.toLowerCase()}`);
         }
@@ -174,7 +172,7 @@ async function main(params) {
             const isCatalog = variant === 'catalog';
             const perUnit = product.customer_segment === 'TEAM' ? 'true' : 'false';
             if (osi && !isCatalog) {
-                fields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
+                fields.prices = `<span is="inline-price" data-template="price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
             }
             if (osi) {
                 fields.ctas = generateCtaHtml(osi, trialOsi, variant);

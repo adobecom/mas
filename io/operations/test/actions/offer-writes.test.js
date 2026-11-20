@@ -30,6 +30,8 @@ describe('offer writes validate AOS before mutation', () => {
     let writes;
     let wcsOffers;
     let requireArrangement;
+    let selectorLookups;
+    let failRepeatLookups;
     let callerGroups;
     beforeEach(() => {
         originalFetch = globalThis.fetch;
@@ -46,9 +48,15 @@ describe('offer writes validate AOS before mutation', () => {
         writes = [];
         wcsOffers = [{ offerSelectorIds: [selector], offerId }];
         requireArrangement = false;
+        selectorLookups = 0;
+        failRepeatLookups = false;
         globalThis.fetch = async (input, init = {}) => {
             const url = new URL(input);
             if (url.hostname === 'www.adobe.com') return new Response(JSON.stringify({ resolvedOffers: wcsOffers }));
+            if (url.hostname === 'aos.example.com' && url.searchParams.has('offer_selector_ids')) {
+                selectorLookups += 1;
+                if (selectorLookups > 1 && failRepeatLookups) return new Response('{}', { status: 503 });
+            }
             if (url.hostname === 'aos.example.com')
                 return new Response(
                     JSON.stringify(requireArrangement && url.searchParams.get('arrangement_code') !== 'firefly' ? [] : offers),
@@ -125,6 +133,31 @@ describe('offer writes validate AOS before mutation', () => {
     it('tags release cards with the selected offer plan type', async () => {
         offers = [{ ...product, commitment: 'YEAR', term: 'MONTHLY' }];
         expect(await releaseTags()).to.include('mas:plan_type/abm');
+    });
+    it('reuses the validated offer instead of looking the selector up again', async () => {
+        offers = [{ ...product, commitment: 'YEAR', term: 'MONTHLY' }];
+        failRepeatLookups = true;
+        const result = await release({
+            ...params,
+            arrangement_code: 'firefly',
+            variants: ['plans'],
+            parentPath: '/content/dam/mas/acom/en_US',
+            osi: selector,
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(JSON.stringify(writes)).to.include('mas:plan_type/abm');
+        expect(selectorLookups).to.equal(1);
+    });
+    it('marks the generated Plans price as the main price so the plan type label can render', async () => {
+        offers = [{ ...product, commitment: 'YEAR', term: 'MONTHLY' }];
+        await release({
+            ...params,
+            arrangement_code: 'firefly',
+            variants: ['plans'],
+            parentPath: '/content/dam/mas/acom/en_US',
+            osi: selector,
+        });
+        expect(JSON.stringify(writes)).to.include('data-template=\\"price\\"');
     });
     it('omits the plan type tag when the offer maps to no plan type', async () => {
         offers = [{ ...product, commitment: 'TERM_LICENSE', term: 'P3Y' }];

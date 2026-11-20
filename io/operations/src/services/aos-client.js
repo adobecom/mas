@@ -274,7 +274,7 @@ export class AOSClient {
         return this.enrichOffersWithPlanType(offers);
     }
 
-    async validateOfferFields(fields = {}, arrangementCode) {
+    async validateOfferFields(fields = {}, arrangementCode, resolvedBySelector = new Map()) {
         const selectors = new Set();
         for (const [name, value] of Object.entries(fields ?? {})) {
             for (const entry of Array.isArray(value) ? value : [value]) {
@@ -292,6 +292,7 @@ export class AOSClient {
         }
         for (const selector of selectors) {
             const offers = await this.resolveOfferSelector(selector, undefined, { arrangementCode, verifyIdentity: true });
+            resolvedBySelector.set(selector, offers);
             if (
                 !offers.length ||
                 (arrangementCode && offers.some((offer) => offer.product_arrangement_code !== arrangementCode))

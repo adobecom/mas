@@ -32,6 +32,9 @@ describe('bulk-publish/save-snapshot-action.js', () => {
         errorResponseStub = sinon.stub().callsFake((code, msg) => ({ statusCode: code, body: { error: msg } }));
 
         action = proxyquire('../../src/bulk-publish/save-snapshot-action.js', {
+            './permissions.js': {
+                authorizeProject: async () => ({ permissions: { allowed: true }, assertPaths: () => {} }),
+            },
             './snapshot.js': { '@noCallThru': true, recordSnapshot: recordSnapshotStub },
             './project.js': {
                 '@noCallThru': true,

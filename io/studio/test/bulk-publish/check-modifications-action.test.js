@@ -11,6 +11,7 @@ describe('bulk-publish/check-modifications-action.js', function () {
     let action, checkModificationsStub, isAllowedStub, checkMissingStub;
     const load = () =>
         proxyquire('../../src/bulk-publish/check-modifications-action.js', {
+            './permissions.js': { authorizeEntries: async () => ({}) },
             './snapshot.js': { checkModifications: checkModificationsStub },
             '../../utils.js': {
                 errorResponse: (status, message) => ({ statusCode: status, body: { error: message } }),

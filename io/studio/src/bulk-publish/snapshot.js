@@ -1,6 +1,7 @@
 const { Core } = require('@adobe/aio-sdk');
 const { fetchOdin, processBatchWithConcurrency } = require('../common.js');
 const { createVersion, restoreVersion, fetchVersionHistory } = require('../common/aem-version.js');
+const { authorizePaths, getReferencePaths } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-snapshot', { level: 'info' });
 const FRAGMENT_CONCURRENCY = 5;
@@ -34,19 +35,6 @@ async function unpublishFragment(odinEndpoint, fragmentPath, authToken) {
             workflowModelId: '/var/workflow/models/scheduled_deactivation',
         }),
     });
-}
-
-function getReferencePaths(fragment, { includeCards = false, includeVariations = false } = {}) {
-    const paths = [];
-    for (const field of fragment.fields ?? []) {
-        if (includeCards && (field.name === 'cards' || field.name === 'collections')) {
-            paths.push(...(field.values ?? []));
-        }
-        if (includeVariations && field.name === 'variations') {
-            paths.push(...(field.values ?? []));
-        }
-    }
-    return paths;
 }
 
 function isTranslationVersion(version) {
@@ -90,10 +78,13 @@ async function createSnapshot({
     authToken,
     includeCards = false,
     includeVariations = false,
+    assertPaths,
 }) {
+    if (assertPaths) {
+        await authorizePaths({ paths, odinEndpoint, authToken, includeCards, includeVariations }, assertPaths, fetchOdin);
+    }
     const timestamp = Date.now();
     const snapshotId = `snap-${projectId}-${timestamp}`;
-    const label = `Pre-publish - ${projectTitle}`;
     const visited = new Set(paths);
 
     logger.info(JSON.stringify({ event: 'snapshot-start', projectId, count: paths.length, includeCards, includeVariations }));
@@ -105,6 +96,8 @@ async function createSnapshot({
                 if (required) return { path, error: `Fragment not found at path: ${path}` };
                 return null;
             }
+            const refPaths = getReferencePaths(fragment, { includeCards, includeVariations });
+            assertPaths?.([fragment.path, ...refPaths]);
             const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
             const versionId = await createVersion(
                 odinEndpoint,
@@ -123,9 +116,10 @@ async function createSnapshot({
                 path: fragment.path,
                 versionId,
                 wasPublished,
-                refPaths: getReferencePaths(fragment, { includeCards, includeVariations }),
+                refPaths,
             };
         } catch (err) {
+            if (err.statusCode) throw err;
             return { path, error: err.message };
         }
     }
@@ -201,9 +195,10 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
     return { failures, skipped };
 }
 
-async function recordSnapshot({ paths, odinEndpoint, authToken }) {
+async function recordSnapshot({ paths, odinEndpoint, authToken, assertPaths }) {
     const timestamp = Date.now();
     const createdAt = new Date(timestamp).toISOString();
+    assertPaths?.(paths);
 
     logger.info(JSON.stringify({ event: 'record-snapshot-start', count: paths.length }));
 
@@ -211,12 +206,14 @@ async function recordSnapshot({ paths, odinEndpoint, authToken }) {
         try {
             const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
             if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
+            assertPaths?.([fragment.path]);
             const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
             // versionId may be null for new cards that have never been published.
             // Record them with versionId: null so revert can unpublish them instead.
             const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
             return [fragment.id, { path: fragment.path, versionId, wasPublished }];
         } catch (err) {
+            if (err.statusCode) throw err;
             return { path, error: err.message };
         }
     });

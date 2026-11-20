@@ -15,6 +15,7 @@ describe('bulk-publish-worker — runWorker', () => {
     ];
     beforeEach(() => {
         deps = {
+            authorizeProject: async () => ({ assertPaths: () => {} }),
             readProjectFragment: sinon.stub().resolves({ fragment: { id: 'proj-1' }, etag: 'e1' }),
             getProjectPaths: sinon.stub().returns(['/content/dam/mas/acom/en_US/a']),
             getProjectLocales: sinon.stub().returns(['es_MX']),
@@ -640,17 +641,25 @@ describe('bulk-publish-worker — terminalStatus', () => {
 describe('bulk-publish-worker — main', () => {
     const { main } = require('../../src/bulk-publish/bulk-publish-worker.js');
 
-    it('returns a 500 envelope with the error message when the worker throws', async () => {
-        const res = await main({ projectId: 'proj-1', odinEndpoint: 'https://odin.invalid', authToken: 't' });
-        expect(res.statusCode).to.equal(500);
-        expect(res.body).to.have.property('error');
-        expect(res.body.error).to.be.a('string');
+    it('fails closed without recovery effects when permissions are unavailable', async () => {
+        const updateProjectFragment = sinon.stub();
+        const res = await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin.invalid', authToken: 't' },
+            { authorizeProject: sinon.stub().rejects(new Error('secret-token')), updateProjectFragment },
+        );
+        expect(res.error.statusCode).to.equal(503);
+        expect(res.error.body.error).to.equal('Unable to verify bulk publish permissions');
+        expect(updateProjectFragment.called).to.be.false;
     });
 
     it('maps aemOdinEndpoint over odinEndpoint without throwing on param access', async () => {
-        const res = await main({ projectId: 'proj-1', aemOdinEndpoint: 'https://odin.invalid', authToken: 't' });
-        expect(res.statusCode).to.equal(500);
-        expect(res.body.error).to.be.a('string');
+        const authorizeProject = sinon.stub().rejects(new Error('permissions unavailable'));
+        const res = await main(
+            { projectId: 'proj-1', aemOdinEndpoint: 'https://odin.invalid', authToken: 't' },
+            { authorizeProject },
+        );
+        expect(res.error.statusCode).to.equal(503);
+        expect(authorizeProject.firstCall.args[0].odinEndpoint).to.equal('https://odin.invalid');
     });
 
     it('updates project status to Failed when runWorker throws', async () => {
@@ -702,6 +711,7 @@ describe('bulk-publish-worker — main recovers a stuck project', () => {
     it('writes Failed and preserves the pending marker when publish never succeeded', async () => {
         const updateProject = sinon.stub().resolves();
         const deps = {
+            authorizeProject: async () => ({ assertPaths: () => {} }),
             updateProjectFragment: updateProject,
             readProjectFragment: sinon.stub().resolves({ fragment: {} }),
             getProjectPaths: sinon.stub().returns(['/a']),
@@ -727,6 +737,7 @@ describe('bulk-publish-worker — main recovers a stuck project', () => {
         updateProject.onCall(1).rejects(new Error('412 conflict'));
         updateProject.onCall(2).resolves();
         const deps = {
+            authorizeProject: async () => ({ assertPaths: () => {} }),
             updateProjectFragment: updateProject,
             readProjectFragment: sinon.stub().resolves({ fragment: {} }),
             getProjectPaths: sinon.stub().returns(['/a']),
@@ -752,6 +763,7 @@ describe('bulk-publish-worker — main recovers a stuck project', () => {
         updateProject.onCall(0).resolves();
         updateProject.rejects(new Error('odin down'));
         const deps = {
+            authorizeProject: async () => ({ assertPaths: () => {} }),
             updateProjectFragment: updateProject,
             readProjectFragment: sinon.stub().resolves({ fragment: {} }),
             getProjectPaths: sinon.stub().returns(['/a']),

@@ -7,6 +7,21 @@ import { BULK_PUBLISH_STATUS, COLLECTION_MODEL_PATH, PAGE_NAMES, QUICK_ACTION } 
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 import { publishToast } from '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
+let originalProfile;
+let originalUsers;
+
+beforeEach(() => {
+    originalProfile = Store.profile.get();
+    originalUsers = Store.users.get();
+    Store.profile.set({ email: 'curator@adobe.com' });
+    Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+});
+
+afterEach(() => {
+    Store.profile.set(originalProfile);
+    Store.users.set(originalUsers);
+});
+
 if (!customElements.get('aem-fragment')) {
     customElements.define(
         'aem-fragment',

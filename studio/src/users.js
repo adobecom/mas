@@ -33,7 +33,7 @@ async function loadBulkPublishAccess() {
         });
         if (!response.ok) return false;
         const access = await response.json();
-        return access.allowed === true;
+        return { allowed: access.allowed === true, ...(access.surfaces ? { surfaces: access.surfaces } : {}) };
     } catch {
         return false;
     }
@@ -47,12 +47,15 @@ export async function initUsers() {
         const profile = await window.adobeIMS.getProfile();
         Store.profile.set(profile);
         const email = profile.email?.toLowerCase();
-        const [uniqueEditors, allowed] = await Promise.all([
+        const [uniqueEditors, access] = await Promise.all([
             loadUsers(),
             email?.endsWith('@adobetest.com') ? loadBulkPublishAccess() : false,
         ]);
         if (email?.endsWith('@adobetest.com')) {
-            Store.users.setMeta('imsBulkPublishAccess', { email, allowed });
+            Store.users.setMeta('imsBulkPublishAccess', {
+                email,
+                ...(access || { allowed: false }),
+            });
         }
         Store.users.set(uniqueEditors);
 

@@ -12,6 +12,7 @@ describe('bulk-publish/index.js — dispatcher', () => {
         invokeAsyncActionStub = sinon.stub().resolves({ activationId: 'act-1' });
         isAllowedStub = sinon.stub().resolves(true);
         action = proxyquire('../../src/bulk-publish/index.js', {
+            './permissions.js': { authorizeProject: async () => ({}) },
             '../common.js': {
                 invokeAsyncAction: invokeAsyncActionStub,
                 buildSiblingActionName: () => 'MerchAtScaleStudio/bulk-publish-worker',
@@ -42,6 +43,7 @@ describe('bulk-publish/index.js — dispatcher', () => {
 
     it('returns 400 and does not invoke worker when projectId missing', async () => {
         action = proxyquire('../../src/bulk-publish/index.js', {
+            './permissions.js': { authorizeProject: async () => ({}) },
             '../common.js': {
                 invokeAsyncAction: invokeAsyncActionStub,
                 buildSiblingActionName: () => 'MerchAtScaleStudio/bulk-publish-worker',

@@ -21,7 +21,10 @@ describe('bulk-publish/access.js', () => {
             ok: true,
             json: async () => organizations('GRP-ODIN-MAS-ACOM-CURATORS'),
         });
-        global.fetch = fetchStub;
+        global.fetch = (url, options) =>
+            url.endsWith('/profile/v1')
+                ? Promise.resolve({ ok: true, json: async () => ({ id: 'test-user', email: 'test@adobetest.com' }) })
+                : fetchStub(url, options);
         action = proxyquire('../../src/bulk-publish/access.js', {
             '../../utils.js': { isAllowed: validateToken },
         });
@@ -39,6 +42,11 @@ describe('bulk-publish/access.js', () => {
     it('allows an admin in the Studio organization', async () => {
         fetchStub.resolves({ ok: true, json: async () => organizations('GRP-ODIN-MAS-ADMINS') });
         expect((await action.main(params)).body).to.deep.equal({ allowed: true });
+    });
+
+    it('returns only CCD and Adobe Home capabilities for the scoped group', async () => {
+        fetchStub.resolves({ ok: true, json: async () => organizations('GRP-ODIN-MAS-CCDAH-CURATORS') });
+        expect((await action.main(params)).body).to.deep.equal({ allowed: true, surfaces: ['ccd', 'adobe-home'] });
     });
 
     it('compares group names case-insensitively', async () => {

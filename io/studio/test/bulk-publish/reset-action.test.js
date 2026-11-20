@@ -18,6 +18,7 @@ describe('bulk-publish reset-action', () => {
         isAllowed = sinon.stub().resolves(true);
 
         action = proxyquire('../../src/bulk-publish/reset-action.js', {
+            './permissions.js': { authorizeProject: async () => ({}) },
             './project.js': {
                 PROJECT_STATUS: require('../../src/bulk-publish/project.js').PROJECT_STATUS,
                 readProjectFragment,

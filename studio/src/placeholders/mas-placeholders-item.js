@@ -5,7 +5,8 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
 import { confirmation } from '../mas-confirm-dialog.js';
-import { showToast, normalizeKey } from '../utils.js';
+import { showToast, normalizeKey, extractSurfaceFromPath } from '../utils.js';
+import { canEditPlaceholders } from '../groups.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import '../rte/rte-field.js';
@@ -43,7 +44,7 @@ class MasPlaceholdersItem extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.reactiveController = new ReactiveController(this, [this.placeholderStore]);
+        this.reactiveController = new ReactiveController(this, [this.placeholderStore, Store.profile, Store.users]);
     }
 
     updated(changedProps) {
@@ -75,6 +76,16 @@ class MasPlaceholdersItem extends LitElement {
         return this.placeholderStore.get();
     }
 
+    get canEdit() {
+        return canEditPlaceholders(extractSurfaceFromPath(this.placeholder.path));
+    }
+
+    checkEditingAccess() {
+        if (this.canEdit) return true;
+        showToast('You do not have access to edit this placeholder.', 'negative');
+        return false;
+    }
+
     // #region Handlers
 
     handleKeyChange(event) {
@@ -91,6 +102,7 @@ class MasPlaceholdersItem extends LitElement {
 
     async onSave(event) {
         event.stopPropagation();
+        if (!this.checkEditingAccess()) return;
         this.updatePending(true);
         this.placeholderStore.updateField('tags', [TAG_STATUS_DRAFT]);
         const saved = await this.repository.saveFragment(this.placeholderStore, { refetchEtag: false });
@@ -104,6 +116,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     async onDelete(event) {
+        if (!this.checkEditingAccess()) return;
         this.updatePending(true);
         this.toggleDropdown(this.placeholder.key, event);
         const confirmed = await confirmation({
@@ -121,6 +134,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     async onPublish(event) {
+        if (!this.checkEditingAccess()) return;
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
         showToast('Publishing placeholder...');
@@ -181,7 +195,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     get keyCell() {
-        if (this.editing) {
+        if (this.editing && this.canEdit) {
             return html`
                 <sp-table-cell class="editing-cell key">
                     <div class="edit-field-container">
@@ -200,7 +214,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     get valueCell() {
-        if (this.editing) {
+        if (this.editing && this.canEdit) {
             return html`
                 <sp-table-cell class="editing-cell value">
                     <div class="edit-field-container">
@@ -250,6 +264,9 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     get actionCell() {
+        if (!this.canEdit) {
+            return html`<sp-table-cell class="action-cell"></sp-table-cell>`;
+        }
         if (this.editing) {
             return html`
                 <sp-table-cell class="action-cell">

@@ -3,6 +3,8 @@ const { fetchOdin } = require('../common.js');
 const PUBLISH_URI = '/adobe/sites/cf/fragments/publish';
 const WORKFLOW_MODEL_ID = '/var/workflow/models/scheduled_activation_with_references';
 const DEFAULT_MAX_RETRIES = 3;
+/** Canonical reference statuses shared by publishing and scoped authorization. */
+const PUBLISH_REFERENCE_STATUSES = Object.freeze(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
 
 const WORKFLOW_STATUS_MAP = {
     SUCCESS_TRIGGERED: { status: 'published' },
@@ -18,7 +20,7 @@ async function publishChunk({
     authToken,
     logger,
     maxRetries = DEFAULT_MAX_RETRIES,
-    filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
+    filterReferencesByStatus = PUBLISH_REFERENCE_STATUSES,
     replicate = false,
 }) {
     const chunks = replicate ? chunk.map((path) => [path]) : [chunk];
@@ -147,4 +149,4 @@ function mapItemsToResults(chunk, data, retries) {
     });
 }
 
-module.exports = { publishChunk };
+module.exports = { publishChunk, PUBLISH_REFERENCE_STATUSES };

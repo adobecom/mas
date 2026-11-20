@@ -34,7 +34,8 @@ import {
     DELETE_SVG,
     REVERT_SVG,
 } from './bulk-publish-icons.js';
-import { generateLinkToUse, showToast, normalizeKey } from '../utils.js';
+import { generateLinkToUse, showToast, normalizeKey, extractSurfaceFromPath } from '../utils.js';
+import { canAccessBulkPublish } from '../groups.js';
 import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
@@ -107,6 +108,7 @@ class MasBulkPublishEditor extends LitElement {
     #currentProjectId = null;
     #projectStoreController = new ReactiveController(this, []);
     #subscribedProject = null;
+    accessController = new ReactiveController(this, [Store.profile, Store.users, Store.search]);
 
     saveSnapshotFn = null;
 
@@ -245,6 +247,21 @@ class MasBulkPublishEditor extends LitElement {
         return this.inEdit.value;
     }
 
+    get hasProjectAccess() {
+        const path = this.project?.value?.path;
+        return canAccessBulkPublish(path ? extractSurfaceFromPath(path) : Store.surface());
+    }
+
+    get hasItemAccess() {
+        return this.items.every((item) => item.status !== 'valid' || canAccessBulkPublish(extractSurfaceFromPath(item.path)));
+    }
+
+    checkEditingAccess() {
+        if (this.hasProjectAccess && this.hasItemAccess) return true;
+        showToast('You do not have access to bulk publish for one or more surfaces in this project.', 'negative');
+        return false;
+    }
+
     checkStaged(items) {
         const newItems = [...items];
         const refs = Store.bulkPublishProjects.inEdit.get().value?.references || [];
@@ -380,7 +397,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get canStartPublishing() {
-        return !this.hasChanges;
+        return !this.hasChanges && this.hasProjectAccess && this.hasItemAccess;
     }
 
     get isReadonly() {
@@ -399,6 +416,9 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get disabledActions() {
+        if (!this.hasProjectAccess || !this.hasItemAccess) {
+            return new Set([QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH, QUICK_ACTION.REVERT, QUICK_ACTION.DUPLICATE]);
+        }
         if (this.isLocked) {
             return new Set([
                 QUICK_ACTION.SAVE,
@@ -644,6 +664,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async saveBulkProject() {
+        if (!this.checkEditingAccess()) return;
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
             this.ensureSurface();
             const surface = Store.search.get()?.path;
@@ -698,6 +719,10 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async deleteBulkProject() {
+        if (!this.hasProjectAccess) {
+            showToast('You do not have access to this bulk publish project.', 'negative');
+            return;
+        }
         if (!this.isNewProject) {
             try {
                 await this.repository.deleteFragment(this.project.value);
@@ -721,6 +746,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async handleDuplicateConfirmed(e) {
+        if (!this.checkEditingAccess()) return;
         this.duplicateOpen = false;
         this.ensureSurface();
         const surface = Store.search.get()?.path;
@@ -893,6 +919,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async handleRevertConfirmed() {
+        if (!this.checkEditingAccess()) return;
         this.revertDialogOpen = false;
         const { startReverting } = await import('./bulk-publish-store.js');
         try {
@@ -914,6 +941,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async publish(includeVariations = false, includeCards = false) {
+        if (!this.checkEditingAccess()) return;
         if (this.hasChanges) await this.saveBulkProject();
         if (!this.canStartPublishing) return;
         try {
@@ -940,6 +968,7 @@ class MasBulkPublishEditor extends LitElement {
 
     render() {
         if (!this.project) return html`<p>Loading…</p>`;
+        if (!this.hasProjectAccess) return html`<p>You do not have access to bulk publish for this surface.</p>`;
         const published = this.status === BULK_PUBLISH_STATUS.PUBLISHED;
         const partial = this.status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
         const failed = this.status === BULK_PUBLISH_STATUS.FAILED;

@@ -21,7 +21,55 @@ function seedInEdit(el, data = {}, { id = null } = {}) {
 }
 
 describe('mas-bulk-publish-editor', () => {
-    afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
+    let originalProfile;
+    let originalUsers;
+    let originalSearch;
+
+    beforeEach(() => {
+        originalProfile = Store.profile.get();
+        originalUsers = Store.users.get();
+        originalSearch = Store.search.get();
+        Store.profile.set({ email: 'admin@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.search.set(originalSearch);
+    });
+
+    it('denies a foreign project even when CCD is selected', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        Store.bulkPublishProjects.inEdit.set(
+            new FragmentStore(
+                new Fragment({
+                    id: 'foreign-project',
+                    path: '/content/dam/mas/express/bulk-publish-projects/project',
+                    fields: [{ name: 'status', values: [BULK_PUBLISH_STATUS.DRAFT] }],
+                }),
+            ),
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.textContent).to.include('You do not have access');
+        expect(el.shadowRoot.querySelector('mas-quick-actions')).to.be.null;
+    });
+
+    it('disables publishing when a CCD project contains an Express item', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        seedInEdit(el, { status: BULK_PUBLISH_STATUS.DRAFT }, { id: 'ccd-project' });
+        el.localItems = [{ path: '/content/dam/mas/express/en_US/card', status: 'valid' }];
+        await el.updateComplete;
+        expect(el.canStartPublishing).to.be.false;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.true;
+    });
 
     it('renders empty state (textarea visible, PUBLISH disabled)', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);

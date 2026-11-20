@@ -9,11 +9,12 @@ import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, getDictionaryFolderPath } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
-import { isUUID, showToast } from '../utils.js';
+import { extractSurfaceFromPath, isUUID, showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { buildPlaceholderStudioLinks } from './placeholder-studio-link.js';
+import { canEditPlaceholders } from '../groups.js';
 
 const placeholdersSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -71,6 +72,8 @@ class MasPlaceholders extends LitElement {
         Store.placeholders.list.loading,
         Store.placeholders.selection,
         Store.search,
+        Store.profile,
+        Store.users,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,
@@ -112,6 +115,10 @@ class MasPlaceholders extends LitElement {
 
     get loading() {
         return Store.placeholders.list.loading.get();
+    }
+
+    get canEdit() {
+        return canEditPlaceholders(Store.surface());
     }
 
     get totalPlaceholders() {
@@ -216,6 +223,10 @@ class MasPlaceholders extends LitElement {
     }
 
     toggleEditing(key, event) {
+        if (!this.canEdit) {
+            showToast('You do not have access to edit placeholders for this surface.', 'negative');
+            return;
+        }
         if (event) {
             event.stopPropagation();
             event.preventDefault();
@@ -225,6 +236,10 @@ class MasPlaceholders extends LitElement {
     }
 
     toggleCreationModal() {
+        if (!this.canEdit) {
+            showToast('You do not have access to edit placeholders for this surface.', 'negative');
+            return;
+        }
         this.showCreationModal = !this.showCreationModal;
     }
 
@@ -249,6 +264,10 @@ class MasPlaceholders extends LitElement {
     }
 
     async onBulkDelete(keys) {
+        if (!this.canEdit) {
+            showToast('You do not have access to edit placeholders for this surface.', 'negative');
+            return;
+        }
         const confirmed = await confirmation({
             title: 'Delete placeholder(s)',
             content: `Are you sure you want to delete ${keys.length} placeholder(s)? This action cannot be undone.`,
@@ -261,6 +280,10 @@ class MasPlaceholders extends LitElement {
                 return keys.includes(placeholderStore.get().key);
             })
             .map((placeholderStore) => placeholderStore.get());
+        if (!this.canEdit || fragments.some((fragment) => !canEditPlaceholders(extractSurfaceFromPath(fragment.path)))) {
+            showToast('You do not have access to edit placeholders for one or more selected surfaces.', 'negative');
+            return;
+        }
 
         this.pending = true;
         showToast('Deleting placeholders...');
@@ -335,10 +358,12 @@ class MasPlaceholders extends LitElement {
                     <div class="header-left">
                         <h2>Placeholders</h2>
                     </div>
-                    <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create New Placeholder
-                    </sp-button>
+                    ${this.canEdit
+                        ? html`<sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
+                              <sp-icon-add slot="icon"></sp-icon-add>
+                              Create New Placeholder
+                          </sp-button>`
+                        : nothing}
                 </div>
 
                 ${this.errorMessage}
@@ -371,17 +396,17 @@ class MasPlaceholders extends LitElement {
 
                 <div class="placeholders-content">${this.renderTable()}</div>
 
-                ${this.showCreationModal
+                ${this.showCreationModal && this.canEdit
                     ? html`<mas-placeholders-creation-modal
                           .onClose=${this.toggleCreationModal}
                           @save=${this.onSave}
                       ></mas-placeholders-creation-modal>`
-                    : ''}
+                    : nothing}
             </div>
             <mas-selection-panel
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
-                .onDelete=${this.onBulkDelete}
+                .onDelete=${this.canEdit ? this.onBulkDelete : null}
                 .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>

@@ -3,6 +3,7 @@ const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../..
 const { recordSnapshot } = require('./snapshot.js');
 const { readProjectFragment, updateProjectFragment, getProjectPaths } = require('./project.js');
 const { exposeRequestId } = require('../response-headers.js');
+const { authorizeProject } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-save-snapshot', { level: 'info' });
 
@@ -21,13 +22,19 @@ async function main(params) {
         if (!projectId) return errorResponse(400, 'projectId is required', logger);
 
         const { fragment } = await readProjectFragment(odinEndpoint, projectId, authToken);
+        const { permissions, assertPaths } = await authorizeProject({ projectId, odinEndpoint, authToken }, fragment, 'save');
         const paths = getProjectPaths(fragment);
 
         if (!paths.length) {
             return { statusCode: 200, body: { entries: [] } };
         }
 
-        const { entries, failures } = await recordSnapshot({ paths, odinEndpoint, authToken });
+        const { entries, failures } = await recordSnapshot({
+            paths,
+            odinEndpoint,
+            authToken,
+            assertPaths: permissions.surfaces ? assertPaths : undefined,
+        });
         const lastError =
             failures.length > 0 ? `SAVE_SNAPSHOT:\n${failures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProjectFragment(odinEndpoint, projectId, authToken, { snapshots: entries, lastError });
@@ -37,6 +44,7 @@ async function main(params) {
         );
         return { statusCode: 200, body: { entries, lastError } };
     } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
         logger.error(JSON.stringify({ event: 'save-snapshot-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }

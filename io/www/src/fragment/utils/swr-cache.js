@@ -240,7 +240,12 @@ export function createSwrCache({
                     const notModified = loaded === NOT_MODIFIED;
                     const { value, etag } = notModified ? entry : conditional ? (loaded ?? {}) : { value: loaded };
                     if (value == null) return value;
-                    if (notModified) logDebug(() => `[${name}] "${key}" not modified`, context);
+                    if (notModified) {
+                        logDebug(
+                            () => `[${name}] "${key}" not modified (304, etag ${etag}): keeping the cached value`,
+                            context,
+                        );
+                    }
                     const policy = shouldCache(value);
                     if (!policy) return value;
                     if (backends[mode] === backend && !backend.superseded.has(memoryKey)) {

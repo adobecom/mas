@@ -741,8 +741,19 @@ describe('swr-cache', () => {
                 expect(cold.firstCall.args[0]).to.deep.equal({ etag: undefined });
 
                 const notModified = sinon.stub().resolves(NOT_MODIFIED);
-                expect(await revalidate(notModified)).to.equal('v1');
+                const output = sinon.stub(console, 'log');
+                try {
+                    expect(await revalidate(notModified)).to.equal('v1');
+                } finally {
+                    output.restore();
+                }
                 expect(notModified.firstCall.args[0]).to.deep.equal({ etag: '"e1"' });
+                const lines = output.getCalls().map(({ args }) => args[0]);
+                expect(
+                    lines.some((line) =>
+                        /\[conditional\] "k" not modified \(304, etag "e1"\): keeping the cached value$/.test(line),
+                    ),
+                ).to.be.true;
 
                 const unused = sinon.stub();
                 expect(await cache.get(published, 'k', unused)).to.equal('v1');

@@ -88,10 +88,26 @@ class PreviewPolicyTests(unittest.TestCase):
     def test_io_gate_is_first_and_requires_human_review(self):
         self.assertEqual(next(iter(self.gates)), "io-preview-support")
         gate = self.gates["io-preview-support"]
-        self.assertEqual(gate["template"], "protected_paths")
-        self.assertEqual(set(gate["paths"]), {"io/www", "io/studio"})
+        self.assertEqual(gate["template"], "command")
+        self.assertEqual(gate["cmd"], "bash .pinata/scripts/check-io-allowlist.sh {changed_files}")
+        # The engine re-runs a failed command on the base commit to waive pre-existing failures.
+        # This check depends only on its arguments, so a waiver would always apply: disable it.
+        self.assertIs(gate["waive_preexisting"], False)
         self.assertIs(gate["blocking"], True)
         self.assertEqual(gate["failure_route"], "escalate_to_human")
+
+    def test_io_allowlist_is_the_reviewed_set(self):
+        lines = (CONTRACT / "io-allowlist.txt").read_text().splitlines()
+        entries = [line.split("#")[0].strip() for line in lines]
+        self.assertEqual(
+            [entry for entry in entries if entry],
+            [
+                "io/www/src/fragment/locales.js",
+                "io/studio/src/locales.js",
+                "io/www/test/**",
+                "io/studio/test/**",
+            ],
+        )
 
     def test_io_files_do_not_select_production_surfaces(self):
         files = ["io/www/src/fragment/index.js", "io/studio/actions/save.js"]

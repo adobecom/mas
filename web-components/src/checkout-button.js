@@ -16,12 +16,17 @@ export class CheckoutButton extends CheckoutMixin(HTMLButtonElement) {
         return true;
     }
 
-    clickHandler(e) {
+    async clickHandler(e) {
         if (this.handleAupCheckout(e)) return;
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(e);
-            return;
+        if (this.checkoutActionHandler instanceof Promise) {
+            e.preventDefault();
+            const handler = await this.checkoutActionHandler;
+            if (handler) {
+                handler(e);
+                return;
+            }
         }
+
         if (this.href) {
             window.location.href = this.href;
         }

@@ -229,6 +229,7 @@
             import { withAem } from './mocks/aem.js';
             import { delay, getTemplateContent, oneEvent } from './utils.js';
             import '../src/mas.js';
+            import { sinon } from './utilities.js';
 
             runTests(async () => {
                 mockIms();
@@ -260,7 +261,7 @@
                             ),
                         ).to.exist;
                     });
-                    it('should use card title as modal trigger', async () => {
+                    it('should use card title as modal trigger, open modal on click', async () => {
                         const [masCommerceService, ccAllApps] =
                             getTemplateContent('fragment-photography-plans');
                         container.append(masCommerceService, ccAllApps);
@@ -271,6 +272,48 @@
                                 'modal-trigger',
                             ),
                         ).to.be.true;
+
+                        const legacy = sinon.spy((event) =>
+                            event.preventDefault(),
+                        );
+                        ccAllApps.ctas[0].checkoutActionHandler =
+                            Promise.resolve(legacy);
+                        ccAllApps.titleElement.click();
+                        await delay(50);
+                        expect(legacy.called).to.be.true;
+                        sinon.restore();
+                    });
+                    it('should use card title as modal trigger, open modal on enter', async () => {
+                        const [masCommerceService, ccAllApps] =
+                            getTemplateContent('fragment-photography-plans');
+                        container.append(masCommerceService, ccAllApps);
+                        await oneEvent(ccAllApps, 'mas:ready');
+                        await delay(50);
+                        expect(
+                            ccAllApps.titleElement.classList.contains(
+                                'modal-trigger',
+                            ),
+                        ).to.be.true;
+
+                        const legacy = sinon.spy((event) =>
+                            event.preventDefault(),
+                        );
+                        ccAllApps.ctas[0].checkoutActionHandler =
+                            Promise.resolve(legacy);
+                        const options = {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true,
+                            cancelable: true,
+                        };
+                        ccAllApps.titleElement.dispatchEvent(
+                            new KeyboardEvent('keypress', options),
+                        );
+                        await delay(50);
+                        expect(legacy.called).to.be.true;
+                        sinon.restore();
                     });
                     it('should render addon checkbox', () => {
                         const [masCommerceService, photoshopWithAddon] =

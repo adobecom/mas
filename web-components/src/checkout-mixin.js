@@ -95,7 +95,7 @@ export function createCheckoutElement(Class, options = {}, innerHTML = '') {
 
 export function CheckoutMixin(Base) {
     return class CheckoutBase extends Base {
-        /* c8 ignore next 1 */
+        /** @type {Promise<CheckoutAction['handler']> | undefined} */
         checkoutActionHandler;
 
         /** @type {AupHandler | undefined} */
@@ -217,7 +217,7 @@ export function CheckoutMixin(Base) {
                 delete options.promotionCode;
             }
             options.country = this.dataset.imsCountry || options.country;
-            const checkoutAction = await service.buildCheckoutAction?.(
+            const checkoutActionPromise = service.buildCheckoutAction?.(
                 offers.flat(),
                 { ...extraOptions, ...options },
                 this,
@@ -226,7 +226,7 @@ export function CheckoutMixin(Base) {
                 offers.flat(),
                 options,
                 {},
-                checkoutAction,
+                checkoutActionPromise,
                 version,
             );
         }
@@ -236,14 +236,14 @@ export function CheckoutMixin(Base) {
          * @param {Commerce.Wcs.Offer[]} offers
          * @param {Commerce.Checkout.Options} options
          * @param {Commerce.Checkout.AnyOptions} overrides
-         * @param {CheckoutAction} checkoutAction
+         * @param {Promise<CheckoutAction>} checkoutActionPromise
          * @param {number} version
          */
         renderOffers(
             offers,
             options,
             overrides = {},
-            checkoutAction = undefined,
+            checkoutActionPromise = undefined,
             version = undefined,
         ) {
             const service = getService();
@@ -251,35 +251,60 @@ export function CheckoutMixin(Base) {
             const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
             options = { ...extraOptions, ...options, ...overrides };
             version ??= this.masElement.togglePending(options);
-            if (this.checkoutActionHandler) {
-                /* c8 ignore next 2 */
-                this.checkoutActionHandler = undefined;
-            }
+
+            let handlerResolved;
+            this.checkoutActionHandler = new Promise((resolve) => {
+                handlerResolved = resolve;
+            });
+
             this.aupHandler = undefined;
             this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
-            if (checkoutAction) {
-                this.masElement.toggleResolved(version, offers, options);
-                const { url, text, className, handler, aupHandler } =
-                    checkoutAction;
-                if (url) {
-                    this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
-                }
-                if (text) this.firstElementChild.innerHTML = text;
-                if (className) this.classList.add(...className.split(' '));
-                if (handler) {
-                    // A 3-in-1 modal builds its iframe from href, so keep the
-                    // real checkout URL here instead of '#'.
-                    this.setCheckoutUrl(
-                        this.isOpen3in1Modal
-                            ? service.buildCheckoutURL(offers, options)
-                            : '#',
-                    );
-                    this.checkoutActionHandler = handler.bind(this);
-                }
-                if (typeof aupHandler === 'function') {
-                    this.aupHandler = aupHandler.bind(this);
-                }
-                this.updateCheckoutUrl();
+            if (checkoutActionPromise) {
+                checkoutActionPromise.then((checkoutAction) => {
+                    if (checkoutAction) {
+                        this.masElement.toggleResolved(
+                            version,
+                            offers,
+                            options,
+                        );
+                        const { url, text, className, handler, aupHandler } =
+                            checkoutAction;
+                        if (url) {
+                            this.setCheckoutUrl(
+                                applyPageLocaleToCheckoutUrl(url),
+                            );
+                        }
+                        if (text) this.firstElementChild.innerHTML = text;
+                        if (className)
+                            this.classList.add(...className.split(' '));
+                        if (handler) {
+                            // A 3-in-1 modal builds its iframe from href, so keep the
+                            // real checkout URL here instead of '#'.
+                            this.setCheckoutUrl(
+                                this.isOpen3in1Modal
+                                    ? service.buildCheckoutURL(offers, options)
+                                    : '#',
+                            );
+                            handlerResolved(handler.bind(this));
+                        } else {
+                            handlerResolved(
+                                () =>
+                                    (window.location.href =
+                                        this.getAttribute('href')),
+                            );
+                        }
+                        if (typeof aupHandler === 'function') {
+                            this.aupHandler = aupHandler.bind(this);
+                        }
+                        this.updateCheckoutUrl();
+                    } else {
+                        handlerResolved(
+                            () =>
+                                (window.location.href =
+                                    this.getAttribute('href')),
+                        );
+                    }
+                });
             }
             if (offers.length) {
                 if (this.masElement.toggleResolved(version, offers, options)) {
@@ -387,8 +412,9 @@ export function CheckoutMixin(Base) {
             this.updateCheckoutUrl();
             e.preventDefault();
             if (aupCheckoutPending) return true;
-            const fallback = () => {
-                if (checkoutActionHandler) return checkoutActionHandler(e);
+            const fallback = async () => {
+                const handler = await checkoutActionHandler;
+                if (handler) return handler(e);
                 if (href) window.location.href = href;
             };
             const notifyAupHandler = (type) => {

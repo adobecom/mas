@@ -172,7 +172,7 @@ runtime continues using its production configuration and production prefill.
 Responses are stored per request key (`req-` metadata in State, `res-` body in Files, both copied in container memory for a minute), and served depending on their last refresh (logged as `cache <outcome>`):
 
 - less than 5 minutes ago: served as is (`hit`),
-- less than an hour ago: served as is (`stale`, with a short CDN `max-age`, `networkConfig.staleCacheMaxAge`, 30s by default), while a non-blocking invocation of this action with the same parameters and `refresh: true` rebuilds and stores it (`refresh`). A container triggers at most one refresh per key a minute, and none while it rebuilds that key. `refresh` is ignored on web requests,
+- less than an hour ago: served as is (`stale`, with a short CDN `max-age`, `networkConfig.staleCacheMaxAge`, 30s by default), while a non-blocking invocation of this action with the same parameters and `refresh` set to the id of the triggering request rebuilds and stores it (`refresh`, logged with the `refresh-<that id>` request id; the trigger logs the activation id). A container triggers at most one refresh per key a minute, and none while it rebuilds that key. `refresh` is ignored on web requests,
 - otherwise (or never stored): rebuilt while the request waits (`miss`), concurrent requests of the same container waiting for the same rebuild (`joined`).
 
 ## configuration

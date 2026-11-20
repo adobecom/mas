@@ -80,7 +80,11 @@ const RESPONSE_HEADERS = {
 };
 
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
-    const requestId = params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
+    // only a non-web invocation (see triggerRefresh) can ask for a refresh, passing the id of the request triggering it
+    const refresh = !params.__ow_method && Boolean(params.refresh);
+    const requestId = refresh
+        ? `refresh-${params.refresh}`
+        : params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
     const region = process.env.__OW_REGION || 'unknown';
     const DEFAULT_HEADERS = {
         Accept: 'application/json, */*',
@@ -95,8 +99,7 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
         DEFAULT_HEADERS,
         status: 200,
         measures: [],
-        // only a non-web invocation (see triggerRefresh) can ask for a refresh
-        refresh: !params.__ow_method && params.refresh === true,
+        refresh,
     };
     mark(context, 'start');
     let returnValue;
@@ -129,8 +132,8 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             const initTime = measureTiming(context, 'init', 'start').duration;
             let timeout = context.networkConfig?.mainTimeout || 5000;
             timeout = Math.max(timeout - initTime, 0);
-            const refresh = () => triggerRefresh(params, openwhiskFactory);
-            returnValue = await Promise.race([mainProcess(context, refresh), createTimeoutPromise(timeout)]);
+            const triggerRefreshOfRequest = () => triggerRefresh(params, requestId, openwhiskFactory);
+            returnValue = await Promise.race([mainProcess(context, triggerRefreshOfRequest), createTimeoutPromise(timeout)]);
         }
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
@@ -196,11 +199,11 @@ const REFRESH_INTERVAL = 60 * 1000;
 const REFRESH_TRIGGER_TIMEOUT = 500;
 
 /** Invokes this action, without waiting for it, to rebuild and store the response for the same request parameters. */
-async function triggerRefresh(params, openwhiskFactory) {
+async function triggerRefresh(params, requestId, openwhiskFactory) {
     const refreshParams = Object.fromEntries(Object.entries(params).filter(([key]) => !key.startsWith('__ow_')));
     const invocation = openwhiskFactory().actions.invoke({
         name: process.env.__OW_ACTION_NAME,
-        params: { ...refreshParams, refresh: true },
+        params: { ...refreshParams, refresh: requestId },
         blocking: false,
     });
     let timer;
@@ -221,8 +224,8 @@ async function refreshInBackground(context, requestKey, refresh) {
     if (refreshes.has(requestKey)) return ', refresh already triggered';
     refreshes.set(requestKey, now);
     try {
-        await refresh();
-        return ', refresh triggered';
+        const { activationId } = await refresh();
+        return `, refresh triggered (activation ${activationId})`;
     } catch (error) {
         refreshes.delete(requestKey);
         logError(`failed to trigger the refresh of ${requestKey}: ${error.message}`, context);

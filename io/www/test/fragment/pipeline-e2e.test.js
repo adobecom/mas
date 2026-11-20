@@ -256,7 +256,10 @@ describe('pipeline end to end', () => {
             it(`should serve ${title} the stored response, and trigger a refresh once`, async () => {
                 const { state, files } = storeResponse(age);
                 const { result: results, lines } = await logs(async () => [
-                    await getFragment({ ...request, state, files, __ow_method: 'get', __ow_headers: {} }, deps()),
+                    await getFragment(
+                        { ...request, state, files, __ow_method: 'get', __ow_headers: { 'x-request-id': 'some-request' } },
+                        deps(),
+                    ),
                     await getFragment({ ...request, state, files, __ow_method: 'get' }, deps()),
                 ]);
                 for (const result of results) {
@@ -269,12 +272,12 @@ describe('pipeline end to end', () => {
                 expect(invoke.calledOnce).to.be.true;
                 expect(invoke.firstCall.args[0]).to.deep.equal({
                     name: '/namespace/MerchAtScale/fragment',
-                    params: { api_key: 'wcms-commerce-ims-ro-user-milo', ...request, state, files, refresh: true },
+                    params: { api_key: 'wcms-commerce-ims-ro-user-milo', ...request, state, files, refresh: 'some-request' },
                     blocking: false,
                 });
                 const [first, second] = summaries(lines);
                 expect(first).to.match(
-                    /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(refreshed .*, refresh triggered\)$/,
+                    /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(refreshed .*, refresh triggered \(activation some-activation\)\)$/,
                 );
                 expect(first).to.match(detail);
                 expect(second).to.match(
@@ -310,23 +313,27 @@ describe('pipeline end to end', () => {
 
         it('should rebuild and store the response on a refresh invocation', async () => {
             const { state, files } = storeResponse(10 * 60 * 1000);
-            const { result, lines } = await logs(() => getFragment({ ...request, state, files, refresh: true }, deps()));
+            const { result, lines } = await logs(() =>
+                getFragment({ ...request, state, files, refresh: 'some-request' }, deps()),
+            );
             expect(result.body).to.deep.include(EXPECTED_BODY);
             expect(invoke.called).to.be.false;
             expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+            // every line of the refresh is marked with the id of the request triggering it
+            expect(lines.every((line) => line.includes('[refresh-some-request]'))).to.be.true;
             expect(summaries(lines)[0]).to.match(/cache refresh req-some-en-us-fragment-fr_FR \| timings/);
         });
 
         it('should not rebuild on a refresh invocation when the stored response is fresh', async () => {
             const { state, files } = storeResponse(60 * 1000);
-            const { lines } = await logs(() => getFragment({ ...request, state, files, refresh: true }, deps()));
+            const { lines } = await logs(() => getFragment({ ...request, state, files, refresh: 'some-request' }, deps()));
             expect(fragmentFetches()).to.be.empty;
             expect(summaries(lines)[0]).to.include('cache hit');
         });
 
         it('should ignore refresh on a web request', async () => {
             const { state, files } = storeResponse(10 * 60 * 1000);
-            const result = await getFragment({ ...request, state, files, refresh: true, __ow_method: 'get' }, deps());
+            const result = await getFragment({ ...request, state, files, refresh: 'some-request', __ow_method: 'get' }, deps());
             expect(result.body).to.deep.equal({ stale: true });
             expect(fragmentFetches()).to.be.empty;
             expect(invoke.calledOnce).to.be.true;
@@ -339,7 +346,7 @@ describe('pipeline end to end', () => {
             const { state, files } = storeResponse(10 * 60 * 1000);
             const { result: results, lines } = await logs(() =>
                 Promise.all([
-                    getFragment({ ...request, state, files, refresh: true }, deps()),
+                    getFragment({ ...request, state, files, refresh: 'some-request' }, deps()),
                     getFragment({ ...request, state, files }, deps()),
                 ]),
             );

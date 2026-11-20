@@ -21,6 +21,7 @@ import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
 import { startOdinTelemetry } from './utils/odin-telemetry.js';
+import { startNetworkLatencyMonitor } from './utils/network-latency.js';
 
 const LAZY_IMPORT_RETRIES = 2;
 const LAZY_IMPORT_RETRY_DELAY = 1000;
@@ -33,6 +34,7 @@ const BUCKET_TO_ENV = {
 
 router.start();
 startOdinTelemetry();
+startNetworkLatencyMonitor();
 
 class MasStudio extends LitElement {
     static properties = {

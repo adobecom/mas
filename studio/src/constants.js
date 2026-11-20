@@ -1,4 +1,5 @@
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../web-components/src/compat-version.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../web-components/src/constants.js';
 
 export const CHECKOUT_CTA_TEXTS = {
     'buy-now': 'Buy now',
@@ -17,6 +18,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'see-plans-and-pricing': 'See plans and pricing',
     'get-for-free': 'Get for free',
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
@@ -39,6 +41,7 @@ export const ANALYTICS_LINK_IDS = [
     'register-now',
     'see-all-plans-and-pricing',
     'see-more',
+    'see-plans-and-pricing',
     'see-terms',
     'select',
     'start-free-trial',
@@ -178,6 +181,44 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+
+const TITLE_DESCRIPTION_PRICES_CTAS = ['cardTitle', 'description', 'prices', 'ctas'];
+
+/**
+ * Editor fields each card template requires, among the ones it has. On a card inheriting from baselines, a cleared required
+ * field stays empty & blocks saving; elsewhere, it stores `''` and inherits.
+ */
+export const TEMPLATE_REQUIRED_FIELDS = {
+    'plans-v2': TITLE_DESCRIPTION_PRICES_CTAS,
+    pro: TITLE_DESCRIPTION_PRICES_CTAS,
+    product: TITLE_DESCRIPTION_PRICES_CTAS,
+    'brand-concierge-product': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-pricing': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-c2': ['description', 'prices', 'ctas'],
+    segment: TITLE_DESCRIPTION_PRICES_CTAS,
+    image: TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart': TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart-mweb': TITLE_DESCRIPTION_PRICES_CTAS,
+    'full-pricing-express': TITLE_DESCRIPTION_PRICES_CTAS,
+    headless: TITLE_DESCRIPTION_PRICES_CTAS,
+    media: ['cardTitle', 'description', 'ctas'],
+    'compare-chart-column': TITLE_DESCRIPTION_PRICES_CTAS,
+    marquee: TITLE_DESCRIPTION_PRICES_CTAS,
+    faq: ['description', 'prices'],
+    'banner-blade': ['cardTitle', 'description', 'ctas'],
+    plans: ['cardTitle', 'prices', 'ctas'],
+    'plans-students': ['cardTitle', 'prices', 'ctas'],
+    'plans-education': ['cardTitle', 'prices', 'ctas'],
+    fries: ['cardTitle', 'description', 'ctas'],
+    mini: ['cardTitle', 'ctas'],
+    'ccd-slice': ['description', 'ctas'],
+    'ccd-suggested': ['cardTitle', 'ctas'],
+    'special-offers': ['cardTitle', 'prices', 'ctas'],
+    catalog: ['cardTitle', 'description', 'ctas'],
+    'ah-try-buy-widget': ['cardTitle', 'description', 'ctas'],
+    'ah-promoted-plans': ['cardTitle', 'description', 'ctas'],
+    'simplified-pricing-express': ['cardTitle', 'description', 'prices', 'ctas'],
+};
 // Plain model paths for the project types. The *_MODEL_ID constants above are the base64 of these
 // same paths (the form the fragment-model API uses), but the referencedBy endpoint returns
 // model.path as the plain path — so reference classification matches on these, like cards/collections.
@@ -240,8 +281,8 @@ export const WORKFLOW_STEP_OPTIONS = [
 ];
 
 export const TAG_MODEL_ID_MAPPING = {
-    [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    [TAG_MERCH_CARD_COLLECTION]: COLLECTION_MODEL_ID,
+    [TAG_MERCH_CARD]: CARD_MODEL_ID,
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);

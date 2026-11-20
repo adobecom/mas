@@ -882,10 +882,11 @@ class MerchCardEditor extends LitElement {
     resetAddonSettingToDefault() {
         let restored = false;
         if (this.effectiveIsVariation || this.#baselineSetsSetting(ADDON)) {
-            const ownBackground = parseAddonBackground(this.fragment?.getFieldValue(ADDON, 0)).background;
+            const ownHtml = this.fragment?.getFieldValue(ADDON, 0);
+            const ownBackground = parseAddonBackground(ownHtml).background;
             const parentBackground = parseAddonBackground(this.#settingParentValue(ADDON)).background;
             restored = this.fragmentStore.resetFieldToParent(ADDON);
-            if (restored && ownBackground && ownBackground !== parentBackground) this.#setAddonBackground(ownBackground);
+            if (restored && ownHtml && ownBackground !== parentBackground) this.#setAddonBackground(ownBackground);
         } else {
             const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
             if (this.isAddonWebComponent(addonFragment)) {

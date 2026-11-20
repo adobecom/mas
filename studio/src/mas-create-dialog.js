@@ -23,18 +23,24 @@ import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
+import { VARIANTS } from './editors/variant-picker.js';
+import { buildOfferTags } from './promotions/offer-utils.js';
+import { buildFragmentTitle } from './utils/fragment-title.js';
+import { HEADLESS_STYLE_CTA_VARIANTS } from '../../web-components/src/constants.js';
 
 const BASELINE_CONFLICT_ERROR = 'A baseline for this product code, market segment and template already exists.';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
 const MISSING_PA_CODE_ERROR = 'No PA code found for this offer';
 
-const INITIAL_TOUCHED = { title: false, osi: false, template: false };
+const INITIAL_TOUCHED = { title: false, osi: false, template: false, org: false };
 const INITIAL_ERRORS = { title: '', offer: '' };
 
 const fieldMessage = (id, message) =>
     html`<div class="field-message" aria-live="polite">
         ${message ? html`<sp-help-text id=${id} variant="negative">${message}</sp-help-text>` : nothing}
     </div>`;
+
+const tagTitle = (tags, category) => tags.find(({ id }) => id.startsWith(`mas:${category}/`))?.title ?? '';
 
 const DEFAULT_TYPE_CONFIG = {
     label: 'Merch Card Collection',
@@ -59,6 +65,12 @@ export class MasCreateDialog extends LitElement {
         marketSegment: { state: true },
         productCode: { state: true },
         template: { state: true },
+        org: { state: true },
+        state: { state: true },
+        blockPage: { state: true },
+        product: { state: true },
+        customerSegment: { state: true },
+        planType: { state: true },
     };
 
     #selectionId = 0;
@@ -179,6 +191,19 @@ export class MasCreateDialog extends LitElement {
             display: flex;
             align-items: center;
         }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .title-preview {
+            padding: 8px 12px;
+            border: 1px solid var(--spectrum-gray-200);
+            border-radius: 4px;
+            background: var(--spectrum-gray-100);
+            color: var(--spectrum-gray-700);
+            overflow-wrap: anywhere;
+        }
     `;
 
     constructor() {
@@ -252,7 +277,18 @@ export class MasCreateDialog extends LitElement {
         this.marketSegment = '';
         this.productCode = '';
         this.template = '';
+        this.org = '';
+        this.state = '';
+        this.blockPage = '';
+        this.product = '';
+        this.customerSegment = '';
+        this.planType = '';
         this.loading = false;
+    }
+
+    #handleTitlePartChange(field, value) {
+        this[field] = value;
+        this.#setError('title', '');
     }
 
     #touch(...fields) {
@@ -273,6 +309,10 @@ export class MasCreateDialog extends LitElement {
         if (!offer) return;
         this.osi = offerSelectorId;
         this.marketSegment = offer.market_segments?.[0] ?? '';
+        const offerTags = buildOfferTags(offer);
+        this.product = tagTitle(offerTags, 'product_code');
+        this.customerSegment = tagTitle(offerTags, 'customer_segment');
+        this.planType = tagTitle(offerTags, 'plan_type');
         const selectionId = ++this.#selectionId;
         if (this.type !== BASELINE_CREATE_TYPE) return;
         this.productArrangementCode = '';
@@ -350,13 +390,13 @@ export class MasCreateDialog extends LitElement {
             event.preventDefault();
         }
 
-        this.#touch('title', 'osi', 'template');
+        this.#touch('title', 'osi', 'template', 'org');
 
-        if (!this.title) {
+        if (this.type === 'merch-card' ? !this.org : !this.title) {
             return;
         }
 
-        if (!this.normalizeFragmentName(this.title)) {
+        if (!this.normalizeFragmentName(this.createTitle)) {
             this.#setError('title', INVALID_TITLE_ERROR);
             return;
         }
@@ -369,7 +409,7 @@ export class MasCreateDialog extends LitElement {
         }
 
         const hasOfferlessTag = this.tags.some((tag) => tag?.includes('offerless'));
-        if (this.type === 'merch-card' && !this.osi && !hasOfferlessTag) {
+        if (this.type === 'merch-card' && (!this.template || (!this.osi && !hasOfferlessTag))) {
             return;
         }
 
@@ -380,8 +420,8 @@ export class MasCreateDialog extends LitElement {
 
         const fragmentData = {
             modelId,
-            title: this.title,
-            name: this.normalizeFragmentName(this.title),
+            title: this.createTitle,
+            name: this.normalizeFragmentName(this.createTitle),
         };
         if (this.type === 'merch-card') {
             fragmentData.data = {
@@ -464,6 +504,36 @@ export class MasCreateDialog extends LitElement {
 
     get titleErrorMessage() {
         return this.touched.title && !this.title ? 'Enter a title' : this.errors.title;
+    }
+
+    get orgErrorMessage() {
+        return this.touched.org && !this.org ? 'Enter an org' : '';
+    }
+
+    get templateLabel() {
+        return VARIANTS.find(({ value }) => value === this.template)?.label ?? '';
+    }
+
+    get isHeadless() {
+        return HEADLESS_STYLE_CTA_VARIANTS.includes(this.template);
+    }
+
+    get fragmentTitle() {
+        return buildFragmentTitle({
+            org: this.org,
+            state: this.state,
+            blockPage: this.blockPage,
+            template: this.templateLabel,
+            product: this.product,
+            customerSegment: this.customerSegment,
+            planType: this.planType,
+            surface: this.surface,
+            isHeadless: this.isHeadless,
+        });
+    }
+
+    get createTitle() {
+        return this.type === 'merch-card' ? this.fragmentTitle : this.title;
     }
 
     get surface() {
@@ -549,6 +619,96 @@ export class MasCreateDialog extends LitElement {
         return html`${this.offerFieldTemplate} ${this.templateFieldTemplate}`;
     }
 
+    get titleFieldTemplate() {
+        return html`
+            <div class="form-field with-message">
+                <sp-field-label for="fragment-title" required>${this.typeConfig.titleLabel}</sp-field-label>
+                <sp-textfield
+                    id="fragment-title"
+                    placeholder=${this.typeConfig.placeholder}
+                    value=${this.title}
+                    ?required=${this.touched.title && !this.errors.title}
+                    ?invalid=${Boolean(this.errors.title)}
+                    aria-describedby=${this.titleErrorMessage ? 'title-error' : nothing}
+                    @input=${(e) => this.handleTitleChange(e.target.value)}
+                    @focusout=${() => this.#touch('title')}
+                ></sp-textfield>
+                ${fieldMessage('title-error', this.titleErrorMessage)}
+            </div>
+        `;
+    }
+
+    get fragmentTitleFieldsTemplate() {
+        const errorMessage = this.orgErrorMessage;
+        return html`
+            <div class="form-field with-message">
+                <sp-field-label for="fragment-org" required>Org</sp-field-label>
+                <sp-textfield
+                    id="fragment-org"
+                    class="uppercase"
+                    value=${this.org}
+                    required
+                    ?invalid=${Boolean(errorMessage)}
+                    aria-describedby=${errorMessage ? 'org-error' : nothing}
+                    @input=${(e) => this.#handleTitlePartChange('org', e.target.value)}
+                    @focusout=${() => this.#touch('org')}
+                ></sp-textfield>
+                ${fieldMessage('org-error', errorMessage)}
+            </div>
+            <div class="form-field">
+                <sp-field-label for="fragment-state">State (optional)</sp-field-label>
+                <sp-textfield
+                    id="fragment-state"
+                    value=${this.state}
+                    @input=${(e) => this.#handleTitlePartChange('state', e.target.value)}
+                ></sp-textfield>
+            </div>
+            ${this.isHeadless
+                ? html`<div class="form-field">
+                      <sp-field-label for="fragment-block-page">Block/Page (optional)</sp-field-label>
+                      <sp-textfield
+                          id="fragment-block-page"
+                          value=${this.blockPage}
+                          @input=${(e) => this.#handleTitlePartChange('blockPage', e.target.value)}
+                      ></sp-textfield>
+                  </div>`
+                : nothing}
+            <div class="form-field with-message">
+                <sp-field-label id="fragment-title-preview-label">Fragment title preview</sp-field-label>
+                <div
+                    id="fragment-title-preview"
+                    class="title-preview"
+                    aria-labelledby="fragment-title-preview-label"
+                    aria-live="polite"
+                >
+                    ${this.fragmentTitle}
+                </div>
+                ${fieldMessage('title-error', this.errors.title)}
+            </div>
+        `;
+    }
+
+    get merchCardFields() {
+        return html`
+            ${this.templateFieldTemplate} ${this.fragmentTitleFieldsTemplate}
+            <div class="form-field">
+                <sp-field-label for="osi" required>OSI Search</sp-field-label>
+                <osi-field
+                    id="osi"
+                    data-field="osi"
+                    ?suppress-error=${!this.touched.osi}
+                    @click=${() => (this.offerSelectorOpened = true)}
+                ></osi-field>
+            </div>
+            <aem-tag-picker-field
+                label="Tags"
+                namespace="/content/cq:tags/mas"
+                multiple
+                @change=${this.#handeTagsChange}
+            ></aem-tag-picker-field>
+        `;
+    }
+
     render() {
         if (this.loading) {
             return html`
@@ -564,39 +724,7 @@ export class MasCreateDialog extends LitElement {
                     <div class="dialog-header">${this.dialogTitle}</div>
                     <div class="dialog-content">
                         <form @submit=${this.handleSubmit}>
-                            <div class="form-field with-message">
-                                <sp-field-label for="fragment-title" required>${this.typeConfig.titleLabel}</sp-field-label>
-                                <sp-textfield
-                                    id="fragment-title"
-                                    placeholder=${this.typeConfig.placeholder}
-                                    value=${this.title}
-                                    ?required=${this.touched.title && !this.errors.title}
-                                    ?invalid=${Boolean(this.errors.title)}
-                                    aria-describedby=${this.titleErrorMessage ? 'title-error' : nothing}
-                                    @input=${(e) => this.handleTitleChange(e.target.value)}
-                                    @focusout=${() => this.#touch('title')}
-                                ></sp-textfield>
-                                ${fieldMessage('title-error', this.titleErrorMessage)}
-                            </div>
-                            ${this.type === 'merch-card'
-                                ? html`
-                                      <div class="form-field">
-                                          <sp-field-label for="osi" required>OSI Search</sp-field-label>
-                                          <osi-field
-                                              id="osi"
-                                              data-field="osi"
-                                              ?suppress-error=${!this.touched.osi}
-                                              @click=${() => (this.offerSelectorOpened = true)}
-                                          ></osi-field>
-                                      </div>
-                                      <aem-tag-picker-field
-                                          label="Tags"
-                                          namespace="/content/cq:tags/mas"
-                                          multiple
-                                          @change=${this.#handeTagsChange}
-                                      ></aem-tag-picker-field>
-                                  `
-                                : nothing}
+                            ${this.type === 'merch-card' ? this.merchCardFields : this.titleFieldTemplate}
                             ${this.type === BASELINE_CREATE_TYPE ? this.baselineFields : nothing}
                         </form>
                     </div>

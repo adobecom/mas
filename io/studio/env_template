@@ -39,3 +39,7 @@ IMS_CLIENT_SECRET=
 IMS_SCOPES=
 # optional override; defaults to https://ims-na1.adobelogin.com/ims/token/v3
 IMS_TOKEN_URL=
+
+# MASA dashboard aggregate ingestion; match MAS_AGENT_DASHBOARD_PUSH_SECRET on the MASA host.
+# Keep this in the target workspace's protected env. Empty disables ingestion.
+MAS_AGENT_DASHBOARD_PUSH_SECRET=

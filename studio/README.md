@@ -36,3 +36,15 @@ MASA and Offers are enabled in `studio.html`. Disable either independently by se
 - `mas-offers-enabled`: Offers catalog and product details.
 
 Reload after changing the configuration. Missing flags default to disabled. These are rollout flags, not authorization controls. Disabled features do not import their implementations, load their styles, or initialize their storage. Enabled features load on navigation; the drawer loads only when opened. Storage failures fall back to in-memory chat sessions.
+
+## MASA dashboard
+
+MAS administrators can open **Advanced tools → MASA dashboard** to review usage,
+response times, tokens, outcomes and tool performance over 24 hours, 7 days or
+30 days. The page uses the existing Studio sign-in and the configured I/O workspace.
+Snapshots arrive every five minutes; the last update time and stale-data state are
+shown explicitly. Refresh checks for the most recently received snapshot.
+
+The dashboard is separate from the MASA assistant rollout flag. Both navigation and
+the Runtime read action require the MAS admin group. See the [Runtime setup](../io/studio/README.md#masa-dashboard)
+for deployment and the shared push-secret configuration.

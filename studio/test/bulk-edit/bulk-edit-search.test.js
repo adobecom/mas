@@ -1,9 +1,8 @@
 import { expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { EDITABLE_FRAGMENT_MODEL_IDS, FRAGMENT_STATUS_OPTIONS } from '../../src/constants.js';
+import { FRAGMENT_STATUS_OPTIONS } from '../../src/constants.js';
 import { MasRepository } from '../../src/mas-repository.js';
-import { AEM } from '../../src/aem/aem.js';
 import { getAemSearchTerm } from '../../src/utils.js';
 import { __tagCacheStores } from '../../src/aem/tag-cache.js';
 import { buildSearchRow, findSearchRows, highlightSearchText, SEARCH_FIELDS } from '../../src/bulk-edit/bulk-edit-search.js';
@@ -154,6 +153,22 @@ describe('progressive Enter-to-find search', () => {
             rawFragment(`card-${start + index}`, { cardTitle: `Offer ${start + index}`, callout: 'School' }),
         );
 
+    const stubBulkFindExport = (items) => {
+        sinon.stub(document, 'querySelector').callThrough().withArgs('meta[name="io-base-url"]').returns({
+            content: 'https://io.example.com/studio',
+        });
+        sinon.stub(sessionStorage, 'getItem').withArgs('masAccessToken').returns('test-token');
+        return sinon.stub(window, 'fetch').callsFake(async (url, init) => {
+            const body =
+                init.method === 'POST'
+                    ? { jobId: 'find-job' }
+                    : url.endsWith('?jobId=find-job')
+                      ? { done: true, exportReady: true, status: 'DONE', exports: { json: 'https://files.example.com/find' } }
+                      : { items };
+            return new Response(JSON.stringify(body), { status: 200 });
+        });
+    };
+
     const stubVariations = () => {
         const locale = rawFragment('locale', { callout: 'Regional text' }, { path: '/content/dam/mas/acom/en_GB/school' });
         const promotion = rawFragment('promotion', {}, { path: '/content/dam/mas/acom/en_US/promotions/sale/school' });
@@ -226,7 +241,7 @@ describe('progressive Enter-to-find search', () => {
         Store.filters.set({ ...previousFilters, locale: 'en_US' });
         Store.bulkEditProjects.projectId.set(null);
         repository = {
-            searchFragmentPages: sinon.stub().callsFake(async function* ({ query }) {
+            searchBulkEditFragmentPages: sinon.stub().callsFake(async function* ({ query }) {
                 yield fragments.filter(({ title }) => title.toLowerCase().includes(query.toLowerCase()));
             }),
             processError: sinon.stub(),
@@ -246,24 +261,24 @@ describe('progressive Enter-to-find search', () => {
     it('uses a Spectrum search control and does not fetch on connection or after typing stops', async () => {
         await connect();
         expect(editor.shadowRoot.querySelector('#find-text').localName).to.equal('sp-search');
-        expect(repository.searchFragmentPages.called).to.be.false;
+        expect(repository.searchBulkEditFragmentPages.called).to.be.false;
         const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         await type('school');
         await clock.tickAsync(5000);
-        expect(repository.searchFragmentPages.called).to.be.false;
+        expect(repository.searchBulkEditFragmentPages.called).to.be.false;
         expect(editor.searchResults).to.have.lengthOf(0);
         clock.restore();
     });
 
-    it('submits the selected surface and locale in newest-updated order and honors Search in and Match case', async () => {
+    it('submits the selected surface and locale to Bulk Find and honors local Search in and Match case', async () => {
         await connect();
         await submit('school');
-        const [options, pageSize, controller] = repository.searchFragmentPages.firstCall.args;
+        const [options, pageSize, controller] = repository.searchBulkEditFragmentPages.firstCall.args;
         expect(options).to.deep.equal({
-            path: '/content/dam/mas/acom/en_US',
-            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            surface: 'acom',
+            locale: 'en_US',
             query: 'school',
-            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            replace: '',
         });
         expect(pageSize).to.equal(50);
         expect(controller.signal.aborted).to.be.false;
@@ -281,9 +296,9 @@ describe('progressive Enter-to-find search', () => {
         editor.searchFields = [];
         await editor.updateComplete;
         expect(editor.searchedQuery).to.equal('School');
-        const calls = repository.searchFragmentPages.callCount;
+        const calls = repository.searchBulkEditFragmentPages.callCount;
         await submit('School');
-        expect(repository.searchFragmentPages.callCount).to.equal(calls + 1);
+        expect(repository.searchBulkEditFragmentPages.callCount).to.equal(calls + 1);
         expect(editor.searchResults).to.have.lengthOf(0);
     });
 
@@ -354,20 +369,20 @@ describe('progressive Enter-to-find search', () => {
             await picker.applySelection();
             await waitUntil(() => editor.resultFilters.tagPaths[type]?.length === 1 && !editor.searching);
         }
-        const options = repository.searchFragmentPages.lastCall.args[0];
+        const options = repository.searchBulkEditFragmentPages.lastCall.args[0];
         expect(options.tags).to.deep.equal([
             'mas:market_segments/edu',
             'mas:customer_segment/individual',
             'mas:product_code/photoshop',
             'mas:product_code/photoshop/cc',
         ]);
-        expect(options.path).to.equal('/content/dam/mas/acom/en_US');
+        expect(options).to.include({ surface: 'acom', locale: 'en_US' });
         expect(Store.filters.get().tags).to.equal(previousFilters.tags);
     });
 
     it('serializes tag and status filters to AEM and re-runs the active term while ignoring cancelled pages', async () => {
         let resolveOld;
-        repository.searchFragmentPages.onFirstCall().returns({
+        repository.searchBulkEditFragmentPages.onFirstCall().returns({
             next: () => new Promise((resolve) => (resolveOld = resolve)),
         });
         await connect();
@@ -381,30 +396,24 @@ describe('progressive Enter-to-find search', () => {
         };
         editor.handleResultFiltersChange({ detail: next });
         await waitUntil(() => !editor.searching);
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
-        expect(repository.searchFragmentPages.secondCall.args[0]).to.include({ query: 'school' });
-        expect(repository.searchFragmentPages.secondCall.args[0].tags).to.deep.equal(next.tags);
-        expect(repository.searchFragmentPages.secondCall.args[0].status).to.deep.equal(next.statuses);
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.secondCall.args[0]).to.include({ query: 'school' });
+        expect(repository.searchBulkEditFragmentPages.secondCall.args[0].tags).to.deep.equal(next.tags);
+        expect(repository.searchBulkEditFragmentPages.secondCall.args[0].status).to.deep.equal(next.statuses);
         resolveOld({ value: [fragments[1]], done: false });
         await oldSearch;
         expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['school']);
 
-        const fetch = sinon.stub(window, 'fetch').resolves(
-            new Response(JSON.stringify({ items: [] }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            }),
-        );
+        const fetch = stubBulkFindExport([]);
         repository = new MasRepository();
-        repository.aem = new AEM('test-bucket', 'https://aem.example.com');
         editor.remove();
         await connect();
         editor.resultFilters = next;
         await submit('school');
-        const { filter } = JSON.parse(new URL(fetch.firstCall.args[0]).searchParams.get('query'));
-        expect(filter.tags).to.deep.equal(next.tags);
-        expect(filter.status).to.deep.equal(next.statuses);
-        expect(filter.fullText.text).to.equal('school');
+        const payload = JSON.parse(fetch.firstCall.args[1].body);
+        expect(payload.tags).to.deep.equal(next.tags);
+        expect(payload.status).to.deep.equal(next.statuses);
+        expect(payload.find).to.equal('school');
     });
 
     it('supports locale search, select all, region collapse and partial region selection without a server fetch', async () => {
@@ -413,7 +422,7 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         const filters = editor.shadowRoot.querySelector('mas-bulk-edit-filters');
         await filters.updateComplete;
-        const calls = repository.searchFragmentPages.callCount;
+        const calls = repository.searchBulkEditFragmentPages.callCount;
         expect(filters.allVisibleSelected).to.be.true;
         expect(filters.localeGroups.map(({ name }) => name)).to.include('JAPAC');
         filters.toggleRegion('JAPAC');
@@ -439,7 +448,7 @@ describe('progressive Enter-to-find search', () => {
         filters.toggleLocales(filters.visibleLocaleCodes, true);
         await filters.updateComplete;
         expect(editor.resultFilters.locales).to.equal(null);
-        expect(repository.searchFragmentPages.callCount).to.equal(calls);
+        expect(repository.searchBulkEditFragmentPages.callCount).to.equal(calls);
         search.value = 'not-a-locale';
         search.dispatchEvent(new Event('input'));
         await filters.updateComplete;
@@ -447,33 +456,30 @@ describe('progressive Enter-to-find search', () => {
         expect(filters.shadowRoot.querySelector('sp-checkbox[value="all"]').disabled).to.be.true;
     });
 
-    it('sends EDGES filtering to AEM and matches the full phrase locally instead of scanning the surface', async () => {
+    it('starts Bulk Find with the full phrase, downloads its export, and filters locally without an AEM query', async () => {
         const candidates = [
             rawFragment('matching', { callout: 'Back to high school' }, { title: 'School offer' }),
             rawFragment('wrong-order', { callout: 'school high' }, { title: 'School offer' }),
             rawFragment('wrong-field', { prices: 'high school' }, { title: 'School offer' }),
         ];
-        const fetch = sinon.stub(window, 'fetch').resolves(
-            new Response(JSON.stringify({ items: candidates }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            }),
-        );
+        const fetch = stubBulkFindExport(candidates);
         repository = new MasRepository();
-        repository.aem = new AEM('test-bucket', 'https://aem.example.com');
         repository.processError = sinon.stub();
         await connect();
         editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         await submit('high school');
-        expect(fetch.calledOnce).to.be.true;
-        const request = new URL(fetch.firstCall.args[0]);
-        const { filter, sort } = JSON.parse(request.searchParams.get('query'));
-        expect(filter.fullText).to.deep.equal({ text: 'school', queryMode: 'EDGES' });
-        expect(filter.path).to.equal('/content/dam/mas/acom/en_US');
-        expect(filter.modelIds).to.deep.equal(EDITABLE_FRAGMENT_MODEL_IDS);
-        expect(sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
-        expect(request.searchParams.get('limit')).to.equal('50');
+        expect(fetch.callCount).to.equal(3);
+        expect(fetch.firstCall.args[0]).to.equal('https://io.example.com/studio/bulk-edit-find');
+        expect(JSON.parse(fetch.firstCall.args[1].body)).to.deep.equal({
+            surface: 'acom',
+            find: 'high school',
+            replace: 'high school',
+            searchIn: '*',
+            matchCase: false,
+            locale: ['en_US'],
+        });
+        expect(fetch.thirdCall.args[1].headers).to.equal(undefined);
         expect(editor.searchResults.map((row) => row.id)).to.deep.equal(['matching']);
         expect(editor.hasMoreResults).to.be.false;
     });
@@ -486,16 +492,8 @@ describe('progressive Enter-to-find search', () => {
             rawFragment(`indexed-${index}`, { cardTitle: 'Education' }, { title: `Indexed offer ${index}` }),
         );
         const candidates = [...literal, ...indexed];
-        const fetch = sinon.stub(window, 'fetch');
-        fetch.callsFake(
-            async () =>
-                new Response(JSON.stringify({ items: candidates }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                }),
-        );
+        const fetch = stubBulkFindExport(candidates);
         repository = new MasRepository();
-        repository.aem = new AEM('test-bucket', 'https://aem.example.com');
         repository.processError = sinon.stub();
         await connect();
         expect(findSearchRows(candidates.map(buildSearchRow), 'school', editor.searchFields, false)).to.have.lengthOf(7);
@@ -503,11 +501,7 @@ describe('progressive Enter-to-find search', () => {
         expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(literal.map(({ id }) => id));
         expect(editor.searchResults).to.have.lengthOf(7);
         expect(editor.hasMoreResults).to.be.false;
-        const request = new URL(fetch.firstCall.args[0]);
-        expect(JSON.parse(request.searchParams.get('query')).filter.fullText).to.deep.equal({
-            text: 'school',
-            queryMode: 'EDGES',
-        });
+        expect(JSON.parse(fetch.firstCall.args[1].body).find).to.equal('school');
         editor.searchFields = ['calloutText'];
         await editor.updateComplete;
         await waitUntil(() => !editor.searching);
@@ -521,10 +515,10 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         await waitUntil(() => !editor.searching);
         expect(editor.searchResults).to.have.lengthOf(7);
-        expect(fetch.calledOnce).to.be.true;
+        expect(fetch.callCount).to.equal(3);
         await submit('school offer');
         expect(editor.searchResults).to.have.lengthOf(7);
-        expect(fetch.calledTwice).to.be.true;
+        expect(fetch.callCount).to.equal(6);
     });
 
     it('filters only cached pages on Search in changes and resumes paging only on explicit Load more', async () => {
@@ -535,7 +529,7 @@ describe('progressive Enter-to-find search', () => {
             done: false,
         });
         next.onThirdCall().resolves({ done: true });
-        repository.searchFragmentPages.returns({ next });
+        repository.searchBulkEditFragmentPages.returns({ next });
         await connect();
         await submit('school');
         expect(next.calledOnce).to.be.true;
@@ -554,7 +548,7 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         await editor.loadNextSearchPage();
         expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['prices-match']);
-        expect(repository.searchFragmentPages.calledOnce).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.calledOnce).to.be.true;
         expect(next.callCount).to.equal(3);
         editor.searchFields = SEARCH_FIELDS.map(({ value }) => value);
         await editor.updateComplete;
@@ -565,20 +559,20 @@ describe('progressive Enter-to-find search', () => {
         let resolvePage;
         const next = sinon.stub();
         next.onFirstCall().returns(new Promise((resolve) => (resolvePage = resolve)));
-        repository.searchFragmentPages.returns({ next });
+        repository.searchBulkEditFragmentPages.returns({ next });
         await connect();
         const search = submit('school');
         await waitUntil(() => resolvePage);
         editor.searchFields = ['prices'];
         await editor.updateComplete;
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.false;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.false;
         resolvePage({
             value: [fragments[0], rawFragment('prices-match', { prices: 'school' })],
             done: false,
         });
         await search;
         expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['prices-match']);
-        expect(repository.searchFragmentPages.calledOnce).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.calledOnce).to.be.true;
         expect(next.calledOnce).to.be.true;
         expect(editor.hasMoreResults).to.be.true;
         editor.searchFields = SEARCH_FIELDS.map(({ value }) => value);
@@ -589,7 +583,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('publishes a page while the next page is still loading', async () => {
         let resolveNext;
-        repository.searchFragmentPages.callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.callsFake(async function* () {
             yield [fragments[0]];
             yield await new Promise((resolve) => (resolveNext = resolve));
         });
@@ -609,7 +603,7 @@ describe('progressive Enter-to-find search', () => {
         next.onCall(0).resolves({ value: matchingPage(0), done: false });
         next.onCall(1).resolves({ value: matchingPage(25), done: false });
         next.onCall(2).resolves({ done: true });
-        repository.searchFragmentPages.returns({ next });
+        repository.searchBulkEditFragmentPages.returns({ next });
         await connect();
         await submit('school');
         expect(next.calledOnce).to.be.true;
@@ -624,7 +618,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('bounds sparse searches to 20 pages and keeps Load more available when there are no matches yet', async () => {
         const next = sinon.stub().resolves({ value: [fragments[1]], done: false });
-        repository.searchFragmentPages.returns({ next });
+        repository.searchBulkEditFragmentPages.returns({ next });
         await connect();
         editor.searchFields = ['calloutText'];
         await editor.updateComplete;
@@ -642,7 +636,7 @@ describe('progressive Enter-to-find search', () => {
         const next = sinon.stub();
         next.onFirstCall().resolves({ value: matchingPage(0), done: false });
         next.onSecondCall().returns(new Promise((resolve) => (resolveNext = resolve)));
-        repository.searchFragmentPages.returns({ next });
+        repository.searchBulkEditFragmentPages.returns({ next });
         await connect();
         await submit('school');
         editor.handleSearchRangeChange({ last: 5 });
@@ -657,14 +651,14 @@ describe('progressive Enter-to-find search', () => {
 
     it('ignores responses from an old search when a different query is submitted', async () => {
         let resolveOld;
-        repository.searchFragmentPages.onFirstCall().returns({
+        repository.searchBulkEditFragmentPages.onFirstCall().returns({
             next: () => new Promise((resolve) => (resolveOld = resolve)),
         });
         await connect();
         const oldSearch = submit('school');
         await waitUntil(() => resolveOld);
         await submit('university');
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
         resolveOld({ value: fragments, done: false });
         await oldSearch;
         expect(editor.searchResults.map((row) => row.id)).to.deep.equal(['university']);
@@ -673,7 +667,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('clears results and aborts pending work when Find is cleared, without starting another fetch', async () => {
         let resolveLoad;
-        repository.searchFragmentPages.returns({
+        repository.searchBulkEditFragmentPages.returns({
             next: () => new Promise((resolve) => (resolveLoad = resolve)),
         });
         await connect();
@@ -684,8 +678,8 @@ describe('progressive Enter-to-find search', () => {
         await search;
         expect(editor.searchResults).to.have.lengthOf(0);
         expect(editor.searchedQuery).to.equal('');
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
-        expect(repository.searchFragmentPages.calledOnce).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.calledOnce).to.be.true;
     });
 
     it('aborts on surface changes and requires Enter before searching the new surface', async () => {
@@ -693,16 +687,16 @@ describe('progressive Enter-to-find search', () => {
         await submit('school');
         Store.search.set({ ...Store.search.get(), path: 'ccd' });
         await editor.updateComplete;
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
-        expect(repository.searchFragmentPages.calledOnce).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.calledOnce).to.be.true;
         expect(editor.searchResults).to.have.lengthOf(0);
         await submit('school');
-        expect(repository.searchFragmentPages.secondCall.args[0].path).to.equal('/content/dam/mas/ccd/en_US');
+        expect(repository.searchBulkEditFragmentPages.secondCall.args[0]).to.include({ surface: 'ccd', locale: 'en_US' });
     });
 
     it('uses the Fragments locale and discards an old locale response without starting a search automatically', async () => {
         let resolveOld;
-        repository.searchFragmentPages.onFirstCall().returns({
+        repository.searchBulkEditFragmentPages.onFirstCall().returns({
             next: () => new Promise((resolve) => (resolveOld = resolve)),
         });
         const french = rawFragment(
@@ -712,7 +706,7 @@ describe('progressive Enter-to-find search', () => {
                 path: '/content/dam/mas/acom/fr_FR/french',
             },
         );
-        repository.searchFragmentPages.onSecondCall().callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.onSecondCall().callsFake(async function* () {
             yield [french];
         });
         await connect();
@@ -720,13 +714,13 @@ describe('progressive Enter-to-find search', () => {
         await waitUntil(() => resolveOld);
         Store.filters.set({ ...Store.filters.get(), locale: 'fr_FR' });
         await editor.updateComplete;
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
-        expect(repository.searchFragmentPages.calledOnce).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.calledOnce).to.be.true;
         expect(editor.searchResults).to.have.lengthOf(0);
         expect(editor.searchedQuery).to.equal('');
         expect(editor.shadowRoot.querySelector('.preview-notice').textContent).to.include('fr_FR');
         await submit('school');
-        expect(repository.searchFragmentPages.secondCall.args[0].path).to.equal('/content/dam/mas/acom/fr_FR');
+        expect(repository.searchBulkEditFragmentPages.secondCall.args[0]).to.include({ surface: 'acom', locale: 'fr_FR' });
         resolveOld({ value: fragments, done: false });
         await oldSearch;
         expect(editor.searchResults.map((row) => row.id)).to.deep.equal(['french']);
@@ -734,7 +728,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('reports later-page errors without hiding partial results and supports Retry', async () => {
         const error = new Error('AEM unavailable');
-        repository.searchFragmentPages.callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.callsFake(async function* () {
             yield [fragments[0]];
             throw error;
         });
@@ -745,7 +739,7 @@ describe('progressive Enter-to-find search', () => {
         expect(repository.processError.calledOnceWithExactly(error, 'Could not load fragments for text search.')).to.be.true;
         await editor.updateComplete;
         expect(editor.shadowRoot.querySelector('[role="alert"]')).to.exist;
-        repository.searchFragmentPages.callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.callsFake(async function* () {
             yield [fragments[0]];
         });
         await editor.retrySearch();
@@ -755,7 +749,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('aborts pending pages on disconnect without reporting cancellation as an error', async () => {
         let rejectLoad;
-        repository.searchFragmentPages.returns({
+        repository.searchBulkEditFragmentPages.returns({
             next: () => new Promise((resolve, reject) => (rejectLoad = reject)),
         });
         await connect();
@@ -765,7 +759,7 @@ describe('progressive Enter-to-find search', () => {
         rejectLoad(new DOMException('Aborted', 'AbortError'));
         await search;
         expect(editor.searchResults).to.have.lengthOf(0);
-        expect(repository.searchFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
+        expect(repository.searchBulkEditFragmentPages.firstCall.args[2].signal.aborted).to.be.true;
         expect(repository.processError.called).to.be.false;
     });
 
@@ -786,7 +780,7 @@ describe('progressive Enter-to-find search', () => {
                 tags: [{ id: 'mas:promotion/sale' }],
             },
         );
-        repository.searchFragmentPages.callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.callsFake(async function* () {
             yield [fragments[0], hidden, grouped, promotion, taggedPromotion];
             yield [fragments[0], rawFragment('older', { cardTitle: 'Acrobat', callout: 'School' })];
         });
@@ -798,7 +792,7 @@ describe('progressive Enter-to-find search', () => {
 
     it('refills past promotion-only pages instead of counting those copies toward the visible parent target', async () => {
         let pages = 0;
-        repository.searchFragmentPages.callsFake(async function* () {
+        repository.searchBulkEditFragmentPages.callsFake(async function* () {
             pages++;
             yield Array.from({ length: 25 }, (_, index) =>
                 rawFragment(
@@ -860,7 +854,7 @@ describe('progressive Enter-to-find search', () => {
         editor.handleFragmentSelection({ target: { checked: true } }, parent);
         editor.handleFragmentSelection({ target: { checked: true } }, editor.displayRows[2]);
         const state = editor.variationStates.get(parent.id);
-        const calls = repository.searchFragmentPages.callCount;
+        const calls = repository.searchBulkEditFragmentPages.callCount;
         editor.searchFields = ['prices'];
         await editor.updateComplete;
         expect(editor.searchResults).to.have.lengthOf(0);
@@ -871,7 +865,7 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         expect(editor.displayRows.map(({ id }) => id)).to.deep.equal(['school', 'variations:school', 'locale']);
         expect(editor.selectedDisplayedCount).to.equal(2);
-        expect(repository.searchFragmentPages.callCount).to.equal(calls);
+        expect(repository.searchBulkEditFragmentPages.callCount).to.equal(calls);
         expect(repository.aem.sites.cf.fragments.getById.calledOnce).to.be.true;
     });
 
@@ -918,7 +912,7 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         const locale = editor.variationStates.get(parent.id).rows.locale[0];
         editor.handleFragmentSelection({ target: { checked: true } }, locale);
-        const calls = repository.searchFragmentPages.callCount;
+        const calls = repository.searchBulkEditFragmentPages.callCount;
         editor.handleResultFiltersChange({ detail: { ...editor.resultFilters, locales: ['en_US'] } });
         await editor.updateComplete;
         expect(editor.displayRows.map(({ id }) => id)).to.deep.equal(['school', 'variations:school']);
@@ -938,7 +932,7 @@ describe('progressive Enter-to-find search', () => {
         await editor.updateComplete;
         expect(editor.displayRows.map(({ id }) => id)).to.deep.equal(['school', 'variations:school', 'locale']);
         expect(editor.displayRows[2].variationClass).to.equal('variation-cell variation-first variation-last');
-        expect(repository.searchFragmentPages.callCount).to.equal(calls);
+        expect(repository.searchBulkEditFragmentPages.callCount).to.equal(calls);
         expect(repository.aem.sites.cf.fragments.getById.calledOnce).to.be.true;
     });
 

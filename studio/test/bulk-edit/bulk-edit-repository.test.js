@@ -6,13 +6,14 @@ import { Fragment } from '../../src/aem/fragment.js';
 import { trackPendingProject } from '../../src/common/utils/project-list-utils.js';
 import {
     buildBulkEditReplaceRequest,
+    searchBulkEditFragmentPages,
     getBulkEditProjectsPath,
     isBulkEditProjectTitleTaken,
     isValidBulkEditProjectTitle,
     loadBulkEditProjects,
 } from '../../src/bulk-edit/bulk-edit-repository.js';
 
-describe('buildBulkEditReplaceRequest', () => {
+describe('Bulk Edit API requests', () => {
     let sandbox;
     let meta;
     let storedToken;
@@ -82,6 +83,135 @@ describe('buildBulkEditReplaceRequest', () => {
         ims.returns(undefined);
         expect(() => buildBulkEditReplaceRequest('find-job-id')).to.throw('An IMS access token is required');
     });
+
+    const ready = {
+        jobId: 'find-job',
+        status: 'DONE',
+        done: true,
+        exportReady: true,
+        exports: { json: 'https://files.example.com/find.json' },
+    };
+    const response = (body, status = 200) => new Response(JSON.stringify(body), { status });
+    const findOptions = {
+        query: 'high school',
+        replace: 'university',
+        surface: 'acom',
+        locale: 'en_US',
+        tags: ['mas:market_segments/edu'],
+        status: ['PUBLISHED', 'MODIFIED'],
+    };
+
+    it('starts Find, polls with IMS credentials, and downloads complete fragments without leaking credentials', async () => {
+        const controller = new AbortController();
+        const items = [
+            { id: 'parent', path: '/content/dam/mas/acom/en_US/parent', fields: [], matches: [{ field: 'title' }] },
+            { id: 'child', path: '/content/dam/mas/acom/en_US/child', fields: [] },
+            { id: 'last', path: '/content/dam/mas/acom/en_US/last', fields: [] },
+        ];
+        const fetch = sandbox.stub(window, 'fetch');
+        fetch.onCall(0).resolves(response({ jobId: 'find-job', reused: true }));
+        fetch.onCall(1).resolves(response(ready));
+        fetch.onCall(2).resolves(response({ items }));
+        const iterator = searchBulkEditFragmentPages(findOptions, 2, controller);
+        expect((await iterator.next()).value).to.deep.equal(items.slice(0, 2));
+        expect((await iterator.next()).value).to.deep.equal(items.slice(2));
+        expect((await iterator.next()).done).to.be.true;
+        expect(fetch.callCount).to.equal(3);
+        expect(fetch.firstCall.args[0]).to.equal(`${meta.content}/bulk-edit-find`);
+        expect(JSON.parse(fetch.firstCall.args[1].body)).to.deep.equal({
+            surface: 'acom',
+            find: 'high school',
+            replace: 'university',
+            searchIn: '*',
+            matchCase: false,
+            locale: ['en_US'],
+            tags: findOptions.tags,
+            status: findOptions.status,
+        });
+        expect(fetch.secondCall.args[0]).to.equal(`${meta.content}/bulk-edit-find?jobId=find-job`);
+        expect(fetch.secondCall.args[1].headers.Authorization).to.equal('Bearer stored-token');
+        expect(fetch.thirdCall.args).to.deep.equal([ready.exports.json, { signal: controller.signal }]);
+        expect(fetch.getCalls().some(({ args: [url] }) => url.includes('bulk-edit-replace'))).to.be.false;
+    });
+
+    it('uses a no-op replacement for Find when Replace is blank and supports an empty result export', async () => {
+        const fetch = sandbox.stub(window, 'fetch');
+        fetch.onCall(0).resolves(response({ jobId: 'find-job' }));
+        fetch.onCall(1).resolves(response(ready));
+        fetch.onCall(2).resolves(response({ items: [] }));
+        const iterator = searchBulkEditFragmentPages({ ...findOptions, replace: '' }, 50, new AbortController());
+        expect((await iterator.next()).done).to.be.true;
+        expect(JSON.parse(fetch.firstCall.args[1].body).replace).to.equal('high school');
+    });
+
+    it('waits between polls until both the job and its export are ready', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const fetch = sandbox.stub(window, 'fetch');
+        fetch.onCall(0).resolves(response({ jobId: 'find-job' }));
+        fetch.onCall(1).resolves(response({ status: 'RUNNING', done: false, total: 5 }));
+        fetch.onCall(2).resolves(response({ status: 'DONE', done: true, exportReady: false }));
+        fetch.onCall(3).resolves(response(ready));
+        fetch.onCall(4).resolves(response({ items: [] }));
+        const pending = searchBulkEditFragmentPages(findOptions, 50, new AbortController()).next();
+        await clock.tickAsync(0);
+        expect(fetch.callCount).to.equal(2);
+        await clock.tickAsync(999);
+        expect(fetch.callCount).to.equal(2);
+        await clock.tickAsync(1);
+        expect(fetch.callCount).to.equal(3);
+        await clock.tickAsync(1000);
+        expect((await pending).done).to.be.true;
+        expect(fetch.callCount).to.equal(5);
+        expect(clock.countTimers()).to.equal(0);
+    });
+
+    it('stops polling immediately on cancellation and clears its timer', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const fetch = sandbox.stub(window, 'fetch');
+        fetch.onCall(0).resolves(response({ jobId: 'find-job' }));
+        fetch.onCall(1).resolves(response({ status: 'RUNNING' }));
+        const controller = new AbortController();
+        const result = searchBulkEditFragmentPages(findOptions, 50, controller)
+            .next()
+            .catch((error) => error);
+        await clock.tickAsync(0);
+        controller.abort();
+        expect((await result).name).to.equal('AbortError');
+        await clock.tickAsync(2000);
+        expect(fetch.callCount).to.equal(2);
+        expect(clock.countTimers()).to.equal(0);
+    });
+
+    for (const [label, replies, message] of [
+        ['start failure', [response({ error: 'Unauthorized' }, 401)], '401'],
+        ['missing job ID', [response({})], 'job ID'],
+        [
+            'failed job',
+            [response({ jobId: 'find-job' }), response({ status: 'FAILED', error: 'Odin unavailable' })],
+            'Odin unavailable',
+        ],
+        ['cancelled job', [response({ jobId: 'find-job' }), response({ status: 'CANCELLED' })], 'cancelled'],
+        ['missing export URL', [response({ jobId: 'find-job' }), response({ done: true, exportReady: true })], 'export URL'],
+        ['export failure', [response({ jobId: 'find-job' }), response(ready), response({ error: 'Expired' }, 403)], '403'],
+        [
+            'invalid export',
+            [response({ jobId: 'find-job' }), response(ready), response({ report: {} })],
+            'invalid results export',
+        ],
+    ]) {
+        it(`surfaces ${label} instead of returning empty success`, async () => {
+            const fetch = sandbox.stub(window, 'fetch');
+            for (const [index, reply] of replies.entries()) fetch.onCall(index).resolves(reply.clone());
+            let error;
+            try {
+                await searchBulkEditFragmentPages(findOptions, 50, new AbortController()).next();
+            } catch (failure) {
+                error = failure;
+            }
+            expect(error).to.be.instanceOf(Error);
+            expect(error.message).to.include(message);
+        });
+    }
 });
 
 describe('loadBulkEditProjects', () => {

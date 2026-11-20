@@ -71,7 +71,7 @@
                                 async getById() {
                                     const {
                                         value: [parent],
-                                    } = await demoRepository.searchFragmentPages().next();
+                                    } = await demoRepository.searchBulkEditFragmentPages().next();
                                     const locale = {
                                         id: 'demo-locale',
                                         path: '/content/dam/mas/acom/en_AU/school-offer',
@@ -116,7 +116,7 @@
                     },
                 },
                 async loadPromotions() {},
-                async *searchFragmentPages({ tags = [], status = [] } = {}) {
+                async *searchBulkEditFragmentPages({ tags = [], status = [] } = {}) {
                     const fragments = [
                         {
                             id: 'matching-fragment',
@@ -572,7 +572,7 @@
                             let pagesRead = 0;
                             Object.defineProperty(editor, 'repository', {
                                 value: {
-                                    async *searchFragmentPages() {
+                                    async *searchBulkEditFragmentPages() {
                                         pagesRead++;
                                         yield Array.from({ length: 50 }, (_, index) => ({
                                             id: `page-one-${index}`,
@@ -650,7 +650,7 @@
                             const editor = document.createElement('mas-bulk-edit-editor');
                             Object.defineProperty(editor, 'repository', {
                                 value: {
-                                    async *searchFragmentPages() {
+                                    async *searchBulkEditFragmentPages() {
                                         yield Array.from({ length: 50 }, (_, index) => ({
                                             id: `viewport-card-${index}`,
                                             title: `School offer ${index}`,

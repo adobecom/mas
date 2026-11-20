@@ -52,7 +52,7 @@ import {
     resolveDefaultPathFromPromoVariation,
 } from './promotions/promotion-model.js';
 import { VARIATION_FILTER } from './fragments/variation-filter.js';
-import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { loadBulkEditProjects, searchBulkEditFragmentPages } from './bulk-edit/bulk-edit-repository.js';
 import { loadBaselines } from './baselines/baseline-model.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 
@@ -427,6 +427,11 @@ export class MasRepository extends LitElement {
             yield fragments;
             if (abortController?.signal.aborted) return;
         }
+    }
+
+    /** Finds fragments through Bulk Edit jobs; does not use Studio's AEM search/cache cursor. */
+    searchBulkEditFragmentPages(options, limit, abortController) {
+        return searchBulkEditFragmentPages(options, limit, abortController);
     }
 
     #skipVariant(variants, item) {

@@ -358,10 +358,10 @@ describe('mas-bulk-edit-editor', () => {
             resultFilters: el.resultFilters,
             selection,
         });
-        const searchFragmentPages = sinon.stub().callsFake(async function* () {
+        const searchBulkEditFragmentPages = sinon.stub().callsFake(async function* () {
             yield [{ ...selection[0], title: 'School offer', fields: [{ name: 'badge', values: ['school'] }] }];
         });
-        const reopened = connectEditor({ getFragmentById: sinon.stub().resolves(persisted), searchFragmentPages });
+        const reopened = connectEditor({ getFragmentById: sinon.stub().resolves(persisted), searchBulkEditFragmentPages });
         await reopened.connectedCallback();
         await reopened.updateComplete;
         expect(reopened.findText).to.equal('school');
@@ -372,10 +372,10 @@ describe('mas-bulk-edit-editor', () => {
         expect([...reopened.selectedFragments.values()]).to.deep.equal(selection);
         expect(reopened.hasChanges).to.be.false;
         expect(reopened.searchedQuery).to.equal('school');
-        expect(searchFragmentPages.calledOnce).to.be.true;
-        expect(searchFragmentPages.firstCall.args[0]).to.include({ query: 'school' });
-        expect(searchFragmentPages.firstCall.args[0].tags).to.deep.equal(el.resultFilters.tags);
-        expect(searchFragmentPages.firstCall.args[0].status).to.deep.equal(el.resultFilters.statuses);
+        expect(searchBulkEditFragmentPages.calledOnce).to.be.true;
+        expect(searchBulkEditFragmentPages.firstCall.args[0]).to.include({ query: 'school' });
+        expect(searchBulkEditFragmentPages.firstCall.args[0].tags).to.deep.equal(el.resultFilters.tags);
+        expect(searchBulkEditFragmentPages.firstCall.args[0].status).to.deep.equal(el.resultFilters.statuses);
         expect(reopened.searchResults.map(({ id }) => id)).to.deep.equal(['parent']);
     });
 
@@ -393,7 +393,7 @@ describe('mas-bulk-edit-editor', () => {
                 model: { id: BULK_EDIT_PROJECT_MODEL_ID },
                 fields: [...rawProject('School-MWPW-1').fields, { name: 'searchTerm', values: ['school'] }],
             }),
-            searchFragmentPages: sinon.stub().returns({ next }),
+            searchBulkEditFragmentPages: sinon.stub().returns({ next }),
         });
         const opening = el.connectedCallback();
         await waitUntil(() => resolvePage);
@@ -419,7 +419,7 @@ describe('mas-bulk-edit-editor', () => {
                 model: { id: BULK_EDIT_PROJECT_MODEL_ID },
                 fields: [...rawProject('School-MWPW-1').fields, { name: 'searchTerm', values: ['school'] }],
             }),
-            searchFragmentPages: sinon.stub().callsFake(async function* () {
+            searchBulkEditFragmentPages: sinon.stub().callsFake(async function* () {
                 throw error;
             }),
         });

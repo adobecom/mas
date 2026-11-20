@@ -8,15 +8,8 @@ import StoreController from '../reactivity/store-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Fragment } from '../aem/fragment.js';
 import router from '../router.js';
-import {
-    BULK_EDIT_PROJECT_MODEL_ID,
-    BULK_EDIT_STATUS,
-    EDITABLE_FRAGMENT_MODEL_IDS,
-    ROOT_PATH,
-    PAGE_NAMES,
-    QUICK_ACTION,
-} from '../constants.js';
-import { showToast, getAemSearchTerm } from '../utils.js';
+import { BULK_EDIT_PROJECT_MODEL_ID, BULK_EDIT_STATUS, PAGE_NAMES, QUICK_ACTION } from '../constants.js';
+import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { getFromFragmentCache, MasRepository } from '../mas-repository.js';
 import { getSearchSurface, trackPendingProject, untrackPendingProject } from '../common/utils/project-list-utils.js';
@@ -299,12 +292,12 @@ class MasBulkEditEditor extends LitElement {
             query,
             pauseAutoLoad: false,
             rows: new Map(),
-            iterator: this.repository.searchFragmentPages(
+            iterator: this.repository.searchBulkEditFragmentPages(
                 {
-                    path: `${ROOT_PATH}/${this.#surface}/${this.#locale}`,
-                    modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
-                    query: getAemSearchTerm(query),
-                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                    surface: this.#surface,
+                    locale: this.#locale,
+                    query,
+                    replace: this.replaceText,
                     ...(this.resultFilters.tags.length ? { tags: this.resultFilters.tags } : {}),
                     ...(this.resultFilters.statuses.length ? { status: this.resultFilters.statuses } : {}),
                 },

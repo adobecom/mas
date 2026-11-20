@@ -203,9 +203,6 @@ merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
     flex-basis: 100%;
 }
 
-/* Stock add-on box — Figma 17996:43807. Two fixed grid tracks hold the
-   checkbox at 20px even when a long label wraps. Checkbox SVGs are the
-   Spectrum 2 S2_Icon_CheckBox_20_N paths shared with the pro variant. */
 merch-card[variant="product-pricing"] merch-addon[slot="addon"] {
     display: grid;
     grid-template-columns: var(--merch-addon-checkbox-size) minmax(0, 1fr);

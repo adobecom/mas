@@ -6,6 +6,10 @@ export { Commitment, Term } from '../../price/src/constants.js';
  */
 export const NAMESPACE = 'merch';
 export const MERCH_CARD_LOAD_TIMEOUT = 20000;
+export const CARD_MODEL_ID =
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+export const COLLECTION_MODEL_ID =
+    'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 /**
  * This CSS class name is used to:
  * - show only selected offer on a card connected to a subscription panel

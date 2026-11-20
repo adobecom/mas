@@ -110,7 +110,7 @@ describe('pipeline end to end', () => {
         const memory = summary('memory:');
         expect(memory).to.have.lengthOf(2);
         expect(memory[0]).to.match(
-            /memory: process rss=[\d.]+MB heap used [\d.]+MB of [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: /,
+            /memory: process rss=[\d.]+MB heap used [\d.]+MB of [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: .* \| container [0-9a-f]{8} up \d+m$/,
         );
         const [miss, ...others] = summary('cache miss');
         expect(others).to.be.empty;

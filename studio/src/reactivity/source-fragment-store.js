@@ -56,19 +56,19 @@ export class SourceFragmentStore extends FragmentStore {
      */
     #previewData(value) {
         if (!this.parentFragment && !this.baselineParent) return value;
-        const previewData = this.parentFragment
-            ? createPreviewDataWithParent(value, this.parentFragment)
-            : structuredClone(value);
-        if (this.baselineParent) mergeParentFields(previewData, this.baselineParent, this.#arraysToMerge);
-        return previewData;
+        if (this.parentFragment) {
+            return createPreviewDataWithParent(value, this.parentFragment, this.baselineParent, this.#arraysToMerge);
+        }
+        return mergeParentFields(structuredClone(value), this.baselineParent, this.#arraysToMerge);
     }
 
     /** Array fields the card template appends to the baseline values instead of overriding them (delivery `deepMerge`). */
     get #arraysToMerge() {
-        return MERGE_CONFIG[this.value.getFieldValue('variant') || this.baselineVariant]?.arraysToMerge ?? [];
+        const variant =
+            this.value.getFieldValue('variant') || this.parentFragment?.getFieldValue('variant') || this.baselineVariant;
+        return MERGE_CONFIG[variant]?.arraysToMerge ?? [];
     }
 
-    /** Preview data of the given fields, resolved like `#previewData`. */
     #previewFieldsData(names) {
         const pick = ({ fields }) => ({ fields: fields.filter((field) => names.includes(field.name)) });
         const previewData = structuredClone(pick(this.value));
@@ -77,10 +77,11 @@ export class SourceFragmentStore extends FragmentStore {
         return previewData;
     }
 
-    /** Refreshes a field in the preview; an icon and its alt text resolve together. */
     #updatePreviewFields(name) {
         const names = ICON_FIELDS.has(name) ? [...ICON_FIELDS] : [name];
-        const previewData = this.#previewFieldsData(names);
+        const previewData = INHERITED_SETTINGS_FIELDS.has(name)
+            ? this.#previewData(this.value)
+            : this.#previewFieldsData(names);
         for (const fieldName of names) {
             const values = previewData.fields.find((field) => field.name === fieldName)?.values ?? [];
             this.previewStore.updateField(fieldName, values);
@@ -118,11 +119,7 @@ export class SourceFragmentStore extends FragmentStore {
         const success = this.value.resetFieldToParent(fieldName);
         if (success) {
             this.notify();
-            if (this.parentFragment) {
-                this.#updatePreviewFields(fieldName);
-            } else {
-                this.previewStore.refreshFrom(this.#previewData(this.value));
-            }
+            this.previewStore.refreshFrom(this.#previewData(this.value));
         }
         return success;
     }
@@ -177,12 +174,15 @@ export default function generateFragmentStore(fragment, parentFragment = null, o
 }
 
 /**
- * Creates preview data by merging parent values into empty variation fields
+ * Creates preview data by merging parent values, then baseline values, into empty variation fields.
+ * Global settings defaults only fill the settings both leave empty.
  * @param {Fragment | object} sourceFragment
  * @param {Fragment} parentFragment
+ * @param {Fragment | null} [baselineParent]
+ * @param {string[]} [arraysToMerge] baseline array fields the variation values are appended to
  * @returns {object}
  */
-export function createPreviewDataWithParent(sourceFragment, parentFragment) {
+export function createPreviewDataWithParent(sourceFragment, parentFragment, baselineParent = null, arraysToMerge = []) {
     const previewData = structuredClone(sourceFragment);
     const tags = sourceFragment.fields?.find((f) => f.name === 'tags');
     if (tags) {
@@ -192,6 +192,7 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     }
 
     mergeParentFields(previewData, parentFragment);
+    if (baselineParent) mergeParentFields(previewData, baselineParent, arraysToMerge);
 
     const settingsRows = Store.settings.rows.get?.();
     if (parentFragment && Array.isArray(settingsRows) && settingsRows.length > 0) {

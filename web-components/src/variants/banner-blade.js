@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
@@ -17,9 +17,9 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
     backgrounds: { tag: 'picture', slot: 'backgrounds' },
-    title: { tag: 'p', slot: 'heading-xs' },
-    description: { tag: 'div', slot: 'body-xs' },
-    ctas: { slot: 'footer', size: 'm' },
+    title: { tag: 'p', slot: 'heading-xs', editorLabel: 'Title' },
+    description: { tag: 'div', slot: 'body-xs', editorLabel: 'Description' },
+    ctas: { slot: 'footer', size: 'm', editorLabel: 'CTA' },
 };
 
 /**
@@ -29,9 +29,26 @@ export const BANNER_BLADE_AEM_FRAGMENT_MAPPING = {
 const BANNER_BLADE_FIELDS = [
     { slot: 'image', label: 'Image' },
     { slot: 'backgrounds', label: 'Background' },
-    { slot: 'heading-xs', label: 'Title' },
-    { slot: 'body-xs', label: 'Description' },
-    { slot: 'footer', label: 'CTAs' },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(
+            BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+            'title',
+            'Card title',
+        ),
+    },
+    {
+        slot: 'body-xs',
+        label: editorLabel(
+            BANNER_BLADE_AEM_FRAGMENT_MAPPING,
+            'description',
+            'Description',
+        ),
+    },
+    {
+        slot: 'footer',
+        label: editorLabel(BANNER_BLADE_AEM_FRAGMENT_MAPPING, 'ctas', 'CTAs'),
+    },
 ];
 
 export class BannerBlade extends VariantLayout {

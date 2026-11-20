@@ -33,9 +33,9 @@ describe('toReportCsv', () => {
         expect(lines).to.include('not_live,0');
         expect(lines).to.include('reported_published,113');
         expect(lines).to.include('reported_total,114');
-        expect(lines).to.include('missing_placeholder_indexes,/content/dam/mas/acom/en_US/dictionary/index');
+        expect(lines).to.include('missing_placeholder_indexes,acom / en_US / dictionary / index');
         const header = lines.indexOf(
-            'path,type,locale,status,reason,aem_status,modified_at,published_at,project_published_at,modified_after_publish',
+            'fragment,title,type,locale,status,reason,aem_status,modified_at,published_at,project_published_at,modified_after_publish',
         );
         expect(lines.slice(header + 1).filter(Boolean)).to.have.length(2);
     });
@@ -43,6 +43,46 @@ describe('toReportCsv', () => {
     it('escapes commas and quotes', () => {
         const csv = toReportCsv(report([row({ path: '/a,"b"' })]));
         expect(csv).to.include('"/a,""b"""');
+    });
+
+    describe('human readable fragment and title', () => {
+        const cardRow = (overrides = {}) =>
+            row({
+                path: '/content/dam/mas/sandbox/en_US/photoshop-card',
+                title: 'Fragment title',
+                labelSource: {
+                    title: 'Fragment title',
+                    model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                    tags: [
+                        { id: 'mas:customer_segment/individual', title: 'Individual' },
+                        { id: 'mas:market_segment/com', title: 'com' },
+                        { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                    ],
+                    fields: [
+                        { name: 'variant', values: ['catalog'] },
+                        { name: 'cardTitle', values: ['Photoshop card'] },
+                    ],
+                },
+                ...overrides,
+            });
+        const dataLine = (csv) => csv.split('\n').filter(Boolean).pop();
+
+        it('writes the Studio author path for a card instead of the internal path', () => {
+            const line = dataLine(toReportCsv(report([cardRow()])));
+            expect(line).to.include('SANDBOX / merch-card / Catalog / Individual / com / Photoshop');
+            expect(line).to.not.include('/content/dam/mas');
+        });
+
+        it('writes the card title in its own column', () => {
+            expect(dataLine(toReportCsv(report([cardRow()])))).to.include(',Photoshop card,');
+        });
+
+        it('falls back to the readable path without the dam root for rows without a label source', () => {
+            const line = dataLine(
+                toReportCsv(report([row({ path: '/content/dam/mas/acom/en_US/dictionary/some-key', title: 'some-key' })])),
+            );
+            expect(line.startsWith('acom / en_US / dictionary / some-key,some-key,')).to.equal(true);
+        });
     });
 
     it('does not write fields outside the report columns', () => {

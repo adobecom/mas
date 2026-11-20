@@ -136,6 +136,44 @@ describe('bulk-publish/report.js', () => {
         expect(by[c].projectPublishedAt).to.equal(PROJECT_PUBLISHED_AT);
     });
 
+    describe('row labels', () => {
+        const card = `${ROOT}/card`;
+        const cardFragment = found(card, 'PUBLISHED', {
+            title: 'Fragment title',
+            model: { path: '/conf/mas/settings/dam/cfm/models/card', id: 'model-id' },
+            tags: [{ id: 'mas:customer_segment/individual', title: 'Individual', path: '/content/cq:tags/x', extra: 'drop' }],
+            fields: [
+                { name: 'variant', type: 'text', values: ['catalog'] },
+                { name: 'cardTitle', type: 'text', values: ['Photoshop'] },
+                { name: 'description', type: 'long-text', values: ['<p>not needed</p>'] },
+            ],
+        });
+
+        it('carries the fragment title on the row', async () => {
+            const report = await run([card], { fragments: { [card]: cardFragment } });
+            expect(report.rows[0].title).to.equal('Fragment title');
+        });
+
+        it('carries only the fields needed to build the author label', async () => {
+            const report = await run([card], { fragments: { [card]: cardFragment } });
+            expect(report.rows[0].labelSource).to.deep.equal({
+                title: 'Fragment title',
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                tags: [{ id: 'mas:customer_segment/individual', title: 'Individual' }],
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['Photoshop'] },
+                ],
+            });
+        });
+
+        it('leaves title and label source empty when the fragment was not found', async () => {
+            const report = await run([card]);
+            expect(report.rows[0].title).to.equal('');
+            expect(report.rows[0].labelSource).to.equal(null);
+        });
+    });
+
     it('summary contains live, failed and not-live counts', async () => {
         const live = `${ROOT}/live`;
         const draft = `${ROOT}/draft`;

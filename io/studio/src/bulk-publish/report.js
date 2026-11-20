@@ -17,6 +17,8 @@ const DIRECT_HYDRATED = 'direct-hydrated';
 const LIVE_AEM_STATUSES = new Set(['PUBLISHED', 'MODIFIED']);
 const NOT_LIVE_AEM_STATUSES = new Set(['DRAFT', 'NEW', 'UNPUBLISHED']);
 
+const LABEL_FIELDS = new Set(['variant', 'cardTitle', 'name', 'tags']);
+
 const CHECK = { OK: 'ok', NOT_FOUND: 'not-found', ERROR: 'error' };
 
 async function checkFragment(path, { odinEndpoint, authToken }) {
@@ -46,6 +48,23 @@ async function readPublishedIndexEntries(indexFragment, odinEndpoint) {
     } catch {
         return null;
     }
+}
+
+/**
+ * Slim copy of a fragment with just what Studio needs to build its author path label.
+ * @param {object|undefined} fragment AEM fragment
+ * @returns {object|null}
+ */
+function toLabelSource(fragment) {
+    if (!fragment) return null;
+    return {
+        title: fragment.title || '',
+        model: { path: fragment.model?.path || '' },
+        tags: (fragment.tags || []).map(({ id, title }) => ({ id, title })),
+        fields: (fragment.fields || [])
+            .filter(({ name }) => LABEL_FIELDS.has(name))
+            .map(({ name, values }) => ({ name, values })),
+    };
 }
 
 function rowType(path) {
@@ -171,6 +190,8 @@ async function generateReport({ projectId, project, odinEndpoint, authToken, dep
         rows.push({
             path,
             id: fragment?.id || '',
+            title: fragment?.title || '',
+            labelSource: toLabelSource(fragment),
             type,
             locale: extractLocale(path),
             status: verdict.status,

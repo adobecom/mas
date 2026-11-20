@@ -1,5 +1,6 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 
 import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
@@ -10,6 +11,9 @@ import { appendMiloStyles, delay } from './utils.js';
 import { ARROW_DOWN, ARROW_UP } from '../src/focus.js';
 import { withWcs } from './mocks/wcs.js';
 import '../src/mas.js';
+
+const nextFrame = () =>
+    new Promise((resolve) => requestAnimationFrame(resolve));
 
 const skipTests = sessionStorage.getItem('skipTests');
 
@@ -205,6 +209,65 @@ runTests(async () => {
                 inputField.dispatchEvent(event);
                 await delay();
                 expect(quantitySelect.selectedValue).to.equal(4);
+            });
+
+            it('reflects the open state on the host element', async () => {
+                expect(quantitySelect.hasAttribute('closed')).to.be.true;
+                pickerButton.click();
+                await delay();
+                expect(quantitySelect.hasAttribute('closed')).to.be.false;
+                pickerButton.click();
+                await delay();
+                expect(quantitySelect.hasAttribute('closed')).to.be.true;
+            });
+
+            it('renders exactly 10 option elements for min=1, max=10, step=1', () => {
+                const options =
+                    quantitySelect.shadowRoot.querySelectorAll('.item');
+                expect(options.length).to.equal(10);
+            });
+
+            it('computes placement after a layout frame on open, instead of a pre-layout rect', async () => {
+                const el = document.createElement('merch-quantity-select');
+                el.setAttribute('title', 'Qty');
+                el.setAttribute('min', '1');
+                el.setAttribute('max', '10');
+                el.setAttribute('step', '1');
+                el.style.position = 'fixed';
+                el.style.top = `${window.innerHeight - 10}px`;
+                document.querySelector('main').append(el);
+                await delay();
+                const button = el.shadowRoot.querySelector('.picker-button');
+                const popover = el.shadowRoot.querySelector('.popover');
+                button.click();
+                await el.updateComplete;
+                expect(popover.getAttribute('placement')).to.equal('bottom');
+                await nextFrame();
+                await delay();
+                expect(popover.getAttribute('placement')).to.equal('top');
+                el.remove();
+            });
+
+            it('re-evaluates placement on resize while open and stops listening after disconnect', async () => {
+                const el = document.createElement('merch-quantity-select');
+                el.setAttribute('title', 'Qty');
+                el.setAttribute('min', '1');
+                el.setAttribute('max', '10');
+                el.setAttribute('step', '1');
+                document.querySelector('main').append(el);
+                await delay();
+                const adjustSpy = sinon.spy(el, 'adjustPopoverPlacement');
+                const button = el.shadowRoot.querySelector('.picker-button');
+                button.click();
+                await el.updateComplete;
+                await nextFrame();
+                adjustSpy.resetHistory();
+                window.dispatchEvent(new Event('resize'));
+                expect(adjustSpy.called).to.be.true;
+                el.remove();
+                adjustSpy.resetHistory();
+                window.dispatchEvent(new Event('resize'));
+                expect(adjustSpy.called).to.be.false;
             });
         });
     }

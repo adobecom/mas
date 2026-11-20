@@ -143,7 +143,8 @@ export default class EditorPage {
         this.localeVariationHeader = page.locator('.locale-variation-header');
         this.localeVariationDeprecationNotice = page.locator('mas-fragment-editor .locale-variation-deprecation-notice');
         this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
-        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
+        this.fragmentOrg = page.locator('sp-textfield#fragment-org input');
+        this.fragmentState = page.locator('sp-textfield#fragment-state input');
         // Missing variation panel (locale switching)
         this.missingVariationPanel = page.locator('#missing-variation-panel');
         this.viewSourceFragmentButton = page.locator('#view-source-fragment');

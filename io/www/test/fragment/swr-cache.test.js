@@ -1,7 +1,13 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import v8 from 'v8';
-import { createSwrCache, getMemoryStats, setHeapBudget, setMemoryLimit } from '../../src/fragment/utils/swr-cache.js';
+import {
+    createSwrCache,
+    getMemoryStats,
+    NOT_MODIFIED,
+    setHeapBudget,
+    setMemoryLimit,
+} from '../../src/fragment/utils/swr-cache.js';
 
 // A deferred loader: resolve/reject externally so a refill can be held in-flight to observe
 // single-flight coalescing and stale-while-revalidate.
@@ -707,6 +713,87 @@ describe('swr-cache', () => {
             const loader = sinon.stub().resolves('v2');
             expect(await cache.get(published, 'k', loader)).to.equal('v2');
             expect(loader.callCount).to.equal(1);
+        });
+
+        describe('conditional', () => {
+            const T0 = 1_000_000;
+            let clock;
+            let cache;
+
+            beforeEach(() => {
+                clock = sinon.stub(Date, 'now').returns(T0);
+                cache = createSwrCache({ name: 'conditional', ttl: 1000, jitter: 0, conditional: true });
+            });
+
+            afterEach(() => clock.restore());
+
+            // expires the entry, then lets its background refill settle
+            const revalidate = async (loader) => {
+                clock.returns(Date.now() + 2000);
+                const served = await cache.get(published, 'k', loader);
+                await new Promise((r) => setImmediate(r));
+                return served;
+            };
+
+            it('revalidates with the cached ETag and keeps the value, restarting its TTL, when not modified', async () => {
+                const cold = sinon.stub().resolves({ value: 'v1', etag: '"e1"' });
+                expect(await cache.get(published, 'k', cold)).to.equal('v1');
+                expect(cold.firstCall.args[0]).to.deep.equal({ etag: undefined });
+
+                const notModified = sinon.stub().resolves(NOT_MODIFIED);
+                const output = sinon.stub(console, 'log');
+                try {
+                    expect(await revalidate(notModified)).to.equal('v1');
+                } finally {
+                    output.restore();
+                }
+                expect(notModified.firstCall.args[0]).to.deep.equal({ etag: '"e1"' });
+                const lines = output.getCalls().map(({ args }) => args[0]);
+                expect(
+                    lines.some((line) =>
+                        /\[conditional\] "k" not modified \(304, etag "e1"\): keeping the cached value$/.test(line),
+                    ),
+                ).to.be.true;
+
+                const unused = sinon.stub();
+                expect(await cache.get(published, 'k', unused)).to.equal('v1');
+                expect(unused.called).to.be.false;
+                const again = sinon.stub().resolves(NOT_MODIFIED);
+                await revalidate(again);
+                expect(again.firstCall.args[0]).to.deep.equal({ etag: '"e1"' });
+            });
+
+            it('replaces the value and its ETag when modified', async () => {
+                await cache.get(published, 'k', async () => ({ value: 'v1', etag: '"e1"' }));
+                await revalidate(async () => ({ value: 'v2', etag: '"e2"' }));
+                expect(await cache.get(published, 'k', sinon.stub())).to.equal('v2');
+                const next = sinon.stub().resolves(NOT_MODIFIED);
+                await revalidate(next);
+                expect(next.firstCall.args[0]).to.deep.equal({ etag: '"e2"' });
+            });
+
+            it('keeps the stale entry when the revalidation fails', async () => {
+                await cache.get(published, 'k', async () => ({ value: 'v1', etag: '"e1"' }));
+                await revalidate(async () => null);
+                const next = sinon.stub().resolves(NOT_MODIFIED);
+                expect(await revalidate(next)).to.equal('v1');
+                expect(next.firstCall.args[0]).to.deep.equal({ etag: '"e1"' });
+            });
+
+            it('revalidates expired preview entries before serving them', async () => {
+                installLocalStorageShim();
+                try {
+                    const preview = { preview: true, requestId: 'swr-ut' };
+                    await cache.get(preview, 'k', async () => ({ value: 'v1', etag: '"e1"' }));
+                    clock.returns(T0 + 2000);
+                    const notModified = sinon.stub().resolves(NOT_MODIFIED);
+                    expect(await cache.get(preview, 'k', notModified)).to.equal('v1');
+                    expect(notModified.firstCall.args[0]).to.deep.equal({ etag: '"e1"' });
+                    expect(await cache.get(preview, 'k', sinon.stub())).to.equal('v1');
+                } finally {
+                    delete globalThis.localStorage;
+                }
+            });
         });
     });
 

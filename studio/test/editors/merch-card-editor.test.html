@@ -2570,7 +2570,7 @@
                                     expect(
                                         editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
                                     ).to.not.equal('overridden');
-                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                    expect(dividerIndicator(editor)).to.equal('');
                                 });
 
                                 it('marks a default divider color inherited from a default baseline as from baseline', () => {
@@ -2603,6 +2603,64 @@
                                     ).to.equal('');
                                 });
 
+                                it('does not mark What is included as from baseline once the card changes only the divider color', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(dividerIndicator(editor)).to.include('Click to restore');
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not mark What is included as overridden when the locale default explicitly emptied it', () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.isVariation = true;
+                                    editor.localeDefaultFragment = new Fragment({
+                                        fields: [{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }],
+                                    });
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not style the disabled divider picker as overridden when the card cleared What is included', async () => {
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'cleared-whats-included-card',
+                                            path: '/content/dam/mas/nala/en_US/cleared-whats-included-card',
+                                            fields: [
+                                                ...baseMockData.fields
+                                                    .filter(({ name }) => name !== 'whatsIncluded')
+                                                    .map((field) => ({
+                                                        ...field,
+                                                        values: field.name === 'variant' ? ['mini-compare-chart'] : [],
+                                                    })),
+                                                { name: 'whatsIncluded', values: ['<explicit_empty/>'] },
+                                            ],
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaseline(editor, [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] },
+                                    ]);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    document.body.append(editor);
+                                    await waitFor(() => editor.querySelector('sp-picker#whats-included-divider-color'));
+                                    const picker = editor.querySelector('sp-picker#whats-included-divider-color');
+                                    expect(picker.disabled).to.be.true;
+                                    expect(picker.dataset.fieldState).to.not.equal('overridden');
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks an addon background the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },
@@ -2622,9 +2680,29 @@
                                     templateText(editor.renderAddonBgFieldStatusIndicator())
                                         .querySelector('.field-status-restore-link')
                                         .click();
-                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                    expect(editor.getEffectiveFieldValue('addon')).to.equal(
                                         '<merch-addon background="#dadada">addon1</merch-addon>',
                                     );
+                                    expect(editor.isAddonBgOverridden()).to.be.false;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the card addon text when restoring a backgroundless baseline addon', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'addon',
+                                                values: ['<merch-addon background="#dadada">{{addon1}}</merch-addon>'],
+                                            },
+                                        ]),
+                                        [{ name: 'addon', values: ['{{addon2}}'] }],
+                                    );
+                                    Object.defineProperty(editor, 'globalSettingsDefaults', { value: { addon: '{{addon1}}' } });
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal('{{addon1}}');
+                                    expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon1}}');
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
@@ -2783,6 +2861,43 @@
                                         { name: 'addon', values: ['addon1'] },
                                     ]);
                                     expect(indicator(editor, 'addon').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps an addon picked to match the global setting overridden over a different baseline addon', async () => {
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-addon-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-addon-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : [],
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaselineSettings(editor, [{ name: 'addon', values: ['{{addon-stock-base}}'] }]);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    Object.defineProperty(editor, 'globalSettingsDefaults', {
+                                        value: { addon: '{{addon-acrobat-ai-assistant}}' },
+                                    });
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    editor
+                                        .querySelector('mas-addon-field#addon-field')
+                                        .dispatchEvent(
+                                            new CustomEvent('input', { detail: { value: '{{addon-acrobat-ai-assistant}}' } }),
+                                        );
+                                    await editor.updateComplete;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                        '{{addon-acrobat-ai-assistant}}',
+                                    );
+                                    expect(indicator(editor, 'addon').querySelector('.setting-override-indicator')).to.exist;
+                                    editor.remove();
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
@@ -3041,6 +3156,22 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('marks an application added to a baseline without applications as overridden', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement('Included', [APPLICATION], [BULLET], '').outerHTML,
+                                    ]);
+                                    expect(editor.whatsIncludedItems.values.map(({ fieldState }) => fieldState)).to.deep.equal([
+                                        'overridden',
+                                    ]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks only the edited bullet overridden when another was removed', () => {
                                     const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
                                         BULLET,
@@ -3081,6 +3212,20 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('offers the section restore for a label change on mini compare chart, which hides the label', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    editor.fragment.getField('variant').values = ['mini-compare-chart'];
+                                    ownWhatsIncluded(editor, 'Own label', [BULLET]);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 describe('when the card cleared What is included and the baseline has a divider color', () => {
                                     const DIVIDER = 'spectrum-gray-300';
                                     const clearedCard = (label, bullets) => {
@@ -3112,6 +3257,46 @@
                                         await delay(0);
                                         expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
                                         expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('keeps the baseline divider color when an application is added on mini compare chart', async () => {
+                                        const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                        const editor = document.createElement('merch-card-editor');
+                                        editor.isVariation = false;
+                                        editor.fragmentStore = generateFragmentStore(
+                                            new Fragment({
+                                                ...structuredClone(baseMockData),
+                                                id: 'cleared-mcc-card',
+                                                path: '/content/dam/mas/nala/en_US/cleared-mcc-card',
+                                                fields: baseMockData.fields.map((field) => ({
+                                                    ...field,
+                                                    values: field.name === 'variant' ? ['mini-compare-chart'] : [],
+                                                })),
+                                            }),
+                                            null,
+                                            { lazy: true },
+                                        );
+                                        const html = editor.createIncludedElement('', [], [BULLET], DIVIDER).outerHTML;
+                                        const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                        editor.baselinesController.parent = baseline;
+                                        editor.baselinesController.hostUpdate = () => {};
+                                        editor.fragmentStore.setBaselineParent(baseline);
+                                        editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                        document.body.append(editor);
+                                        await editor.updateComplete;
+                                        const multifield = editor.querySelector(
+                                            '#whatsIncludedIconPicker mas-multifield[button-label="Add application"]',
+                                        );
+                                        multifield.value = [APPLICATION];
+                                        multifield.dispatchEvent(new Event('change', { bubbles: true }));
+                                        await editor.updateComplete;
+                                        expect(editor.whatsIncluded.values).to.have.length(1);
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        expect(
+                                            editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                        ).to.equal('inherited');
+                                        editor.remove();
                                         editor.fragmentStore.previewStore.dispose();
                                     });
                                 });
@@ -3163,6 +3348,14 @@
                                         ['baseline.svg', 'baseline'],
                                         ['own.svg', 'overridden'],
                                     ]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('marks a visual added to a baseline without visuals as overridden', () => {
+                                    const editor = makeBaselineCard(ownVisuals(['own.svg'], ['Own']));
+                                    editor.baselinesController.parent = new Fragment({ fields: ownVisuals([], []) });
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    expect(itemStates(editor)).to.deep.equal([['own.svg', 'overridden']]);
                                     expect(mnemonicsIndicatorText(editor)).to.equal('');
                                 });
 

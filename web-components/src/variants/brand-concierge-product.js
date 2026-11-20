@@ -31,6 +31,10 @@ export class BrandConciergeProduct extends VariantLayout {
         return CSS;
     }
 
+    get headingSelector() {
+        return '[slot="heading-s"]';
+    }
+
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;

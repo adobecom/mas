@@ -1,4 +1,5 @@
 const { errorResponse, getBearerToken, isAllowed } = require('../../utils.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const STUDIO_ORG_ID = '3B962FB55F5F922E0A495C88';
 const BULK_PUBLISH_GROUPS = new Set(['GRP-ODIN-MAS-ACOM-CURATORS', 'GRP-ODIN-MAS-ADMINS']);
@@ -42,4 +43,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

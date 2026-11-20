@@ -252,13 +252,9 @@ class MasBulkPublishEditor extends LitElement {
         return canAccessBulkPublish(path ? extractSurfaceFromPath(path) : Store.surface());
     }
 
-    get hasItemAccess() {
-        return this.items.every((item) => item.status !== 'valid' || canAccessBulkPublish(extractSurfaceFromPath(item.path)));
-    }
-
     checkEditingAccess() {
-        if (this.hasProjectAccess && this.hasItemAccess) return true;
-        showToast('You do not have access to bulk publish for one or more surfaces in this project.', 'negative');
+        if (this.hasProjectAccess) return true;
+        showToast('You do not have access to this bulk publish project.', 'negative');
         return false;
     }
 
@@ -397,7 +393,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get canStartPublishing() {
-        return !this.hasChanges && this.hasProjectAccess && this.hasItemAccess;
+        return !this.hasChanges && this.hasProjectAccess;
     }
 
     get isReadonly() {
@@ -416,7 +412,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get disabledActions() {
-        const hasAccess = this.hasProjectAccess && this.hasItemAccess;
+        const hasAccess = this.hasProjectAccess;
         if (this.isLocked) {
             return new Set([
                 QUICK_ACTION.SAVE,
@@ -895,7 +891,12 @@ class MasBulkPublishEditor extends LitElement {
         await this.#withPendingAction(QUICK_ACTION.CHECK_MODIFICATIONS, async () => {
             try {
                 const { checkModificationsAction } = await import('./bulk-publish-client.js');
-                const results = await checkModificationsAction({ ioBaseUrl: this.ioBaseUrl, entries, token: this.token });
+                const results = await checkModificationsAction({
+                    ioBaseUrl: this.ioBaseUrl,
+                    projectId: this.project.id,
+                    entries,
+                    token: this.token,
+                });
                 this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
 
                 const modifiedCount = results.filter((r) => r.modified === true).length;

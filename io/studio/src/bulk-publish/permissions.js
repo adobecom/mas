@@ -1,12 +1,6 @@
 const { init } = require('@adobe/aio-lib-state');
 const { fetchOdin } = require('../common.js');
-const {
-    readProjectFragment,
-    getProjectPaths,
-    getProjectLocales,
-    getProjectSnapshots,
-    hasPendingSnapshot,
-} = require('./project.js');
+const { readProjectFragment } = require('./project.js');
 const { resolvePaths } = require('./resolver.js');
 const { PUBLISH_REFERENCE_STATUSES } = require('./publisher.js');
 const { isDictionaryIndex } = require('./publish-core.js');
@@ -91,13 +85,13 @@ function surfaceOf(path) {
     return path.split('/')[4];
 }
 
-function pathAssertion(permissions, projectSurface) {
+function pathAssertion(permissions) {
     return (paths) => {
         if (!permissions.surfaces) return;
         if (!Array.isArray(paths)) fail(403);
         for (const path of paths) {
             const surface = surfaceOf(path);
-            if (!permissions.surfaces.includes(surface) || (projectSurface && surface !== projectSurface)) {
+            if (!permissions.surfaces.includes(surface)) {
                 fail(403);
             }
         }
@@ -245,7 +239,7 @@ async function authorizeEntries(input, permissions, assertPaths) {
     }
 }
 
-/** Authorizes only the project resources consumed by the server-selected operation. */
+/** Authorizes project access; Odin controls permissions on its publishing and snapshot targets. */
 async function authorizeProject(input, fragment, operation = 'publish') {
     const permissions = await getPermissions(input.authToken);
     if (!permissions.allowed) fail(403);
@@ -263,41 +257,9 @@ async function authorizeProject(input, fragment, operation = 'publish') {
     if (!permissions.surfaces) return { fragment, permissions, assertPaths: pathAssertion(permissions) };
     const model = fragment.model?.path ?? fragment.model?.id ?? fragment.modelId ?? '';
     if ((model.startsWith('/') ? model : Buffer.from(model, 'base64').toString()) !== PROJECT_MODEL) fail(403);
-    const projectSurface = surfaceOf(fragment.path);
-    const assertPaths = pathAssertion(permissions, projectSurface);
-    assertPaths([fragment.path]);
-    const context = { fragment, permissions, assertPaths };
-    if (operation === 'reset') return context;
-    if (operation === 'revert') {
-        await authorizeEntries({ ...input, entries: getProjectSnapshots(fragment) }, permissions, assertPaths);
-        return context;
-    }
-    if (operation === 'save') {
-        assertPaths(getProjectPaths(fragment));
-        return context;
-    }
-    if (operation === 'snapshot') {
-        assertPaths(input.paths);
-        return context;
-    }
-    const locales = getProjectLocales(fragment);
-    const entries = getProjectSnapshots(fragment);
-    const paths =
-        (input.includeCards || input.includeVariations) && hasPendingSnapshot(entries)
-            ? entries.map((entry) => JSON.parse(entry).path)
-            : getProjectPaths(fragment);
-    const resolved = resolvePaths(paths, locales);
-    assertPaths([...paths, ...resolved]);
-    await authorizePaths(
-        {
-            ...input,
-            paths: resolved,
-            locales,
-            includeWorkflowReferences: true,
-        },
-        assertPaths,
-    );
-    return context;
+    pathAssertion(permissions)([fragment.path]);
+    const targetPermissions = { allowed: true };
+    return { fragment, permissions: targetPermissions, assertPaths: pathAssertion(targetPermissions) };
 }
 
 module.exports = { getPermissions, authorizeProject, authorizeEntries, authorizePaths, getReferencePaths };

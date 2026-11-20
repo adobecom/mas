@@ -67,8 +67,8 @@ export async function resetAction({ ioBaseUrl, projectId, token }) {
     return callAction(ioBaseUrl, RESET_ENDPOINT, { projectId }, token);
 }
 
-export async function checkModificationsAction({ ioBaseUrl, entries, token }) {
-    return callAction(ioBaseUrl, CHECK_MODIFICATIONS_ENDPOINT, { entries }, token);
+export async function checkModificationsAction({ ioBaseUrl, projectId, entries, token }) {
+    return callAction(ioBaseUrl, CHECK_MODIFICATIONS_ENDPOINT, { projectId, entries }, token);
 }
 
 export async function saveSnapshotAction({ ioBaseUrl, projectId, token }) {

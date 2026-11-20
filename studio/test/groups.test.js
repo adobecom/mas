@@ -19,11 +19,13 @@ describe('groups', () => {
     let originalProfile;
     let originalUsers;
     let originalImsAccess;
+    let originalSearch;
 
     beforeEach(() => {
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
         originalImsAccess = Store.users.getMeta('imsBulkPublishAccess');
+        originalSearch = structuredClone(Store.search.get());
         Store.users.setMeta('imsBulkPublishAccess', null);
     });
 
@@ -32,6 +34,7 @@ describe('groups', () => {
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
         Store.users.setMeta('imsBulkPublishAccess', originalImsAccess);
+        Store.search.set(originalSearch);
     });
 
     it('isMasAdmin is true only for GRP-ODIN-MAS-ADMINS', () => {
@@ -216,6 +219,26 @@ describe('groups', () => {
         await element.updateComplete;
         expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
     });
+
+    for (const [from, to, visible] of [
+        ['express', 'ccd', true],
+        ['ccd', 'express', false],
+        ['express', 'adobe-home', true],
+        ['adobe-home', 'express', false],
+    ]) {
+        it(`updates the bulk publish card when CCDAH curators switch from ${from} to ${to}`, async () => {
+            Store.profile.set({ email: 'a@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            Store.search.set((current) => ({ ...current, path: from }));
+            const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+            expect(Boolean(element.shadowRoot.querySelector('sp-icon-publish'))).to.equal(!visible);
+
+            Store.search.set((current) => ({ ...current, path: to }));
+            await element.updateComplete;
+
+            expect(Boolean(element.shadowRoot.querySelector('sp-icon-publish'))).to.equal(visible);
+        });
+    }
 
     it('canAccessSettings denies sandbox for non-admin', () => {
         Store.profile.set({ email: 'a@adobe.com' });

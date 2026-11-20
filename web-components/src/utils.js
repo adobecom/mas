@@ -13,6 +13,14 @@ export function debounce(func, delay) {
     };
 }
 
+export function swapAriaLabel(label, from, to) {
+    const text = from?.trim();
+    if (!label || !text) return null;
+    const index = label.toLowerCase().indexOf(text.toLowerCase());
+    if (index === -1) return null;
+    return label.slice(0, index) + to + label.slice(index + text.length);
+}
+
 export const getSlotText = (element, name) =>
     element?.querySelector(`[slot="${name}"]`)?.textContent?.trim();
 

@@ -66,7 +66,7 @@ import {
     matchesGeo,
     isGroupedVariationFragmentPath,
 } from '../utils/common.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
@@ -77,6 +77,7 @@ const hydratedProjectsCache = createSwrCache({
     name: 'promotions-hydrated',
     previewTtl: PREVIEW_CACHE_TTL,
     previewMemory: true,
+    conditional: true,
 });
 const promoVariationsCache = createSwrCache({
     name: 'promo-variations',
@@ -388,12 +389,17 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
     return result.variations;
 }
 
-async function fetchHydratedProject(projectId, context) {
+/**
+ * Loader of `hydratedProjectsCache`: the `all-hydrated` project, revalidated with the `etag` of the cached one.
+ */
+async function fetchHydratedProject(projectId, context, etag) {
     const response = await fetch(
         odinReferences(projectId, context.preview, REFERENCES.ALL),
         context,
         `promotions-hydrate-${projectId}`,
+        { etag },
     );
+    if (response.status === 304) return NOT_MODIFIED;
     if (response.status !== 200) {
         logError(`Failed to hydrate promotion project ${projectId}: ${response.message}`, context);
         return null;
@@ -401,7 +407,7 @@ async function fetchHydratedProject(projectId, context) {
     const hydratedProject = response.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const offerLines = hydratedProject.fields?.offers ?? [];
-    return {
+    const value = {
         fragmentPaths,
         groupedVariationPaths: fragmentPaths.filter(isGroupedVariationFragmentPath),
         groupedVariationReferences: parseGroupedVariationReferences(hydratedProject),
@@ -411,6 +417,7 @@ async function fetchHydratedProject(projectId, context) {
         promoCode: hydratedProject.fields?.promoCode ?? null,
         title: hydratedProject.fields?.title ?? null,
     };
+    return { value, etag: response.etag };
 }
 
 /**
@@ -423,7 +430,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydratedProject, defaultVariations, regionVariations] = await Promise.all([
-        hydratedProjectsCache.get(context, project.id, () => fetchHydratedProject(project.id, context)),
+        hydratedProjectsCache.get(context, project.id, ({ etag }) => fetchHydratedProject(project.id, context, etag)),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)

@@ -200,7 +200,7 @@ export function loadAllPlaceholders(store) {
 
 /**
  * Loads all fragments (cards or collections). Subscribes to fragments list and populates store.
- * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
+ * @param {string} type - TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS or TABLE_TYPE.BASELINES
  * @param {Object} repository - MasRepository instance
  * @param {Object} state - Mutable state for process cancellation
  * @param {Function} options.getDisplayName - Display label for raw fragment data
@@ -209,6 +209,22 @@ export function loadAllPlaceholders(store) {
  */
 
 export function loadAllFragments(type, repository, state = {}, { getDisplayName, onReady, store } = {}) {
+    if (type === TABLE_TYPE.BASELINES) {
+        const { data } = store.baselinesList;
+        const callback = (stores) => {
+            const baselines = stores.map(({ value }) => ({
+                ...value,
+                studioPath: getDisplayName(value),
+            }));
+            const cardsByPaths = new Map(store.cardsByPaths.get());
+            for (const baseline of baselines) cardsByPaths.set(baseline.path, baseline);
+            store.cardsByPaths.set(cardsByPaths);
+            store.displayBaselines.set(baselines);
+            store.allBaselines.set(baselines);
+        };
+        data.subscribe(callback);
+        return { unsubscribe: () => data.unsubscribe(callback) };
+    }
     // Collections load via repository.loadAllCollections() with a dedicated model-filtered
     // query; partitioning the shared card stream misses collections that sit deep in the
     // cursor on large surfaces (acom, nala) where cards dominate the first pages.
@@ -270,11 +286,11 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
  * @param {Array<string>} selectedPaths - Paths of selected fragments
  * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
  * @param {Object} repository - MasRepository instance
- * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName, store, prefetched: Map<path, fragmentData> }
+ * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, onFetched: (fragments) => void (before enrichment), getDisplayName, store, prefetched: Map<path, fragmentData> (read, and filled with fetched raw data) }
  * @returns {Promise<void>}
  */
 export async function loadSelectedFragments(selectedPaths, type, repository, options = {}) {
-    const { signal, onItems, getDisplayName, store, prefetched } = options;
+    const { signal, onItems, onFetched, getDisplayName, store, prefetched } = options;
     if (!repository || !selectedPaths?.length || !getDisplayName) {
         if (onItems) onItems([]);
         return;
@@ -285,7 +301,11 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
             selectedPaths,
             async (path) => {
                 try {
-                    const fragmentData = prefetched?.get(path) ?? (await repository.aem.getFragmentByPath(path));
+                    let fragmentData = prefetched?.get(path);
+                    if (!fragmentData) {
+                        fragmentData = await repository.aem.getFragmentByPath(path);
+                        prefetched?.set(path, fragmentData);
+                    }
                     const fragment = new Fragment(fragmentData);
                     return {
                         ...fragmentData,
@@ -300,6 +320,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         );
 
         const validFragments = fragments.filter(Boolean);
+        if (!signal?.aborted) onFetched?.(validFragments);
 
         if (type === TABLE_TYPE.CARDS) {
             if (signal?.aborted) return;

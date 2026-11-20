@@ -443,6 +443,21 @@ describe('processCTAs', async () => {
         expect(button.textContent).to.equal('Buy now');
     });
 
+    it('should swap the aria-label text to buy-now when replacing a free-trial CTA', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Free trial - Acrobat Pro" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const button = getFooterElement(merchCard).querySelector('button');
+        expect(button.getAttribute('aria-label')).to.equal(
+            'Buy now - Acrobat Pro',
+        );
+        expect(button.textContent).to.equal('Buy now');
+    });
+
     it('should replace free-trial CTA with buy-now in headless when hideTrialCTAs is true', async () => {
         const merchCard = mockMerchCard();
         const aemFragmentMapping = {
@@ -2367,6 +2382,60 @@ describe('processBadge', () => {
         sinon.restore();
     });
 
+    // pro defines no `badge` entry in its fragment mapping, so it takes the legacy branch
+    const PRO_AEM_FRAGMENT_MAPPING = {};
+
+    it('sets border-color to black on a pro card with borderColor black and a leftover badge', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            borderColor: 'black',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal('black');
+        expect(merchCard.getAttribute('badge-text')).to.equal('Leftover');
+        expect(merchCard.getAttribute('badge-color')).to.equal('#000000');
+        expect(merchCard.getAttribute('badge-background-color')).to.equal(
+            '#F8D904',
+        );
+    });
+
+    it('keeps badge-driven border-color on a pro card with a badge and no borderColor', () => {
+        const fields = {
+            variant: 'pro',
+            badge: 'Leftover',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, PRO_AEM_FRAGMENT_MAPPING);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+
+        const defaultCard = mockMerchCard();
+        processBadge(
+            { variant: 'pro', badge: 'Leftover' },
+            defaultCard,
+            PRO_AEM_FRAGMENT_MAPPING,
+        );
+        expect(defaultCard.getAttribute('border-color')).to.equal('#F8D904');
+        expect(defaultCard.getAttribute('badge-text')).to.equal('Leftover');
+    });
+
+    it('keeps badge-driven border-color on a badge-displaying legacy variant with no borderColor', () => {
+        const mapping = { badge: { tag: 'div' } };
+        expect(mapping.badge?.slot).to.not.be.ok;
+        const fields = {
+            variant: 'catalog',
+            badge: 'New',
+            badgeBackgroundColor: 'spectrum-red-700-plans',
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+        expect(merchCard.getAttribute('badge-text')).to.equal('New');
+    });
+
     it('should not append a badge when text is empty on full-pricing-express', () => {
         const fields = { badge: '', variant: 'full-pricing-express' };
         processBadge(
@@ -2741,6 +2810,42 @@ describe('processImage (marquee)', () => {
         expect(picture.querySelector('script')).to.not.exist;
         expect(picture.querySelector('img').hasAttribute('data-evil')).to.be
             .false;
+    });
+});
+
+describe('hydrate (marquee callout)', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('marquee callout maps into div[slot="callout-content"]', async () => {
+        processDescription(
+            { callout: '<p>Limited-time offer</p>' },
+            merchCard,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+        );
+        const callout = merchCard.querySelector('div[slot="callout-content"]');
+        expect(callout).to.exist;
+        expect(callout.textContent.trim()).to.equal('Limited-time offer');
+        const keys = Object.keys(MARQUEE_AEM_FRAGMENT_MAPPING);
+        expect(keys.indexOf('callout')).to.equal(
+            keys.indexOf('shortDescription') + 1,
+        );
+    });
+
+    it('marquee with empty callout renders no callout-content slot', async () => {
+        processDescription(
+            { callout: '' },
+            merchCard,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="callout-content"]')).to.be.null;
     });
 });
 

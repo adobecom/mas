@@ -1,5 +1,5 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, markDegraded } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
@@ -83,6 +83,7 @@ async function buildDictionaryLayer(context, surface, locale, prefix) {
         collectEntries(response.body, response.body.references || {}, dictionary);
         return dictionary;
     });
+    if (!layer) markDegraded(context, `dictionary ${surface}/${locale}`);
     return layer ?? {};
 }
 
@@ -120,6 +121,15 @@ export async function getDictionary(context) {
     return { ...globalBaseline, ...surfaceBaseline, ...regionOverlay, ...context.dictionary };
 }
 
+// HTML forbids a <p> inside a <p>: a Rich Text value stored as one paragraph is unwrapped when it lands in an open <p>.
+// The text is JSON-stringified (attribute quotes are escaped) but the `<p ` opener prefix is unaffected.
+const SINGLE_PARAGRAPH_REGEXP = /^<p(?: [^>]*)?>((?:(?!<p[ >]).)*)<\/p>$/s;
+
+function isInsideOpenParagraph(text) {
+    const opener = Math.max(text.lastIndexOf('<p>'), text.lastIndexOf('<p '));
+    return opener !== -1 && !text.includes('</p>', opener);
+}
+
 function replaceValues(input, dictionary, calls) {
     const placeholders = input.matchAll(PH_REGEXP);
     let replaced = '';
@@ -137,8 +147,9 @@ function replaceValues(input, dictionary, calls) {
             value = replaceValues(value, dictionary, calls);
             calls.pop();
         }
-        //we concatenate value
-        replaced = replaced + value;
+        const paragraph = isInsideOpenParagraph(replaced) && value.match(SINGLE_PARAGRAPH_REGEXP);
+        //we concatenate value, without its <p> wrapper when it would nest inside an open <p>
+        replaced = replaced + (paragraph ? paragraph[1] : value);
         //and update index for next iteration
         nextIndex = match.index + match[0].length;
     }

@@ -7,6 +7,7 @@ import {
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
 import '../src/merch-card-collection.js';
+import { hydrate } from '../src/hydrate.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
 let ProductPricing;
@@ -210,6 +211,41 @@ describe('ProductPricing.syncHeights across a collection', () => {
                     '18px',
                 );
             });
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('reserves the add-on row for siblings without one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const withAddon = makeCard({ heights: { addon: 52 } });
+        const without = makeCard({ heights: {} });
+        const layout = layoutFor([withAddon, without]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(withAddon.__styles[prop]).to.equal('52px');
+            expect(
+                without.__styles[prop],
+                'card without an add-on reserves the row',
+            ).to.equal('52px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('leaves the add-on row unset when no card in the row has one', () => {
+        const prop = '--consonant-merch-card-product-pricing-addon-height';
+        const a = makeCard({ heights: {} });
+        const b = makeCard({ heights: {} });
+        const layout = layoutFor([a, b]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            expect(a.__styles[prop]).to.be.undefined;
+            expect(b.__styles[prop]).to.be.undefined;
         } finally {
             gcs.restore();
             mm.restore();
@@ -550,7 +586,7 @@ describe('ProductPricing price row collapse', () => {
         const card = document.createElement('merch-card');
         card.setAttribute('variant', 'product-pricing');
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="body-xs">Copy</div>
             ${withPrice ? '<p slot="heading-xs">US$9.99/mo</p>' : ''}
             <div slot="footer"><a href="#">Buy</a></div>`;
@@ -604,7 +640,7 @@ describe('ProductPricing row alignment', () => {
         wrap.innerHTML = cardsHtml
             .map(
                 (inner) => `<merch-card variant="product-pricing">
-                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+                    <h2 slot="heading-s">Title</h2>${inner}</merch-card>`,
             )
             .join('');
         document.body.appendChild(wrap);
@@ -754,7 +790,7 @@ describe('ProductPricing CTAs', () => {
         card.setAttribute('variant', 'product-pricing');
         card.style.width = width;
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="footer">
                 ${links(labels)}
             </div>`;
@@ -806,6 +842,143 @@ describe('ProductPricing CTAs', () => {
             const link = card.querySelector('[slot="footer"] a');
             expect(link.scrollWidth).to.be.at.most(link.clientWidth);
             expect(link.offsetHeight).to.be.above(40);
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('ProductPricing hydrated title', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    it('renders the title as an h2 in slot heading-s', async () => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        try {
+            await hydrate(
+                {
+                    id: 'product-pricing-title',
+                    fields: {
+                        variant: 'product-pricing',
+                        cardTitle: 'Photoshop',
+                    },
+                },
+                card,
+            );
+            const title = card.querySelector('[slot="heading-s"]');
+            expect(title).to.exist;
+            expect(title.tagName).to.equal('H2');
+            expect(title.textContent).to.equal('Photoshop');
+            expect(card.querySelector('h3[slot="heading-s"]')).to.be.null;
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('ProductPricing add-on', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    const renderCard = async (fields = {}) => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        await hydrate(
+            {
+                id: 'product-pricing-addon',
+                fields: {
+                    variant: 'product-pricing',
+                    cardTitle: 'Photoshop',
+                    ...fields,
+                },
+            },
+            card,
+        );
+        await card.updateComplete;
+        return card;
+    };
+
+    it('projects the add-on between .fine and footer with custom-checkbox', async () => {
+        const card = await renderCard({
+            addon: '<p>Add a free trial of Adobe Stock.</p>',
+        });
+        try {
+            const addon = card.querySelector('merch-addon[slot="addon"]');
+            expect(addon).to.exist;
+            const slot = card.shadowRoot.querySelector('slot[name="addon"]');
+            expect(slot.assignedElements()).to.include(addon);
+            const fine = card.shadowRoot.querySelector('.fine');
+            const footer = card.shadowRoot.querySelector('footer');
+            expect(
+                fine.compareDocumentPosition(slot) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).to.be.ok;
+            expect(
+                slot.compareDocumentPosition(footer) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).to.be.ok;
+            await card.variantLayout.adjustAddon();
+            expect(addon.hasAttribute('custom-checkbox')).to.be.true;
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('styles the add-on box, checkbox and label', async () => {
+        const card = await renderCard({
+            addon: '<p>Add a free trial of Adobe Stock.</p>',
+        });
+        try {
+            const addon = card.querySelector('merch-addon[slot="addon"]');
+            await addon.updateComplete;
+            const box = getComputedStyle(addon);
+            expect(box.paddingTop).to.equal('16px');
+            expect(box.paddingLeft).to.equal('12px');
+            expect(box.borderTopWidth).to.equal('1px');
+            expect(box.borderTopLeftRadius).to.equal('8px');
+            expect(box.columnGap).to.equal('8px');
+            expect(box.marginTop).to.equal('16px');
+            expect(
+                box.getPropertyValue('--merch-addon-checkbox-size'),
+            ).to.equal('20px');
+            const label = getComputedStyle(addon.querySelector('p'));
+            expect(label.fontSize).to.equal('14px');
+            expect(label.lineHeight).to.equal('18px');
+            expect(label.fontWeight).to.equal('700');
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('renders no add-on box without an add-on', async () => {
+        const card = await renderCard();
+        try {
+            expect(card.querySelector('merch-addon')).to.be.null;
+            const slot = card.shadowRoot.querySelector('slot[name="addon"]');
+            expect(slot.assignedElements()).to.be.empty;
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('swaps the checkout link OSI when the add-on is toggled', async () => {
+        const card = await renderCard();
+        try {
+            const link = {
+                value: [{ offerType: 'BASE', planType: 'ABM' }],
+                dataset: { wcsOsi: 'main-osi' },
+            };
+            Object.defineProperty(card, 'checkoutLinks', {
+                get: () => [link],
+                configurable: true,
+            });
+            const addon = { checked: true, getOsi: () => 'addon-osi' };
+            card.toggleAddon(addon);
+            expect(link.dataset.wcsOsi).to.equal('main-osi,addon-osi');
+            addon.checked = false;
+            card.toggleAddon(addon);
+            expect(link.dataset.wcsOsi).to.equal('main-osi');
         } finally {
             card.remove();
         }

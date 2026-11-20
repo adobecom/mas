@@ -69,7 +69,6 @@ export class AOSClient {
             method: 'GET',
             headers: {
                 Authorization: authHeader,
-                'X-Api-Key': this.apiKey,
                 'x-api-key': this.apiKey,
             },
         });
@@ -139,7 +138,6 @@ export class AOSClient {
                         method: 'GET',
                         headers: {
                             Authorization: authHeader,
-                            'X-Api-Key': this.apiKey,
                             'x-api-key': this.apiKey,
                         },
                     });
@@ -230,7 +228,6 @@ export class AOSClient {
             method: 'GET',
             headers: {
                 Authorization: authHeader,
-                'X-Api-Key': this.apiKey,
                 'x-api-key': this.apiKey,
             },
         });

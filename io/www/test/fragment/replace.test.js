@@ -46,14 +46,15 @@ const stubEmptyDictionary = (preview, surface, locale, stub = fetchStub) => {
 };
 
 // Shared helper reused by the pipeline tests: stubs the surface-baseline dictionary (sandbox) for the
-// locales the pipeline exercises. The acom default layer falls through to the suite's default 404 stub.
+// locales the pipeline exercises, and an empty acom default layer (a missing one would degrade the response).
 const mockDictionary = (preview = false, stub = fetchStub, cleanCache = true) => {
     if (cleanCache) {
         clearDictionaryCache();
     }
-    ['en_US', 'fr_FR', 'de_DE'].forEach((locale) =>
-        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub),
-    );
+    for (const locale of ['en_US', 'fr_FR', 'de_DE']) {
+        mockDirectDictionary(preview, BASELINE_SURFACE, locale, { references: {} }, stub);
+        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub);
+    }
 };
 
 const odinResponse = (description, cta = '{{buy-now}}', surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({
@@ -197,6 +198,72 @@ describe('replace', () => {
     it('returns 200 & manages rich text with double quotes', async () => {
         const response = await getResponse('look! {{rich-text-with-quotes}}');
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
+    });
+
+    describe('rich text placeholders inside paragraphs', () => {
+        const LINK =
+            '<a class="primary-link" href="https://www.adobe.com/go/acomfirefly_generativecredits" target="_self">generative credits</a>';
+        const RICH_TEXT_ENTRIES = {
+            'generative-credits': `<p>${LINK}</p>`,
+            4000: '4,000',
+            premium: '<p>{{4000}} monthly {{generative-credits}} for premium creative AI video and audio features.</p>',
+            'two-paragraphs': '<p>one</p><p>two</p>',
+            'styled-paragraph': '<p class="y">styled</p>',
+        };
+
+        const resolveDescription = async (description) => {
+            clearDictionaryCache();
+            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE);
+            const fixture = structuredClone(DICTIONARY_RESPONSE);
+            const extra = dictFixture(RICH_TEXT_ENTRIES);
+            fixture.references = { ...fixture.references, ...extra.references };
+            fixture.fields.entries = [...(fixture.fields.entries || []), ...extra.fields.entries];
+            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, fixture);
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                regionLocale: DEFAULT_LOCALE,
+                defaultLocale: DEFAULT_LOCALE,
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                promises: {},
+            };
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            context.body = odinResponse(description, 'Buy now');
+            return (await replace.process(context)).body.fields.description;
+        };
+
+        it('unwraps a rich text placeholder nested in another placeholder', async () => {
+            const result = await resolveDescription('<p>{{premium}}</p>');
+            expect(result).to.equal(`<p>4,000 monthly ${LINK} for premium creative AI video and audio features.</p>`);
+            expect(result.match(/<p/g)).to.have.length(1);
+        });
+        it('unwraps a rich text placeholder inline in a field', async () => {
+            expect(await resolveDescription('<p>Includes {{generative-credits}} every month.</p>')).to.equal(
+                `<p>Includes ${LINK} every month.</p>`,
+            );
+        });
+        it('unwraps a rich text placeholder alone in a field paragraph', async () => {
+            expect(await resolveDescription('<p>{{generative-credits}}</p>')).to.equal(`<p>${LINK}</p>`);
+        });
+        it('unwraps inside an open paragraph that has attributes', async () => {
+            expect(await resolveDescription('<p class="x">Get {{generative-credits}}</p>')).to.equal(
+                `<p class="x">Get ${LINK}</p>`,
+            );
+        });
+        it('keeps the wrapper after a closed paragraph', async () => {
+            expect(await resolveDescription('<p>a</p>{{generative-credits}}')).to.equal(`<p>a</p><p>${LINK}</p>`);
+        });
+        it('leaves a multi-paragraph value inside a paragraph as is', async () => {
+            expect(await resolveDescription('<p>{{two-paragraphs}}</p>')).to.equal('<p><p>one</p><p>two</p></p>');
+        });
+        it('unwraps a value whose paragraph has attributes', async () => {
+            expect(await resolveDescription('<p>{{styled-paragraph}}</p>')).to.equal('<p>styled</p>');
+        });
+        it('does not treat <pre> as an open paragraph', async () => {
+            expect(await resolveDescription('<pre>{{generative-credits}}</pre>')).to.equal(`<pre><p>${LINK}</p></pre>`);
+        });
     });
 
     describe('system placeholders (plan-type-text)', () => {

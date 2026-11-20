@@ -205,6 +205,37 @@
                         expect(el.querySelectorAll('sp-picker').length).to.equal(2);
                     });
 
+                    it('labels Badge, Trial badge and colour pickers, with Badge outside the two-column grid', async () => {
+                        const badge = await mount(
+                            html`<badge-section
+                                show-colors
+                                .value=${'Badge'}
+                                .colors=${BADGE_COLORS}
+                                .borderColors=${BORDER_COLORS}
+                            ></badge-section>`,
+                        );
+                        await badge.updateComplete;
+                        const labelsOf = (el) => [...el.querySelectorAll('sp-field-label')].map((l) => l.textContent.trim());
+                        expect(labelsOf(badge)).to.deep.equal(['Badge', 'Badge background color', 'Badge border color']);
+                        expect(badge.querySelector('sp-field-group#badge').closest('.two-column-grid')).to.be.null;
+
+                        const trial = await mount(
+                            html`<badge-section
+                                field="trialBadge"
+                                show-colors
+                                .value=${'Trial'}
+                                .colors=${BADGE_COLORS}
+                                .borderColors=${BORDER_COLORS}
+                            ></badge-section>`,
+                        );
+                        await trial.updateComplete;
+                        expect(labelsOf(trial)).to.deep.equal([
+                            'Trial badge',
+                            'Trial badge background color',
+                            'Trial badge border color',
+                        ]);
+                    });
+
                     it('renders the icon field only with show-icon and text', async () => {
                         const withoutText = await mount(
                             html`<badge-section show-colors show-icon .colors=${BADGE_COLORS}></badge-section>`,

@@ -80,7 +80,7 @@ function judgeIndex(check, placeholderIds, liveEntries) {
     }
     if (!liveEntries) return { status: REPORT_STATUS.FAILED, reason: 'published-index-unreadable' };
     const live = new Set(liveEntries);
-    const missing = placeholderIds.filter((id) => !live.has(id));
+    const missing = placeholderIds.filter((id) => id && !live.has(id));
     if (missing.length) return { status: REPORT_STATUS.FAILED, reason: 'index-lacks-placeholders' };
     return verdict;
 }
@@ -158,6 +158,10 @@ async function generateReport({ projectId, project, odinEndpoint, authToken, dep
             verdict = { status: REPORT_STATUS.FAILED, reason: 'placeholder-index-missing' };
         } else {
             verdict = statusFromAem(result);
+            const liveEntries = type === ROW_TYPE.PLACEHOLDER ? entriesByIndex.get(indexPathOf(path)) : null;
+            if (verdict.status === REPORT_STATUS.LIVE && liveEntries && !liveEntries.includes(result.fragment.id)) {
+                verdict = { status: REPORT_STATUS.FAILED, reason: 'not-in-published-index' };
+            }
         }
         if (result.state === CHECK.ERROR) errors.push({ path, message: result.message });
 

@@ -53,7 +53,37 @@ describe('bulk-publish/report.js', () => {
         expect(ok.rows.find((r) => r.path === INDEX).status).to.equal(REPORT_STATUS.LIVE);
     });
 
-    it('incident case: 114 items with 21 indexes not live reports 93 live and 21 failed, not 113/114 published', async () => {
+    it('marks a live placeholder absent from the published index as not-in-published-index', async () => {
+        const placeholder = `${ROOT}/dictionary/new-key`;
+        const fragments = { [placeholder]: found(placeholder, 'PUBLISHED'), [INDEX]: found(INDEX, 'PUBLISHED') };
+        const report = await run([placeholder], { fragments, entries: [`${ROOT}/dictionary/other`] });
+        const row = report.rows.find((r) => r.path === placeholder);
+        expect(row.status).to.equal(REPORT_STATUS.FAILED);
+        expect(row.reason).to.equal('not-in-published-index');
+    });
+
+    it('does not count a placeholder absent from the published index as live', async () => {
+        const placeholder = `${ROOT}/dictionary/new-key`;
+        const fragments = { [placeholder]: found(placeholder, 'PUBLISHED'), [INDEX]: found(INDEX, 'PUBLISHED') };
+        const report = await run([placeholder], { fragments, entries: [] });
+        expect(report.summary.live).to.equal(0);
+    });
+
+    it('keeps a placeholder listed in the published index live', async () => {
+        const placeholder = `${ROOT}/dictionary/new-key`;
+        const fragments = { [placeholder]: found(placeholder, 'PUBLISHED'), [INDEX]: found(INDEX, 'PUBLISHED') };
+        const report = await run([placeholder], { fragments, entries: [`id-${placeholder}`] });
+        expect(report.rows.find((r) => r.path === placeholder).status).to.equal(REPORT_STATUS.LIVE);
+    });
+
+    it('does not flag the index when the only missing placeholder has no AEM id', async () => {
+        const placeholder = `${ROOT}/dictionary/gone`;
+        const fragments = { [INDEX]: found(INDEX, 'PUBLISHED') };
+        const report = await run([placeholder], { fragments, entries: [] });
+        expect(report.rows.find((r) => r.path === INDEX).status).to.equal(REPORT_STATUS.LIVE);
+    });
+
+    it('incident case: 114 items with 21 indexes not live reports 72 live and 42 failed (21 indexes + 21 placeholders), not 113/114 published', async () => {
         const fragments = {};
         const paths = [];
         for (let i = 0; i < 72; i++) {
@@ -75,7 +105,7 @@ describe('bulk-publish/report.js', () => {
             ],
         };
         const report = await run(paths, { fragments, entries: [], project });
-        expect(report.summary).to.include({ total: 114, live: 93, failed: 21, reportedPublished: 113 });
+        expect(report.summary).to.include({ total: 114, live: 72, failed: 42, reportedPublished: 113 });
         expect(report.summary.live).to.not.equal(report.summary.reportedPublished);
     });
 

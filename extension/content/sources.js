@@ -1,0 +1,268 @@
+// Collects the source engine's inputs on demand: the page's stamps, the MEP state, and the variation,
+// mask and replacement fragments fetched through the background (cached, within the shared budget,
+// which Refresh resets).
+(() => {
+    const FETCH_BUDGET = 50;
+    const SELECTOR_CARD = 'merch-card, merch-card-collection';
+    const BASELINE_KEYS = ['offerBaselineId', 'fragmentBaselineId', 'fragmentSegmentBaselineId'];
+    const BARE_TYPES = ['price', 'cta'];
+    const SURFACE_PATTERN = /^\/content\/dam\/mas\/([^/]+)\//;
+
+    let fetchCount = 0;
+    const fragmentCache = new Map();
+    const missKeys = new Set();
+
+    const detector = () => window.MASCardDetector;
+    const engine = () => window.MASSourceEngine;
+    const mep = () => window.MASMepState;
+
+    // Lets Refresh start over: cached responses stay, and only new requests spend the budget again.
+    function resetBudget() {
+        fetchCount = 0;
+        missKeys.forEach((key) => fragmentCache.delete(key));
+        missKeys.clear();
+    }
+
+    // Shared with content.js's card-name fetches; once spent, it returns false without consuming.
+    function consumeBudget(n = 1) {
+        if (fetchCount + n > FETCH_BUDGET) return false;
+        fetchCount += n;
+        return true;
+    }
+
+    // raw asks for Odin's unmerged record instead of IO's localized, merged response.
+    function requestFragment(fragmentId, locale, country, raw) {
+        const message = {
+            type: 'FETCH_FRAGMENT_DATA',
+            fragmentId,
+            locale,
+            country,
+            ...(raw ? { raw } : {}),
+            ...detector().getServiceConfig(),
+        };
+        return new Promise((resolve) => {
+            try {
+                chrome.runtime.sendMessage(message, (response) => {
+                    resolve(chrome.runtime.lastError ? {} : (response ?? {}));
+                });
+            } catch {
+                resolve({});
+            }
+        });
+    }
+
+    // Concurrent callers share one request; a cached id costs no budget.
+    function fetchResponse(id, locale, country, raw = false) {
+        if (!id) return Promise.resolve({});
+        const key = `${id}|${locale ?? ''}|${country ?? ''}|${raw}`;
+        if (!fragmentCache.has(key)) {
+            if (!consumeBudget()) return Promise.resolve({});
+            fragmentCache.set(
+                key,
+                requestFragment(id, locale, country, raw).then((response) => {
+                    if (!response.success && !response.miss) fragmentCache.delete(key);
+                    if (response.miss) missKeys.add(key);
+                    return response;
+                }),
+            );
+        }
+        return fragmentCache.get(key);
+    }
+
+    function fetchFragment(id, locale, country, raw) {
+        return fetchResponse(id, locale, country, raw).then((response) => (response.success ? (response.data ?? null) : null));
+    }
+
+    // IO answers a regional variation's id with its default-language parent, the variation already
+    // merged in and dropped from references, so only Odin still has the variation's own fields.
+    function unmergedVariation(variationId, response) {
+        if (!response || response.id === variationId) return response;
+        return fetchFragment(variationId, null, null, true);
+    }
+
+    // Why IO refused a fragment, as its 404 tells; null when it gave no reason.
+    function fetchMiss(id, locale, country) {
+        return fetchResponse(id, locale, country).then((response) => response.miss ?? null);
+    }
+
+    function emptyResult() {
+        return { groupKey: null, entries: [], mixed: false, focusField: null };
+    }
+
+    // A standalone offer was never rendered from a fragment.
+    function isStandalone(stamps) {
+        return !stamps.requestedId && !stamps.resolvedId;
+    }
+
+    // MEP can resolve after the bridge's on-load post, so every computation asks for the current map.
+    async function pageState() {
+        const mepState = await mep().request();
+        return { mepState, overrideIds: mep().readOverrideIds() };
+    }
+
+    function isSwapped(stamps, { mepState, overrideIds }) {
+        return engine().swapFor(stamps, mepState, overrideIds).swapped;
+    }
+
+    // Default locales differ per surface, which the variation's DAM path names.
+    function isRegionLocale(locale, variationData) {
+        const locales = window.MASLocales;
+        if (!locales) return false;
+        const surface = variationData?.path?.match(SURFACE_PATTERN)?.[1] ?? 'acom';
+        return !locales.isDefaultLocale(locale, surface);
+    }
+
+    // Which fields a baseline supplies is told by the card's own unmerged record.
+    function hasBaseline(data) {
+        return BASELINE_KEYS.some((key) => data?.[key]);
+    }
+
+    // A whole card always needs its requested fragment to list its fields (the card-name fetch already
+    // cached it); an inline field needs it only to label a swap.
+    async function collectInputs(stamps, { locale, country }, page, { wholeCard = false } = {}) {
+        const inputs = { ...page, variationData: null, requestedData: null, maskData: null, isRegionLocale: false, miss: null };
+        // A loading field resolves from its stamps alone; a failed one spends one fetch to learn why from IO.
+        if (stamps.loading) return inputs;
+        const ownId = stamps.requestedId ?? stamps.resolvedId;
+        if (stamps.failed) return { ...inputs, miss: await fetchMiss(ownId, locale, country) };
+        const load = (id) => fetchFragment(id, locale, country);
+        const [variationResponse, maskData, requestedData] = await Promise.all(
+            [stamps.variationId, stamps.maskId, ownId].map(load),
+        );
+        const variationData = await unmergedVariation(stamps.variationId, variationResponse);
+        const cardRaw = hasBaseline(requestedData) ? await fetchFragment(requestedData.id ?? ownId, null, null, true) : null;
+        return {
+            ...inputs,
+            variationData,
+            maskData,
+            requestedData,
+            cardRaw,
+            budgetSpent: fetchCount >= FETCH_BUDGET,
+            isRegionLocale: isRegionLocale(locale, variationData),
+        };
+    }
+
+    // The same element the detector anchors a field's badge to, so shown agrees with badged.
+    function isShown(field) {
+        return detector().hasBox(detector().fieldAnchor(field));
+    }
+
+    // Every mas-field counts, badged or not: the detector skips one without fragment-id, such as a
+    // failed MEP-swapped field. Badged bare prices/CTAs join through their own stamps.
+    function inlineMembers(mepState) {
+        const overlayIds = new Map([...detector().detectedCards].map(([overlayId, { element }]) => [element, overlayId]));
+        const fields = [...document.querySelectorAll('mas-field')]
+            .filter((element) => !element.closest(SELECTOR_CARD))
+            .map((element) => ({ element, stamps: engine().readStamps(element, 'field'), shown: isShown(element) }));
+        const bare = [...detector().detectedCards.values()]
+            .filter(({ elementType }) => BARE_TYPES.includes(elementType))
+            .map(({ element, elementType }) => ({
+                element,
+                stamps: engine().readStamps(element, elementType),
+                shown: detector().hasBox(element),
+            }));
+        return [...fields, ...bare]
+            .filter(({ stamps }) => !stamps.loading && !isStandalone(stamps))
+            .map((member) => ({
+                ...member,
+                overlayId: overlayIds.get(member.element) ?? null,
+                groupKey: engine().groupKey(member.stamps, mepState),
+            }));
+    }
+
+    function twinKey({ field, requestedId, resolvedId, variationId }) {
+        return `${field}|${requestedId ?? resolvedId ?? ''}|${variationId ?? ''}`;
+    }
+
+    // Adobe pages render hidden responsive twins: keep one unbadged element per field and fetch, a shown
+    // one first. Every badged element stays, since outlines reach a field through its overlay id. A
+    // failed field renders nothing, so it is kept without a box.
+    function dedupeTwins(members) {
+        const badged = members.filter(({ overlayId }) => overlayId);
+        const badgedKeys = new Set(badged.map(({ stamps }) => twinKey(stamps)));
+        const kept = new Map();
+        for (const member of members.filter(({ overlayId, shown, stamps }) => !overlayId && (shown || stamps.failed))) {
+            const key = twinKey(member.stamps);
+            if (badgedKeys.has(key)) continue;
+            const current = kept.get(key);
+            if (!current || (member.shown && !current.shown)) kept.set(key, member);
+        }
+        return [...badged, ...kept.values()];
+    }
+
+    function groupByKey(members) {
+        const groups = new Map();
+        for (const member of members) {
+            if (!groups.has(member.groupKey)) groups.set(member.groupKey, []);
+            groups.get(member.groupKey).push(member);
+        }
+        return groups;
+    }
+
+    function finishGroup(group) {
+        const mixed = engine().isMixed(group.entries);
+        group.overlayIds.forEach((overlayId) => window.MASCardOverlay?.markMixed?.(overlayId, mixed));
+        return { ...group, mixed };
+    }
+
+    async function resolveInlineGroup(groupKey, members, page) {
+        const overlayIds = members.map(({ overlayId }) => overlayId).filter(Boolean);
+        const cardData = detector().getCardByFragmentId(overlayIds[0]);
+        // A group the detector has not badged yet falls back to the page locale every badge uses.
+        const context = cardData ?? detector().currentLocale();
+        const entries = await Promise.all(
+            dedupeTwins(members).map(async ({ stamps, overlayId }) => ({
+                ...engine().resolveField(stamps, await collectInputs(stamps, context, page)),
+                overlayId,
+            })),
+        );
+        return finishGroup({ groupKey, cardName: cardData?.cardName ?? null, overlayIds, entries });
+    }
+
+    async function resolveCardGroup(overlayId, cardData, page) {
+        const stamps = engine().readStamps(cardData.element, 'card');
+        const inputs = await collectInputs(stamps, cardData, page, { wholeCard: true });
+        const entries = engine()
+            .resolveCard(stamps, inputs, { variant: cardData.variant })
+            .map((entry) => ({ ...entry, overlayId }));
+        const groupKey = engine().groupKey(stamps, page.mepState);
+        return finishGroup({ groupKey, cardName: cardData.cardName ?? null, overlayIds: [overlayId], entries });
+    }
+
+    async function getSourcesFor(overlayId) {
+        const cardData = detector().getCardByFragmentId(overlayId);
+        if (!cardData || cardData.elementType === 'collection') return emptyResult();
+        if (cardData.elementType === 'card') {
+            const { groupKey, entries, mixed } = await resolveCardGroup(overlayId, cardData, await pageState());
+            return { groupKey, entries, mixed, focusField: null };
+        }
+        const stamps = engine().readStamps(cardData.element, cardData.elementType);
+        if (isStandalone(stamps)) return emptyResult();
+        const page = await pageState();
+        const groupKey = engine().groupKey(stamps, page.mepState);
+        const members = inlineMembers(page.mepState).filter((member) => member.groupKey === groupKey);
+        const { entries, mixed } = await resolveInlineGroup(groupKey, members, page);
+        return { groupKey, entries, mixed, focusField: stamps.field };
+    }
+
+    async function getPageGroups() {
+        const page = await pageState();
+        const inline = [...groupByKey(inlineMembers(page.mepState))].map(([groupKey, members]) =>
+            resolveInlineGroup(groupKey, members, page),
+        );
+        const cards = [...detector().detectedCards]
+            .filter(([, cardData]) => cardData.elementType === 'card')
+            .map(([overlayId, cardData]) => resolveCardGroup(overlayId, cardData, page));
+        return Promise.all([...inline, ...cards]);
+    }
+
+    const MASSources = { getSourcesFor, getPageGroups, fetchFragment, consumeBudget, resetBudget };
+
+    if (typeof window !== 'undefined') {
+        window.MASSources = MASSources;
+    }
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = MASSources;
+    }
+})();

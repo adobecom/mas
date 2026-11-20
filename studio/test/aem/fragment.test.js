@@ -304,8 +304,8 @@ describe('Fragment', () => {
                 name: 'description',
                 values: [EXPLICIT_EMPTY_SENTINEL],
                 multiple: false,
-                expected: [EXPLICIT_EMPTY_SENTINEL],
-                desc: 'returns sentinel as-is for non-allowed fields — does not treat it as explicit-empty',
+                expected: [''],
+                desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] on fields not allowed to store it',
             },
         ].forEach(({ name, values, multiple, expected, desc }) => {
             it(desc, () => {
@@ -331,6 +331,14 @@ describe('Fragment', () => {
             );
             expect(variation.getEffectiveFieldValues('badge', null, true)).to.deep.equal([]);
         });
+
+        it('resolves an EXPLICIT_EMPTY_SENTINEL inherited from the parent to [""]', () => {
+            const clearedParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'subtitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            const variation = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: [] }] }));
+            expect(variation.getEffectiveFieldValues('subtitle', clearedParent, true)).to.deep.equal(['']);
+        });
     });
 
     describe('getEffectiveFieldValue', () => {
@@ -350,11 +358,19 @@ describe('Fragment', () => {
             expect(variation.getEffectiveFieldValue('badge', parent, true, 0)).to.equal('');
         });
 
-        it('does not treat EXPLICIT_EMPTY_SENTINEL as explicit-empty on non-allowed fields', () => {
+        it('returns empty string for EXPLICIT_EMPTY_SENTINEL on fields not allowed to store it', () => {
             const variation = new Fragment(
                 createFragmentConfig({ fields: [{ name: 'description', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
             );
-            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal(EXPLICIT_EMPTY_SENTINEL);
+            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal('');
+        });
+
+        it('returns empty string for an EXPLICIT_EMPTY_SENTINEL inherited from the parent', () => {
+            const clearedParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'subtitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            const variation = new Fragment(createFragmentConfig({ fields: [] }));
+            expect(variation.getEffectiveFieldValue('subtitle', clearedParent, true, 0)).to.equal('');
         });
 
         it('still inherits from parent when own value is absent', () => {
@@ -928,6 +944,48 @@ describe('Fragment', () => {
                 }),
             );
             expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('My Custom Code');
+        });
+    });
+
+    describe('getCurrentTagTitles (product_code / Tag Path)', () => {
+        const bundleIds = ['mas:product_code/acrobat-pro-dc', 'mas:product_code/ai-assistant'];
+        const createBundle = () =>
+            new Fragment(
+                createFragmentConfig({
+                    tags: [
+                        { id: bundleIds[0], title: 'Acrobat Pro' },
+                        { id: bundleIds[1], title: 'AI Assistant' },
+                    ],
+                    fields: [{ name: 'tags', values: bundleIds, multiple: true }],
+                }),
+            );
+
+        it('returns the titles of all product_code tags, longest id first', () => {
+            const fragment = createBundle();
+            expect(fragment.getCurrentTagTitles('mas:product_code/')).to.deep.equal(['Acrobat Pro', 'AI Assistant']);
+            expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('Acrobat Pro');
+        });
+
+        it('returns an empty array and undefined when no tag matches', () => {
+            const fragment = createBundle();
+            expect(fragment.getCurrentTagTitles('mas:promotion/')).to.deep.equal([]);
+            expect(fragment.getCurrentTagTitle('mas:promotion/')).to.be.undefined;
+        });
+    });
+
+    describe('getCurrentTagTitles (product / Tag Path)', () => {
+        it('returns the titles of all product tags, longest id first', () => {
+            const productIds = ['mas:product/dc/ai-assistant-acrobat', 'mas:product/dc/acrobat-pro'];
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    tags: [
+                        { id: productIds[0], title: 'AI Assistant for Acrobat' },
+                        { id: productIds[1], title: 'Acrobat Pro' },
+                    ],
+                    fields: [{ name: 'tags', values: productIds, multiple: true }],
+                }),
+            );
+            expect(fragment.getCurrentTagTitles('mas:product/')).to.deep.equal(['AI Assistant for Acrobat', 'Acrobat Pro']);
         });
     });
 

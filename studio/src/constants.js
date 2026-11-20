@@ -1,4 +1,5 @@
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../web-components/src/compat-version.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../web-components/src/constants.js';
 
 export const CHECKOUT_CTA_TEXTS = {
     'buy-now': 'Buy now',
@@ -17,6 +18,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'see-plans-and-pricing': 'See plans and pricing',
     'get-for-free': 'Get for free',
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
@@ -39,6 +41,7 @@ export const ANALYTICS_LINK_IDS = [
     'register-now',
     'see-all-plans-and-pricing',
     'see-more',
+    'see-plans-and-pricing',
     'see-terms',
     'select',
     'start-free-trial',
@@ -133,6 +136,7 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    PROMOTIONS_HISTORY: 'promotions-history',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
     AI_ASSISTANT: 'ai-assistant',
@@ -239,8 +243,8 @@ export const WORKFLOW_STEP_OPTIONS = [
 ];
 
 export const TAG_MODEL_ID_MAPPING = {
-    [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    [TAG_MERCH_CARD_COLLECTION]: COLLECTION_MODEL_ID,
+    [TAG_MERCH_CARD]: CARD_MODEL_ID,
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
@@ -269,6 +273,7 @@ export const VARIATION_TYPES = {
 export const PZN_FOLDER = 'pzn';
 
 export const BASELINES_FOLDER = 'baselines';
+export const MAS_OFFERS_URL = 'https://www.adobe.com/mas/io/offers?api_key=CreativeCloud_v6_9&locale=en_US&id';
 export const BASELINE_SOURCE_LOCALE = 'en_US';
 
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
@@ -308,6 +313,14 @@ export const SURFACES = {
     COMMERCE: {
         label: 'Commerce',
         name: 'commerce',
+    },
+    DALP: {
+        label: 'DALP',
+        name: 'dalp',
+    },
+    ELEMENTS: {
+        label: 'Elements',
+        name: 'elements',
     },
     EXPRESS: {
         label: 'Express',
@@ -358,6 +371,8 @@ export const FILTER_TYPE = {
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',
+    PRODUCT_ARRANGEMENT_CODE: 'productArrangementCode',
+    CREATED_BY: 'createdBy',
 };
 
 export const FRAGMENT_STATUS = {
@@ -381,6 +396,7 @@ export const TABLE_TYPE = {
     CARDS: 'cards',
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
+    BASELINES: 'baselines',
 };
 
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { applyPlanType, selectOffers, sumOffers } from '../../src/index.js';
+import { applyPlanType, selectOffers, sumOffers } from '../../src/offers.js';
 import { baseOffer } from '../fixtures/cases.js';
 import { planTypeCases } from '../fixtures/offer-cases.js';
 

@@ -4,7 +4,10 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
+import MasPromotionsEditor, {
+    PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS,
+    PROMOTION_ITEM_GROUPED_VARIATION_CELLS,
+} from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import {
     CARD_MODEL_PATH,
@@ -73,6 +76,36 @@ function isPromotionQuickActionDisabled(el, title) {
     const button = [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.title === title);
     return button.disabled === true || button.hasAttribute('disabled');
 }
+
+describe('promotion item grouped variation table config', () => {
+    const columnKeys = PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.map(({ key }) => key);
+
+    it('puts the select column first since the row renders its checkbox before the cells', () => {
+        expect(columnKeys[0]).to.equal('select');
+    });
+
+    it('has exactly one cell per column after the select column', () => {
+        expect(PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.length - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.length);
+    });
+
+    it('places promoCode at the same position as PromoCodeValue', () => {
+        expect(columnKeys.indexOf('promoCode') - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.indexOf('PromoCodeValue'));
+    });
+
+    it('pairs every column key with its matching cell renderer', () => {
+        const pairs = columnKeys.slice(1).map((key, index) => [key, PROMOTION_ITEM_GROUPED_VARIATION_CELLS[index]]);
+        expect(pairs).to.deep.equal([
+            ['offer', 'OfferName'],
+            ['fragmentTitle', 'Title'],
+            ['path', 'StudioPath'],
+            ['pznTags', 'PersonalizationTags'],
+            ['promoCode', 'PromoCodeValue'],
+            ['offerId', 'OfferId'],
+            ['osi', 'Osi'],
+            ['status', 'Status'],
+        ]);
+    });
+});
 
 describe('MasPromotionsEditor', () => {
     let sandbox;
@@ -154,7 +187,6 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
-            getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
             clearStagedTag: sandbox.stub().resolves(null),
@@ -652,26 +684,24 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            let finishClassification;
-            const classification = new Promise((resolve) => {
-                finishClassification = resolve;
-            });
-            const { el } = await mountEditorWithRepo({
-                getCollectionPathsForSurfaces: sandbox.stub().returns(classification),
-            });
+            const { el } = await mountEditorWithRepo();
             await waitForEditorConnect(el);
             Store.promotions.selectedOffers.set(['offer-1']);
             el.selectedItemsViewTab = TABLE_TYPE.CARDS;
             el.isSelectedItemsOpen = true;
             await el.updateComplete;
             expect(Store.promotions.selectedCards.value).to.deep.equal([collectionPath]);
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            const cardsTable = selector.shadowRoot.querySelector('mas-promotions-items-table');
             const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
                 (button) => button.textContent.trim() === 'Edit',
             );
             edit.click();
             await el.updateComplete;
-            finishClassification(new Set([collectionPath]));
-            await classification;
+            cardsTable.dispatchEvent(
+                new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }),
+            );
             await el.updateComplete;
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
 
@@ -1111,13 +1141,14 @@ describe('MasPromotionsEditor', () => {
                 'Copy link',
                 'Copy variation links',
                 'Lock project',
+                'Version history',
                 'Delete',
             ]);
             expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
             expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
         });
 
-        it('disables every quick action for a non-editor (view-only)', async () => {
+        it('allows history but disables write actions for a non-editor (view-only)', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.profile.set({ email: 'viewer@adobe.com' });
             Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
@@ -1136,8 +1167,13 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await el.updateComplete;
             for (const title of getPromotionQuickActionTitles(el)) {
-                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+                expect(isPromotionQuickActionDisabled(el, title), title).to.equal(title !== 'Version history');
             }
+        });
+
+        it('disables history before a new project is saved', async () => {
+            const el = await mountEditor();
+            expect(isPromotionQuickActionDisabled(el, 'Version history')).to.be.true;
         });
 
         it('disables general info fields and surface controls for a non-editor (view-only)', async () => {
@@ -2259,10 +2295,11 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
         });
 
-        it('refines the card/collection split in the background from a surface collection search', async () => {
+        it('re-buckets collections flagged by the cards table, keeping selection edits made meanwhile', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
             Store.promotions.inEdit.set(
                 new FragmentStore(
                     makePromotion({
@@ -2272,45 +2309,19 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const getCollectionPathsForSurfaces = sandbox.stub().resolves(new Set([collectionPath]));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-2');
-            el.disconnectedCallback();
-            await el.connectedCallback();
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
             await el.updateComplete;
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
-            expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
-            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
-            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
-        });
-
-        it('does not clobber a selection the user edited while the classification search was in flight', async () => {
-            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
-            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
-            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
-            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
-            Store.promotions.inEdit.set(
-                new FragmentStore(
-                    makePromotion({
-                        id: 'promo-race',
-                        surfaces: ['sandbox'],
-                        fragments: [cardPath, collectionPath],
-                    }),
-                ),
-            );
-            let releaseSearch;
-            const getCollectionPathsForSurfaces = sandbox
-                .stub()
-                .callsFake(() => new Promise((resolve) => (releaseSearch = () => resolve(new Set([collectionPath])))));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-race');
-            el.disconnectedCallback();
-            await el.connectedCallback();
-            await el.updateComplete;
-            // User adds a card while the surface search is still pending.
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
             Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
-            releaseSearch();
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            selector.shadowRoot
+                .querySelector('mas-promotions-items-table')
+                .dispatchEvent(new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }));
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });

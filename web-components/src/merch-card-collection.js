@@ -612,7 +612,14 @@ export class MerchCardCollection extends LitElement {
                 const merchCard = document.createElement('merch-card');
                 const fragmentId =
                     this.#overrideMap[fragment.id] || fragment.id;
-                merchCard.setAttribute('consonant', '');
+                if (this.hasAttribute('spectrum')) {
+                    merchCard.setAttribute(
+                        'spectrum',
+                        this.getAttribute('spectrum'),
+                    );
+                } else {
+                    merchCard.setAttribute('consonant', '');
+                }
                 merchCard.setAttribute('style', '');
 
                 const typesTags = fragment.fields.tags
@@ -684,7 +691,11 @@ export class MerchCardCollection extends LitElement {
                 if (mask || pzn) {
                     aemFragment.cache.set(mcAemFragment.cacheKey(), fragment);
                 } else {
-                    aemFragment.cache.add(fragment);
+                    aemFragment.cache.add(
+                        fragment,
+                        true,
+                        aemFragment.cacheSuffix,
+                    );
                 }
                 mcAemFragment.setAttribute('fragment', fragmentId);
                 merchCard.append(mcAemFragment);

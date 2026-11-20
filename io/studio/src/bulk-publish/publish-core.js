@@ -54,17 +54,21 @@ async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, logge
 }
 
 async function publishResolved(resolved, odinEndpoint, authToken, logger) {
-    const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
+    const chunks = [false, true].flatMap((replicate) => {
+        const paths = resolved.filter((path) => path.endsWith(INDEX_SUFFIX) === replicate);
+        return groupAndChunk(paths, MAX_CHUNK_SIZE).map((chunk) => ({ ...chunk, replicate }));
+    });
     logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
     const details = [];
-    for (const chunk of chunks) {
-        const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, logger);
+    for (const { replicate, ...chunk } of chunks) {
+        const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { replicate });
         details.push(...chunkResults);
     }
     return details;
 }
 
 function deriveIndexPaths(details) {
+    const attemptedPaths = new Set(details.map(({ path }) => path));
     const publishedPaths = new Set();
     for (const detail of details) {
         if (detail.status === STATUS.PUBLISHED) publishedPaths.add(detail.path);
@@ -73,7 +77,7 @@ function deriveIndexPaths(details) {
     for (const path of publishedPaths) {
         const indexPath = indexPathOf(path);
         if (!indexPath || path.endsWith(INDEX_SUFFIX)) continue;
-        if (!publishedPaths.has(indexPath)) indexPaths.add(indexPath);
+        if (!attemptedPaths.has(indexPath)) indexPaths.add(indexPath);
     }
     return Array.from(indexPaths);
 }
@@ -100,7 +104,10 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     if (!toPublish.length) return skipped;
     const indexDetails = [...skipped];
     for (const chunk of groupAndChunk(toPublish, MAX_CHUNK_SIZE)) {
-        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { filterReferencesByStatus: [] });
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, {
+            filterReferencesByStatus: [],
+            replicate: true,
+        });
         indexDetails.push(...results);
     }
     return indexDetails;

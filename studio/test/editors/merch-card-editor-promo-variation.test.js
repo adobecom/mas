@@ -117,3 +117,29 @@ describe('merch-card-editor promo variation geo tags', () => {
         });
     });
 });
+
+describe('merch-card-editor OSI on variations', () => {
+    const makeEditor = (path, isVariation = false) => {
+        const MerchCardEditor = customElements.get('merch-card-editor');
+        const editor = new MerchCardEditor();
+        editor.fragmentStore = new FragmentStore(new Fragment({ path, fields: [], tags: [] }));
+        editor.isVariation = isVariation;
+        return editor;
+    };
+
+    it('keeps the OSI editable on the base card', () => {
+        expect(makeEditor('/content/dam/mas/sandbox/en_US/my-card').isOsiReadOnly).to.be.false;
+    });
+
+    it('makes the OSI read-only on locale variations', () => {
+        expect(makeEditor('/content/dam/mas/sandbox/fr_FR/my-card', true).isOsiReadOnly).to.be.true;
+    });
+
+    it('makes the OSI read-only on promo variations', () => {
+        expect(makeEditor('/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card', true).isOsiReadOnly).to.be.true;
+    });
+
+    it('makes the OSI read-only on grouped variations before the context resolves', () => {
+        expect(makeEditor('/content/dam/mas/sandbox/en_US/ABC/pzn/my-card').isOsiReadOnly).to.be.true;
+    });
+});

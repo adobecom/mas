@@ -7,6 +7,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs } = require('../../utils');
 const { init } = require('@adobe/aio-lib-state');
 const { Ims } = require('@adobe/aio-lib-ims');
+const { exposeRequestId } = require('../response-headers.js');
 
 // main function that will be executed by Adobe I/O Runtime
 async function main(params) {
@@ -77,4 +78,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

@@ -25,7 +25,7 @@ import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.j
 import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { buildOfferTags } from './promotions/offer-utils.js';
-import { buildFragmentTitle } from './utils/fragment-title.js';
+import { buildFragmentTitle, splitFragmentTitle } from './utils/fragment-title.js';
 import { HEADLESS_STYLE_CTA_VARIANTS } from '../../web-components/src/constants.js';
 
 const BASELINE_CONFLICT_ERROR = 'A baseline for this product code, market segment and template already exists.';
@@ -203,6 +203,10 @@ export class MasCreateDialog extends LitElement {
             background: var(--spectrum-gray-100);
             color: var(--spectrum-gray-700);
             overflow-wrap: anywhere;
+        }
+
+        .title-preview-org {
+            font-weight: 700;
         }
     `;
 
@@ -640,6 +644,8 @@ export class MasCreateDialog extends LitElement {
 
     get fragmentTitleFieldsTemplate() {
         const errorMessage = this.orgErrorMessage;
+        const [orgPart, rest] = splitFragmentTitle(this.fragmentTitle, this.org);
+        const preview = html`<span class="title-preview-org">${orgPart}</span>${rest}`;
         return html`
             <div class="form-field with-message">
                 <sp-field-label for="fragment-org" required>Org</sp-field-label>
@@ -647,7 +653,6 @@ export class MasCreateDialog extends LitElement {
                     id="fragment-org"
                     class="uppercase"
                     value=${this.org}
-                    required
                     ?invalid=${Boolean(errorMessage)}
                     aria-describedby=${errorMessage ? 'org-error' : nothing}
                     @input=${(e) => this.#handleTitlePartChange('org', e.target.value)}
@@ -659,6 +664,7 @@ export class MasCreateDialog extends LitElement {
                 <sp-field-label for="fragment-state">State (optional)</sp-field-label>
                 <sp-textfield
                     id="fragment-state"
+                    placeholder="i.e. default, bf-26-variation"
                     value=${this.state}
                     @input=${(e) => this.#handleTitlePartChange('state', e.target.value)}
                 ></sp-textfield>
@@ -681,7 +687,7 @@ export class MasCreateDialog extends LitElement {
                     aria-labelledby="fragment-title-preview-label"
                     aria-live="polite"
                 >
-                    ${this.fragmentTitle}
+                    ${preview}
                 </div>
                 ${fieldMessage('title-error', this.errors.title)}
             </div>

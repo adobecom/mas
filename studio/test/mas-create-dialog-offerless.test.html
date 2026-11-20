@@ -115,7 +115,7 @@
                         await dialog.updateComplete;
 
                         const previewText = dialog.shadowRoot.querySelector('#fragment-title-preview').textContent.trim();
-                        expect(previewText).to.equal('MERCH : Catalog');
+                        expect(previewText).to.equal('MERCH: Catalog');
 
                         // Submit the form by clicking the Create button
                         const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');

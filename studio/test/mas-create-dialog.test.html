@@ -882,7 +882,10 @@
                             expect(root.querySelector('#fragment-title')).to.not.exist;
                             expect(root.querySelector('sp-field-label[for="fragment-title"]')).to.not.exist;
                             expect(org.localName).to.equal('sp-textfield');
-                            expect(org.hasAttribute('required')).to.be.true;
+                            expect(org.hasAttribute('required')).to.be.false;
+                            expect(org.invalid).to.be.false;
+                            expect(root.querySelector('sp-field-label[for="fragment-org"]').hasAttribute('required')).to.be
+                                .true;
                             expect(getComputedStyle(org).textTransform).to.equal('uppercase');
                             expect(root.querySelector('sp-field-label[for="fragment-state"]').textContent.trim()).to.equal(
                                 'State (optional)',
@@ -908,6 +911,36 @@
                             expect(dialog.shadowRoot.querySelector('#org-error').textContent.trim()).to.equal('Enter an org');
                         });
 
+                        it('marks an empty org invalid once it has been touched', async () => {
+                            const org = dialog.shadowRoot.querySelector('#fragment-org');
+                            org.dispatchEvent(new Event('focusout', { bubbles: true }));
+                            await dialog.updateComplete;
+
+                            expect(dialog.shadowRoot.querySelector('#fragment-org').invalid).to.be.true;
+                        });
+
+                        it('marks the org invalid when a fresh dialog is submitted', async () => {
+                            await dialog.handleSubmit();
+                            await dialog.updateComplete;
+
+                            expect(dialog.shadowRoot.querySelector('#fragment-org').invalid).to.be.true;
+                        });
+
+                        it('shows a placeholder on the state field', async () => {
+                            expect(dialog.shadowRoot.querySelector('#fragment-state').getAttribute('placeholder')).to.equal(
+                                'i.e. default, bf-26-variation',
+                            );
+                        });
+
+                        it('bolds the org in the preview', async () => {
+                            dialog.template = 'catalog';
+                            await typeInto('#fragment-org', 'merch');
+
+                            const orgPart = dialog.shadowRoot.querySelector('#fragment-title-preview .title-preview-org');
+                            expect(orgPart.textContent).to.equal('MERCH');
+                            expect(getComputedStyle(orgPart).fontWeight).to.equal('700');
+                        });
+
                         it('requires a template', async () => {
                             await typeInto('#fragment-org', 'merch');
                             selectOffer(OFFER);
@@ -924,23 +957,23 @@
                         it('updates the preview live', async () => {
                             dialog.template = 'catalog';
                             await typeInto('#fragment-org', 'merch');
-                            expect(preview()).to.equal('MERCH : Catalog');
+                            expect(preview()).to.equal('MERCH: Catalog');
 
                             await typeInto('#fragment-state', 'Q3');
-                            expect(preview()).to.equal('MERCH : Catalog : Q3');
+                            expect(preview()).to.equal('MERCH: Catalog: Q3');
 
                             dialog.template = 'headless';
                             await dialog.updateComplete;
                             await typeInto('#fragment-block-page', 'hero');
-                            expect(preview()).to.equal('MERCH : hero : Headless : Q3');
+                            expect(preview()).to.equal('MERCH: hero: Headless: Q3');
 
                             selectOffer(OFFER);
                             await dialog.updateComplete;
-                            expect(preview()).to.equal('MERCH : hero : Headless : Photoshop : INDIVIDUAL : Q3');
+                            expect(preview()).to.equal('MERCH: hero: Headless: Photoshop: INDIVIDUAL: Q3');
 
                             selectOffer({ ...OFFER, product_name: 'Illustrator' }, 'DEF456');
                             await dialog.updateComplete;
-                            expect(preview()).to.equal('MERCH : hero : Headless : Illustrator : INDIVIDUAL : Q3');
+                            expect(preview()).to.equal('MERCH: hero: Headless: Illustrator: INDIVIDUAL: Q3');
                         });
 
                         it('derives product, customer segment and plan type from the offer', async () => {
@@ -962,7 +995,7 @@
                             await typeInto('#fragment-org', 'merch');
                             await typeInto('#fragment-state', 'x');
 
-                            expect(preview().endsWith('ABM : x')).to.be.true;
+                            expect(preview().endsWith('ABM: x')).to.be.true;
                         });
 
                         it('places the preview under the template, before the offer', async () => {
@@ -983,7 +1016,7 @@
                             selectOffer(OFFER);
                             await typeInto('#fragment-org', 'merch');
                             const previewText = preview();
-                            expect(previewText).to.equal('MERCH : Catalog : Photoshop : INDIVIDUAL');
+                            expect(previewText).to.equal('MERCH: Catalog: Photoshop: INDIVIDUAL');
 
                             dialog.shadowRoot.querySelector('sp-button[variant="accent"]').click();
                             await dialog.updateComplete;

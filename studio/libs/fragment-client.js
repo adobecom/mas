@@ -22,6 +22,8 @@ import { clearPendingFetches, mark } from '../../io/www/src/fragment/utils/commo
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, corrector, wcs];
+// Enough to resolve the fragment and its default-locale id; skips promotions, customize and wcs.
+const CONTEXT_PIPELINE = [fetchFragment, defaultLanguage];
 class LocaleStorageState {
     constructor() {}
 
@@ -107,7 +109,7 @@ function saveRequestMetadata(context, requestKey, cachedMetadata) {
     return storeRequestMetadata(context, requestKey, cachedMetadata, 'nohash');
 }
 
-async function previewFragment(id, options) {
+async function previewFragment(id, options, pipeline = PIPELINE) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
@@ -126,7 +128,7 @@ async function previewFragment(id, options) {
     context.fragmentsIds = context.fragmentsIds || {};
     context.measures = context.measures || [];
     try {
-        for (const transformer of PIPELINE) {
+        for (const transformer of pipeline) {
             if (transformer.init) {
                 //we fork context to avoid init to override any context property
                 const initContext = {
@@ -141,7 +143,7 @@ async function previewFragment(id, options) {
             }
         }
         context.promises = initPromises;
-        for (const transformer of PIPELINE) {
+        for (const transformer of pipeline) {
             if (context.status != 200) {
                 break;
             }
@@ -162,6 +164,10 @@ async function previewFragment(id, options) {
         await saveRequestMetadata(context, requestKey, cachedMetadata);
     }
     return options.fullContext ? context : context.body;
+}
+
+function previewFragmentContext(id, options) {
+    return previewFragment(id, { ...options, fullContext: true }, CONTEXT_PIPELINE);
 }
 
 /* c8 ignore next 38 */
@@ -220,6 +226,7 @@ export {
     DEFAULT_CONTEXT,
     clearCaches,
     previewFragment,
+    previewFragmentContext,
     previewStudioFragment,
     loadRequestMetadata,
     saveRequestMetadata,

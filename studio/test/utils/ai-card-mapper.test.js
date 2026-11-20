@@ -957,12 +957,10 @@ describe('ai-card-mapper', () => {
     });
 
     describe('buildReleasePrice', () => {
-        it('builds inline-price span without outer p wrapper', () => {
-            expect(buildReleasePrice('A1B2C3')).to.equal('<span is="inline-price" data-wcs-osi="A1B2C3"></span>');
-        });
-
-        it('emits no data-template attribute', () => {
-            expect(buildReleasePrice('some-osi')).to.not.include('data-template');
+        it('builds a price-template inline-price span without outer p wrapper', () => {
+            expect(buildReleasePrice('A1B2C3')).to.equal(
+                '<span is="inline-price" data-template="price" data-wcs-osi="A1B2C3"></span>',
+            );
         });
     });
 

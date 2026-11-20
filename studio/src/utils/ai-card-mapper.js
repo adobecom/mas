@@ -76,14 +76,15 @@ export function buildReleaseCtas(baseOsi, trialOsi, { includeTrial = true, buyNo
 }
 
 /**
- * Builds the `prices` HTML for a release card, byte-identical to what OST
- * would emit — no data-template attribute (OST omits it for the default price type).
+ * Builds the `prices` HTML for a release card. `data-template="price"` matches hand-authored
+ * Plans cards and the IO generator (create-release-cards); without it the Plans legal line,
+ * and with it the ABM plan type label, never renders.
  *
  * @param {string} osi - Base offer selector ID
  * @returns {string}
  */
 export function buildReleasePrice(osi) {
-    return `<span is="inline-price" data-wcs-osi="${osi}"></span>`;
+    return `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
 }
 
 /**

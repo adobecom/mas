@@ -10,12 +10,19 @@ document.head.appendChild(document.createElement('mas-commerce-service'));
 const abmLabel = 'Annual, billed monthly';
 const osi = 'abm-mult';
 
-const releaseFragment = (variant) => ({
+// The price markup each release-card generator emits: io/operations create-release-cards
+// and Studio's buildReleasePrice (MASA chat and the Offers pages).
+const generatedPrices = {
+    io: `<span is="inline-price" data-template="price" data-wcs-osi="${osi}" data-display-per-unit="false" data-display-recurrence="true" data-display-tax="false"></span>`,
+    studio: `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`,
+};
+
+const releaseFragment = (variant, prices = generatedPrices.io) => ({
     id: `release-${variant}`,
     fields: {
         variant,
         cardTitle: 'Photoshop',
-        prices: `<span is="inline-price" data-template="price" data-wcs-osi="${osi}" data-display-per-unit="false" data-display-recurrence="true" data-display-tax="false"></span>`,
+        prices,
         ctas: `<a is="checkout-link" data-wcs-osi="${osi}" class="con-button primary">Select</a>`,
         tags: ['mas:plan_type/abm'],
     },
@@ -25,11 +32,11 @@ const releaseFragment = (variant) => ({
     },
 });
 
-const renderRelease = async (variant) => {
+const renderRelease = async (variant, prices) => {
     const card = document.createElement('merch-card');
     document.body.appendChild(card);
     await customElements.whenDefined('merch-card');
-    await hydrate(releaseFragment(variant), card);
+    await hydrate(releaseFragment(variant, prices), card);
     await card.updateComplete;
     await card.checkReady();
     return card;
@@ -42,12 +49,14 @@ describe('generated ABM release card rendering', () => {
             .forEach((el) => el.remove());
     });
 
-    it('renders the ABM plan type label on a Plans card', async () => {
-        const card = await renderRelease('plans');
-        expect(card.querySelector('.price-plan-type')?.textContent).to.equal(
-            abmLabel,
-        );
-    });
+    for (const [generator, prices] of Object.entries(generatedPrices)) {
+        it(`renders the ABM plan type label on a Plans card (${generator} price)`, async () => {
+            const card = await renderRelease('plans', prices);
+            expect(card.querySelector('.price-plan-type')?.textContent).to.equal(
+                abmLabel,
+            );
+        });
+    }
 
     it('renders the secure-transaction logo on a Plans card', async () => {
         const card = await renderRelease('plans');

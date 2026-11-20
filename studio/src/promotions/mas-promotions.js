@@ -168,7 +168,7 @@ class MasPromotions extends LitElement {
     }
 
     async loadPromotions() {
-        await this.repository.loadPromotions();
+        await this.repository.loadPromotions({ unpublishExpired: true });
     }
 
     renderPromotionsContent() {

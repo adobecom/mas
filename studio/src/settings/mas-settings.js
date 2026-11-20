@@ -801,6 +801,25 @@ class MasSettings extends LitElement {
         );
     }
 
+    get defaultMismatch() {
+        const row = Store.settings.rows.get().find((r) => r.value.name === this.form.name);
+        if (!row) return null;
+
+        const formTemplates = this.form.templateIds;
+        let extraTemplates = [];
+        if (formTemplates.length)
+            row.value.overrides.forEach((override) => {
+                extraTemplates = extraTemplates.concat(override.templateIds.filter((t) => !formTemplates.includes(t)));
+            });
+
+        extraTemplates = [...new Set(extraTemplates)]; // remove duplicates
+        if (extraTemplates.length) {
+            return `There are overrides with templates selected "${extraTemplates.join(', ')}", which will be ignored if not selected in default settings`;
+        }
+
+        return null;
+    }
+
     #closeSettingsFormPage() {
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
@@ -1119,11 +1138,27 @@ class MasSettings extends LitElement {
         `;
     }
 
+    #showMismatch(mismatch) {
+        if (!mismatch) return nothing;
+        return html`
+            <div class="override-conflict">
+                <div class="override-conflict-title">
+                    <sp-icon-alert></sp-icon-alert>
+                    <span>Warning</span>
+                </div>
+                <span>${mismatch}</span>
+            </div>
+        `;
+    }
+
     get addOverrideDialogTemplate() {
         if (this.dialog?.type !== 'override') return nothing;
         const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
         if (!row) return nothing;
         const conflict = this.overrideConflict;
+        const tree = getVariantTreeData(this.surface);
+        const treeFiltered = row.templateIds.length ? tree.filter((t) => row.templateIds.includes(t.name)) : tree;
+
         return html`
             <sp-underlay open @click=${this.#handleDialogCancel}></sp-underlay>
             <sp-dialog class="override-dialog" open @click=${(event) => event.stopPropagation()}>
@@ -1147,11 +1182,13 @@ class MasSettings extends LitElement {
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field
-                            .tree=${getVariantTreeData(this.surface)}
+                            .tree=${treeFiltered}
+                            .treeSize=${tree.length}
                             .value=${this.form.templateIds}
                             .emptyValueIsSelection=${this.dialog?.mode === 'edit'}
-                            ?disabled=${row.templateIds.length > 0}
-                            placeholder=${this.dialog?.mode === 'edit' ? 'All templates' : 'Select template'}
+                            placeholder=${this.dialog?.mode === 'edit' && !row.templateIds.length
+                                ? 'All templates'
+                                : 'Select template'}
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>
                     </sp-field-group>
@@ -1252,6 +1289,7 @@ class MasSettings extends LitElement {
 
     get settingsFormTemplate() {
         if (!this.isSettingsFormReady) return nothing;
+        const mismatch = this.defaultMismatch;
 
         return html`
             <section id="settings-editor-page" class="settings-editor-page">
@@ -1291,6 +1329,7 @@ class MasSettings extends LitElement {
                             @input=${(event) => this.#setFormField('description', event.target.value)}
                         ></sp-textfield>
                     </sp-field-group>
+                    ${this.#showMismatch(mismatch)}
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field

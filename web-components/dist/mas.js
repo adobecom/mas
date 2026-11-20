@@ -7834,7 +7834,7 @@ merch-card[variant="brand-concierge-product"] [slot="heading-xs"] .price-plan-ty
     display: block;
     margin-inline-start: 0;
 }
-`;var cp={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},planType:!0,promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},la=class extends _{getGlobalCSS(){return sp}priceOptionsProvider(t,e){t.dataset.template===G&&(e.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.card.querySelector(`[slot="heading-xs"] ${O}[data-template="price"]`);if(!t)return;let e=t.cloneNode(!0);if(await t.onceSettled(),!t.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),t.parentNode.insertBefore(e,t.nextSibling),await e.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return b` ${this.badge}
+`;var cp={cardName:{attribute:"name"},mnemonics:{size:"l"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],title:{tag:"h3",slot:"heading-s"},prices:{tag:"p",slot:"heading-xs"},planType:!0,promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},style:"consonant"},la=class extends _{getGlobalCSS(){return sp}get headingSelector(){return'[slot="heading-s"]'}priceOptionsProvider(t,e){t.dataset.template===G&&(e.displayPlanType=this.card?.settings?.displayPlanType??!1)}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.card.querySelector(`[slot="heading-xs"] ${O}[data-template="price"]`);if(!t)return;let e=t.cloneNode(!0);if(await t.onceSettled(),!t.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),e.setAttribute("data-template","legal"),t.parentNode.insertBefore(e,t.nextSibling),await e.onceSettled()}catch{}}async postCardUpdateHook(){this.card.isConnected&&(this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}renderLayout(){return b` ${this.badge}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="badge"></slot>
@@ -11026,17 +11026,22 @@ merch-card[variant="product-pricing"] merch-badge {
     --merch-badge-color: #fff !important;
     --merch-badge-padding: 0 !important;
     inset-inline-start: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
-    line-height: 18px;
+    line-height: 20px;
+}
+
+merch-card[variant="product-pricing"] merch-icon[slot="icons"] {
+    --mod-img-width: 32px;
+    --mod-img-height: 32px;
 }
 
 merch-card[variant="product-pricing"] [slot="heading-s"] {
     margin: 0;
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 900;
-    line-height: 18px;
-    letter-spacing: -0.2px;
+    line-height: 24px;
+    letter-spacing: -0.48px;
     color: #000;
 }
 
@@ -11056,9 +11061,11 @@ merch-card[variant="product-pricing"] [slot="body-xs"] a {
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] {
     margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 20px;
+    font-family: "Adobe Clean Display Black", adobe-clean-display, "Arial Bold Adjusted", sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 18px;
+    letter-spacing: -0.2px;
     color: #000;
     text-align: left;
 }
@@ -11075,9 +11082,11 @@ merch-card[variant="product-pricing"] [slot="heading-xs"] .price-alternative {
 }
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] .price-strikethrough {
+    font-family: "Adobe Clean", adobe-clean, sans-serif;
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
+    letter-spacing: 0;
     text-decoration: line-through;
     color: #5c5c5c;
 }
@@ -11200,7 +11209,7 @@ merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
         :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             padding: 24px 24px 32px;
         }
 

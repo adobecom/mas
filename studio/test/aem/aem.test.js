@@ -784,7 +784,10 @@ describe('aem.js', () => {
             try {
                 const saved = await aem.saveValidTags('frag-1', ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm']);
 
-                expect(puts).to.deep.equal([['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm'], ['mas:plan_type/abm']]);
+                expect(puts).to.deep.equal([
+                    ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm'],
+                    ['mas:plan_type/abm'],
+                ]);
                 expect(saved).to.deep.equal(['mas:plan_type/abm']);
             } finally {
                 window.fetch = originalFetch;

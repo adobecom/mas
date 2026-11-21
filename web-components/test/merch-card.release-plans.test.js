@@ -52,9 +52,9 @@ describe('generated ABM release card rendering', () => {
     for (const [generator, prices] of Object.entries(generatedPrices)) {
         it(`renders the ABM plan type label on a Plans card (${generator} price)`, async () => {
             const card = await renderRelease('plans', prices);
-            expect(card.querySelector('.price-plan-type')?.textContent).to.equal(
-                abmLabel,
-            );
+            expect(
+                card.querySelector('.price-plan-type')?.textContent,
+            ).to.equal(abmLabel);
         });
     }
 

@@ -1,33 +1,44 @@
-import { OPERATIONS } from '../constants.js';
-import { showToast } from '../utils.js';
+import { BULK_PUBLISH_STATUS, OPERATIONS } from '../constants.js';
+import Store from '../store.js';
+import { extractSurfaceFromPath, showToast } from '../utils.js';
+import { Fragment } from '../aem/fragment.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import { buildProjectPayload, buildItemsMetadata, itemTypeFromFragment } from '../bulk-publish/bulk-publish-utils.js';
+import { startPublishing } from '../bulk-publish/bulk-publish-store.js';
+import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { getPublishedAttachedPromoVariations, getUnpublishedAttachedPromoVariations } from './promotions-repository.js';
 
+export async function getPromotionPublishPlan(aem, promotion) {
+    const variations = await getUnpublishedAttachedPromoVariations(aem, promotion);
+    const groups = new Map();
+    const paths = new Set();
+    const warnings = [];
+    for (const variation of variations) {
+        const surface = extractSurfaceFromPath(variation.path);
+        if (!variation.id || !surface) throw new Error(`Could not resolve promo variation: ${variation.path ?? variation.id}`);
+        if (paths.has(variation.path)) continue;
+        paths.add(variation.path);
+        if (!groups.has(surface)) groups.set(surface, []);
+        groups.get(surface).push(variation);
+        for (const issue of variation.validationStatus ?? []) {
+            warnings.push({ path: variation.path, message: issue.message });
+        }
+    }
+    return {
+        promotionId: promotion.id,
+        targetCount: paths.size,
+        warnings,
+        groups: [...groups].map(([surface, items]) => ({ surface, variations: items })),
+    };
+}
+
 export const PROMOTION_EXPIRED_PUBLISH_MESSAGE = 'This promotion has ended. Update the dates to publish again.';
-
-export const PROMOTION_PUBLISH_SUCCESS_MESSAGE = 'Project successfully published.';
-
-export const PROMOTION_PUBLISH_ERROR_MESSAGE = 'Failed to publish project.';
 
 export const PROMOTION_UNPUBLISH_SUCCESS_MESSAGE = 'Project successfully unpublished.';
 
 export const PROMOTION_UNPUBLISH_ERROR_MESSAGE = 'Failed to unpublish project.';
 
 export const PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE = 'Save your changes before publishing.';
-
-/**
- * @param {number} shortfall - Promo variations that were requested but not included in publish
- * @returns {string}
- */
-export function promotionPublishShortfallMessage(shortfall) {
-    return `Project published, but ${shortfall} promo variation(s) could not be included.`;
-}
-
-/**
- * Used when the batch publish call fails partway through and the exact failure count can't be
- * determined (some variations may have already been activated before the failure).
- */
-export const PROMOTION_PUBLISH_VARIATIONS_UNCERTAIN_MESSAGE =
-    'Project published, but some promo variation(s) may not have been published.';
 
 /**
  * @param {number} shortfall
@@ -125,14 +136,6 @@ export function unpublishedPromoVariationsPublishMessage(count) {
     return `This project has ${count} attached promo variation(s) that are not published.`;
 }
 
-/**
- * @param {number} count
- * @returns {string}
- */
-export function unpublishedPromoVariationsSkippedMessage(count) {
-    return `Project published, but ${count} attached promo variation(s) remain unpublished.`;
-}
-
 export const PUBLISHED_PROMO_VARIATIONS_DIALOG = {
     title: 'Published promo variations',
     confirmText: 'Unpublish',
@@ -202,11 +205,71 @@ async function confirmActionAgainstPromoVariations(
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[], skippedCount: number }>}
  */
 export async function confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog) {
-    return confirmActionAgainstPromoVariations(aem, promotionFragment, showDialog, {
-        getVariations: getUnpublishedAttachedPromoVariations,
-        dialogConfig: UNPUBLISHED_PROMO_VARIATIONS_DIALOG,
-        buildMessage: unpublishedPromoVariationsPublishMessage,
+    const plan = await getPromotionPublishPlan(aem, promotionFragment);
+    if (!plan.targetCount) return { confirmed: true, variationPaths: [], skippedCount: 0 };
+    const { confirmed, checked } = await showDialog(
+        UNPUBLISHED_PROMO_VARIATIONS_DIALOG.title,
+        unpublishedPromoVariationsPublishMessage(plan.targetCount),
+        { ...UNPUBLISHED_PROMO_VARIATIONS_DIALOG, plan },
+    );
+    if (!confirmed) return { confirmed: false, variationPaths: [], skippedCount: 0 };
+    return {
+        confirmed: true,
+        variationPaths: checked ? plan.groups.flatMap((group) => group.variations.map((variation) => variation.path)) : [],
+        skippedCount: checked ? 0 : plan.targetCount,
+    };
+}
+
+async function createPromotionBulkProject(repository, group, title) {
+    const parentPath = repository.getBulkPublishParentPath(group.surface);
+    const payload = buildProjectPayload({
+        parentPath,
+        title,
+        status: BULK_PUBLISH_STATUS.DRAFT,
+        urls: '',
+        fragments: group.variations.map((variation) => variation.path),
+        locales: [],
+        items: buildItemsMetadata(
+            group.variations.map((variation) => ({
+                path: variation.path,
+                type: itemTypeFromFragment(variation),
+                status: 'resolved',
+            })),
+        ),
     });
+    const raw = await repository.aem.sites.cf.fragments.create(payload);
+    if (!raw?.id || !raw.path?.startsWith(`${parentPath}/`)) {
+        throw new Error('Could not confirm the created Bulk Publish project. Check the project list before trying again.');
+    }
+    return {
+        store: new FragmentStore(new Fragment(raw)),
+        entry: {
+            id: raw.id,
+            path: raw.path,
+            title,
+            surface: group.surface,
+            dispatchStatus: 'not-started',
+            activationId: null,
+            error: null,
+        },
+    };
+}
+
+async function removeUnusedPromotionBulkProject(repository, { store, entry }) {
+    const created = store.get();
+    const latest = await repository.aem.sites.cf.fragments.getWithEtag(created.id);
+    if (
+        !created.etag ||
+        latest?.etag !== created.etag ||
+        latest.id !== created.id ||
+        latest.path !== created.path ||
+        latest.fields.find((field) => field.name === 'status')?.values[0] !== BULK_PUBLISH_STATUS.DRAFT ||
+        Store.bulkPublishProjects.publishing.get()[created.id]
+    ) {
+        throw new Error('The unused draft could not be confirmed unchanged. Check the project before removing it.');
+    }
+    await repository.aem.sites.cf.fragments.delete(latest);
+    entry.cleanupStatus = 'deleted';
 }
 
 /**
@@ -223,103 +286,106 @@ export async function confirmUnpublishAlongsidePromoVariations(aem, promotionFra
     });
 }
 
-/**
- * Promos with unresolved validation errors are blocked from AEM activation upfront.
- * The workflow fails silently otherwise, so we skip it early instead of trusting the publish response.
- * @param {{ validationStatus?: Array<unknown> }} fragment
- * @returns {boolean}
- */
-function hasValidationErrors(fragment) {
-    return Array.isArray(fragment?.validationStatus) && fragment.validationStatus.length > 0;
-}
-
-/**
- * `publishFragments` rejects the first batch with a 412 when any fragment in it (project or a
- * variation) has a stale etag. That's the only failure mode where dropping the variations and
- * retrying the project alone is a reasonable recovery. Any other first-batch error (auth, network, 5xx)
- * is a project-level failure and must not be masked as a variations shortfall. Failures on later
- * batches are handled separately since the project is already published by then.
- * @param {Error} error
- * @returns {boolean}
- */
-function isVariationBatchConflict(error) {
-    return /\b412\b/.test(error?.message ?? '');
-}
-
-/**
- * Publishes the promotion project and, when provided, unpublished promo variation paths in one AEM request.
- * @param {object} repository
- * @param {object} promotionFragment
- * @param {string[]} promoVariationPaths
- * @param {number} [skippedVariationCount] - Variations the user chose not to publish alongside the project
- * @returns {Promise<boolean>}
- */
-export async function publishPromotionProject(
-    repository,
-    promotionFragment,
-    promoVariationPaths = [],
-    skippedVariationCount = 0,
-) {
-    const publishReferencesWithStatus = [];
+export async function publishPromotionProject(repository, promotionFragment, { plan, publishVariations = true } = {}) {
+    const result = {
+        promotionId: promotionFragment.id,
+        promotion: { status: 'not-started', error: null },
+        projects: [],
+        warnings: plan?.warnings ?? [],
+        error: null,
+    };
+    let stage = 'prepare publishing';
     try {
         repository.operation.set(OPERATIONS.PUBLISH);
-        if (!promoVariationPaths.length) {
-            await repository.clearStagedTag(promotionFragment);
-            await repository.aem.sites.cf.fragments.publish(promotionFragment, publishReferencesWithStatus);
-        } else {
-            const promotionWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
-            if (!promotionWithEtag) {
-                throw new Error('Failed to fetch promotion for publish');
-            }
-            const fragments = [promotionWithEtag];
-            for (const path of promoVariationPaths) {
-                const variation = await repository.aem.sites.cf.fragments.getByPath(path).catch(() => null);
-                if (!variation?.id) continue;
-                const variationWithEtag = await repository.aem.sites.cf.fragments.getWithEtag(variation.id).catch(() => null);
-                if (!variationWithEtag || hasValidationErrors(variationWithEtag)) continue;
-                fragments.push(variationWithEtag);
-            }
-            try {
-                await Promise.all(fragments.map((fragment) => repository.clearStagedTag(fragment)));
-                await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
-            } catch (error) {
-                // The project is first in the first batch, so any completed batch means it is already live.
-                const published = error.publishedFragments ?? [];
-                if (published.length) {
-                    console.error('Failed to publish some promo variations alongside promotion project', error);
-                    showToast(promotionPublishShortfallMessage(promoVariationPaths.length - (published.length - 1)), 'warning');
-                    return true;
-                }
-                if (!isVariationBatchConflict(error)) {
-                    throw error;
-                }
-                console.error('Failed to publish promo variations alongside promotion project', error);
-                await repository.aem.sites.cf.fragments.publish(promotionWithEtag, publishReferencesWithStatus);
-                showToast(PROMOTION_PUBLISH_VARIATIONS_UNCERTAIN_MESSAGE, 'warning');
-                return true;
-            }
-            const includedVariations = fragments.slice(1);
-            const shortfall = promoVariationPaths.length - includedVariations.length;
-            if (shortfall > 0) {
-                showToast(promotionPublishShortfallMessage(shortfall), 'warning');
-            } else {
-                showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
-            }
-            return true;
+        const publishPlan = plan ?? (await getPromotionPublishPlan(repository.aem, promotionFragment));
+        const groups = publishVariations ? publishPlan.groups : [];
+        const current = await repository.aem.sites.cf.fragments.getWithEtag(promotionFragment.id);
+        if (!current?.etag) throw new Error('Failed to fetch promotion revision for publish');
+        if (promotionFragment.etag && current.etag !== promotionFragment.etag) {
+            throw new Error('The promotion has changed. Refresh it before publishing.');
         }
-        showToast(
-            skippedVariationCount > 0
-                ? unpublishedPromoVariationsSkippedMessage(skippedVariationCount)
-                : PROMOTION_PUBLISH_SUCCESS_MESSAGE,
-            skippedVariationCount > 0 ? 'warning' : 'positive',
-        );
-        return true;
+        stage = 'publish promotion';
+        const promotion = new Fragment(current);
+        await repository.clearStagedTag(promotion, { expectedEtag: promotion.etag });
+        result.promotion.status = 'unknown';
+        const response = await repository.aem.sites.cf.fragments.publish(promotion, []);
+        const item = response?.items?.find((entry) => entry.path === promotion.path);
+        if (item?.status !== 'SUCCESS_TRIGGERED') {
+            result.promotion.status = item?.status?.startsWith('ERROR_') ? 'failed' : 'unknown';
+            throw new Error(`Promotion publish was not confirmed (${item?.status ?? 'missing response item'}).`);
+        }
+        result.promotion.status = 'accepted';
+        const title = `${promotionFragment.title}-${new Date().toISOString()}`;
+        for (const group of groups) {
+            let project;
+            let dispatchAttempted = false;
+            try {
+                stage = `prepare Bulk Publish for ${group.surface}`;
+                const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+                const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
+                if (!ioBaseUrl) throw new Error('ioBaseUrl is required');
+                if (!token) throw new Error('A sign-in token is required');
+                stage = `create Bulk Publish project for ${group.surface}`;
+                project = await createPromotionBulkProject(repository, group, title);
+                result.projects.push(project.entry);
+                stage = `prepare promo variations for ${group.surface}`;
+                await processConcurrently(
+                    group.variations,
+                    async (fragment) => {
+                        const latest = new Fragment(await repository.aem.sites.cf.fragments.getWithEtag(fragment.id));
+                        if (!latest.etag) throw new Error(`Failed to fetch the latest revision for ${fragment.path}`);
+                        await repository.clearStagedTag(latest, { expectedEtag: latest.etag });
+                    },
+                    VARIATIONS_CONCURRENCY_LIMIT,
+                );
+                stage = `start Bulk Publish for ${group.surface}`;
+                dispatchAttempted = true;
+                const acceptance = await startPublishing({
+                    project: project.store,
+                    repository,
+                    ioBaseUrl,
+                    token,
+                    aemOdinEndpoint: repository.aem.baseUrl?.startsWith('http://localhost')
+                        ? undefined
+                        : repository.aem.baseUrl,
+                    waitForCompletion: false,
+                    includeCards: false,
+                    includeVariations: false,
+                    publishReferences: false,
+                });
+                if (!acceptance.accepted) throw new Error('A request is already in progress. Check the Bulk Publish project.');
+                project.entry.dispatchStatus = 'accepted';
+                project.entry.activationId = acceptance.activationId;
+            } catch (error) {
+                console.error(`Failed to ${stage}`, error);
+                let message = `Could not ${stage}: ${error.message}`;
+                if (project) {
+                    const rejected = !dispatchAttempted || [400, 401, 403, 404, 422].includes(error.status);
+                    project.entry.dispatchStatus = rejected ? 'failed' : 'unknown';
+                    if (rejected) {
+                        try {
+                            await removeUnusedPromotionBulkProject(repository, project);
+                        } catch (cleanupError) {
+                            console.error(`Failed to remove unused Bulk Publish project ${project.entry.id}`, cleanupError);
+                            project.entry.cleanupStatus = 'failed';
+                            message += ` Could not remove unused draft: ${cleanupError.message}`;
+                        }
+                    }
+                    project.entry.error = message;
+                } else {
+                    message += ' Check the Bulk Publish project list before trying again.';
+                }
+                result.error = [result.error, message].filter(Boolean).join(' ');
+            }
+        }
     } catch (error) {
-        repository.processError(error, PROMOTION_PUBLISH_ERROR_MESSAGE);
-        return false;
+        console.error(`Failed to ${stage}`, error);
+        result.error = `Could not ${stage}: ${error.message}`;
+        if (stage === 'publish promotion') result.promotion.error = result.error;
     } finally {
         repository.operation.set(null);
     }
+    return result;
 }
 
 /**

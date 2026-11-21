@@ -31,6 +31,7 @@ async function main(params) {
                 aemOdinEndpoint: odinEndpoint,
                 includeCards: params.includeCards || false,
                 includeVariations: params.includeVariations || false,
+                publishReferences: params.publishReferences ?? true,
             },
             params,
         );

@@ -14,15 +14,14 @@ import { showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-promotion-duplicate-dialog.js';
+import './mas-promotion-publish-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
 import { canEditPromotions, canManagePromotions } from '../groups.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
-    confirmPublishDespiteUnpublishedPromoVariations,
     confirmUnpublishAlongsidePromoVariations,
     isPromotionExpiredForPublish,
-    publishPromotionProject,
     unpublishPromotionProject,
     promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
@@ -72,11 +71,13 @@ class MasPromotions extends LitElement {
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
+        publishError: { type: String, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         dialogCheckboxChecked: { type: Boolean, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
+        publishBusy: { state: true },
     };
 
     constructor() {
@@ -89,11 +90,13 @@ class MasPromotions extends LitElement {
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
+        this.publishError = null;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.dialogCheckboxChecked = false;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
+        this.publishBusy = false;
         this.reactiveController = new ReactiveController(this, [
             Store.promotions?.list?.data,
             Store.promotions?.list?.loading,
@@ -149,12 +152,13 @@ class MasPromotions extends LitElement {
     }
 
     renderError() {
-        if (!this.error) return nothing;
+        const errors = [...new Set([this.error, this.publishError].filter(Boolean))];
+        if (!errors.length) return nothing;
 
         return html`
-            <div class="error-message">
+            <div class="error-message" role="alert">
                 <sp-icon-alert></sp-icon-alert>
-                <span>${this.error}</span>
+                <span>${errors.join(' ')}</span>
             </div>
         `;
     }
@@ -244,6 +248,10 @@ class MasPromotions extends LitElement {
     render() {
         const statusCounts = this.#statusCounts;
         return html`
+            <mas-promotion-publish-dialog
+                @promotion-publish-confirm=${this.#confirmPromotionPublish}
+                @promotion-publish-result=${this.#onPromotionPublishResult}
+            ></mas-promotion-publish-dialog>
             <div class="page-container list-page">
                 <div class="promotions-page-header">
                     <h1 class="promotions-page-title">Promotions</h1>
@@ -484,7 +492,43 @@ class MasPromotions extends LitElement {
         this.#handleEditPromotion(promotion);
     }
 
+    get promotionPublishDialog() {
+        return this.shadowRoot.querySelector('mas-promotion-publish-dialog');
+    }
+
+    #confirmPromotionPublish(event) {
+        const { promotion } = event.detail;
+        if (
+            !canManagePromotions() ||
+            promotion.hasChanges ||
+            (!canPublishPromotionNow(promotion) && !canSchedulePromotion(promotion))
+        ) {
+            event.preventDefault();
+            showToast('The promotion changed or you no longer have permission to publish it.', 'negative');
+        }
+    }
+
+    async #onPromotionPublishResult({ detail }) {
+        const promotion = Store.promotions.list.data
+            .get()
+            .find((item) => item.get().id === detail.promotionId)
+            ?.get();
+        this.publishError = detail.error ? `${promotion?.title ?? detail.promotionId}: ${detail.error}` : null;
+        if (detail.promotion.status === 'accepted' || detail.promotion.status === 'unknown') {
+            try {
+                await this.loadPromotions();
+            } catch (error) {
+                console.error('Failed to refresh promotions after publishing', error);
+                const refreshError = `Could not refresh promotions: ${error.message}`;
+                if (!this.error?.includes(refreshError)) {
+                    this.error = [this.error, refreshError].filter(Boolean).join(' ');
+                }
+            }
+        }
+    }
+
     async #handlePublishPromotionFromList(promotion) {
+        if (this.publishBusy || this.isDialogOpen || this.promotionPublishDialog.phase !== 'closed') return;
         if (!canManagePromotions()) {
             showToast('You do not have permission to publish promotion projects.', 'negative');
             return;
@@ -509,22 +553,12 @@ class MasPromotions extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths, skippedCount } = await confirmPublishDespiteUnpublishedPromoVariations(
-            this.repository.aem,
-            fragment,
-            (title, message, options) => showConfirmDialog(this, title, message, options),
-        );
-        if (!confirmed) return;
-        if (!canManagePromotions()) {
-            showToast('You do not have permission to publish promotion projects.', 'negative');
-            return;
-        }
+        this.publishBusy = true;
+        this.publishError = null;
         try {
-            this.loading = true;
-            const ok = await publishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
-            if (ok) await this.loadPromotions();
+            await this.promotionPublishDialog.requestPublish(this.repository, fragment);
         } finally {
-            this.loading = false;
+            this.publishBusy = false;
         }
     }
 

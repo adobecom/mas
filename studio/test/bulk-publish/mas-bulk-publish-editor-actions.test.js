@@ -1,4 +1,4 @@
-import { fixture, html, expect, oneEvent } from '@open-wc/testing';
+import { fixture, html, expect, oneEvent, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import router from '../../src/router.js';
@@ -112,23 +112,45 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.urlLines).to.deep.equal(['https://a.com', 'https://b.com']);
     });
 
-    it('hasValidItems is false with no valid items', async () => {
+    it('hasResolvedItems is false with no resolved items', async () => {
         const el = await makeEditor();
         seedNew();
         await el.updateComplete;
         el.localItems = [{ url: 'a', status: 'error' }];
         await el.updateComplete;
-        expect(el.hasValidItems).to.equal(false);
+        expect(el.hasResolvedItems).to.equal(false);
     });
 
-    it('hasValidItems is true with at least one valid item', async () => {
+    it('hasResolvedItems accepts a legacy valid item', async () => {
         const el = await makeEditor();
         seedNew();
         await el.updateComplete;
         el.localItems = [{ url: 'a', status: 'valid' }];
         await el.updateComplete;
-        expect(el.hasValidItems).to.equal(true);
+        expect(el.hasResolvedItems).to.equal(true);
     });
+
+    for (const status of ['resolved', 'valid']) {
+        it(`allows publishing persisted ${status} item metadata`, async () => {
+            const el = await makeEditor();
+            Store.bulkPublishProjects.inEdit.set(
+                makeFragmentStore({ items: JSON.stringify([{ url: '/x', path: '/x', status }]) }),
+            );
+            await el.updateComplete;
+
+            expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.false;
+        });
+
+        it(`blocks publishing already-published ${status} items without target locales`, async () => {
+            const el = await makeEditor();
+            Store.bulkPublishProjects.inEdit.set(makeFragmentStore());
+            await el.updateComplete;
+            el.localItems = [{ url: '/x', path: '/x', status, alreadyPublished: true }];
+            await el.updateComplete;
+
+            expect(el.publishBlockedReason).to.equal('All items are already published');
+        });
+    }
 
     it('disabledActions disables SAVE/DUPLICATE/PUBLISH/COPY/DELETE when locked', async () => {
         const el = await makeEditor();
@@ -331,6 +353,23 @@ describe('mas-bulk-publish-editor (field handlers)', () => {
         expect(el.items[0].url).to.equal('https://b.com');
     });
 
+    it('handleUrlRemove retains resolved and legacy paths but excludes unresolved items', async () => {
+        const el = await makeEditor();
+        const fields = seedNew();
+        await el.updateComplete;
+        el.localItems = [
+            { url: '/removed', path: '/removed', status: 'resolved' },
+            { url: '/resolved', path: '/resolved', status: 'resolved' },
+            { url: '/legacy', path: '/legacy', status: 'valid' },
+            { url: '/error', path: '/error', status: 'error' },
+            { url: '/pending', path: '/pending', status: 'pending' },
+        ];
+
+        el.handleUrlRemove({ detail: '/removed' });
+
+        expect(fields.fragments).to.deep.equal(['/resolved', '/legacy']);
+    });
+
     it('handleUrlRemove is a no-op when locked', async () => {
         const el = await makeEditor();
         const fs = makeFragmentStore({ status: BULK_PUBLISH_STATUS.LOCKED });
@@ -412,6 +451,18 @@ describe('mas-bulk-publish-editor (dialog state)', () => {
         el.confirmOpen = true;
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-bulk-publish-confirm-dialog')).to.exist;
+    });
+
+    it('confirm dialog counts resolved and legacy items separately from unresolved items', async () => {
+        const el = await makeEditor();
+        seedNew();
+        await el.updateComplete;
+        el.localItems = [{ status: 'resolved' }, { status: 'valid' }, { status: 'pending' }, { status: 'error' }];
+        await el.updateComplete;
+        const dialog = el.shadowRoot.querySelector('mas-bulk-publish-confirm-dialog');
+
+        expect(dialog.validCount).to.equal(2);
+        expect(dialog.skippedCount).to.equal(2);
     });
 
     it('duplicate dialog renders when duplicateOpen is true', async () => {
@@ -574,9 +625,9 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         await el.updateComplete;
         Store.search.set({ path: 'sandbox' });
         el.localItems = [
-            { url: 'a', path: '/content/dam/mas/acom/en_US/card1', status: 'valid', type: 'fragment' },
+            { url: 'a', path: '/content/dam/mas/acom/en_US/card1', status: 'resolved', type: 'fragment' },
             { url: 'b', path: '/content/dam/mas/acom/en_US/col1', status: 'valid', type: 'collection' },
-            { url: 'c', path: '/content/dam/mas/acom/en_US/dictionary/ph1', status: 'valid' },
+            { url: 'c', path: '/content/dam/mas/acom/en_US/dictionary/ph1', status: 'resolved' },
             { url: 'd', path: '/bad', status: 'error' },
         ];
 
@@ -587,9 +638,14 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         const itemsField = payload.fields.find((f) => f.name === 'items');
         expect(JSON.parse(itemsField.values[0])).to.deep.equal([
-            { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'valid' },
-            { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' },
-            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'valid' },
+            { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'resolved' },
+            { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'resolved' },
+            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'resolved' },
+        ]);
+        expect(payload.fields.find((field) => field.name === 'fragments').values).to.deep.equal([
+            '/content/dam/mas/acom/en_US/card1',
+            '/content/dam/mas/acom/en_US/col1',
+            '/content/dam/mas/acom/en_US/dictionary/ph1',
         ]);
     });
 
@@ -606,7 +662,7 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         await el.saveBulkProject();
 
         const expected = JSON.stringify([
-            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'valid' },
+            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'resolved' },
         ]);
         expect(fs.updateField.calledWith('items', [expected])).to.equal(true);
     });
@@ -842,6 +898,11 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         const fs = makeFragmentStore({ title: 'Original', locales: [] });
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
+        el.localItems = [
+            { url: '/resolved', path: '/resolved', status: 'resolved' },
+            { url: '/legacy', path: '/legacy', status: 'valid' },
+            { url: '/error', path: '/error', status: 'error' },
+        ];
         Store.search.set({ path: 'sandbox' });
 
         const rawFragment = { id: 'dup-id', path: '/content/dam/mas/dup', fields: [] };
@@ -853,6 +914,11 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         expect(repositoryEl.createFragment.calledOnce).to.equal(true);
         const [payload] = repositoryEl.createFragment.firstCall.args;
         expect(payload.title).to.equal('Original (Copy)');
+        expect(payload.fields.find((field) => field.name === 'fragments').values).to.deep.equal(['/resolved', '/legacy']);
+        expect(JSON.parse(payload.fields.find((field) => field.name === 'items').values[0])).to.deep.equal([
+            { path: '/resolved', type: 'fragment', status: 'resolved' },
+            { path: '/legacy', type: 'fragment', status: 'resolved' },
+        ]);
         expect(el.duplicateOpen).to.equal(false);
     });
 });
@@ -1136,7 +1202,38 @@ describe('mas-bulk-publish-editor (validate)', () => {
 
         const item = result.find((i) => i.url === '/content/dam/mas/test/frag');
         expect(item).to.exist;
-        expect(item.status).to.equal('valid');
+        expect(item.status).to.equal('resolved');
+    });
+
+    it('validate preserves resolved and legacy paths while resolving a content-invalid fragment', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/test/new-fragment';
+        const fields = seedNew({ urls: path });
+        await el.updateComplete;
+        el.localItems = [
+            { url: '/resolved', path: '/resolved', status: 'resolved' },
+            { url: '/legacy', path: '/legacy', status: 'valid' },
+            { url: '/error', path: '/error', status: 'error' },
+        ];
+        repositoryEl.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: sandbox.stub().resolves({
+                            id: 'new-fragment',
+                            path,
+                            fields: [],
+                            validationStatus: [{ message: 'Invalid content' }],
+                        }),
+                    },
+                },
+            },
+        };
+
+        const result = await el.validate();
+
+        expect(fields.fragments).to.deep.equal(['/resolved', '/legacy', path]);
+        expect(result.find((item) => item.path === path).status).to.equal('resolved');
     });
 
     it('validate sets alreadyPublished=true when fragment.status is PUBLISHED', async () => {
@@ -1156,7 +1253,7 @@ describe('mas-bulk-publish-editor (validate)', () => {
 
         const result = await el.validate();
         const item = result.find((i) => i.url === '/content/dam/mas/published-frag');
-        expect(item.status).to.equal('valid');
+        expect(item.status).to.equal('resolved');
         expect(item.alreadyPublished).to.equal(true);
     });
 
@@ -1177,7 +1274,7 @@ describe('mas-bulk-publish-editor (validate)', () => {
 
         const result = await el.validate();
         const item = result.find((i) => i.url === '/content/dam/mas/modified-frag');
-        expect(item.status).to.equal('valid');
+        expect(item.status).to.equal('resolved');
         expect(item.alreadyPublished).to.equal(false);
     });
 
@@ -1198,7 +1295,7 @@ describe('mas-bulk-publish-editor (validate)', () => {
 
         const result = await el.validate();
         const item = result.find((i) => i.url === '/content/dam/mas/sandbox/en_US/locale-frag');
-        expect(item.status).to.equal('valid');
+        expect(item.status).to.equal('resolved');
         expect(item.locale).to.equal('en_US');
     });
 
@@ -1392,7 +1489,7 @@ describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
         expect(repositoryEl.getFragmentById.called).to.equal(false);
     });
 
-    it('keeps the item valid when the fragment can no longer be resolved', async () => {
+    it('keeps saved fragment paths resolved when re-enrichment fails', async () => {
         const el = await makeEditor();
         const path = '/content/dam/mas/sandbox/en_US/gone';
         const fs = makeFragmentStore({ fragments: [path] });
@@ -1405,7 +1502,7 @@ describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
 
         await el.reEnrichItems();
 
-        expect(el.localItems[0].status).to.equal('valid');
+        expect(el.localItems[0].status).to.equal('resolved');
     });
 
     it('does not overwrite localItems when a newer run supersedes it mid-flight', async () => {
@@ -1558,6 +1655,53 @@ describe('mas-bulk-publish-editor (#loadItemDetails)', () => {
         sandbox.restore();
     });
 
+    async function loadPathDetails() {
+        const el = document.createElement('mas-bulk-publish-editor');
+        sandbox.stub(el, 'items').get(() => el.localItems ?? []);
+        await fixture(el);
+        await waitUntil(() => el.localItems !== null);
+        await el.updateComplete;
+        return el;
+    }
+
+    it('marks loaded collection details as resolved when item rows have not been hydrated', async () => {
+        const path = '/content/dam/mas/sandbox/en_US/collection1';
+        repositoryEl.getFragmentById = sandbox.stub().resolves(makeRawProject({ fragments: [path] }));
+        const getByPath = sandbox.stub().resolves({
+            id: 'collection-1',
+            path,
+            fields: [],
+            model: { path: COLLECTION_MODEL_PATH },
+            status: 'PUBLISHED',
+        });
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        const el = await loadPathDetails();
+
+        expect(getByPath.calledOnceWithExactly(path)).to.be.true;
+        expect(el.localItems[0]).to.include({
+            url: path,
+            path,
+            fragmentId: 'collection-1',
+            status: 'resolved',
+            alreadyPublished: true,
+        });
+        expect(el.shadowRoot.querySelector('mas-bulk-publish-items').items[0].status).to.equal('resolved');
+    });
+
+    it('retains an unclassified saved path as resolved when loading its details fails', async () => {
+        const path = '/content/dam/mas/sandbox/en_US/unclassified';
+        repositoryEl.getFragmentById = sandbox.stub().resolves(makeRawProject({ fragments: [path] }));
+        const getByPath = sandbox.stub().rejects(new Error('Details unavailable'));
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        const el = await loadPathDetails();
+
+        expect(getByPath.calledOnceWithExactly(path)).to.be.true;
+        expect(el.localItems).to.deep.equal([{ url: path, path, status: 'resolved' }]);
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.false;
+    });
+
     it('populates localItems from fragments field on load', async () => {
         const rawProject = makeRawProject({ fragments: ['/content/dam/mas/en_US/frag1'] });
         repositoryEl.getFragmentById = sandbox.stub().resolves(rawProject);
@@ -1573,7 +1717,7 @@ describe('mas-bulk-publish-editor (#loadItemDetails)', () => {
 
         expect(el.localItems).to.be.an('array').with.lengthOf(1);
         expect(el.localItems[0].path).to.equal('/content/dam/mas/en_US/frag1');
-        expect(el.localItems[0].status).to.equal('valid');
+        expect(el.localItems[0].status).to.equal('resolved');
     });
 
     it('skips load when fragments field is empty', async () => {
@@ -1604,7 +1748,7 @@ describe('mas-bulk-publish-editor (#loadItemDetails)', () => {
         await el.updateComplete;
 
         expect(el.localItems).to.be.an('array').with.lengthOf(1);
-        expect(el.localItems[0].status).to.equal('valid');
+        expect(el.localItems[0].status).to.equal('resolved');
         expect(el.localItems[0].path).to.equal('/content/dam/mas/en_US/missing');
     });
 });

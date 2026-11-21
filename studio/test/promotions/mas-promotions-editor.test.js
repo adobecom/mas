@@ -189,15 +189,18 @@ describe('MasPromotionsEditor', () => {
             loadAllCollections: sandbox.stub(),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            updatePromotionInList: sandbox.stub(),
             clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
                     cf: {
                         fragments: {
                             getById: sandbox.stub().resolves(null),
-                            publish: sandbox.stub().resolves(),
+                            publish: sandbox.stub().callsFake(async (fragment) => ({
+                                items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+                            })),
                             publishFragments: sandbox.stub().resolves(),
-                            getWithEtag: sandbox.stub(),
+                            getWithEtag: sandbox.stub().callsFake(async () => Store.promotions.inEdit.get()?.get()),
                             search: makeSearchStub(),
                         },
                     },
@@ -345,6 +348,30 @@ describe('MasPromotionsEditor', () => {
             expect(el.fragment.getFieldValue('endDate')).to.equal('2099-12-31T00:00:00.000Z');
         });
 
+        it('shows shared publish results as a top error without changing server validation or status', async () => {
+            const el = await mountExistingPromotion();
+            const dialog = el.renderRoot.querySelector('mas-promotion-publish-dialog');
+            expect(dialog).to.exist;
+            const status = el.fragment.status;
+            const validation = el.fragment.validationStatus;
+            dialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: {
+                        promotionId: el.fragment.id,
+                        promotion: { status: 'not-started' },
+                        error: 'Could not create Bulk Publish project',
+                        projects: [],
+                    },
+                }),
+            );
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('[role="alert"]').textContent).to.include(
+                'Could not create Bulk Publish project',
+            );
+            expect(el.fragment.status).to.equal(status);
+            expect(el.fragment.validationStatus).to.equal(validation);
+        });
+
         for (const action of ['Publish', 'Unpublish']) {
             it(`disables ${action} for promo editors`, async () => {
                 setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
@@ -375,7 +402,7 @@ describe('MasPromotionsEditor', () => {
                         status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
                         etag: '"variation-etag"',
                     };
-                    const promotionWithEtag = { id: 'tiered-promo', etag: '"etag"' };
+                    const promotionWithEtag = { id: 'tiered-promo', path: '/content/dam/mas/promotions/test', etag: '"etag"' };
                     const repo = makeRepo();
                     repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'parent', path: parentPath, fields: [] });
                     repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
@@ -394,21 +421,23 @@ describe('MasPromotionsEditor', () => {
                     getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
                     await flushPromises();
                     await el.updateComplete;
-                    expect(el.isDialogOpen).to.be.true;
+                    expect(action === 'Publish' ? el.promotionPublishDialog.phase === 'confirm' : el.isDialogOpen).to.be.true;
                     if (revokeAccess) setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
-                    el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+                    if (action === 'Publish') {
+                        el.promotionPublishDialog.checked = false;
+                        el.promotionPublishDialog.confirm();
+                    } else {
+                        el.renderRoot
+                            .querySelector('#promotion-unsaved-changes-dialog')
+                            .dispatchEvent(new CustomEvent('confirm'));
+                    }
                     await flushPromises();
                     expect(repo.processError.called).to.be.false;
-                    expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
                     if (action === 'Publish') {
-                        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(revokeAccess ? 0 : 1);
-                        if (!revokeAccess) {
-                            expect(repo.aem.sites.cf.fragments.publishFragments.firstCall.args[0]).to.deep.equal([
-                                promotionWithEtag,
-                                variation,
-                            ]);
-                        }
+                        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(revokeAccess ? 0 : 1);
+                        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
                     } else {
+                        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
                         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
                         expect(repo.aem.sites.cf.fragments.unpublish.callCount).to.equal(revokeAccess ? 0 : 2);
                     }
@@ -730,13 +759,12 @@ describe('MasPromotionsEditor', () => {
             expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
         });
 
-        it('labels the progress circle as "Publishing project" for a publish action', async () => {
+        it('does not cover the shared dialog with the old overlay for a publish action', async () => {
             const el = await mountEditor();
             el.promotionPublish = true;
             el.promotionPublishAction = 'publish';
             await el.updateComplete;
-            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
-            expect(progressCircle.getAttribute('label')).to.equal('Publishing project');
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
         });
 
         it('labels the progress circle as "Unpublishing project" for an unpublish action', async () => {
@@ -1225,7 +1253,7 @@ describe('MasPromotionsEditor', () => {
                 status: 'MODIFIED',
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const publish = sandbox.stub().resolves();
+            const publish = sandbox.stub().resolves({ items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }] });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -1241,6 +1269,7 @@ describe('MasPromotionsEditor', () => {
                                     }),
                                 ),
                                 publish,
+                                getWithEtag: sandbox.stub().resolves(promotion),
                             },
                         },
                     },
@@ -2331,7 +2360,9 @@ describe('MasPromotionsEditor', () => {
         async function mountSavedPromotion(promoOverrides, repoOverrides = {}) {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion(promoOverrides)));
-            const publish = sandbox.stub().resolves();
+            const publish = sandbox.stub().callsFake(async (fragment) => ({
+                items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+            }));
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -2339,6 +2370,7 @@ describe('MasPromotionsEditor', () => {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
                                 publish,
+                                getWithEtag: sandbox.stub().callsFake(async () => Store.promotions.inEdit.get()?.get()),
                                 publishFragments: sandbox.stub().resolves(),
                                 search: makeSearchStub(),
                             },
@@ -2351,6 +2383,222 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             return { el, repo, publish };
         }
+
+        for (const change of ['unsaved fields', 'changed selection', 'different promotion', 'expired promotion']) {
+            it(`rejects publish confirmation after ${change}`, async () => {
+                const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+                const data = makeFragmentData({
+                    id: 'revalidation-promo',
+                    title: 'Revalidation promotion',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                    surfaces: ['sandbox'],
+                    geos: ['mas:pzn/country/US'],
+                    fragments: [cardPath],
+                });
+                data.fields.find(({ name }) => name === 'tags').values = ['mas:promotion/revalidation'];
+                const { el, repo, publish } = await mountSavedPromotion(data);
+                await waitForEditorConnect(el);
+                repo.aem.sites.cf.fragments.search = makeSearchStub({
+                    '/content/dam/mas/sandbox/en_US/promotions/revalidation': [
+                        {
+                            id: 'variation-1',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/revalidation/card-a',
+                            status: 'DRAFT',
+                        },
+                    ],
+                });
+                clickPromotionQuickAction(el, 'Publish');
+                const dialog = el.promotionPublishDialog;
+                await waitUntil(() => dialog.phase === 'confirm');
+                const toast = sandbox.stub(Events.toast, 'emit');
+                if (change === 'unsaved fields') {
+                    el.fragment.updateField('promoCode', ['NEW-CODE']);
+                } else if (change === 'changed selection') {
+                    Store.promotions.selectedCards.set([cardPath, '/content/dam/mas/sandbox/en_US/another-card']);
+                } else if (change === 'different promotion') {
+                    const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                    el.fragmentStore = new FragmentStore(makePromotion({ ...data, id: 'another-promotion' }));
+                } else {
+                    el.fragment.updateField('endDate', ['2000-01-01T00:00:00.000Z']);
+                    el.fragment.hasChanges = false;
+                }
+                await el.updateComplete;
+
+                dialog.confirm();
+                await waitUntil(() => dialog.phase === 'closed' && !el.promotionPublish);
+
+                expect(publish.called).to.be.false;
+                expect(
+                    toast.calledWith({
+                        variant: 'negative',
+                        content: 'The promotion changed or can no longer be published. Review it before publishing.',
+                    }),
+                ).to.be.true;
+            });
+        }
+
+        describe('post-publish refresh', () => {
+            async function closeResultWithRefreshPending() {
+                const serverData = makeFragmentData({
+                    id: 'refresh-promo',
+                    title: 'Refresh promotion',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                    surfaces: ['sandbox'],
+                    geos: ['mas:pzn/country/US'],
+                    fragments: ['/content/dam/mas/sandbox/en_US/card-a'],
+                    status: 'PUBLISHED',
+                });
+                serverData.fields.find(({ name }) => name === 'tags').values = ['mas:promotion/refresh-promo'];
+                const { el, repo } = await mountSavedPromotion({ ...serverData, status: 'DRAFT' });
+                await waitForEditorConnect(el);
+                let resolve;
+                let reject;
+                const response = new Promise((resolveResponse, rejectResponse) => {
+                    resolve = resolveResponse;
+                    reject = rejectResponse;
+                });
+                repo.aem.sites.cf.fragments.getById.returns(response);
+                clickPromotionQuickAction(el, 'Publish');
+                const dialog = el.promotionPublishDialog;
+                await waitUntil(() => dialog.phase === 'result' && !el.promotionPublish);
+                expect(dialog.result.promotion.status).to.equal('accepted');
+                expect(repo.aem.sites.cf.fragments.getById.calledOnce).to.be.true;
+                await dialog.updateComplete;
+                dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+                await dialog.updateComplete;
+                expect(dialog.phase).to.equal('closed');
+                expect(el.fragment.status).to.equal('DRAFT');
+                const finishRefresh = async (error) => {
+                    if (error) reject(error);
+                    else resolve(serverData);
+                    await flushPromises();
+                    await el.updateComplete;
+                };
+                return { el, repo, serverData, finishRefresh };
+            }
+
+            function editPromoCode(el) {
+                const input = el.renderRoot.querySelector('#promoCode');
+                input.value = 'NEW-UNSAVED-CODE';
+                input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+            }
+
+            it('applies an accepted refresh when the closed result has no intervening edits', async () => {
+                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                await finishRefresh();
+                expect(el.fragment.status).to.equal('PUBLISHED');
+                expect(el.fragment.hasChanges).to.be.false;
+                expect(Store.promotions.selectedCards.value).to.deep.equal(['/content/dam/mas/sandbox/en_US/card-a']);
+            });
+
+            it('updates the promotion list with an accepted post-publish refresh', async () => {
+                const { repo, finishRefresh } = await closeResultWithRefreshPending();
+
+                await finishRefresh();
+
+                expect(repo.updatePromotionInList.calledOnce).to.be.true;
+                expect(repo.updatePromotionInList.firstCall.args[0]).to.include({
+                    id: 'refresh-promo',
+                    status: 'PUBLISHED',
+                });
+            });
+
+            it('preserves field edits made after closing the publish result', async () => {
+                const { el, repo, finishRefresh } = await closeResultWithRefreshPending();
+                const store = el.fragmentStore;
+                editPromoCode(el);
+                expect(el.fragment.hasChanges).to.be.true;
+                await finishRefresh();
+                expect(el.fragment.getFieldValue('promoCode')).to.equal('NEW-UNSAVED-CODE');
+                expect(el.fragment.hasChanges).to.be.true;
+                expect(el.fragmentStore).to.equal(store);
+                expect(el.renderRoot.querySelector('#promoCode').value).to.equal('NEW-UNSAVED-CODE');
+                expect(repo.updatePromotionInList.called).to.be.false;
+            });
+
+            for (const selection of ['selectedCards', 'selectedCollections', 'selectedOffers']) {
+                it(`preserves ${selection} changes after closing the publish result`, async () => {
+                    const { el, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    const selected = selection === 'selectedOffers' ? ['new-offer'] : ['/content/dam/mas/sandbox/en_US/new'];
+                    Store.promotions[selection].set(selected);
+                    expect(el.fragment.hasChanges).to.be.false;
+                    await finishRefresh();
+                    expect(Store.promotions[selection].value).to.deep.equal(selected);
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.status).to.equal('DRAFT');
+                });
+            }
+
+            for (const change of ['field', 'selection']) {
+                it(`preserves a ${change} edit saved while the refresh is pending`, async () => {
+                    const { el, repo, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    repo.saveFragment.callsFake(async (fragmentStore) => {
+                        fragmentStore.refreshFrom(fragmentStore.get());
+                        return fragmentStore.get();
+                    });
+                    if (change === 'field') editPromoCode(el);
+                    else Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/new']);
+                    await el.updateComplete;
+                    clickPromotionQuickAction(el, 'Save');
+                    await waitUntil(() => repo.saveFragment.calledOnce && !el.fragment.hasChanges);
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.hasChanges).to.be.false;
+                    if (change === 'field') expect(el.fragment.getFieldValue('promoCode')).to.equal('NEW-UNSAVED-CODE');
+                    else expect(el.fragment.getFieldValues('fragments')).to.deep.equal(['/content/dam/mas/sandbox/en_US/new']);
+                });
+            }
+
+            for (const id of ['refresh-promo', 'another-promo']) {
+                it(`ignores refresh after replacing the current store with ${id}`, async () => {
+                    const { el, repo, serverData, finishRefresh } = await closeResultWithRefreshPending();
+                    const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                    const replacement = new FragmentStore(makePromotion({ ...serverData, id, title: 'Replacement' }));
+                    Store.promotions.inEdit.set(replacement);
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(replacement);
+                    expect(el.fragment.title).to.equal('Replacement');
+                    expect(repo.updatePromotionInList.called).to.be.false;
+                });
+            }
+
+            it('ignores refresh after replacing the promotion inside the same store', async () => {
+                const { el, serverData, finishRefresh } = await closeResultWithRefreshPending();
+                const replacement = makePromotion({ ...serverData, title: 'Replacement' });
+                el.fragmentStore.set(replacement);
+                await finishRefresh();
+                expect(el.fragment).to.equal(replacement);
+            });
+
+            for (const reconnect of [false, true]) {
+                it(`ignores refresh after disconnect${reconnect ? ' and reconnect' : ''}`, async () => {
+                    const { el, finishRefresh } = await closeResultWithRefreshPending();
+                    const store = el.fragmentStore;
+                    el.remove();
+                    if (reconnect) {
+                        document.body.appendChild(el);
+                        await waitForEditorConnect(el);
+                    }
+                    await finishRefresh();
+                    expect(el.fragmentStore).to.equal(store);
+                    expect(el.fragment.status).to.equal('DRAFT');
+                });
+            }
+
+            it('retains the current promotion and reports refresh errors', async () => {
+                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                const store = el.fragmentStore;
+                const toast = sandbox.stub(Events.toast, 'emit');
+                sandbox.stub(console, 'error');
+                await finishRefresh(new Error('Refresh failed'));
+                expect(el.fragmentStore).to.equal(store);
+                expect(toast.calledWith({ variant: 'negative', content: 'Failed to refresh promotion.' })).to.be.true;
+            });
+        });
 
         it('publishes when Publish is clicked with a future start date', async () => {
             const { el, publish } = await mountSavedPromotion({
@@ -2634,7 +2882,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
 
-        it('publishes the attached promo variation together with the project when the checkbox is checked on confirm', async () => {
+        it('publishes the promotion and shows a top error without directly publishing variations when Bulk setup fails', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
@@ -2662,12 +2910,13 @@ describe('MasPromotionsEditor', () => {
                 [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
             });
             const getWithEtag = sandbox.stub();
-            getWithEtag
-                .withArgs('promo-1')
-                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-1').resolves(promotion);
             getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
             const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
             const publishFragments = sandbox.stub().resolves();
+            const publish = sandbox.stub().resolves({
+                items: [{ path: promotion.path, status: 'SUCCESS_TRIGGERED' }],
+            });
             const { el } = await mountEditorWithRepo({
                 aem: {
                     getFragmentByPath: sandbox.stub().resolves({
@@ -2677,8 +2926,8 @@ describe('MasPromotionsEditor', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getById: sandbox.stub().resolves(null),
-                                publish: sandbox.stub().resolves(),
+                                getById: sandbox.stub().resolves(promotion),
+                                publish,
                                 publishFragments,
                                 getWithEtag,
                                 getByPath,
@@ -2695,18 +2944,22 @@ describe('MasPromotionsEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            const checkbox = el.promotionPublishDialog.shadowRoot.querySelector('sp-checkbox');
             expect(checkbox).to.not.be.null;
             checkbox.checked = true;
             checkbox.dispatchEvent(new Event('change'));
 
-            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            el.promotionPublishDialog.confirm();
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            expect(publishFragments.calledOnce).to.be.true;
-            const [fragments] = publishFragments.firstCall.args;
-            expect(fragments.map((fragment) => fragment.path)).to.include(promoVarPath);
+            expect(publishFragments.called).to.be.false;
+            expect(publish.calledOnce).to.be.true;
+            expect(el.promotionPublishError).to.include('ioBaseUrl');
+            expect(el.promotionPublishDialog.phase).to.equal('result');
+            expect(el.promotionPublishDialog.result.promotion.status).to.equal('accepted');
+            expect(el.renderRoot.querySelector('[role="alert"]').textContent).to.include('ioBaseUrl');
+            expect(el.fragment.status).to.equal('DRAFT');
         });
     });
 

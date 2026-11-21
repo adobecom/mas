@@ -676,6 +676,19 @@ describe('bulk-publish-worker — main', () => {
         expect(input.includeVariations).to.equal(true);
     });
 
+    for (const publishReferences of [false, true, undefined]) {
+        it(`forwards publishReferences=${publishReferences} to runWorker with omitted values defaulting to true`, async () => {
+            const runWorkerStub = sinon.stub().resolves({ published: 1, failed: 0 });
+            const params = { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' };
+            if (publishReferences !== undefined) params.publishReferences = publishReferences;
+
+            const result = await main(params, { runWorker: runWorkerStub });
+
+            expect(result.statusCode).to.equal(200);
+            expect(runWorkerStub.firstCall.args[0].publishReferences).to.equal(publishReferences ?? true);
+        });
+    }
+
     it('does not throw if updateProjectFragment also fails during error recovery', async () => {
         const updateProjectFragment = sinon.stub().rejects(new Error('update failed'));
         const runWorkerStub = sinon.stub().rejects(new Error('worker error'));

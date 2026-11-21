@@ -50,9 +50,10 @@ export async function publishBulk({
     aemOdinEndpoint,
     includeVariations = false,
     includeCards = false,
+    publishReferences = true,
 }) {
     if (!projectId) throw new BulkPublishError('projectId is required');
-    const payload = { projectId, publishedBy, includeVariations, includeCards };
+    const payload = { projectId, publishedBy, includeVariations, includeCards, publishReferences };
     if (aemOdinEndpoint) payload.aemOdinEndpoint = aemOdinEndpoint;
     return callAction(ioBaseUrl, ENDPOINT, payload, token);
 }

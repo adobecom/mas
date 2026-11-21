@@ -1,5 +1,7 @@
 import { UserFriendlyError } from '../utils.js';
 import { COLLECTION_MODEL_PATH } from '../constants.js';
+import { storedValues } from './fragment.js';
+import { isExplicitEmptyField } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
@@ -22,7 +24,7 @@ export function buildFragmentSavePayload({ title, description, fields }) {
             const values =
                 field.multiple && isReference
                     ? (field.values || []).filter((value) => value != null && value !== '')
-                    : field.values;
+                    : storedValues(field.values || [], field.multiple === true, isExplicitEmptyField(field.name));
             return { ...field, type, values };
         }),
     };

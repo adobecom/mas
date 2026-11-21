@@ -187,9 +187,9 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
-            getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            updatePromotionInList: sandbox.stub(),
             clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
@@ -713,26 +713,24 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            let finishClassification;
-            const classification = new Promise((resolve) => {
-                finishClassification = resolve;
-            });
-            const { el } = await mountEditorWithRepo({
-                getCollectionPathsForSurfaces: sandbox.stub().returns(classification),
-            });
+            const { el } = await mountEditorWithRepo();
             await waitForEditorConnect(el);
             Store.promotions.selectedOffers.set(['offer-1']);
             el.selectedItemsViewTab = TABLE_TYPE.CARDS;
             el.isSelectedItemsOpen = true;
             await el.updateComplete;
             expect(Store.promotions.selectedCards.value).to.deep.equal([collectionPath]);
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            const cardsTable = selector.shadowRoot.querySelector('mas-promotions-items-table');
             const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
                 (button) => button.textContent.trim() === 'Edit',
             );
             edit.click();
             await el.updateComplete;
-            finishClassification(new Set([collectionPath]));
-            await classification;
+            cardsTable.dispatchEvent(
+                new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }),
+            );
             await el.updateComplete;
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
 
@@ -2326,10 +2324,11 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
         });
 
-        it('refines the card/collection split in the background from a surface collection search', async () => {
+        it('re-buckets collections flagged by the cards table, keeping selection edits made meanwhile', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
             Store.promotions.inEdit.set(
                 new FragmentStore(
                     makePromotion({
@@ -2339,45 +2338,19 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const getCollectionPathsForSurfaces = sandbox.stub().resolves(new Set([collectionPath]));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-2');
-            el.disconnectedCallback();
-            await el.connectedCallback();
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
             await el.updateComplete;
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
-            expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
-            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
-            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
-        });
-
-        it('does not clobber a selection the user edited while the classification search was in flight', async () => {
-            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
-            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
-            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
-            const addedPath = '/content/dam/mas/sandbox/en_US/card-added';
-            Store.promotions.inEdit.set(
-                new FragmentStore(
-                    makePromotion({
-                        id: 'promo-race',
-                        surfaces: ['sandbox'],
-                        fragments: [cardPath, collectionPath],
-                    }),
-                ),
-            );
-            let releaseSearch;
-            const getCollectionPathsForSurfaces = sandbox
-                .stub()
-                .callsFake(() => new Promise((resolve) => (releaseSearch = () => resolve(new Set([collectionPath])))));
-            const { el } = await mountEditorWithRepo({ getCollectionPathsForSurfaces });
-            Store.promotions.promotionId.set('promo-race');
-            el.disconnectedCallback();
-            await el.connectedCallback();
-            await el.updateComplete;
-            // User adds a card while the surface search is still pending.
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
             Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
-            releaseSearch();
-            await getCollectionPathsForSurfaces.lastCall.returnValue;
+            const selector = el.renderRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            selector.shadowRoot
+                .querySelector('mas-promotions-items-table')
+                .dispatchEvent(new CustomEvent('promotion-collections-detected', { detail: { paths: [collectionPath] } }));
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
@@ -2520,8 +2493,20 @@ describe('MasPromotionsEditor', () => {
                 expect(Store.promotions.selectedCards.value).to.deep.equal(['/content/dam/mas/sandbox/en_US/card-a']);
             });
 
+            it('updates the promotion list with an accepted post-publish refresh', async () => {
+                const { repo, finishRefresh } = await closeResultWithRefreshPending();
+
+                await finishRefresh();
+
+                expect(repo.updatePromotionInList.calledOnce).to.be.true;
+                expect(repo.updatePromotionInList.firstCall.args[0]).to.include({
+                    id: 'refresh-promo',
+                    status: 'PUBLISHED',
+                });
+            });
+
             it('preserves field edits made after closing the publish result', async () => {
-                const { el, finishRefresh } = await closeResultWithRefreshPending();
+                const { el, repo, finishRefresh } = await closeResultWithRefreshPending();
                 const store = el.fragmentStore;
                 editPromoCode(el);
                 expect(el.fragment.hasChanges).to.be.true;
@@ -2530,6 +2515,7 @@ describe('MasPromotionsEditor', () => {
                 expect(el.fragment.hasChanges).to.be.true;
                 expect(el.fragmentStore).to.equal(store);
                 expect(el.renderRoot.querySelector('#promoCode').value).to.equal('NEW-UNSAVED-CODE');
+                expect(repo.updatePromotionInList.called).to.be.false;
             });
 
             for (const selection of ['selectedCards', 'selectedCollections', 'selectedOffers']) {
@@ -2569,13 +2555,14 @@ describe('MasPromotionsEditor', () => {
 
             for (const id of ['refresh-promo', 'another-promo']) {
                 it(`ignores refresh after replacing the current store with ${id}`, async () => {
-                    const { el, serverData, finishRefresh } = await closeResultWithRefreshPending();
+                    const { el, repo, serverData, finishRefresh } = await closeResultWithRefreshPending();
                     const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
                     const replacement = new FragmentStore(makePromotion({ ...serverData, id, title: 'Replacement' }));
                     Store.promotions.inEdit.set(replacement);
                     await finishRefresh();
                     expect(el.fragmentStore).to.equal(replacement);
                     expect(el.fragment.title).to.equal('Replacement');
+                    expect(repo.updatePromotionInList.called).to.be.false;
                 });
             }
 

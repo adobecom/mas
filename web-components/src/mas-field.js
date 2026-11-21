@@ -8,7 +8,7 @@ import {
     MERCH_CARD_LOAD_TIMEOUT,
     TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
-import { getService, hydrateHeadlessCta } from './utils.js';
+import { getService, hydrateHeadlessCta, swapAriaLabel } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
 import {
     applyDisplayAnnualDefault,
@@ -121,8 +121,14 @@ export async function stripTrialCtas(template, indexed, self) {
             if (qualifyingCta || !buyNowText || buyNowText === 'buy-now') {
                 anchor.remove();
             } else {
-                if (anchor.hasAttribute('aria-label'))
-                    anchor.removeAttribute('aria-label');
+                const ariaLabel = swapAriaLabel(
+                    anchor.getAttribute('aria-label'),
+                    anchor.textContent,
+                    buyNowText,
+                );
+                if (ariaLabel !== null)
+                    anchor.setAttribute('aria-label', ariaLabel);
+                else anchor.removeAttribute('aria-label');
                 anchor.setAttribute('data-analytics-id', 'buy-now');
                 if (anchor.hasAttribute('data-modal'))
                     anchor.setAttribute('data-modal', 'crm');

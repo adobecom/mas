@@ -7,6 +7,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
 import { extractLocaleFromPath, debounce } from './utils.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { clearPersistedPromotionsLists } from './promotions/promotions-repository.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -97,6 +98,7 @@ class MasTopNav extends LitElement {
             });
             signOutLink.addEventListener('click', (e) => {
                 e.preventDefault();
+                clearPersistedPromotionsLists();
                 window.adobeIMS.signOut();
             });
             studioContentEl?.addEventListener('click', () => {

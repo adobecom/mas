@@ -6,10 +6,12 @@ on:
         types: [opened, synchronize, reopened]
         paths:
             - 'web-components/**'
+            - 'checkout/**'
     push:
         branches: [main]
         paths:
             - 'web-components/**'
+            - 'checkout/**'
     workflow_dispatch:
 
 concurrency:

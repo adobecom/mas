@@ -7,6 +7,7 @@ import Store from '../src/store.js';
 import Events from '../src/events.js';
 import { STAGED, COLLECTION_MODEL_PATH, OPERATIONS } from '../src/constants.js';
 import { AEM, buildFragmentSavePayload } from '../src/aem/aem.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 describe('MasRepository — staged tag auto-clear on publish', () => {
     let sandbox;
@@ -226,6 +227,32 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             expect(JSON.parse(put.args[1].body)).to.deep.equal(JSON.parse(JSON.stringify(buildFragmentSavePayload(fragment))));
             expect(fragment.getField('text').values).to.deep.equal(['']);
         });
+
+        for (const { name, multiple, expected } of [
+            { name: 'promoCode', multiple: false, expected: [''] },
+            { name: 'offers', multiple: true, expected: [] },
+            { name: 'subtitle', multiple: false, expected: [EXPLICIT_EMPTY_SENTINEL] },
+        ]) {
+            it(`accepts the persisted empty-value normalization for ${name}`, async () => {
+                const raw = stagedCardFragment({
+                    fields: [
+                        { name: 'tags', type: 'tag', multiple: true, values: [STAGED.TAG] },
+                        { name, type: 'text', multiple, values: [EXPLICIT_EMPTY_SENTINEL] },
+                    ],
+                });
+                const repo = makeRepo();
+                useSaveTransport(repo, raw);
+                const fragment = new Fragment(raw);
+
+                expect(buildFragmentSavePayload(raw).fields.find((field) => field.name === name).values).to.deep.equal(
+                    expected,
+                );
+                await repo.clearStagedTag(fragment, { expectedEtag: raw.etag });
+
+                expect(fragment.getField(name).values).to.deep.equal(expected);
+                expect(fragment.isStaged).to.be.false;
+            });
+        }
 
         for (const remaining of [[], ['mas:studio/other']]) {
             it(`accepts the native tags actually applied when ${remaining.length} tags remain`, async () => {

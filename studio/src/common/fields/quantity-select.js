@@ -44,13 +44,15 @@ const isQuantitySelectEnabled = (value) =>
 
 /**
  * Compares two serialized quantity selector values: on/off state first, then their parsed configuration.
+ * An absent value counts as switched off.
  * @param {string} first
  * @param {string} second
  * @returns {boolean}
  */
 export const isSameQuantitySelectValue = (first, second) => {
-    if (!first || !second) return (first || '') === (second || '');
-    if (isQuantitySelectEnabled(first) !== isQuantitySelectEnabled(second)) return false;
+    const enabled = isQuantitySelectEnabled(first);
+    if (enabled !== isQuantitySelectEnabled(second)) return false;
+    if (!enabled) return true;
     const a = parseQuantitySelectValue(first);
     const b = parseQuantitySelectValue(second);
     return QUANTITY_SELECT_KEYS.every((key) => a[key] === b[key]);

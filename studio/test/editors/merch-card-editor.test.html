@@ -2966,6 +2966,19 @@
                                         expect(toggle.checked).to.be.true;
                                         unmount(editor);
                                     });
+
+                                    it('inherits again when the selector is switched on and off over an empty baseline', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-empty-card', '');
+                                        await switchQuantitySelect(editor, true);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
+                                        const toggle = await switchQuantitySelect(editor, false);
+                                        expect(editor.isSettingFromBaseline('quantitySelect')).to.be.true;
+                                        expect(toggle.checked).to.be.false;
+                                        expect(indicator(editor, 'quantitySelect').textContent.trim()).to.equal(
+                                            'From baseline',
+                                        );
+                                        unmount(editor);
+                                    });
                                 });
 
                                 describe('the baselines do not set', () => {

@@ -93,6 +93,12 @@
             import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
             import { VARIANT_NAMES, VARIANTS } from '../../src/editors/variant-picker.js';
+            import {
+                OPTIONAL_SECTIONS,
+                isSectionShown,
+                isSectionSupported,
+                sectionHasContent,
+            } from '../../src/editors/merch-card-editor.js';
             import { delay } from '../utils.js';
             import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
@@ -119,6 +125,17 @@
 
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+            // The mock has no callout field, which the optional Callout text section needs to hold content.
+            if (!baseMockData.fields.some((field) => field.name === 'callout')) {
+                baseMockData.fields.push({
+                    name: 'callout',
+                    type: 'long-text',
+                    multiple: false,
+                    locked: false,
+                    mimeType: 'text/html',
+                    values: [],
+                });
+            }
 
             const createSettingRow = ({
                 name,
@@ -311,12 +328,20 @@
 
                         editor = fragmentEditor.querySelector('merch-card-editor');
                         saveNavItem = sideNav.shadowRoot.querySelector('mas-side-nav-item[label="Save"]');
+                        if (overrides.showOptionalSections !== false) await showAllOptionalSections();
 
                         fragmentStore.get().hasChanges = false;
                         fragmentStore.notify();
                         await sideNav.updateComplete;
 
                         return { fragmentStore, editor, sideNav, saveNavItem };
+                    }
+
+                    // Most tests predate optional sections and query their fields on content-less fixtures.
+                    async function showAllOptionalSections() {
+                        for (const section of OPTIONAL_SECTIONS) editor.addSection(section.id);
+                        await editor.updateComplete;
+                        await delay(50);
                     }
 
                     afterEach(() => {
@@ -352,19 +377,34 @@
                             },
                             'mweb-legal',
                         );
+                        editor.addSection('callout');
+                        await editor.updateComplete;
+                        await delay(50);
                         fragmentStore.updateField('callout', [disclaimer]);
                         await editor.updateComplete;
+                        await delay(50);
                         const group = editor.querySelector('sp-field-group#callout');
                         expect(getComputedStyle(group).display).not.to.equal('none');
                         expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Legal Disclaimer');
+                        expect(
+                            editor.querySelector('sp-field-group#shortDescription sp-field-label').textContent.trim(),
+                        ).to.equal('Pricing subtext');
                         const field = group.querySelector('rte-field');
+                        await field.updateComplete;
                         expect(field.value).to.equal(disclaimer);
 
-                        for (const value of ['<p>Aucun remboursement apr\u00e8s 14 jours.</p>', '']) {
+                        // The fixture parent has a callout, so clearing stores an intentional empty override.
+                        for (const [value, stored] of [
+                            [
+                                '<p>Aucun remboursement apr\u00e8s 14 jours.</p>',
+                                '<p>Aucun remboursement apr\u00e8s 14 jours.</p>',
+                            ],
+                            ['', EXPLICIT_EMPTY_SENTINEL],
+                        ]) {
                             field.value = value;
                             field.dispatchEvent(new Event('change', { bubbles: true }));
                             await editor.updateComplete;
-                            expect(fragmentStore.get().getFieldValue('callout')).to.equal(value);
+                            expect(fragmentStore.get().getFieldValue('callout')).to.equal(stored);
                         }
                     });
 
@@ -878,6 +918,7 @@
 
                             editor = fragmentEditor.querySelector('merch-card-editor');
                             fragmentStore = store;
+                            await showAllOptionalSections();
 
                             store.get().hasChanges = false;
                             store.notify();
@@ -1945,12 +1986,575 @@
                             });
                         }
 
-                        const expectedGridOrder = ['variant', 'cardName', 'fragment-title-group', 'fragment-description-group'];
+                        const expectedGridOrder = ['variant', 'size', 'fragment-title-group', 'fragment-description-group'];
 
                         const expectBaselinesRowAfter = (grid) => {
-                            const heading = grid.closest('.editor-form-container').querySelector('.section-title-status');
-                            expect(heading.previousElementSibling.id).to.equal('fragment-enable-baselines-group');
+                            const section = grid.closest('.editor-section[data-section="Card framework"]');
+                            expect(section.previousElementSibling.id).to.equal('fragment-enable-baselines-group');
                         };
+
+                        const sectionTitleFor = (editor, el) => {
+                            const preceding = [...editor.querySelectorAll('.section-title')].filter(
+                                (heading) => heading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
+                            return preceding.at(-1).textContent.trim();
+                        };
+
+                        it('groups a plans card into the redesigned sections', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'], showOptionalSections: false },
+                                'section-order-plans',
+                            );
+                            await editor.toggleFields();
+                            expect(
+                                [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                            ).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                'Footer rows',
+                                'Custom fields',
+                                'Quantity selector/Addon',
+                            ]);
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#planType'))).to.equal(
+                                'Price and Promo',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#secureLabel'))).to.equal(
+                                'Call to action',
+                            );
+                            expect(sectionTitleFor(editor, editor.querySelector('sp-field-group#mnemonics'))).to.equal(
+                                'Card header',
+                            );
+                        });
+
+                        it('keeps the Visuals heading visible when only backgroundImage or backgrounds is visible', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'visuals-bg',
+                            );
+                            await editor.toggleFields();
+                            const visualsFields = editor.constructor.SECTION_FIELDS.Visuals;
+                            expect(visualsFields).to.deep.equal(['backgrounds', 'image']);
+                            const heading = [...editor.querySelectorAll('.section-title')].find(
+                                (h) => h.textContent.trim() === 'Visuals',
+                            );
+                            for (const visible of visualsFields) {
+                                if (!editor.querySelector(`#${visible}`)) continue;
+                                for (const id of visualsFields) {
+                                    const el = editor.querySelector(`#${id}`);
+                                    if (el) el.style.display = id === visible ? 'block' : 'none';
+                                }
+                                editor.toggleSectionHeadings();
+                                expect(heading.style.display).to.equal('block');
+                            }
+                        });
+
+                        it('declares the redesigned SECTION_FIELDS grouping without Options and settings', () => {
+                            const sectionFields = customElements.get('merch-card-editor').SECTION_FIELDS;
+                            expect(Object.keys(sectionFields)).to.not.include('Options and settings');
+                            expect(sectionFields['Callout text']).to.deep.equal(['callout']);
+                            expect(sectionFields['Product description']).to.not.include('callout');
+                            expect(sectionFields['Quantity selector/Addon']).to.deep.equal([
+                                'addon',
+                                'quantitySelect',
+                                'addonConfirmation',
+                            ]);
+                            expect(sectionFields['Badge and card decoration']).to.include.members([
+                                'badge',
+                                'border-color',
+                                'backgroundColor',
+                                'backgroundImage',
+                            ]);
+                        });
+
+                        describe('optional sections', () => {
+                            const menuValues = (editor) =>
+                                [...editor.querySelectorAll('.add-section-trigger sp-menu-item')].map((item) =>
+                                    item.getAttribute('value'),
+                                );
+                            const setupPlans = (extra, testId) =>
+                                setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'], showOptionalSections: false, ...extra },
+                                    testId,
+                                );
+
+                            it('computes support, content and shown state with pure functions', () => {
+                                const [callout, , , quantityAddon] = OPTIONAL_SECTIONS;
+                                expect(isSectionSupported(callout, {})).to.be.false;
+                                expect(isSectionSupported(callout, { callout: [] })).to.be.false;
+                                expect(isSectionSupported(callout, { callout: { tag: 'p' } })).to.be.true;
+                                expect(isSectionSupported(callout, { callout: { tag: 'p' }, disabledAttributes: ['callout'] }))
+                                    .to.be.false;
+                                expect(sectionHasContent(quantityAddon, () => undefined)).to.be.false;
+                                expect(sectionHasContent(quantityAddon, (name) => (name === 'addon' ? '{{a}}' : ''))).to.be
+                                    .true;
+                                expect(sectionHasContent(quantityAddon, (name) => (name === 'addon' ? '{{}}' : ''))).to.be
+                                    .false;
+                                expect(
+                                    sectionHasContent(quantityAddon, (name) =>
+                                        name === 'quantitySelect' ? '<merch-quantity-select/>' : '',
+                                    ),
+                                ).to.be.false;
+                                expect(isSectionShown(true, false, false)).to.be.false;
+                                expect(isSectionShown(true, false, true)).to.be.true;
+                                expect(isSectionShown(false, true, true)).to.be.false;
+                            });
+
+                            it('renders optional sections after Call to action in order with their field blocks', async () => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'] },
+                                    'optional-order',
+                                );
+                                await editor.toggleFields();
+                                const titles = [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim());
+                                expect(titles.slice(titles.indexOf('Call to action'))).to.deep.equal([
+                                    'Call to action',
+                                    'Visuals',
+                                    'Footer rows',
+                                    'Custom fields',
+                                    'Callout text',
+                                    'Badge and card decoration',
+                                    "What's included",
+                                    'Quantity selector/Addon',
+                                ]);
+                                expect(editor.querySelector('sp-field-group.toggle#callout rte-field[data-field="callout"]')).to
+                                    .exist;
+                                const remove = editor.querySelector('sp-action-button[aria-label="Remove Callout text"]');
+                                expect(remove.size).to.equal('m');
+                                expect(editor.querySelector('sp-field-group.toggle#addonConfirmation')).to.exist;
+                            });
+
+                            it('hides empty Callout text and Badge sections and offers them in the menu', async () => {
+                                const { editor } = await setupPlans({}, 'optional-empty');
+                                await editor.toggleFields();
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                                expect(editor.querySelector('badge-section')).to.not.exist;
+                                expect(menuValues(editor)).to.include.members(['callout', 'badge']);
+                                expect(menuValues(editor)).to.not.include('quantityAddon');
+                            });
+
+                            it('shows a saved callout on load and leaves it out of the menu', async () => {
+                                const { editor } = await setupPlans({ callout: ['<p>Saved callout</p>'] }, 'optional-saved');
+                                await editor.toggleFields();
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                expect(menuValues(editor)).to.not.include('callout');
+                            });
+
+                            it('shows Quantity selector/Addon for a global settings default alone', async () => {
+                                const { editor } = await setupPlans({}, 'optional-settings-default');
+                                Store.settings.rows.set([
+                                    createSettingRow({
+                                        name: 'addon',
+                                        value: '{{addon-stock-ai-studio-trial}}',
+                                        valueType: 'optional-text',
+                                        booleanValue: true,
+                                    }),
+                                ]);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
+                                await editor.toggleFields();
+                                expect(editor.globalSettingsDefaults.addon).to.equal('{{addon-stock-ai-studio-trial}}');
+                                expect(editor.hasContent('quantityAddon')).to.be.true;
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                            });
+
+                            it('Remove on Quantity selector/Addon turns settings off on a top-level card', async () => {
+                                const { editor, fragmentStore } = await setupPlans({}, 'optional-remove-qa');
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                const calls = [];
+                                const updateField = fragmentStore.updateField.bind(fragmentStore);
+                                fragmentStore.updateField = (...args) => {
+                                    calls.push(args);
+                                    return updateField(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(calls.some(([name, value]) => name === 'addon' && value[0] === '{{}}')).to.be.true;
+                                expect(
+                                    calls.some(
+                                        ([name, value]) => name === 'quantitySelect' && value[0] === '<merch-quantity-select/>',
+                                    ),
+                                ).to.be.true;
+                                expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
+                            });
+
+                            it('Remove on a card whose addon has a background colour drops the wrapper', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { addon: ['<merch-addon background="gradient">{{addon-stock-trial}}</merch-addon>'] },
+                                    'optional-remove-qa-background',
+                                );
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(fragmentStore.get().getField('addon').values).to.deep.equal(['{{}}']);
+                                expect(editor.querySelector('sp-field-group#quantitySelect')).to.not.exist;
+                            });
+
+                            it('Remove on Badge and card decoration only drops the addon background', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    {
+                                        addon: ['<merch-addon background="gradient">{{addon-stock-trial}}</merch-addon>'],
+                                        badge: ['Best value'],
+                                    },
+                                    'optional-remove-badge-background',
+                                );
+                                await editor.toggleFields();
+                                editor.querySelector('sp-action-button[aria-label="Remove Badge and card decoration"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(fragmentStore.get().getField('addon').values[0] ?? '').to.not.include('background=');
+                                expect(editor.getEffectiveSettingValue('addon')).to.include('{{addon-stock-trial}}');
+                            });
+
+                            it('Remove on Quantity selector/Addon on a variation resets the addon to the parent', async () => {
+                                const { editor, fragmentStore } = await setupTestEnvironment(
+                                    { showOptionalSections: false, addon: ['{{addon-stock-trial}}'] },
+                                    'optional-remove-qa-variation',
+                                );
+                                await editor.toggleFields();
+                                expect(editor.shownSectionIds).to.include('quantityAddon');
+                                const reset = [];
+                                const resetFieldToParent = fragmentStore.resetFieldToParent.bind(fragmentStore);
+                                fragmentStore.resetFieldToParent = (...args) => {
+                                    reset.push(args[0]);
+                                    return resetFieldToParent(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Quantity selector/Addon"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(reset).to.include('addon');
+                                expect(fragmentStore.get().getField('addon')?.values?.[0]).to.not.equal('{{}}');
+                            });
+
+                            it('does not count a settings-default addon background as Badge and card decoration content', async () => {
+                                const { editor } = await setupPlans({}, 'optional-settings-default-background');
+                                Store.settings.rows.set([
+                                    createSettingRow({
+                                        name: 'addon',
+                                        value: '<merch-addon background="gradient">{{addon-stock-ai-studio-trial}}</merch-addon>',
+                                        valueType: 'optional-text',
+                                        booleanValue: true,
+                                    }),
+                                ]);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
+                                await editor.toggleFields();
+                                expect(editor.hasContent('badge')).to.be.false;
+                                expect(editor.hasContent('quantityAddon')).to.be.true;
+                            });
+
+                            it('keeps a shown section rendered after its content is cleared', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { callout: ['<p>Saved callout</p>'] },
+                                    'optional-keep-shown',
+                                );
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                fragmentStore.updateField('callout', []);
+                                editor.requestUpdate();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                editor.querySelector('sp-action-button[aria-label="Remove Callout text"]').click();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                            });
+
+                            it('orders and labels Badge and card decoration per Figma', async () => {
+                                const { editor } = await setupPlans(
+                                    { badge: ['<merch-badge>New</merch-badge>'] },
+                                    'optional-figma',
+                                );
+                                await editor.toggleFields();
+                                const section = editor.querySelector(
+                                    '.editor-section[data-section="Badge and card decoration"]',
+                                );
+                                const labels = [...section.querySelectorAll('sp-field-label')].map((l) => l.textContent.trim());
+                                expect(labels.slice(0, 2)).to.deep.equal(['Card image URL', 'Card image alt text']);
+                                expect(labels).to.include('Card border color');
+                                expect(section.querySelector('.two-column-grid sp-field-group#backgroundImage')).to.not.exist;
+                                expect(section.querySelector('.two-column-grid sp-field-group#badge')).to.not.exist;
+                            });
+
+                            it("labels the What's included title field Section title", async () => {
+                                const { editor } = await setupPlans({}, 'optional-whats-included-label');
+                                editor.querySelector('.add-section-trigger sp-menu-item[value="whatsIncluded"]')?.click();
+                                await editor.updateComplete;
+                                const label = editor.querySelector('sp-field-group#whatsIncluded sp-field-label');
+                                expect(label?.textContent.trim()).to.equal('Section title');
+                            });
+
+                            it('orders Quantity selector/Addon fields per Figma', async () => {
+                                const { editor } = await setupPlans({}, 'optional-qa-order');
+                                await editor.toggleFields();
+                                const ids = [...editor.querySelectorAll('sp-field-group')]
+                                    .map((group) => group.id)
+                                    .filter((id) => ['quantitySelect', 'addonConfirmation', 'addon'].includes(id));
+                                expect(ids).to.deep.equal(['quantitySelect', 'addonConfirmation', 'addon']);
+                                expect(
+                                    editor.querySelector('sp-field-group#addonConfirmation sp-field-label').textContent.trim(),
+                                ).to.equal('Addon confirmation');
+                            });
+
+                            it('shows a section picked from the menu and resets the picks on another fragment', async () => {
+                                const { editor } = await setupPlans({}, 'optional-pick');
+                                editor.querySelector('.add-section-trigger sp-menu-item[value="callout"]').click();
+                                await editor.updateComplete;
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                                expect(menuValues(editor)).to.not.include('callout');
+                                expect(editor.addedSections.has('callout')).to.be.true;
+
+                                const other = generateFragmentStore(
+                                    new Fragment(
+                                        structuredClone({
+                                            ...baseMockData,
+                                            id: 'optional-other-id',
+                                            path: '/content/dam/mas/nala/en_US/optional-other',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : [],
+                                            })),
+                                        }),
+                                    ),
+                                );
+                                editor.fragmentStore = other;
+                                await editor.updateComplete;
+                                expect(editor.addedSections.size).to.equal(0);
+                            });
+
+                            it('renders a full-width Add section button that is disabled when every section is shown', async () => {
+                                const { editor } = await setupPlans({}, 'optional-button');
+                                const button = editor.querySelector('.add-section-button');
+                                expect(button.querySelector('sp-icon-add')).to.exist;
+                                expect(button.textContent).to.include('Add section');
+                                expect(button.hasAttribute('disabled')).to.be.false;
+                                expect(button.offsetWidth).to.equal(button.parentElement.offsetWidth);
+
+                                await showAllOptionalSections();
+                                expect(editor.hiddenSupportedSections).to.have.length(0);
+                                expect(editor.querySelector('.add-section-button').hasAttribute('disabled')).to.be.true;
+                            });
+
+                            it('removes a top-level section by clearing its fields and hiding it', async () => {
+                                const { editor, fragmentStore } = await setupPlans(
+                                    { callout: ['<p>Saved callout</p>'] },
+                                    'optional-delete-top',
+                                );
+                                const calls = [];
+                                const updateField = fragmentStore.updateField.bind(fragmentStore);
+                                fragmentStore.updateField = (...args) => {
+                                    calls.push(args);
+                                    return updateField(...args);
+                                };
+                                const remove = editor.querySelector('sp-action-button[aria-label="Remove Callout text"]');
+                                expect(remove.hasAttribute('quiet')).to.be.true;
+                                expect(remove.querySelector('sp-icon-delete')).to.exist;
+                                remove.click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(calls.some(([name, value]) => name === 'callout' && value.length === 0)).to.be.true;
+                                expect(editor.querySelector('sp-field-group#callout')).to.not.exist;
+                                expect(editor.addedSections.has('callout')).to.be.false;
+                            });
+
+                            it('resets a variation section to its parent and keeps it visible', async () => {
+                                const { editor, fragmentStore } = await setupTestEnvironment(
+                                    { showOptionalSections: false },
+                                    'optional-delete-variation',
+                                );
+                                const reset = [];
+                                const resetFieldToParent = fragmentStore.resetFieldToParent.bind(fragmentStore);
+                                fragmentStore.resetFieldToParent = (...args) => {
+                                    reset.push(args[0]);
+                                    return resetFieldToParent(...args);
+                                };
+                                editor.querySelector('sp-action-button[aria-label="Remove Callout text"]').click();
+                                await editor.updateComplete;
+                                await delay(50);
+                                expect(reset).to.include('callout');
+                                expect(editor.querySelector('sp-field-group#callout')).to.exist;
+                            });
+
+                            it('keeps Restore all in the Quantity selector/Addon header row', async () => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: ['plans'], addon: ['{{addon2}}'] },
+                                    'optional-restore-all',
+                                );
+                                const link = editor.querySelector('.restore-all-link');
+                                expect(link).to.exist;
+                                expect(link.closest('.section-header-row').textContent).to.include('Quantity selector/Addon');
+                            });
+
+                            it('wraps every shown optional section in a card with its header first', async () => {
+                                const { editor } = await setupPlans({}, 'optional-section-cards');
+                                const hidden = editor.hiddenSupportedSections[0];
+                                expect(hidden, 'a supported hidden section').to.exist;
+                                const cardFor = (title) => editor.querySelector(`.editor-section[data-section="${title}"]`);
+                                expect(cardFor(hidden.title)).to.not.exist;
+                                editor.addSection(hidden.id);
+                                await editor.updateComplete;
+                                for (const id of editor.shownSectionIds) {
+                                    const card = cardFor(OPTIONAL_SECTIONS.find((section) => section.id === id).title);
+                                    expect(card, id).to.exist;
+                                    expect(card.firstElementChild.classList.contains('section-header-row'), id).to.be.true;
+                                }
+                                const trigger = editor.querySelector('.add-section-trigger');
+                                expect(trigger.closest('.editor-section')).to.be.null;
+                            });
+                        });
+
+                        it('wraps each section of a plans card in its own card', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'section-cards-plans',
+                            );
+                            await editor.toggleFields();
+                            const containers = [...editor.querySelectorAll('.editor-section')];
+                            expect(containers.map((c) => c.dataset.section)).to.deep.equal([
+                                'Card framework',
+                                'Meta data',
+                                'Card header',
+                                'Price and Promo',
+                                'Product description',
+                                'Call to action',
+                                'Visuals',
+                                'Footer rows',
+                                'Custom fields',
+                                ...editor.shownSectionIds.map(
+                                    (id) => OPTIONAL_SECTIONS.find((section) => section.id === id).title,
+                                ),
+                            ]);
+                            expect(containers[0].querySelector('.section-title-status')).to.exist;
+                            expect(containers.filter((c) => c.classList.contains('editor-section--meta'))).to.deep.equal([
+                                containers[1],
+                            ]);
+                            const inside = (id, index) => expect(containers[index].querySelector(`#${id}`)).to.exist;
+                            inside('variant', 0);
+                            inside('cardName', 1);
+                            inside('ctas', 5);
+                            inside('secureLabel', 5);
+                            inside('customFields', 8);
+                        });
+
+                        describe('template sections', () => {
+                            const setup = async (variant) => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: [variant] },
+                                    `template-section-${variant}`,
+                                );
+                                await editor.toggleFields();
+                                return editor;
+                            };
+                            const card = (editor, name) => editor.querySelector(`.editor-section[data-section="${name}"]`);
+                            const labelIn = (container, id) =>
+                                container.querySelector(`sp-field-group#${id} sp-field-label`).textContent.trim();
+
+                            it('groups marquee title, description and ctas in a Marquee card', async () => {
+                                const editor = await setup('marquee');
+                                const names = [...editor.querySelectorAll('.editor-section')].map((c) => c.dataset.section);
+                                expect(names.slice(0, 3)).to.deep.equal(['Card framework', 'Meta data', 'Marquee']);
+                                const marquee = card(editor, 'Marquee');
+                                expect(labelIn(marquee, 'title')).to.equal('Marquee title');
+                                expect(labelIn(marquee, 'description')).to.equal('Marquee description');
+                                expect(labelIn(marquee, 'ctas')).to.equal('Marquee CTA');
+                                for (const id of ['title', 'description', 'ctas']) {
+                                    expect(editor.querySelectorAll(`sp-field-group#${id}`)).to.have.length(1);
+                                }
+                            });
+
+                            it('groups the FAQ answers and drops callout from the optional sections', async () => {
+                                const editor = await setup('faq');
+                                const faqs = card(editor, 'FAQs');
+                                expect(labelIn(faqs, 'description')).to.equal('Answer 1');
+                                expect(labelIn(faqs, 'shortDescription')).to.equal('Answer 2');
+                                expect(labelIn(faqs, 'callout')).to.equal('Answer 3');
+                                expect(editor.hiddenSupportedSections.map((s) => s.id)).to.not.include('callout');
+                                expect(card(editor, 'Callout text')).to.be.null;
+                                expect(editor.querySelectorAll('sp-field-group#callout')).to.have.length(1);
+                            });
+
+                            it('groups banner-blade fields in a Sticky bar card', async () => {
+                                const editor = await setup('banner-blade');
+                                const sticky = card(editor, 'Sticky bar');
+                                expect(labelIn(sticky, 'title')).to.equal('Title');
+                                expect(labelIn(sticky, 'description')).to.equal('Description');
+                                expect(labelIn(sticky, 'ctas')).to.equal('CTA');
+                            });
+
+                            it('adds no template card to headless and plans cards', async () => {
+                                for (const variant of ['headless', 'plans']) {
+                                    const editor = await setup(variant);
+                                    for (const name of ['Marquee', 'FAQs', 'Sticky bar']) {
+                                        expect(card(editor, name)).to.be.null;
+                                    }
+                                    expect(editor.querySelectorAll('sp-field-group#title')).to.have.length(1);
+                                }
+                            });
+                        });
+
+                        it('hides the card of a section whose fields are all hidden', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['marquee'] },
+                                'section-cards-hidden',
+                            );
+                            await editor.toggleFields();
+                            for (const id of editor.constructor.SECTION_FIELDS.Visuals) {
+                                const el = editor.querySelector(`#${id}`);
+                                if (el) el.style.display = 'none';
+                            }
+                            editor.querySelector('#customFields').style.display = 'none';
+                            editor.querySelector('#footerRows').style.display = 'none';
+                            editor.toggleSectionHeadings();
+                            const card = (name) => editor.querySelector(`.editor-section[data-section="${name}"]`);
+                            for (const name of ['Visuals', 'Custom fields', 'Footer rows']) {
+                                expect(getComputedStyle(card(name)).display).to.equal('none');
+                            }
+                            for (const name of ['Card framework', 'Meta data', 'Price and Promo']) {
+                                expect(getComputedStyle(card(name)).display).to.not.equal('none');
+                            }
+
+                            const visualsId = editor.constructor.SECTION_FIELDS.Visuals.find((id) =>
+                                editor.querySelector(`#${id}`),
+                            );
+                            editor.querySelector(`#${visualsId}`).style.display = 'block';
+                            editor.toggleSectionHeadings();
+                            expect(getComputedStyle(card('Visuals')).display).to.not.equal('none');
+                        });
+
+                        it('uses the Figma default labels', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-labels',
+                            );
+                            const labelOf = (selector) => editor.querySelector(`${selector} sp-field-label`).textContent.trim();
+                            expect(labelOf('sp-field-group#size')).to.equal('Card Size');
+                            expect(labelOf('sp-field-group#cardName')).to.equal('Deep linking name');
+                            expect(labelOf('sp-field-group#title')).to.equal('Card title');
+                            const osiGroup = editor.querySelector('osi-field').closest('sp-field-group');
+                            expect(osiGroup.querySelector('sp-field-label').textContent.trim()).to.equal('OSI');
+                            expect(editor.querySelector('mas-plan-type-field').label).to.equal('Show plan type');
+                            expect(labelOf('sp-field-group#promoCode')).to.equal('Promo code');
+                            expect(labelOf('sp-field-group#promoText')).to.equal('Promo text');
+                        });
+
+                        it('places the Primary CTA label before the CTAs field', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'primary-cta-label',
+                            );
+                            const group = editor.querySelector('sp-field-group#ctas');
+                            const label = [...group.children].find((child) => child.localName === 'sp-field-label');
+                            expect(label.textContent.trim()).to.equal('Primary CTA');
+                            expect(label.compareDocumentPosition(group.querySelector('rte-field#ctas'))).to.equal(
+                                Node.DOCUMENT_POSITION_FOLLOWING,
+                            );
+                        });
 
                         it('keeps the General info fields in order without a gap', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'no-locready-order');
@@ -2132,6 +2736,133 @@
                             expect(orgPart.textContent).to.equal('MERCH');
                             expect(getComputedStyle(orgPart).fontWeight).to.equal('700');
                             expect(preview()).to.equal(fragmentStore.get().title);
+                        });
+                    });
+
+                    describe('Figma typography', () => {
+                        it('uses 18px section titles, 14px field labels and 12px field gaps', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-typography',
+                            );
+                            await editor.toggleFields();
+                            const title = getComputedStyle(editor.querySelector('.editor-section .section-title'));
+                            expect(title.fontSize).to.equal('18px');
+                            expect(title.lineHeight).to.equal('22px');
+                            const host = getComputedStyle(editor);
+                            expect(host.getPropertyValue('--mod-fieldlabel-font-size').trim()).to.equal('14px');
+                            expect(host.getPropertyValue('--mod-fieldlabel-min-height').trim()).to.equal('32px');
+                            const group = editor.querySelector('.editor-section > sp-field-group');
+                            expect(getComputedStyle(group).marginTop).to.equal('12px');
+                            const grid = editor.querySelector('.two-column-grid');
+                            expect(getComputedStyle(grid).rowGap).to.equal('12px');
+                        });
+                    });
+
+                    describe('Meta data collapse', () => {
+                        const toggleSelector = '.editor-section--meta .section-header-row sp-action-button.meta-data-toggle';
+
+                        it('starts expanded with an accessible toggle', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-default',
+                            );
+                            await editor.toggleFields();
+                            expect(editor.metaCollapsed).to.equal(false);
+                            const button = editor.querySelector(toggleSelector);
+                            const card = editor.querySelector('.editor-section--meta');
+                            expect(button).to.exist;
+                            expect(button.parentElement).to.equal(card.querySelector('.section-header-row'));
+                            expect(card.querySelector('.section-title').contains(button)).to.equal(false);
+                            expect(button.quiet).to.equal(true);
+                            expect(button.getAttribute('aria-expanded')).to.equal('true');
+                            expect(button.getAttribute('aria-label')).to.equal('Collapse Meta data');
+                            expect(button.querySelector('sp-icon-chevron-up')).to.exist;
+                            expect(button.querySelector('sp-icon-chevron-down')).to.not.exist;
+                            expect(button.getAttribute('aria-controls')).to.equal('meta-data-body');
+                            expect(card.querySelector('#meta-data-body')).to.exist;
+                            expect(editor.querySelector('#cardName').hidden).to.equal(false);
+                            expect(editor.querySelector('#tags').hidden).to.equal(false);
+                        });
+
+                        it('collapses and restores the fields without touching their values', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'meta-collapse-toggle',
+                            );
+                            await editor.toggleFields();
+                            const setItemCalls = [];
+                            const originalSetItem = Storage.prototype.setItem;
+                            Storage.prototype.setItem = function (...args) {
+                                setItemCalls.push(args);
+                                return originalSetItem.apply(this, args);
+                            };
+                            try {
+                                const card = editor.querySelector('.editor-section--meta');
+                                const button = editor.querySelector(toggleSelector);
+                                const cardNameField = () => editor.querySelector('#cardName');
+                                const tagsField = () => editor.querySelector('#tags');
+                                const snapshot = () => ({
+                                    cardName: editor.querySelector('sp-textfield#card-name').value,
+                                    tags: editor.querySelector('#tags-field').getAttribute('value'),
+                                    stored: fragmentStore.get().getFieldValue('cardName'),
+                                });
+                                const cardStyle = getComputedStyle(card);
+                                const before = snapshot();
+                                const { backgroundColor, borderTopWidth } = cardStyle;
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('false');
+                                expect(button.getAttribute('aria-label')).to.equal('Expand Meta data');
+                                expect(button.querySelector('sp-icon-chevron-down')).to.exist;
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(true);
+                                    expect(getComputedStyle(field).display).to.equal('none');
+                                    expect(field.isConnected).to.equal(true);
+                                    expect(card.contains(field)).to.equal(true);
+                                }
+                                expect(card.querySelector('#meta-data-body').hidden).to.equal(true);
+                                expect(getComputedStyle(card.querySelector('.section-title')).display).to.not.equal('none');
+                                expect(card.classList.contains('editor-section--meta')).to.equal(true);
+                                expect(getComputedStyle(card).display).to.not.equal('none');
+                                expect(getComputedStyle(card).backgroundColor).to.equal(backgroundColor);
+                                expect(getComputedStyle(card).borderTopWidth).to.equal(borderTopWidth);
+                                expect(snapshot()).to.deep.equal(before);
+
+                                await editor.toggleFields();
+                                expect(getComputedStyle(cardNameField()).display).to.equal('none');
+                                expect(getComputedStyle(tagsField()).display).to.equal('none');
+                                expect(
+                                    [...editor.querySelectorAll('.section-title')].map((h) => h.textContent.trim()),
+                                ).to.deep.equal([
+                                    'Card framework',
+                                    'Meta data',
+                                    'Card header',
+                                    'Price and Promo',
+                                    'Product description',
+                                    'Call to action',
+                                    'Visuals',
+                                    'Footer rows',
+                                    'Custom fields',
+                                    'Callout text',
+                                    'Badge and card decoration',
+                                    "What's included",
+                                    'Quantity selector/Addon',
+                                ]);
+
+                                button.click();
+                                await editor.updateComplete;
+                                expect(button.getAttribute('aria-expanded')).to.equal('true');
+                                for (const field of [cardNameField(), tagsField()]) {
+                                    expect(field.hasAttribute('hidden')).to.equal(false);
+                                    expect(getComputedStyle(field).display).to.not.equal('none');
+                                }
+                                expect(snapshot()).to.deep.equal(before);
+                                expect(setItemCalls).to.deep.equal([]);
+                            } finally {
+                                Storage.prototype.setItem = originalSetItem;
+                            }
                         });
                     });
 

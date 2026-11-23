@@ -1,6 +1,7 @@
 import { expect, fixture, fixtureSync, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
+import '../src/editors/mas-compare-chart-editor.js';
 import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
@@ -1555,6 +1556,40 @@ describe('MasFragmentEditor', () => {
                 });
             }
         }
+    });
+
+    describe('card-editor-section class', () => {
+        const renderSection = (model, fields = []) => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'section-fragment',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: model },
+                fields,
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            // Detached so the real sub-editors are never connected without a store.
+            const container = document.createElement('section');
+            render(el.fragmentEditor, container);
+            return container.querySelector('.section');
+        };
+
+        it('is set on a card fragment', () => {
+            expect(renderSection(CARD_MODEL_PATH).classList.contains('card-editor-section')).to.equal(true);
+        });
+
+        it('is not set on a plain collection', () => {
+            expect(renderSection(COLLECTION_MODEL_PATH).classList.contains('card-editor-section')).to.equal(false);
+        });
+
+        it('is not set on a compare chart, which keeps compare-chart-section', () => {
+            const section = renderSection(COLLECTION_MODEL_PATH, [
+                { name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] },
+            ]);
+            expect(section.classList.contains('card-editor-section')).to.equal(false);
+            expect(section.classList.contains('compare-chart-section')).to.equal(true);
+        });
     });
 
     describe('delete fragment', () => {

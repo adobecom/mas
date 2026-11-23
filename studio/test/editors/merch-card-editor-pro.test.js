@@ -100,6 +100,8 @@ describe('merch-card-editor pro appearance mapping', () => {
         editor.updateFragment = ({ target }) => {
             store.updateField(target.dataset.field, [target.value]);
         };
+        // Theme, border and add-on style live in the optional Badge and card decoration section.
+        editor.addSection('badge');
         document.body.append(editor);
         return { editor, store };
     }
@@ -187,7 +189,7 @@ describe('merch-card-editor pro appearance mapping', () => {
         const fieldGroup = editor.querySelector('sp-field-group#backgroundColor');
         const picker = fieldGroup.querySelector('sp-picker');
 
-        expect(fieldGroup.querySelector('sp-field-label').textContent.trim()).to.equal('Background Color');
+        expect(fieldGroup.querySelector('sp-field-label').textContent.trim()).to.equal('Card background color');
         expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
             'Default',
             'Transparent',

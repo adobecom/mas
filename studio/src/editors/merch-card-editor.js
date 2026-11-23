@@ -57,7 +57,84 @@ const WHAT_IS_INCLUDED = 'whatsIncluded';
 /** Plain-text projection of an html label, for the non-edu textfield path. */
 const htmlToText = (html) => new DOMParser().parseFromString(html || '', 'text/html').body.textContent.trim();
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
+const ADDON_OFF = '{{}}';
 const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
+
+/**
+ * Sections that render only when the template supports them and they hold content (or were added in this session).
+ * `mappingKeys` are the variant mapping keys that make a section supported; `fields` are the stored fields
+ * that count as content (`addonBackground` lives inside the addon HTML).
+ */
+export const OPTIONAL_SECTIONS = [
+    { id: 'callout', title: 'Callout text', mappingKeys: ['callout'], fields: ['callout'] },
+    {
+        id: 'badge',
+        title: 'Badge and card decoration',
+        mappingKeys: [
+            'badge',
+            'trialBadge',
+            'borderColor',
+            'backgroundColor',
+            'addonBackground',
+            'addon',
+            'backgroundImage',
+            'backgroundImageAltText',
+        ],
+        fields: [
+            'badge',
+            'trialBadge',
+            'borderColor',
+            'backgroundColor',
+            'backgroundImage',
+            'backgroundImageAltText',
+            'addonBackground',
+        ],
+    },
+    {
+        id: 'whatsIncluded',
+        title: "What's included",
+        mappingKeys: ['whatsIncluded', 'whatsIncludedIconPicker', 'whatsIncludedDividerColor'],
+        fields: ['whatsIncluded'],
+    },
+    {
+        id: 'quantityAddon',
+        title: 'Quantity selector/Addon',
+        mappingKeys: ['quantitySelect', 'addon', 'addonConfirmation'],
+        fields: ['quantitySelect', 'addon', 'addonConfirmation'],
+    },
+];
+
+const getOptionalSection = (id) => OPTIONAL_SECTIONS.find((section) => section.id === id);
+
+/**
+ * Mirrors the toggleFields rules: a section is supported when one of its mapping keys is non-empty
+ * and not listed in the mapping's disabledAttributes.
+ */
+export function isSectionSupported(section, mapping, claimedKeys = []) {
+    return section.mappingKeys.some((key) => {
+        if (claimedKeys.includes(key)) return false;
+        const value = mapping?.[key];
+        if (!value || (Array.isArray(value) && value.length === 0)) return false;
+        return !mapping.disabledAttributes?.includes(key);
+    });
+}
+
+/**
+ * `readValue(name)` returns the fragment or parent value, except for `addon` and `quantitySelect`, where it may
+ * return the effective settings value because the preview renders a global settings default too.
+ */
+export function sectionHasContent(section, readValue) {
+    return section.fields.some((name) => {
+        const value = readValue(name);
+        if (value === undefined || value === null) return false;
+        const text = String(value).trim();
+        return text !== '' && text !== 'Default' && text !== QUANTITY_EMPTY && text !== ADDON_OFF;
+    });
+}
+
+export function isSectionShown(supported, hasContent, added) {
+    return supported && (hasContent || added);
+}
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
 const ADDON_TAG = 'merch-addon';
 const ADDON = 'addon';
@@ -139,16 +216,39 @@ class MerchCardEditor extends LitElement {
         titleState: { type: String, state: true },
         titleBlockPage: { type: String, state: true },
         titleOrgTouched: { type: Boolean, state: true },
+        addedSections: { type: Object, state: true },
+        metaCollapsed: { type: Boolean, state: true },
+    };
+
+    /** Content fields a headless template groups into its own card, keyed by normalized variant. */
+    static TEMPLATE_SECTIONS = {
+        marquee: { title: 'Marquee', fields: ['title', 'description', 'ctas'] },
+        faq: { title: 'FAQs', fields: ['description', 'shortDescription', 'callout'] },
+        'banner-blade': { title: 'Sticky bar', fields: ['title', 'description', 'ctas'] },
     };
 
     static SECTION_FIELDS = {
-        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground', 'addonStyle'],
-        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
-        'Product details': ['description', 'shortDescription', 'callout'],
+        ...Object.fromEntries(Object.values(this.TEMPLATE_SECTIONS).map(({ title, fields }) => [title, fields])),
+        'Price and Promo': ['prices', 'planType', 'shortDescription', 'promoText', 'perUnitLabel'],
+        Visuals: ['backgrounds', 'image'],
+        'Card header': ['title', 'mnemonics'],
+        'Product description': ['description', 'subtitle'],
+        'Call to action': ['ctas', 'secureLabel'],
         'Footer rows': ['footerRows'],
-        Footer: ['ctas'],
-        'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
         'Custom fields': ['customFields'],
+        'Callout text': ['callout'],
+        'Badge and card decoration': [
+            'badge',
+            'trialBadge',
+            'border-color',
+            'backgroundColor',
+            'addonBackground',
+            'addonStyle',
+            'backgroundImage',
+            'backgroundImageAltText',
+        ],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
+        'Quantity selector/Addon': ['addon', 'quantitySelect', 'addonConfirmation'],
     };
 
     static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
@@ -187,7 +287,9 @@ class MerchCardEditor extends LitElement {
         this.backgroundsUrlInvalid = { desktop: false, tablet: false, mobile: false };
         this.imageDimensionsInvalid = false;
         this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
+        this.metaCollapsed = false;
         this.localeSearch = '';
+        this.addedSections = new Set();
         this.reactiveController = new ReactiveController(this, []);
         this.baselinesController = new CardBaselinesController(this);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -1024,6 +1126,127 @@ class MerchCardEditor extends LitElement {
     }
 
     #cachedGlobalDefaults = null;
+    #addedSectionsFragmentId;
+    #seenSections = new Set();
+    #shownSectionKey = null;
+
+    supported(id) {
+        return isSectionSupported(getOptionalSection(id), this.currentVariantMapping, this.#templateSection?.fields);
+    }
+
+    #readSectionValue(name) {
+        if (name === 'addonBackground') return this.#getAddonBackground(this.getEffectiveFieldValue(ADDON, 0));
+        if (name === ADDON) {
+            const addon = this.getEffectiveSettingValue(ADDON);
+            return this.isAddonWebComponent(addon) ? this.getAddonElement(addon).textContent : addon;
+        }
+        if (name === QUANTITY_MODEL) return this.getEffectiveSettingValue(QUANTITY_MODEL);
+        return this.getEffectiveFieldValue(name, 0);
+    }
+
+    hasContent(id) {
+        return sectionHasContent(getOptionalSection(id), (name) => this.#readSectionValue(name));
+    }
+
+    /** A section that has shown content stays shown for the session, so clearing its fields does not drop the card. */
+    shown(id) {
+        const supported = this.supported(id);
+        const hasContent = this.hasContent(id);
+        if (supported && hasContent) this.#seenSections.add(id);
+        return isSectionShown(supported, hasContent, this.addedSections.has(id) || this.#seenSections.has(id));
+    }
+
+    get shownSectionIds() {
+        return OPTIONAL_SECTIONS.filter((section) => this.shown(section.id)).map((section) => section.id);
+    }
+
+    get hiddenSupportedSections() {
+        return OPTIONAL_SECTIONS.filter((section) => this.supported(section.id) && !this.shown(section.id));
+    }
+
+    addSection(id) {
+        // Claim the current fragment so a pending willUpdate does not mistake it for a fragment switch and drop the addition.
+        this.#addedSectionsFragmentId = this.fragmentStore?.get()?.id;
+        this.addedSections = new Set(this.addedSections).add(id);
+    }
+
+    removeSection(id) {
+        this.#seenSections.delete(id);
+        const sections = new Set(this.addedSections);
+        sections.delete(id);
+        this.addedSections = sections;
+    }
+
+    #clearSectionField(name) {
+        if (name === 'addonBackground') {
+            if (!this.#readSectionValue(name)) return;
+            if (this.effectiveIsVariation) this.resetSettingToDefault(ADDON, true);
+            else this.#setAddonBackground(undefined);
+            return;
+        }
+        if (name === ADDON) {
+            if (this.effectiveIsVariation) this.resetSettingToDefault(name, true);
+            else this.fragmentStore.updateField(ADDON, [ADDON_OFF]);
+            return;
+        }
+        if (name === QUANTITY_MODEL) {
+            if (this.effectiveIsVariation) this.resetSettingToDefault(name, true);
+            else this.fragmentStore.updateField(QUANTITY_MODEL, [QUANTITY_EMPTY]);
+            return;
+        }
+        if (this.effectiveIsVariation) this.fragmentStore.resetFieldToParent(name);
+        else this.fragmentStore.updateField(name, []);
+    }
+
+    #handleRemoveSection(id) {
+        for (const name of getOptionalSection(id).fields) {
+            this.#clearSectionField(name);
+        }
+        this.removeSection(id);
+    }
+
+    #handleAddSection(event, id) {
+        this.addSection(id);
+        event.target.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
+    }
+
+    #sectionHeaderTemplate(id, extra = nothing) {
+        const { title } = getOptionalSection(id);
+        return html`
+            <div class="section-header-row">
+                <div class="section-title">${title}</div>
+                <div class="section-header-actions">
+                    ${extra}
+                    <sp-action-button quiet size="m" aria-label="Remove ${title}" @click=${() => this.#handleRemoveSection(id)}>
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                    </sp-action-button>
+                </div>
+            </div>
+        `;
+    }
+
+    get addSectionTemplate() {
+        const hidden = this.hiddenSupportedSections;
+        return html`
+            <overlay-trigger class="add-section-trigger" placement="bottom">
+                <sp-action-button slot="trigger" class="add-section-button" ?disabled=${hidden.length === 0}>
+                    <sp-icon-add slot="icon"></sp-icon-add>
+                    Add section
+                </sp-action-button>
+                <sp-popover slot="click-content">
+                    <sp-menu>
+                        ${hidden.map(
+                            (section) => html`
+                                <sp-menu-item value="${section.id}" @click=${(e) => this.#handleAddSection(e, section.id)}>
+                                    ${section.title}
+                                </sp-menu-item>
+                            `,
+                        )}
+                    </sp-menu>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
 
     get #titleParts() {
         const variant = this.getEffectiveFieldValue('variant');
@@ -1044,6 +1267,12 @@ class MerchCardEditor extends LitElement {
 
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
+        const fragmentId = this.fragmentStore?.get()?.id;
+        if (fragmentId !== this.#addedSectionsFragmentId) {
+            this.#addedSectionsFragmentId = fragmentId;
+            this.addedSections = new Set();
+            this.#seenSections = new Set();
+        }
         if (this.fragmentStore?.get()) {
             this.#syncGroupedPreviewLocale();
         }
@@ -1272,9 +1501,15 @@ class MerchCardEditor extends LitElement {
             );
         }
         this.ensurePromoCompatVersion();
+        // Sections mount after the first toggleFields pass, so their unsupported field groups need hiding again.
+        const shownSectionKey = this.fragment ? this.shownSectionIds.join() : null;
+        const shownSectionsChanged = shownSectionKey !== this.#shownSectionKey;
+        this.#shownSectionKey = shownSectionKey;
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            this.toggleFields();
+        } else if (shownSectionsChanged && this.fragment) {
             this.toggleFields();
         }
     }
@@ -1373,6 +1608,16 @@ class MerchCardEditor extends LitElement {
                 heading.style.display = hasVisibleFields ? 'block' : 'none';
             }
         });
+
+        for (const container of this.querySelectorAll('.editor-section[data-section]')) {
+            const fieldIds = this.constructor.SECTION_FIELDS[container.dataset.section];
+            if (!fieldIds) continue;
+            const hasVisibleFields = fieldIds.some((fieldId) => {
+                const field = container.querySelector(`#${fieldId}`);
+                return field && field.style.display !== 'none';
+            });
+            container.style.display = hasVisibleFields ? '' : 'none';
+        }
     }
 
     renderSkeleton() {
@@ -1429,10 +1674,150 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    get #templateSection() {
+        return this.constructor.TEMPLATE_SECTIONS[normalizeVariantName(this.getEffectiveFieldValue('variant'))];
+    }
+
+    #claimed(field) {
+        return !!this.#templateSection?.fields.includes(field);
+    }
+
+    #templateSectionTemplate(form) {
+        const section = this.#templateSection;
+        if (!section) return nothing;
+        const renderers = {
+            title: () => this.#renderTitleField(form),
+            description: () => this.#renderDescriptionField(form),
+            shortDescription: () => this.#renderShortDescriptionField(form),
+            callout: () => this.#renderCalloutField(form),
+            ctas: () => this.#renderCtasField(form),
+        };
+        return html`
+            <div class="editor-section" data-section=${section.title}>
+                <div class="section-title">${section.title}</div>
+                ${section.fields.map((field) => renderers[field]())}
+            </div>
+        `;
+    }
+
+    #renderShortDescriptionField(form) {
+        const isFaq = this.getEffectiveFieldValue('variant') === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="shortDescription">
+                <sp-field-label for="shortDescription">
+                    ${this.currentVariantMapping?.shortDescription?.editorLabel ?? 'Pricing subtext'}
+                </sp-field-label>
+                <rte-field
+                    id="shortDescription"
+                    ?styling=${!isFaq}
+                    link
+                    upt-link
+                    list
+                    ?mnemonic=${!isFaq}
+                    ?icon=${!isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    data-field="shortDescription"
+                    data-field-state="${this.getFieldState('shortDescription')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.shortDescription?.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('shortDescription')}
+            </sp-field-group>
+        `;
+    }
+
+    #renderDescriptionField(form) {
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isFaq = variantValue === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="description">
+                <sp-field-label for="description">
+                    ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
+                </sp-field-label>
+                <rte-field
+                    id="description"
+                    ?styling=${!isFaq}
+                    ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
+                    link
+                    upt-link
+                    list
+                    ?mnemonic=${!isFaq}
+                    ?divider=${!isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
+                    data-field="description"
+                    data-field-state="${this.getFieldState('description')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.description.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('description')}
+            </sp-field-group>
+        `;
+    }
+
+    #renderCtasField(form) {
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isHeadlessCta = HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue);
+        return html`
+            <sp-field-group class="toggle" id="ctas">
+                <sp-field-label for="ctas"> ${this.currentVariantMapping?.ctas?.editorLabel ?? 'Primary CTA'} </sp-field-label>
+                <rte-field
+                    id="ctas"
+                    link
+                    divider="${this.fragment.variant === 'product' ? '' : nothing}"
+                    .formatMarks=${isHeadlessCta ? [] : undefined}
+                    data-field="ctas"
+                    data-field-state="${this.getFieldState('ctas')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.ctas.values[0] || ''}
+                    ?is-variation=${this.effectiveIsVariation}
+                    .parentCtas=${this.parentCtas}
+                    ?is-headless-cta=${isHeadlessCta}
+                    default-link-style="${isHeadlessCta ? 'secondary-link' : 'primary-outline'}"
+                    @change="${this.#handleFragmentUpdate}"
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()} ${this.renderCtaModificationWarning()}
+            </sp-field-group>
+        `;
+    }
+
+    #renderCalloutField(form) {
+        const isFaq = this.getEffectiveFieldValue('variant') === VARIANT_NAMES.FAQ;
+        return html`
+            <sp-field-group class="toggle" id="callout">
+                <sp-field-label for="callout">
+                    ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
+                </sp-field-label>
+                <rte-field
+                    id="callout"
+                    link
+                    ?icon=${!isFaq}
+                    ?list=${isFaq}
+                    ?upt-link=${isFaq}
+                    .formatMarks=${isFaq ? FAQ_ANSWER_FORMAT_MARKS : undefined}
+                    data-field="callout"
+                    data-field-state="${this.getFieldState('callout')}"
+                    .osi=${form.osi.values[0]}
+                    .value=${form.callout?.values[0] || ''}
+                    default-link-style="secondary-link"
+                    @change="${this.#handleFragmentUpdate}"
+                    ?readonly=${this.disabled}
+                ></rte-field>
+                ${this.renderFieldStatusIndicator('callout')}
+            </sp-field-group>
+        `;
+    }
+
     #renderTitleField(form) {
         return html`
             <sp-field-group class="toggle" id="title">
-                <sp-field-label for="card-title">Title</sp-field-label>
+                <sp-field-label for="card-title">
+                    ${this.currentVariantMapping?.title?.editorLabel ?? 'Card title'}
+                </sp-field-label>
                 <rte-field
                     id="card-title"
                     inline
@@ -1452,7 +1837,7 @@ class MerchCardEditor extends LitElement {
     #renderPromoTextField(form) {
         return html`
             <sp-field-group class="toggle" id="promoText">
-                <sp-field-label for="promo-text">Promo Text</sp-field-label>
+                <sp-field-label for="promo-text">Promo text</sp-field-label>
                 <rte-field
                     id="promo-text"
                     link
@@ -1556,12 +1941,27 @@ class MerchCardEditor extends LitElement {
                     top: -1px;
                 }
 
+                merch-card-editor {
+                    --mod-fieldlabel-font-size: 14px;
+                    --mod-fieldlabel-line-height: 18px;
+                    --mod-fieldlabel-min-height: 32px;
+                    --mod-fieldlabel-padding-block: 7px;
+                }
+
                 .section-title {
-                    font-size: 20px;
+                    font-size: 18px;
+                    line-height: 22px;
                     font-weight: 700;
                     margin-bottom: 8px;
-                    color: var(--spectrum-gray-900);
-                    letter-spacing: -0.01em;
+                    color: var(--spectrum-gray-800);
+                }
+
+                .editor-section sp-field-group {
+                    margin: 12px 0;
+                }
+
+                .editor-section sp-field-group sp-field-group {
+                    margin: 0;
                 }
 
                 .section-description {
@@ -1574,7 +1974,12 @@ class MerchCardEditor extends LitElement {
                 .two-column-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 20px;
+                    gap: 12px 20px;
+                    margin: 12px 0;
+                }
+
+                .two-column-grid > sp-field-group {
+                    margin: 0;
                 }
 
                 #fragment-title-group {
@@ -1677,6 +2082,30 @@ class MerchCardEditor extends LitElement {
                     margin-bottom: 0;
                 }
 
+                .section-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .add-section-trigger {
+                    display: block;
+                    width: 100%;
+                }
+
+                .add-section-button {
+                    width: 100%;
+                }
+
+                #meta-data-body {
+                    margin-top: 8px;
+                }
+
+                #meta-data-body[hidden],
+                #meta-data-body > [hidden] {
+                    display: none !important;
+                }
+
                 .restore-all-link {
                     --mod-link-text-color-primary-default: var(--spectrum-accent-content-color-default);
                     --mod-link-text-color-primary-hover: var(--spectrum-accent-content-color-hover);
@@ -1729,6 +2158,8 @@ class MerchCardEditor extends LitElement {
                 .settings-toggle-field--addon sp-combobox {
                     width: 100%;
                     margin-block-end: 16px;
+                    --mod-combobox-border-width: 2px;
+                    --mod-combobox-border-color-default: var(--spectrum-gray-300);
                 }
 
                 .settings-toggle-field--addon[data-field-state='overridden'] sp-combobox {
@@ -1772,58 +2203,228 @@ class MerchCardEditor extends LitElement {
                     margin-top: 16px;
                 }
 
+                .editor-section {
+                    border: 1px solid var(--spectrum-gray-300, #dadada);
+                    border-radius: 12px;
+                    padding: 20px;
+                    background: var(--spectrum-white, #ffffff);
+                    box-shadow: none;
+                    box-sizing: border-box;
+                }
+
+                .editor-section:not(:last-child) {
+                    margin-bottom: 20px;
+                }
+
+                .editor-section.editor-section--meta {
+                    background: var(--spectrum-gray-50, #f8f8f8);
+                }
+
                 ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
                 ${this.renderValidationBanner()} ${this.baselinesTemplate}
-                <div class="section-title-status">
-                    <div class="section-title">General info</div>
-                    <div class="section-staged-status">
-                        <sp-switch id="fragment-staged" ?checked="${this.fragment.isStaged}" @click="${this.#handleStaged}"
-                            >Staged</sp-switch
-                        >
-                        <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+                <div class="editor-section" data-section="Card framework">
+                    <div class="section-title-status">
+                        <div class="section-title">Card framework</div>
+                        <div class="section-staged-status">
+                            <sp-switch id="fragment-staged" ?checked="${this.fragment.isStaged}" @click="${this.#handleStaged}"
+                                >Staged</sp-switch
+                            >
+                            <mas-fragment-status quiet variant=${this.fragment.status?.toLowerCase()}></mas-fragment-status>
+                        </div>
+                    </div>
+                    <div class="two-column-grid">
+                        <sp-field-group id="variant">
+                            <sp-field-label for="card-variant">Template</sp-field-label>
+                            <variant-picker
+                                id="card-variant"
+                                data-field="variant"
+                                data-field-state="${this.getFieldState('variant')}"
+                                .value="${form.variant.values[0]}"
+                                .surface="${Store.surface()}"
+                                @change="${this.#handleVariantChange}"
+                            ></variant-picker>
+                            ${this.renderFieldStatusIndicator('variant')}
+                        </sp-field-group>
+                        <sp-field-group class="toggle" id="size">
+                            <sp-field-label for="card-size">Card Size</sp-field-label>
+                            <sp-picker
+                                id="card-size"
+                                data-field="size"
+                                data-field-state="${this.getFieldState('size')}"
+                                value="${form.size.values[0] || 'Default'}"
+                                data-default-value="Default"
+                                @change="${this.#handleFragmentUpdate}"
+                            >
+                                ${(this.availableSizes || []).map(
+                                    (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
+                                )}
+                            </sp-picker>
+                            ${this.renderFieldStatusIndicator('size')}
+                        </sp-field-group>
+                        ${this.fragmentTitleTemplate}
+                        <sp-field-group id="fragment-description-group">
+                            <sp-field-label for="fragment-description">Fragment description</sp-field-label>
+                            <sp-textfield
+                                placeholder="Enter fragment description"
+                                id="fragment-description"
+                                value="${this.fragment.description}"
+                                @input="${this.#handleFragmentDescriptionUpdate}"
+                            ></sp-textfield>
+                        </sp-field-group>
                     </div>
                 </div>
-                <div class="two-column-grid">
-                    <sp-field-group id="variant">
-                        <sp-field-label for="card-variant">Template</sp-field-label>
-                        <variant-picker
-                            id="card-variant"
-                            data-field="variant"
-                            data-field-state="${this.getFieldState('variant')}"
-                            .value="${form.variant.values[0]}"
-                            .surface="${Store.surface()}"
-                            @change="${this.#handleVariantChange}"
-                        ></variant-picker>
-                        ${this.renderFieldStatusIndicator('variant')}
-                    </sp-field-group>
-                    <sp-field-group class="toggle" id="cardName">
-                        <sp-field-label for="card-name">Card name</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter card name"
-                            id="card-name"
-                            data-field="cardName"
-                            data-field-state="${this.getFieldState('cardName')}"
-                            value="${form.cardName.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('cardName')}
-                    </sp-field-group>
-                    ${this.fragmentTitleTemplate}
-                    <sp-field-group id="fragment-description-group">
-                        <sp-field-label for="fragment-description">Fragment description</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter fragment description"
-                            id="fragment-description"
-                            value="${this.fragment.description}"
-                            @input="${this.#handleFragmentDescriptionUpdate}"
-                        ></sp-textfield>
+                <div class="editor-section editor-section--meta" data-section="Meta data">
+                    <div class="section-header-row">
+                        <div class="section-title">Meta data</div>
+                        <sp-action-button
+                            quiet
+                            class="meta-data-toggle"
+                            aria-label=${this.metaCollapsed ? 'Expand Meta data' : 'Collapse Meta data'}
+                            aria-expanded=${this.metaCollapsed ? 'false' : 'true'}
+                            aria-controls="meta-data-body"
+                            @click=${() => (this.metaCollapsed = !this.metaCollapsed)}
+                        >
+                            ${this.metaCollapsed
+                                ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                                : html`<sp-icon-chevron-up slot="icon"></sp-icon-chevron-up>`}
+                        </sp-action-button>
+                    </div>
+                    <div id="meta-data-body" class="meta-data-body" ?hidden=${this.metaCollapsed}>
+                        <sp-field-group class="toggle" id="cardName" ?hidden=${this.metaCollapsed}>
+                            <sp-field-label for="card-name">Deep linking name</sp-field-label>
+                            <sp-textfield
+                                placeholder="Enter card name"
+                                id="card-name"
+                                data-field="cardName"
+                                data-field-state="${this.getFieldState('cardName')}"
+                                value="${form.cardName.values[0]}"
+                                @input="${this.#handleFragmentUpdate}"
+                            ></sp-textfield>
+                            ${this.renderFieldStatusIndicator('cardName')}
+                        </sp-field-group>
+                        <sp-field-group id="tags" ?hidden=${this.metaCollapsed}>
+                            <sp-field-label for="tags-field">Tags</sp-field-label>
+                            <aem-tag-picker-field
+                                id="tags-field"
+                                label="Tags"
+                                namespace="/content/cq:tags/mas"
+                                multiple
+                                class="tags-spacing"
+                                data-field-state="${this.getTagsFieldState()}"
+                                value="${(this.fragment.newTags || this.fragment.tags.map((tag) => tag.id)).join(',')}"
+                                .parentTags="${this.effectiveIsVariation
+                                    ? this.localeDefaultFragment?.tags.map((t) => t.id) || []
+                                    : []}"
+                                @change=${this.#handeTagsChange}
+                            ></aem-tag-picker-field>
+                            ${this.renderTagsStatusIndicator()}
+                        </sp-field-group>
+                        ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
+                    </div>
+                </div>
+                ${this.#templateSectionTemplate(form)}
+                <div class="editor-section" data-section="Card header">
+                    <div class="section-title">Card header</div>
+                    ${this.#claimed('title') ? nothing : this.#renderTitleField(form)}
+                    <sp-field-group class="toggle" id="mnemonics">
+                        <mas-multifield
+                            id="mnemonics"
+                            button-label="Add visual"
+                            data-field-state="${this.getMnemonicsFieldState()}"
+                            .value="${this.mnemonics}"
+                            @change="${this.#updateMnemonics}"
+                            @input="${this.#updateMnemonics}"
+                            @restore-field="${this.#restoreMnemonic}"
+                        >
+                            <template>
+                                <mas-mnemonic-field></mas-mnemonic-field>
+                            </template>
+                        </mas-multifield>
+                        ${this.renderMnemonicsStatusIndicator()}
                     </sp-field-group>
                 </div>
-                ${this.#renderTitleField(form)}
-                <div class="two-column-grid">
+                <div class="editor-section" data-section="Price and Promo">
+                    <div class="section-title">Price and Promo</div>
+                    <sp-field-group>
+                        <sp-field-label for="osi">OSI</sp-field-label>
+                        <osi-field
+                            id="osi"
+                            data-field="osi"
+                            data-field-state="${this.getFieldState('osi')}"
+                            .value=${form.osi.values[0]}
+                            ?readonly=${this.isOsiReadOnly}
+                            @input="${this.#handleFragmentUpdate}"
+                            @change="${this.#handleFragmentUpdate}"
+                        ></osi-field>
+                        ${this.renderFieldStatusIndicator('osi')}
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="prices">
+                        <sp-field-label for="prices">Product price</sp-field-label>
+                        <rte-field
+                            id="prices"
+                            styling
+                            link
+                            mnemonic
+                            multiline
+                            data-field="prices"
+                            data-field-state="${this.getFieldState('prices')}"
+                            .osi=${form.osi.values[0]}
+                            .value=${form.prices.values[0] || ''}
+                            default-link-style="primary-outline"
+                            @change="${this.#handleFragmentUpdate}"
+                        ></rte-field>
+                        ${this.renderFieldStatusIndicator('prices')}
+                    </sp-field-group>
+                    <sp-field-group id="planType" class="toggle">
+                        <mas-plan-type-field
+                            class="settings-toggle-field"
+                            id="plan-type-field"
+                            label="Show plan type"
+                            data-field="showPlanType"
+                            data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
+                            value="${this.getEffectiveSettingValue('showPlanType')}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></mas-plan-type-field>
+                    </sp-field-group>
+                    ${this.#claimed('shortDescription') ? nothing : this.#renderShortDescriptionField(form)}
+                    <div class="two-column-grid">
+                        <sp-field-group id="promoCode">
+                            <sp-field-label for="promo-code">Promo code</sp-field-label>
+                            <sp-textfield
+                                placeholder="Enter promo code"
+                                id="promo-code"
+                                data-field="promoCode"
+                                data-field-state="${this.getFieldState('promoCode')}"
+                                value="${form.promoCode?.values[0]}"
+                                @input="${this.#handleFragmentUpdate}"
+                                ?disabled=${this.disabled}
+                            ></sp-textfield>
+                            ${this.renderFieldStatusIndicator('promoCode')}
+                        </sp-field-group>
+                    </div>
+                    ${this.#renderPromoTextField(form)}
+                    <sp-field-group id="perUnitLabel" class="toggle">
+                        <sp-divider></sp-divider>
+                        <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
+                        <sp-textfield
+                            id="per-unit-label"
+                            placeholder="Enter per unit label"
+                            data-field="perUnitLabel"
+                            data-field-state="${this.getFieldState('perUnitLabel')}"
+                            class="full-width"
+                            value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
+                            @input="${this.#handlePerUnitLabelUpdate}"
+                        ></sp-textfield>
+                        ${this.renderFieldStatusIndicator('perUnitLabel')}
+                    </sp-field-group>
+                </div>
+                <div class="editor-section" data-section="Product description">
+                    <div class="section-title">Product description</div>
+                    ${this.#claimed('description') ? nothing : this.#renderDescriptionField(form)}
                     <sp-field-group class="toggle" id="subtitle">
                         <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
                         <sp-textfield
@@ -1836,478 +2437,10 @@ class MerchCardEditor extends LitElement {
                         ></sp-textfield>
                         ${this.renderFieldStatusIndicator('subtitle')}
                     </sp-field-group>
-                    <sp-field-group class="toggle" id="size">
-                        <sp-field-label for="card-size">Size</sp-field-label>
-                        <sp-picker
-                            id="card-size"
-                            data-field="size"
-                            data-field-state="${this.getFieldState('size')}"
-                            value="${form.size.values[0] || 'Default'}"
-                            data-default-value="Default"
-                            @change="${this.#handleFragmentUpdate}"
-                        >
-                            ${(this.availableSizes || []).map(
-                                (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
-                            )}
-                        </sp-picker>
-                        ${this.renderFieldStatusIndicator('size')}
-                    </sp-field-group>
                 </div>
-                <sp-field-group id="tags">
-                    <sp-field-label for="tags-field">Tags</sp-field-label>
-                    <aem-tag-picker-field
-                        id="tags-field"
-                        label="Tags"
-                        namespace="/content/cq:tags/mas"
-                        multiple
-                        class="tags-spacing"
-                        data-field-state="${this.getTagsFieldState()}"
-                        value="${(this.fragment.newTags || this.fragment.tags.map((tag) => tag.id)).join(',')}"
-                        .parentTags="${this.effectiveIsVariation
-                            ? this.localeDefaultFragment?.tags.map((t) => t.id) || []
-                            : []}"
-                        @change=${this.#handeTagsChange}
-                    ></aem-tag-picker-field>
-                    ${this.renderTagsStatusIndicator()}
-                </sp-field-group>
-                ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
-                <div class="section-title">Visuals</div>
-                <sp-field-group class="toggle" id="mnemonics">
-                    <mas-multifield
-                        id="mnemonics"
-                        button-label="Add visual"
-                        data-field-state="${this.getMnemonicsFieldState()}"
-                        .value="${this.mnemonics}"
-                        @change="${this.#updateMnemonics}"
-                        @input="${this.#updateMnemonics}"
-                        @restore-field="${this.#restoreMnemonic}"
-                    >
-                        <template>
-                            <mas-mnemonic-field></mas-mnemonic-field>
-                        </template>
-                    </mas-multifield>
-                    ${this.renderMnemonicsStatusIndicator()}
-                </sp-field-group>
-                ${this.badgeSectionTemplate(form)}
-                <div class="two-column-grid">
-                    ${this.#renderColorPicker(
-                        'border-color',
-                        'Border Color',
-                        this.availableBorderColors,
-                        form.borderColor?.values[0],
-                        'borderColor',
-                        undefined,
-                        this.#isBorderColorDisabledByTheme(form),
-                    )}
-                    ${this.#backgroundColorSelection(
-                        this.availableBackgroundColors,
-                        form.backgroundColor?.values[0],
-                        'backgroundColor',
-                    )}
-                </div>
-                ${variantValue === VARIANT_NAMES.PRO ? this.#renderAddonStylePicker() : this.#renderAddonBackgroundPicker(form)}
-                <sp-field-group class="toggle" id="whatsIncluded">
-                    <div class="section-title">What's included</div>
-                    ${this.#renderWhatsIncludedLabel()}
-                    <mas-multifield
-                        button-label="Add bullet"
-                        data-field-state="bullet"
-                        .variant="${this.getEffectiveFieldValue('variant')}"
-                        .value="${this.whatsIncluded.bullets}"
-                        @change="${(e) => this.#updateWhatsIncluded(e, true)}"
-                        @input="${(e) => this.#updateWhatsIncluded(e, true)}"
-                    >
-                        <template>
-                            <mas-included-field></mas-included-field>
-                        </template>
-                    </mas-multifield>
-                    <mas-multifield
-                        button-label="Add application"
-                        data-field-state="${this.getFieldState('whatsIncluded')}"
-                        .value="${this.whatsIncluded.values}"
-                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
-                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
-                    >
-                        <template>
-                            <mas-included-field></mas-included-field>
-                        </template>
-                    </mas-multifield>
-                    ${this.renderFieldStatusIndicator('whatsIncluded')}
-                </sp-field-group>
-                <sp-field-group class="toggle" id="whatsIncludedIconPicker">
-                    <div class="section-title">What's included</div>
-                    ${this.currentVariantMapping?.whatsIncludedDividerColor
-                        ? this.#renderColorPicker(
-                              'whats-included-divider-color',
-                              'Divider color',
-                              this.availableWhatsIncludedDividerColors,
-                              this.whatsIncludedDividerFromMarkup,
-                              'whatsIncludedDividerColor',
-                          )
-                        : nothing}
-                    <mas-multifield
-                        button-label="Add application"
-                        data-field-state="${this.getFieldState('whatsIncluded')}"
-                        .value="${this.whatsIncluded.values}"
-                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
-                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
-                    >
-                        <template>
-                            <mas-icon-picker-field></mas-icon-picker-field>
-                        </template>
-                    </mas-multifield>
-                    ${this.renderFieldStatusIndicator('whatsIncluded')}
-                </sp-field-group>
-                <sp-field-group class="toggle" id="footerRows">
-                    <div class="section-title">Footer rows</div>
-                    <mas-multifield
-                        button-label="Add application"
-                        data-field-state="${this.getFieldState('footerRows')}"
-                        .value="${this.footerRows}"
-                        @change="${this.#updateFooterRows}"
-                        @input="${this.#updateFooterRows}"
-                    >
-                        <template>
-                            <mas-included-field></mas-included-field>
-                        </template>
-                    </mas-multifield>
-                    ${this.renderFieldStatusIndicator('footerRows')}
-                </sp-field-group>
-                <div class="two-column-grid">
-                    <sp-field-group class="toggle" id="backgroundImage">
-                        <sp-field-label for="background-image">Background Image</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter background image URL"
-                            id="background-image"
-                            data-field="backgroundImage"
-                            data-field-state="${this.getFieldState('backgroundImage')}"
-                            value="${form.backgroundImage.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('backgroundImage')}
-                    </sp-field-group>
-                    <sp-field-group class="toggle" id="backgroundImageAltText">
-                        <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter background image Alt Text"
-                            id="background-image-alt-text"
-                            data-field="backgroundImageAltText"
-                            data-field-state="${this.getFieldState('backgroundImageAltText')}"
-                            value="${form.backgroundImageAltText.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('backgroundImageAltText')}
-                    </sp-field-group>
-                </div>
-                ${this.currentVariantMapping?.backgrounds
-                    ? html`
-                          <sp-field-group class="toggle" id="backgrounds">
-                              <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
-                              <sp-textfield
-                                  placeholder="Enter an *.aem.page background desktop URL"
-                                  id="background-desktop"
-                                  data-field="backgrounds"
-                                  data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.desktop || this.backgroundsDimensionsInvalid.desktop}"
-                                  value="${backgroundsUrls.desktop}"
-                                  @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
-                              >
-                                  ${this.backgroundsUrlInvalid.desktop
-                                      ? html`<sp-help-text slot="negative-help-text"
-                                            >Enter a valid *.aem.page background desktop URL.</sp-help-text
-                                        >`
-                                      : this.backgroundsDimensionsInvalid.desktop
-                                        ? html`<sp-help-text slot="negative-help-text"
-                                              >The background image dimensions could not be resolved.</sp-help-text
-                                          >`
-                                        : nothing}
-                              </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('desktop')}
-
-                              <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
-                              <sp-textfield
-                                  placeholder="Enter an *.aem.page background tablet URL"
-                                  id="background-tablet"
-                                  data-field="backgrounds"
-                                  data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.tablet || this.backgroundsDimensionsInvalid.tablet}"
-                                  value="${backgroundsUrls.tablet}"
-                                  @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
-                              >
-                                  ${this.backgroundsUrlInvalid.tablet
-                                      ? html`<sp-help-text slot="negative-help-text"
-                                            >Enter a valid *.aem.page background tablet URL.</sp-help-text
-                                        >`
-                                      : this.backgroundsDimensionsInvalid.tablet
-                                        ? html`<sp-help-text slot="negative-help-text"
-                                              >The background image dimensions could not be resolved.</sp-help-text
-                                          >`
-                                        : nothing}
-                              </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('tablet')}
-
-                              <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
-                              <sp-textfield
-                                  placeholder="Enter an *.aem.page background mobile URL"
-                                  id="background-mobile"
-                                  data-field="backgrounds"
-                                  data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
-                                  ?invalid="${this.backgroundsUrlInvalid.mobile || this.backgroundsDimensionsInvalid.mobile}"
-                                  value="${backgroundsUrls.mobile}"
-                                  @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
-                              >
-                                  ${this.backgroundsUrlInvalid.mobile
-                                      ? html`<sp-help-text slot="negative-help-text"
-                                            >Enter a valid *.aem.page background mobile URL.</sp-help-text
-                                        >`
-                                      : this.backgroundsDimensionsInvalid.mobile
-                                        ? html`<sp-help-text slot="negative-help-text"
-                                              >The background image dimensions could not be resolved.</sp-help-text
-                                          >`
-                                        : nothing}
-                              </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('mobile')}
-                          </sp-field-group>
-                      `
-                    : nothing}
-                ${this.currentVariantMapping?.image
-                    ? html`
-                          <sp-field-group class="toggle" id="image">
-                              <sp-field-label for="image-url">Image</sp-field-label>
-                              <sp-textfield
-                                  placeholder="Enter an *.aem.page image URL"
-                                  id="image-url"
-                                  data-field="image"
-                                  data-field-state="${this.getFieldState('image')}"
-                                  ?invalid="${this.imageUrlInvalid || this.imageDimensionsInvalid}"
-                                  value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
-                                  @change="${this.#handleImageUpdate}"
-                              >
-                                  ${this.imageUrlInvalid
-                                      ? html`<sp-help-text slot="negative-help-text"
-                                            >Enter a valid *.aem.page image URL.</sp-help-text
-                                        >`
-                                      : this.imageDimensionsInvalid
-                                        ? html`<sp-help-text slot="negative-help-text"
-                                              >The image dimensions could not be resolved.</sp-help-text
-                                          >`
-                                        : nothing}
-                              </sp-textfield>
-                              ${this.renderFieldStatusIndicator('image')}
-                          </sp-field-group>
-                      `
-                    : nothing}
-                <div class="section-title">Price and Promo</div>
-                <sp-field-group class="toggle" id="prices">
-                    <sp-field-label for="prices">Product price</sp-field-label>
-                    <rte-field
-                        id="prices"
-                        styling
-                        link
-                        mnemonic
-                        multiline
-                        data-field="prices"
-                        data-field-state="${this.getFieldState('prices')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.prices.values[0] || ''}
-                        default-link-style="primary-outline"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('prices')}
-                </sp-field-group>
-                <div class="two-column-grid">
-                    <sp-field-group id="promoCode">
-                        <sp-field-label for="promo-code">Promo Code</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter promo code"
-                            id="promo-code"
-                            data-field="promoCode"
-                            data-field-state="${this.getFieldState('promoCode')}"
-                            value="${form.promoCode?.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                            ?disabled=${this.disabled}
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('promoCode')}
-                    </sp-field-group>
-                    <sp-field-group class="toggle" id="addonConfirmation">
-                        <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter addon confirmation text"
-                            id="addon-confirmation"
-                            data-field="addonConfirmation"
-                            data-field-state="${this.getFieldState('addonConfirmation')}"
-                            value="${form.addonConfirmation?.values[0]}"
-                            @input="${this.#handleFragmentUpdate}"
-                            ?disabled=${this.disabled}
-                        ></sp-textfield>
-                        ${this.renderFieldStatusIndicator('addonConfirmation')}
-                    </sp-field-group>
-                </div>
-                ${this.#renderPromoTextField(form)}
-                <sp-field-group>
-                    <sp-field-label for="osi">OSI Search</sp-field-label>
-                    <osi-field
-                        id="osi"
-                        data-field="osi"
-                        data-field-state="${this.getFieldState('osi')}"
-                        .value=${form.osi.values[0]}
-                        ?readonly=${this.isOsiReadOnly}
-                        @input="${this.#handleFragmentUpdate}"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></osi-field>
-                    ${this.renderFieldStatusIndicator('osi')}
-                </sp-field-group>
-                <sp-field-group id="perUnitLabel" class="toggle">
-                    <sp-divider></sp-divider>
-                    <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
-                    <sp-textfield
-                        id="per-unit-label"
-                        placeholder="Enter per unit label"
-                        data-field="perUnitLabel"
-                        data-field-state="${this.getFieldState('perUnitLabel')}"
-                        class="full-width"
-                        value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
-                        @input="${this.#handlePerUnitLabelUpdate}"
-                    ></sp-textfield>
-                    ${this.renderFieldStatusIndicator('perUnitLabel')}
-                </sp-field-group>
-                <div class="section-title">${variantValue === VARIANT_NAMES.FAQ ? 'Answers' : 'Product details'}</div>
-                <sp-field-group class="toggle" id="description">
-                    <sp-field-label for="description">
-                        ${this.currentVariantMapping?.description?.editorLabel ?? 'Product description'}
-                    </sp-field-label>
-                    <rte-field
-                        id="description"
-                        ?styling=${variantValue !== VARIANT_NAMES.FAQ}
-                        ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
-                        link
-                        upt-link
-                        list
-                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
-                        ?divider=${variantValue !== VARIANT_NAMES.FAQ}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                        .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
-                        data-field="description"
-                        data-field-state="${this.getFieldState('description')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.description.values[0] || ''}
-                        default-link-style="secondary-link"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('description')}
-                </sp-field-group>
-                <sp-field-group class="toggle" id="shortDescription">
-                    <sp-field-label for="shortDescription">
-                        ${this.currentVariantMapping?.shortDescription?.editorLabel ?? 'Short Description'}
-                    </sp-field-label>
-                    <rte-field
-                        id="shortDescription"
-                        ?styling=${variantValue !== VARIANT_NAMES.FAQ}
-                        link
-                        upt-link
-                        list
-                        ?mnemonic=${variantValue !== VARIANT_NAMES.FAQ}
-                        ?icon=${variantValue !== VARIANT_NAMES.FAQ}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                        data-field="shortDescription"
-                        data-field-state="${this.getFieldState('shortDescription')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.shortDescription?.values[0] || ''}
-                        default-link-style="secondary-link"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('shortDescription')}
-                </sp-field-group>
-                <sp-field-group class="toggle" id="callout">
-                    <sp-field-label for="callout">
-                        ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
-                    </sp-field-label>
-                    <rte-field
-                        id="callout"
-                        link
-                        ?icon=${variantValue !== VARIANT_NAMES.FAQ}
-                        ?list=${variantValue === VARIANT_NAMES.FAQ}
-                        ?upt-link=${variantValue === VARIANT_NAMES.FAQ}
-                        .formatMarks=${variantValue === VARIANT_NAMES.FAQ ? FAQ_ANSWER_FORMAT_MARKS : undefined}
-                        data-field="callout"
-                        data-field-state="${this.getFieldState('callout')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.callout?.values[0] || ''}
-                        default-link-style="secondary-link"
-                        @change="${this.#handleFragmentUpdate}"
-                        ?readonly=${this.disabled}
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('callout')}
-                </sp-field-group>
-                <div class="section-title">Custom fields</div>
-                <sp-field-group class="toggle" id="customFields">
-                    <mas-multifield
-                        button-label="Add field"
-                        dispatch-on-add
-                        data-field-state="${this.getFieldState('customFields')}"
-                        .value="${this.customFieldValues}"
-                        .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
-                        .addAllowed="${!this.isPromoVariation && !this.isGroupedVariation}"
-                        @change="${this.#updateCustomFields}"
-                        @input="${this.#updateCustomFields}"
-                    >
-                        <template>
-                            <mas-rte-field-item></mas-rte-field-item>
-                        </template>
-                    </mas-multifield>
-                    ${this.renderFieldStatusIndicator('customFields')}
-                </sp-field-group>
-                <div class="section-title">Footer</div>
-                <sp-field-group class="toggle" id="ctas">
-                    <rte-field
-                        id="ctas"
-                        link
-                        divider="${this.fragment.variant === 'product' ? '' : nothing}"
-                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue) ? [] : undefined}
-                        data-field="ctas"
-                        data-field-state="${this.getFieldState('ctas')}"
-                        .osi=${form.osi.values[0]}
-                        .value=${form.ctas.values[0] || ''}
-                        ?is-variation=${this.effectiveIsVariation}
-                        .parentCtas=${this.parentCtas}
-                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)}
-                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)
-                            ? 'secondary-link'
-                            : 'primary-outline'}"
-                        @change="${this.#handleFragmentUpdate}"
-                    ></rte-field>
-                    ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
-                    ${this.renderCtaModificationWarning()}
-                </sp-field-group>
-                <div class="section-header-row">
-                    <div class="section-title">Options and settings</div>
-                    ${this.settingsRestoreAllTemplate}
-                </div>
-                <div class="two-column-grid">
-                    <sp-field-group id="addon" class="toggle">
-                        <mas-addon-field
-                            class="settings-toggle-field settings-toggle-field--addon"
-                            id="addon-field"
-                            label="Show Addon"
-                            data-field="addon"
-                            data-field-state="${this.isAddonSettingVisuallyOverridden() ? 'overridden' : 'default'}"
-                            .indicatorTemplate=${this.renderSettingOverrideIndicator(ADDON)}
-                            .value="${this.getEffectiveSettingValue(ADDON)}"
-                            @input="${this.#handleAddonChange}"
-                        ></mas-addon-field>
-                    </sp-field-group>
-                    <sp-field-group id="planType" class="toggle">
-                        <mas-plan-type-field
-                            class="settings-toggle-field"
-                            id="plan-type-field"
-                            label="Show Plan type"
-                            data-field="showPlanType"
-                            data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
-                            .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
-                            value="${this.getEffectiveSettingValue('showPlanType')}"
-                            @input="${this.#handleFragmentUpdate}"
-                        ></mas-plan-type-field>
-                    </sp-field-group>
+                <div class="editor-section" data-section="Call to action">
+                    <div class="section-title">Call to action</div>
+                    ${this.#claimed('ctas') ? nothing : this.#renderCtasField(form)}
                     <sp-field-group id="secureLabel" class="toggle">
                         <secure-text-field
                             class="settings-toggle-field"
@@ -2320,24 +2453,316 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentUpdate}"
                         ></secure-text-field>
                     </sp-field-group>
-                    <sp-field-group id="quantitySelect" class="toggle">
-                        <quantity-select-settings-field
-                            class="settings-toggle-field"
-                            id="quantity-select-settings-field"
-                            label="Show quantity selector"
-                            data-field="quantitySelect"
-                            .splitTitle=${normalizeVariantName(this.fragment.variant) === VARIANT_NAMES.PRO}
-                            data-field-state="${this.isQuantitySelectVariationOverridden() ? 'overridden' : 'default'}"
-                            .indicatorTemplate=${this.effectiveIsVariation
-                                ? this.renderQuantitySelectOverrideIndicator()
-                                : this.renderSettingOverrideIndicator('quantitySelect')}
-                            .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
-                            value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
-                            settingsDefaults="${this.#quantitySelectSettingsDefaultsMarkup()}"
-                            .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
-                        ></quantity-select-settings-field>
+                </div>
+                <div class="editor-section" data-section="Visuals">
+                    <div class="section-title">Visuals</div>
+                    ${this.currentVariantMapping?.backgrounds
+                        ? html`
+                              <sp-field-group class="toggle" id="backgrounds">
+                                  <sp-field-label for="background-desktop">Background Desktop</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter an *.aem.page background desktop URL"
+                                      id="background-desktop"
+                                      data-field="backgrounds"
+                                      data-field-state="${this.#getBackgroundBreakpointState('desktop')}"
+                                      ?invalid="${this.backgroundsUrlInvalid.desktop ||
+                                      this.backgroundsDimensionsInvalid.desktop}"
+                                      value="${backgroundsUrls.desktop}"
+                                      @change="${(e) => this.#handleBackgroundsPartUpdate('desktop', e)}"
+                                  >
+                                      ${this.backgroundsUrlInvalid.desktop
+                                          ? html`<sp-help-text slot="negative-help-text"
+                                                >Enter a valid *.aem.page background desktop URL.</sp-help-text
+                                            >`
+                                          : this.backgroundsDimensionsInvalid.desktop
+                                            ? html`<sp-help-text slot="negative-help-text"
+                                                  >The background image dimensions could not be resolved.</sp-help-text
+                                              >`
+                                            : nothing}
+                                  </sp-textfield>
+                                  ${this.#renderBackgroundStatusIndicator('desktop')}
+
+                                  <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter an *.aem.page background tablet URL"
+                                      id="background-tablet"
+                                      data-field="backgrounds"
+                                      data-field-state="${this.#getBackgroundBreakpointState('tablet')}"
+                                      ?invalid="${this.backgroundsUrlInvalid.tablet ||
+                                      this.backgroundsDimensionsInvalid.tablet}"
+                                      value="${backgroundsUrls.tablet}"
+                                      @change="${(e) => this.#handleBackgroundsPartUpdate('tablet', e)}"
+                                  >
+                                      ${this.backgroundsUrlInvalid.tablet
+                                          ? html`<sp-help-text slot="negative-help-text"
+                                                >Enter a valid *.aem.page background tablet URL.</sp-help-text
+                                            >`
+                                          : this.backgroundsDimensionsInvalid.tablet
+                                            ? html`<sp-help-text slot="negative-help-text"
+                                                  >The background image dimensions could not be resolved.</sp-help-text
+                                              >`
+                                            : nothing}
+                                  </sp-textfield>
+                                  ${this.#renderBackgroundStatusIndicator('tablet')}
+
+                                  <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter an *.aem.page background mobile URL"
+                                      id="background-mobile"
+                                      data-field="backgrounds"
+                                      data-field-state="${this.#getBackgroundBreakpointState('mobile')}"
+                                      ?invalid="${this.backgroundsUrlInvalid.mobile ||
+                                      this.backgroundsDimensionsInvalid.mobile}"
+                                      value="${backgroundsUrls.mobile}"
+                                      @change="${(e) => this.#handleBackgroundsPartUpdate('mobile', e)}"
+                                  >
+                                      ${this.backgroundsUrlInvalid.mobile
+                                          ? html`<sp-help-text slot="negative-help-text"
+                                                >Enter a valid *.aem.page background mobile URL.</sp-help-text
+                                            >`
+                                          : this.backgroundsDimensionsInvalid.mobile
+                                            ? html`<sp-help-text slot="negative-help-text"
+                                                  >The background image dimensions could not be resolved.</sp-help-text
+                                              >`
+                                            : nothing}
+                                  </sp-textfield>
+                                  ${this.#renderBackgroundStatusIndicator('mobile')}
+                              </sp-field-group>
+                          `
+                        : nothing}
+                    ${this.currentVariantMapping?.image
+                        ? html`
+                              <sp-field-group class="toggle" id="image">
+                                  <sp-field-label for="image-url">Image</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter an *.aem.page image URL"
+                                      id="image-url"
+                                      data-field="image"
+                                      data-field-state="${this.getFieldState('image')}"
+                                      ?invalid="${this.imageUrlInvalid || this.imageDimensionsInvalid}"
+                                      value="${extractImageUrl(form.image?.values?.[0] ?? '')}"
+                                      @change="${this.#handleImageUpdate}"
+                                  >
+                                      ${this.imageUrlInvalid
+                                          ? html`<sp-help-text slot="negative-help-text"
+                                                >Enter a valid *.aem.page image URL.</sp-help-text
+                                            >`
+                                          : this.imageDimensionsInvalid
+                                            ? html`<sp-help-text slot="negative-help-text"
+                                                  >The image dimensions could not be resolved.</sp-help-text
+                                              >`
+                                            : nothing}
+                                  </sp-textfield>
+                                  ${this.renderFieldStatusIndicator('image')}
+                              </sp-field-group>
+                          `
+                        : nothing}
+                </div>
+                <div class="editor-section" data-section="Footer rows">
+                    <sp-field-group class="toggle" id="footerRows">
+                        <div class="section-title">Footer rows</div>
+                        <mas-multifield
+                            button-label="Add application"
+                            data-field-state="${this.getFieldState('footerRows')}"
+                            .value="${this.footerRows}"
+                            @change="${this.#updateFooterRows}"
+                            @input="${this.#updateFooterRows}"
+                        >
+                            <template>
+                                <mas-included-field></mas-included-field>
+                            </template>
+                        </mas-multifield>
+                        ${this.renderFieldStatusIndicator('footerRows')}
                     </sp-field-group>
                 </div>
+                <div class="editor-section" data-section="Custom fields">
+                    <div class="section-title">Custom fields</div>
+                    <sp-field-group class="toggle" id="customFields">
+                        <mas-multifield
+                            button-label="Add field"
+                            dispatch-on-add
+                            data-field-state="${this.getFieldState('customFields')}"
+                            .value="${this.customFieldValues}"
+                            .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                            .addAllowed="${!this.isPromoVariation && !this.isGroupedVariation}"
+                            @change="${this.#updateCustomFields}"
+                            @input="${this.#updateCustomFields}"
+                        >
+                            <template>
+                                <mas-rte-field-item></mas-rte-field-item>
+                            </template>
+                        </mas-multifield>
+                        ${this.renderFieldStatusIndicator('customFields')}
+                    </sp-field-group>
+                </div>
+                ${this.shown('callout')
+                    ? html`
+                          <div class="editor-section" data-section="Callout text">
+                              ${this.#sectionHeaderTemplate('callout')} ${this.#renderCalloutField(form)}
+                          </div>
+                      `
+                    : nothing}
+                ${this.shown('badge')
+                    ? html`
+                          <div class="editor-section" data-section="Badge and card decoration">
+                              ${this.#sectionHeaderTemplate('badge')}
+                              <sp-field-group class="toggle" id="backgroundImage">
+                                  <sp-field-label for="background-image">Card image URL</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter background image URL"
+                                      id="background-image"
+                                      data-field="backgroundImage"
+                                      data-field-state="${this.getFieldState('backgroundImage')}"
+                                      value="${form.backgroundImage.values[0]}"
+                                      @input="${this.#handleFragmentUpdate}"
+                                  ></sp-textfield>
+                                  ${this.renderFieldStatusIndicator('backgroundImage')}
+                              </sp-field-group>
+                              <sp-field-group class="toggle" id="backgroundImageAltText">
+                                  <sp-field-label for="background-image-alt-text">Card image alt text</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter background image Alt Text"
+                                      id="background-image-alt-text"
+                                      data-field="backgroundImageAltText"
+                                      data-field-state="${this.getFieldState('backgroundImageAltText')}"
+                                      value="${form.backgroundImageAltText.values[0]}"
+                                      @input="${this.#handleFragmentUpdate}"
+                                  ></sp-textfield>
+                                  ${this.renderFieldStatusIndicator('backgroundImageAltText')}
+                              </sp-field-group>
+                              <div class="two-column-grid">
+                                  ${this.#backgroundColorSelection(
+                                      this.availableBackgroundColors,
+                                      form.backgroundColor?.values[0],
+                                      'backgroundColor',
+                                  )}
+                                  ${this.#renderColorPicker(
+                                      'border-color',
+                                      'Card border color',
+                                      this.availableBorderColors,
+                                      form.borderColor?.values[0],
+                                      'borderColor',
+                                      undefined,
+                                      this.#isBorderColorDisabledByTheme(form),
+                                  )}
+                              </div>
+                              ${this.badgeSectionTemplate(form)}
+                              ${variantValue === VARIANT_NAMES.PRO
+                                  ? this.#renderAddonStylePicker()
+                                  : this.#renderAddonBackgroundPicker(form)}
+                          </div>
+                      `
+                    : nothing}
+                ${this.shown('whatsIncluded')
+                    ? html`
+                          <div class="editor-section" data-section="What's included">
+                              ${this.#sectionHeaderTemplate('whatsIncluded')}
+                              <sp-field-group class="toggle" id="whatsIncluded">
+                                  <sp-field-label for="whatsIncludedLabel">Section title</sp-field-label>
+                                  ${this.#renderWhatsIncludedLabel()}
+                                  <mas-multifield
+                                      button-label="Add bullet"
+                                      data-field-state="bullet"
+                                      .variant="${this.getEffectiveFieldValue('variant')}"
+                                      .value="${this.whatsIncluded.bullets}"
+                                      @change="${(e) => this.#updateWhatsIncluded(e, true)}"
+                                      @input="${(e) => this.#updateWhatsIncluded(e, true)}"
+                                  >
+                                      <template>
+                                          <mas-included-field></mas-included-field>
+                                      </template>
+                                  </mas-multifield>
+                                  <mas-multifield
+                                      button-label="Add application"
+                                      data-field-state="${this.getFieldState('whatsIncluded')}"
+                                      .value="${this.whatsIncluded.values}"
+                                      @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                      @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                  >
+                                      <template>
+                                          <mas-included-field></mas-included-field>
+                                      </template>
+                                  </mas-multifield>
+                                  ${this.renderFieldStatusIndicator('whatsIncluded')}
+                              </sp-field-group>
+                              <sp-field-group class="toggle" id="whatsIncludedIconPicker">
+                                  ${this.currentVariantMapping?.whatsIncludedDividerColor
+                                      ? this.#renderColorPicker(
+                                            'whats-included-divider-color',
+                                            'Divider color',
+                                            this.availableWhatsIncludedDividerColors,
+                                            this.whatsIncludedDividerFromMarkup,
+                                            'whatsIncludedDividerColor',
+                                        )
+                                      : nothing}
+                                  <mas-multifield
+                                      button-label="Add application"
+                                      data-field-state="${this.getFieldState('whatsIncluded')}"
+                                      .value="${this.whatsIncluded.values}"
+                                      @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                      @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                  >
+                                      <template>
+                                          <mas-icon-picker-field></mas-icon-picker-field>
+                                      </template>
+                                  </mas-multifield>
+                                  ${this.renderFieldStatusIndicator('whatsIncluded')}
+                              </sp-field-group>
+                          </div>
+                      `
+                    : nothing}
+                ${this.shown('quantityAddon')
+                    ? html`
+                          <div class="editor-section" data-section="Quantity selector/Addon">
+                              ${this.#sectionHeaderTemplate('quantityAddon', this.settingsRestoreAllTemplate)}
+                              <sp-field-group id="quantitySelect" class="toggle">
+                                  <quantity-select-settings-field
+                                      class="settings-toggle-field"
+                                      id="quantity-select-settings-field"
+                                      label="Show quantity selector"
+                                      data-field="quantitySelect"
+                                      .splitTitle=${normalizeVariantName(this.fragment.variant) === VARIANT_NAMES.PRO}
+                                      data-field-state="${this.isQuantitySelectVariationOverridden()
+                                          ? 'overridden'
+                                          : 'default'}"
+                                      .indicatorTemplate=${this.effectiveIsVariation
+                                          ? this.renderQuantitySelectOverrideIndicator()
+                                          : this.renderSettingOverrideIndicator('quantitySelect')}
+                                      .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
+                                      value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
+                                      settingsDefaults="${this.#quantitySelectSettingsDefaultsMarkup()}"
+                                      .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
+                                  ></quantity-select-settings-field>
+                              </sp-field-group>
+                              <sp-field-group class="toggle" id="addonConfirmation">
+                                  <sp-field-label for="addon-confirmation">Addon confirmation</sp-field-label>
+                                  <sp-textfield
+                                      placeholder="Enter addon confirmation text"
+                                      id="addon-confirmation"
+                                      data-field="addonConfirmation"
+                                      data-field-state="${this.getFieldState('addonConfirmation')}"
+                                      value="${form.addonConfirmation?.values[0]}"
+                                      @input="${this.#handleFragmentUpdate}"
+                                      ?disabled=${this.disabled}
+                                  ></sp-textfield>
+                                  ${this.renderFieldStatusIndicator('addonConfirmation')}
+                              </sp-field-group>
+                              <sp-field-group id="addon" class="toggle">
+                                  <mas-addon-field
+                                      class="settings-toggle-field settings-toggle-field--addon"
+                                      id="addon-field"
+                                      label="Show Addon"
+                                      data-field="addon"
+                                      data-field-state="${this.isAddonSettingVisuallyOverridden() ? 'overridden' : 'default'}"
+                                      .indicatorTemplate=${this.renderSettingOverrideIndicator(ADDON)}
+                                      .value="${this.getEffectiveSettingValue(ADDON)}"
+                                      @input="${this.#handleAddonChange}"
+                                  ></mas-addon-field>
+                              </sp-field-group>
+                          </div>
+                      `
+                    : nothing}
+                ${this.addSectionTemplate}
             </div>
         `;
     }
@@ -3586,7 +4011,7 @@ class MerchCardEditor extends LitElement {
 
             return html`
                 <sp-field-group class="toggle" id="backgroundColor">
-                    <sp-field-label for="backgroundColor">${colorConfig.editorLabel ?? 'Background Color'}</sp-field-label>
+                    <sp-field-label for="backgroundColor">${colorConfig.editorLabel ?? 'Card background color'}</sp-field-label>
                     <sp-picker
                         id="backgroundColor"
                         data-field="${dataField}"
@@ -3627,7 +4052,7 @@ class MerchCardEditor extends LitElement {
 
         return html`
             <sp-field-group class="toggle" id="backgroundColor">
-                <sp-field-label for="backgroundColor">Background Color</sp-field-label>
+                <sp-field-label for="backgroundColor">Card background color</sp-field-label>
                 <sp-picker
                     id="backgroundColor"
                     data-field="${dataField}"

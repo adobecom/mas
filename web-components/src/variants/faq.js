@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
 /**
@@ -17,17 +17,17 @@ export const FAQ_AEM_FRAGMENT_MAPPING = {
     description: {
         tag: 'div',
         slot: 'body-xs',
-        editorLabel: 'FAQ answer 1',
+        editorLabel: 'Answer 1',
     },
     shortDescription: {
         tag: 'p',
         slot: 'short-description',
-        editorLabel: 'FAQ answer 2',
+        editorLabel: 'Answer 2',
     },
     callout: {
         tag: 'div',
         slot: 'callout-content',
-        editorLabel: 'FAQ answer 3',
+        editorLabel: 'Answer 3',
     },
 };
 
@@ -37,9 +37,18 @@ export const FAQ_AEM_FRAGMENT_MAPPING = {
  */
 const FAQ_FIELDS = [
     { slot: 'prices', label: 'Product price' },
-    { slot: 'body-xs', label: 'FAQ answer 1' },
-    { slot: 'short-description', label: 'FAQ answer 2' },
-    { slot: 'callout-content', label: 'FAQ answer 3' },
+    {
+        slot: 'body-xs',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'description'),
+    },
+    {
+        slot: 'short-description',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'shortDescription'),
+    },
+    {
+        slot: 'callout-content',
+        label: editorLabel(FAQ_AEM_FRAGMENT_MAPPING, 'callout'),
+    },
 ];
 
 export class Faq extends VariantLayout {

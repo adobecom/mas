@@ -81,6 +81,24 @@ describe('mas-mask-editor', () => {
         expect(el.shadowRoot.querySelector('#group-ctas')).to.not.equal(null);
     });
 
+    it('labels shortDescription as Pricing subtext', async () => {
+        const fragment = new Fragment({
+            id: 'm1',
+            title: 'Promo',
+            path: '/content/dam/mas/acom/en_US/masks/promo',
+            fields: [{ name: 'cardName', type: 'text', multiple: false, values: ['promo'] }],
+            model: { path: CARD_MODEL_PATH },
+        });
+        Store.masks.editing.set(fragment);
+        Store.masks.fragmentId.set('m1');
+
+        const el = await mount();
+        await el.updateComplete;
+
+        const label = el.shadowRoot.querySelector('#group-shortDescription sp-field-label');
+        expect(label.textContent.trim()).to.equal('Pricing subtext');
+    });
+
     it('resolves a deep link by maskName and loads the mask for editing', async () => {
         const getByPath = sinon.stub().resolves({
             id: 'm1',

@@ -1319,6 +1319,20 @@ describe('Promotion version history', () => {
         expect(toast.calledWithMatch({ variant: 'positive' })).to.be.false;
     });
 
+    it('labels shortDescription and cardName with the editor names', async () => {
+        const root = await mount();
+        const base = element.rows[0];
+        const changed = (field) => ({ ...base, field, before: ['old'], after: ['new'] });
+        const [short, name] = element.prepareRows([changed('shortDescription'), changed('cardName')]);
+        expect(short.label).to.equal('Pricing subtext');
+        expect(name.label).to.equal('Deep linking name');
+
+        element.rows = [short];
+        await element.updateComplete;
+
+        expect(root.querySelector('[data-field="shortDescription"] .field-label').textContent).to.equal('Pricing subtext:');
+    });
+
     it('does not render rich-text markup as executable HTML', async () => {
         const root = await mount();
         element.rows = [

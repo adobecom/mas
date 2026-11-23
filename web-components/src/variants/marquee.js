@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 import {
     makeRefreshBackgroundsDetail,
@@ -13,12 +13,16 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     image: { tag: 'picture', slot: 'image' },
     backgrounds: { tag: 'picture', slot: 'backgrounds' },
-    title: { tag: 'p', slot: 'heading-xs' },
-    description: { tag: 'div', slot: 'body-xs' },
+    title: { tag: 'p', slot: 'heading-xs', editorLabel: 'Marquee title' },
+    description: {
+        tag: 'div',
+        slot: 'body-xs',
+        editorLabel: 'Marquee description',
+    },
     shortDescription: { tag: 'p', slot: 'short-description' },
     callout: { tag: 'div', slot: 'callout-content' },
     prices: { tag: 'p', slot: 'prices' },
-    ctas: { slot: 'footer', size: 'm' },
+    ctas: { slot: 'footer', size: 'm', editorLabel: 'Marquee CTA' },
 };
 
 /**
@@ -28,12 +32,25 @@ export const MARQUEE_AEM_FRAGMENT_MAPPING = {
 const MARQUEE_FIELDS = [
     { slot: 'image', label: 'Image' },
     { slot: 'backgrounds', label: 'Background' },
-    { slot: 'heading-xs', label: 'Title' },
-    { slot: 'body-xs', label: 'Product description' },
-    { slot: 'short-description', label: 'Short Description' },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(MARQUEE_AEM_FRAGMENT_MAPPING, 'title', 'Card title'),
+    },
+    {
+        slot: 'body-xs',
+        label: editorLabel(
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+            'description',
+            'Product description',
+        ),
+    },
+    { slot: 'short-description', label: 'Pricing subtext' },
     { slot: 'callout-content', label: 'Callout text' },
     { slot: 'prices', label: 'Product price' },
-    { slot: 'footer', label: 'CTAs' },
+    {
+        slot: 'footer',
+        label: editorLabel(MARQUEE_AEM_FRAGMENT_MAPPING, 'ctas', 'CTAs'),
+    },
 ];
 
 export class Marquee extends VariantLayout {

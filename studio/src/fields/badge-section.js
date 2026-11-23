@@ -178,62 +178,55 @@ class BadgeSection extends LitElement {
         const isTrial = this.field === 'trialBadge';
         const inputId = isTrial ? 'card-trial-badge' : 'card-badge';
         return html`
-            <div class="two-column-grid">
-                <sp-field-group class="toggle" id="${this.field}">
-                    <sp-field-label for="${inputId}">${isTrial ? 'Trial Badge' : 'Badge'}</sp-field-label>
-                    <rte-field
-                        id="${inputId}"
-                        inline
-                        hide-format-buttons
-                        data-field="${this.field}"
-                        data-field-state="${this.fieldStates?.text ?? 'no-parent'}"
-                        .osi="${this.osi}"
-                        .value="${text}"
-                        @change=${(e) => this.#emit({ text: e.target.value }, e)}
-                    ></rte-field>
-                    ${this.#statusIndicator('text')}
-                </sp-field-group>
-                ${
-                    this.showIcon
-                        ? html`
-                              <sp-field-group class="toggle" id="${this.field}Icon">
-                                  <mas-mnemonic-field
-                                      .icon="${icon}"
-                                      .iconLibrary="${true}"
-                                      .variant="${this.variant}"
-                                      data-field-state="${this.fieldStates?.icon ?? 'no-parent'}"
-                                      style="display: ${text ? 'block' : 'none'};"
-                                      @change=${(e) => this.#emit({ icon: e.detail.icon }, e)}
-                                  ></mas-mnemonic-field>
-                                  ${this.#statusIndicator('icon')}
-                              </sp-field-group>
-                          `
-                        : nothing
-                }
-                </div>
-                ${
-                    this.showColors && text
-                        ? html`
-                              <div class="two-column-grid">
-                                  ${this.#renderColorPicker(
-                                      isTrial ? 'Trial Badge Color' : 'Badge Color',
-                                      `${this.field}Color`,
-                                      this.colors,
-                                      bgColor,
-                                      'bgColor',
-                                  )}
-                                  ${this.#renderColorPicker(
-                                      isTrial ? 'Trial Badge Border Color' : 'Badge Border Color',
-                                      `${this.field}BorderColor`,
-                                      this.borderColors,
-                                      borderColor,
-                                      'borderColor',
-                                  )}
-                              </div>
-                          `
-                        : nothing
-                }
-            </div>
+            <sp-field-group class="toggle" id="${this.field}">
+                <sp-field-label for="${inputId}">${isTrial ? 'Trial badge' : 'Badge'}</sp-field-label>
+                <rte-field
+                    id="${inputId}"
+                    inline
+                    hide-format-buttons
+                    data-field="${this.field}"
+                    data-field-state="${this.fieldStates?.text ?? 'no-parent'}"
+                    .osi="${this.osi}"
+                    .value="${text}"
+                    @change=${(e) => this.#emit({ text: e.target.value }, e)}
+                ></rte-field>
+                ${this.#statusIndicator('text')}
+            </sp-field-group>
+            ${this.showIcon
+                ? html`
+                      <sp-field-group class="toggle" id="${this.field}Icon">
+                          <mas-mnemonic-field
+                              .icon="${icon}"
+                              .iconLibrary="${true}"
+                              .variant="${this.variant}"
+                              data-field-state="${this.fieldStates?.icon ?? 'no-parent'}"
+                              style="display: ${text ? 'block' : 'none'};"
+                              @change=${(e) => this.#emit({ icon: e.detail.icon }, e)}
+                          ></mas-mnemonic-field>
+                          ${this.#statusIndicator('icon')}
+                      </sp-field-group>
+                  `
+                : nothing}
+            ${this.showColors && text
+                ? html`
+                      <div class="two-column-grid">
+                          ${this.#renderColorPicker(
+                              isTrial ? 'Trial badge background color' : 'Badge background color',
+                              `${this.field}Color`,
+                              this.colors,
+                              bgColor,
+                              'bgColor',
+                          )}
+                          ${this.#renderColorPicker(
+                              isTrial ? 'Trial badge border color' : 'Badge border color',
+                              `${this.field}BorderColor`,
+                              this.borderColors,
+                              borderColor,
+                              'borderColor',
+                          )}
+                      </div>
+                  `
+                : nothing}
         `;
     }
 }

@@ -43,7 +43,9 @@ const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toStr
 
 // The caches grow until the heap used reaches 75% of the V8 heap limit, the rest being left to the requests in flight.
 setHeapBudget(v8.getHeapStatistics().heap_size_limit * 0.75, () => v8.getHeapStatistics().used_heap_size);
-new PerformanceObserver(resetHeapEvictionCredit).observe({ entryTypes: ['gc'] });
+new PerformanceObserver((entries) => {
+    resetHeapEvictionCredit(entries.getEntries().at(-1).startTime);
+}).observe({ entryTypes: ['gc'] });
 
 // e.g. "42s" or "7m12s"
 const formatAge = (ms) => {

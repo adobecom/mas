@@ -180,6 +180,7 @@ describe('swr-cache', () => {
         });
 
         afterEach(() => {
+            sinon.restore();
             setMemoryLimit(256 * 1024 * 1024);
             setHeapBudget(maxHeapUsed, () => v8.getHeapStatistics().used_heap_size);
         });
@@ -228,6 +229,40 @@ describe('swr-cache', () => {
                 expect(cacheStats(`budget-masked-gc-${allocation}`).entries).to.equal(1);
             });
         }
+
+        it('preserves eviction credit created after a delayed garbage collection', () => {
+            sinon.stub(performance, 'now').returns(1000);
+            const cache = createSwrCache({ name: 'budget-delayed-gc' });
+            let heapUsed = 0;
+            setHeapBudget(1000, () => heapUsed);
+            for (const key of ['a', 'b', 'c', 'd']) cache.set(published, key, key.repeat(98));
+            heapUsed = 1000 + getMemoryStats().bytes - 250;
+            cache.set(published, 'e', 'e'.repeat(98));
+
+            resetHeapEvictionCredit(999);
+            cache.set(published, 'f', 'f'.repeat(98));
+
+            expect(cacheStats('budget-delayed-gc')).to.deep.equal({ entries: 4, bytes: 400, evictions: 2 });
+        });
+
+        it('resets only eviction credit created before the reported garbage collection', () => {
+            const clock = sinon.stub(performance, 'now').returns(1000);
+            const cache = createSwrCache({ name: 'budget-mixed-gc' });
+            let heapUsed = 0;
+            setHeapBudget(1000, () => heapUsed);
+            for (const key of ['a', 'b', 'c', 'd']) cache.set(published, key, key.repeat(98));
+            heapUsed = 1000 + getMemoryStats().bytes - 250;
+            cache.set(published, 'e', 'e'.repeat(98));
+            clock.returns(2000);
+            heapUsed += 100;
+            cache.set(published, 'f', 'f'.repeat(98));
+
+            heapUsed = 1150;
+            resetHeapEvictionCredit(1500);
+            cache.set(published, 'g', 'g'.repeat(98));
+
+            expect(cacheStats('budget-mixed-gc')).to.deep.equal({ entries: 3, bytes: 300, evictions: 4 });
+        });
 
         it('ignores garbage collection when the heap budget is disabled', () => {
             expect(() => resetHeapEvictionCredit()).not.to.throw();

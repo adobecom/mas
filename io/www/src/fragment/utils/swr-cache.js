@@ -57,17 +57,25 @@ function heapExcess() {
     return heap.getHeapUsed() - heap.evicted - heap.maxUsed;
 }
 
-export function resetHeapEvictionCredit() {
-    if (memory.heap) memory.heap.evicted = 0;
+export function resetHeapEvictionCredit(collectedBefore = performance.now()) {
+    const { heap } = memory;
+    if (!heap) return;
+    heap.credits = heap.credits.filter(({ timestamp }) => timestamp >= collectedBefore);
+    heap.evicted = heap.credits.reduce((total, { bytes }) => total + bytes, 0);
 }
 
 function enforceBudget() {
-    let excess = memory.heap ? heapExcess() : memory.bytes - memory.maxBytes;
+    const { heap } = memory;
+    const credited = heap?.evicted ?? 0;
+    let excess = heap ? heapExcess() : memory.bytes - memory.maxBytes;
     while (excess > 0 && memory.lru.size > 1) {
         const entry = memory.lru.keys().next().value;
         excess -= entry.size;
-        if (memory.heap) memory.heap.evicted += entry.size;
+        if (heap) heap.evicted += entry.size;
         evict(entry);
+    }
+    if (heap && heap.evicted > credited) {
+        heap.credits.push({ timestamp: performance.now(), bytes: heap.evicted - credited });
     }
 }
 
@@ -134,7 +142,7 @@ export function setMemoryLimit(maxBytes) {
  * goes back to the byte budget.
  */
 export function setHeapBudget(maxHeapUsed, getHeapUsed) {
-    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, evicted: 0 } : null;
+    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, evicted: 0, credits: [] } : null;
     enforceBudget();
 }
 

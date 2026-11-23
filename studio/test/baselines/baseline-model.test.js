@@ -166,15 +166,29 @@ describe('baseline-model', () => {
                     productArrangementCode: 'PA-1',
                     market_segments: ['EDU'],
                     product_code: 'CCSN',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
                 }),
-            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
+            ).to.deep.equal({
+                productArrangementCode: 'PA-1',
+                marketSegment: 'EDU',
+                productCode: 'CCSN',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
         it('resolves the PA code and segment from the offer selector', async () => {
             service.resolveOfferSelectors.returns([
                 Promise.resolve([
-                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                    {
+                        productArrangementCode: 'PA-2',
+                        marketSegments: ['GOV'],
+                        productArrangement: { productCode: 'PHSP' },
+                        commitment: 'MONTH',
+                        term: 'MONTHLY',
+                    },
                 ]),
             ]);
 
@@ -182,6 +196,8 @@ describe('baseline-model', () => {
                 productArrangementCode: 'PA-2',
                 marketSegment: 'GOV',
                 productCode: 'PHSP',
+                commitment: 'MONTH',
+                term: 'MONTHLY',
             });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
@@ -193,6 +209,8 @@ describe('baseline-model', () => {
                 productArrangementCode: undefined,
                 marketSegment: undefined,
                 productCode: undefined,
+                commitment: undefined,
+                term: undefined,
             });
         });
     });

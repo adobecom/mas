@@ -406,6 +406,37 @@ describe('aup transformer', () => {
             expect((await map({ whatsIncluded })).features).to.deep.equal([{ id: 'includedApps', items: expected }]);
         });
 
+        it('appends offer baseline included apps not authored, enriched from AOS', async () => {
+            const authored = '<p slot="heading"></p><merch-mnemonic-list data-fi-code="firefly_credits"></merch-mnemonic-list>';
+            const body = await map(
+                { osi: 'OSI-PRO', whatsIncluded: authored, includedApps: ['firefly_credits', 'photoshop_cc', 'unknown'] },
+                AOS,
+            );
+            expect(body.features).to.deep.equal([
+                {
+                    id: 'includedApps',
+                    items: [
+                        {
+                            icon: undefined,
+                            alt: 'Adobe Firefly',
+                            code: 'firefly_credits',
+                            name: 'Adobe Firefly',
+                            tooltip: 'Generative credits',
+                            href: undefined,
+                        },
+                        {
+                            icon: 'https://aos/ps.svg',
+                            alt: 'Adobe Photoshop',
+                            code: 'photoshop_cc',
+                            name: 'Adobe Photoshop',
+                            tooltip: 'Edit photos',
+                        },
+                        { icon: undefined, alt: undefined, code: 'unknown', name: undefined, tooltip: undefined },
+                    ],
+                },
+            ]);
+        });
+
         it('falls back to authored items when AOS fails or has no merchandising', async () => {
             fetchStub.callsFake(() => createResponse(500));
             const items = [{ icon: 'fonts.svg', alt: 'Adobe Fonts', description: '<p>Fonts</p>', href: undefined }];

@@ -35,6 +35,7 @@ const OFFER_BASELINE = {
         shortDescription: 'Edit photos and create art with Photoshop.',
         icons: [PS_ICON, 'https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/ps_appicon_48x48.png'],
         paCode: PA,
+        includedApps: ['photoshop_cc', 'firefly_credits'],
     },
 };
 
@@ -209,6 +210,7 @@ describe('offer transformer', () => {
                 cardTitle: 'Photoshop',
                 mnemonicIcon: [PS_ICON],
                 mnemonicAlt: ['Photoshop'],
+                includedApps: ['photoshop_cc', 'firefly_credits'],
                 osi: OSI,
             });
             expect(body.fields.osi).to.equal(OSI);

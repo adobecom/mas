@@ -104,11 +104,12 @@ const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegm
  * Card fields an offer baseline provides. Offer model fields are MCS's, not the card's: they are mapped explicitly, and
  * the others are dropped (e.g. MCS `description` is a product name and `shortDescription` a marketing blurb, while a
  * card's are its body copy and legal text). `icons` are MCS renditions, svg first: the card's icon is the first one,
- * with the product name as its alt text.
+ * with the product name as its alt text. `includedApps` are MCS fulfillable item codes, resolved at delivery.
  */
-const toCardFields = ({ name, icons }) => ({
+const toCardFields = ({ name, icons, includedApps }) => ({
     ...(name && { cardTitle: name }),
     ...(icons?.length && { mnemonicIcon: [icons[0]], ...(name && { mnemonicAlt: [name] }) }),
+    ...(includedApps?.length && { includedApps }),
 });
 
 /**

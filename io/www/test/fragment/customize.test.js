@@ -1434,6 +1434,42 @@ describe('customize baselines', function () {
             expect(fields).to.not.have.any.keys('tags', 'osi', 'pznTags', 'locReady');
             expect(fields.badge).to.equal('Template badge');
         });
+
+        it('retargets baseline M@S elements of the baseline offer to the card offer', async function () {
+            const price = (osi) => `<span is="inline-price" data-wcs-osi="${osi}"></span>`;
+            const result = await processLayers(
+                { osi: 'm2m-osi' },
+                {
+                    osi: 'abm-osi',
+                    prices: { mimeType: 'text/html', value: price('abm-osi') },
+                    ctas: { mimeType: 'text/html', value: `<a is="checkout-link" data-wcs-osi="abm-osi,addon-osi"></a>` },
+                    customFields: { mimeType: 'text/html', value: [price('addon-osi')] },
+                },
+                {},
+            );
+            const { fields } = result.body;
+            expect(fields.prices.value).to.equal(price('m2m-osi'));
+            expect(fields.ctas.value).to.equal('<a is="checkout-link" data-wcs-osi="m2m-osi,addon-osi"></a>');
+            expect(fields.customFields.value).to.deep.equal([price('addon-osi')]);
+        });
+
+        it('retargets the requested fragment M@S elements to the requested offer', async function () {
+            const result = await process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'baseline',
+                locale: 'en_US',
+                offer: 'puf-osi',
+                body: {
+                    id: 'baseline',
+                    path: '/content/dam/mas/sandbox/en_US/baselines/headless/pa/baseline',
+                    fields: { osi: 'abm-osi', prices: '<span data-wcs-osi="abm-osi"></span>' },
+                    references: {},
+                    referencesTree: [],
+                },
+            });
+            expect(result.body.fields.osi).to.equal('puf-osi');
+            expect(result.body.fields.prices).to.equal('<span data-wcs-osi="puf-osi"></span>');
+        });
     });
 
     describe('empty card fields', function () {

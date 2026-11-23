@@ -527,14 +527,46 @@ const isEmptyFieldValue = (value) =>
         .flatMap((entry) => (entry instanceof Object ? entry.value : entry))
         .every(isEmptyEntry);
 
+const OSI_ATTRIBUTE_REGEXP = /data-wcs-osi="([^"]*)"/g;
+
+/** `data-wcs-osi` attributes of a field value (string, `{ value }` or array of them) pointing to `from` point to `to` */
+function retargetValue(value, from, to) {
+    if (typeof value === 'string') {
+        return value.replace(
+            OSI_ATTRIBUTE_REGEXP,
+            (_, osis) =>
+                `data-wcs-osi="${osis
+                    .split(',')
+                    .map((osi) => (osi === from ? to : osi))
+                    .join(',')}"`,
+        );
+    }
+    if (Array.isArray(value)) return value.map((entry) => retargetValue(entry, from, to));
+    if (value instanceof Object && 'value' in value) return { ...value, value: retargetValue(value.value, from, to) };
+    return value;
+}
+
+/**
+ * A baseline is authored with an example offer of its product arrangement (its `osi`): its M@S elements (prices, CTAs…)
+ * pointing to it are retargeted to the offer of the fragment it applies to. Same when the `offer` parameter overrides the
+ * requested fragment's own.
+ */
+export function retargetOsi(fields, osi) {
+    const from = [fields.osi].flat()[0];
+    if (!from || !osi || from === osi) return fields;
+    return Object.fromEntries(Object.entries(fields).map(([name, value]) => [name, retargetValue(value, from, osi)]));
+}
+
 /**
  * Baseline fragments only provide defaults: their own variations are never resolved, their card-own fields are ignored
- * and their empty fields inherit from lower layers, like the card's.
+ * and their empty fields inherit from lower layers, like the card's. Their M@S elements follow the fragment's offer.
  */
-function prepareBaseline(baseline) {
+function prepareBaseline(baseline, osi) {
     // explicit empty sentinels must survive layering to override lower layers, they are normalized once merged
     const fields = Object.fromEntries(
-        Object.entries(baseline.fields).filter(([name, value]) => !NON_INHERITED_FIELDS.has(name) && !isEmptyFieldValue(value)),
+        Object.entries(retargetOsi(baseline.fields, osi)).filter(
+            ([name, value]) => !NON_INHERITED_FIELDS.has(name) && !isEmptyFieldValue(value),
+        ),
     );
     return { ...skimFragmentFromReferences(baseline), fields };
 }
@@ -574,7 +606,8 @@ function applyBaselines(fragment, { baselines }) {
         fragmentSegmentBaseline,
     ].filter((baseline) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
-    const preparedLayers = layers.map(prepareBaseline);
+    const osi = [fragment.fields.osi].flat()[0];
+    const preparedLayers = layers.map((layer) => prepareBaseline(layer, osi));
     const card = withoutInheritedEmptyFields(fragment, preparedLayers);
     const merged = deepMerge(card, ...preparedLayers, card);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
@@ -703,7 +736,10 @@ async function customize(context) {
     if (status != 200) {
         return { ...context, status, message };
     }
-    const baseFragment = skimFragmentFromReferences(body);
+    const skimmed = skimFragmentFromReferences(body);
+    const baseFragment = context.offer
+        ? { ...skimmed, fields: { ...retargetOsi(skimmed.fields, context.offer), osi: context.offer } }
+        : skimmed;
     const { references, referencesTree } = body;
     const regionLocale = context.regionLocale ?? regionLocaleFromInit;
     const isRegionLocale = regionLocale !== defaultLocale;

@@ -253,9 +253,10 @@ const isAppList = ({ tagName }) => tagName === 'merch-mnemonic-list';
 
 /**
  * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; mnemonic list
- * items matching a fulfillable item go to `includedApps`, enriched where not authored, other items to `whatsIncluded`
+ * items matching a fulfillable item go to `includedApps`, enriched where not authored, followed by the offer baseline's
+ * `includedApps` codes not authored; other items go to `whatsIncluded`
  */
-function featuresOf(html, fulfillableItems, { text, value }) {
+function featuresOf(html, codes, fulfillableItems, { text, value }) {
     const elements = elementsOf(html);
     const heading = elements.find(
         (element) => classesOf(element).includes('whats-included-label') || attributesOf(element).slot === 'heading',
@@ -288,11 +289,16 @@ function featuresOf(html, fulfillableItems, { text, value }) {
             href,
         });
     }
+    const authoredCodes = new Set(includedApps.map(({ code }) => code));
+    for (const code of codes.filter((code) => !authoredCodes.has(code))) {
+        const item = fulfillableItems.find((fulfillableItem) => fulfillableItem.code === code);
+        includedApps.push({ icon: item?.icon, alt: item?.name, code, name: item?.name, tooltip: item?.tooltip });
+    }
     const features = [
         { id: 'includedApps', items: includedApps },
         { id: 'whatsIncluded', items: whatsIncluded },
     ].filter(({ items }) => items.length);
-    if (features.length && heading) features[0].header = value(innerHtml(heading));
+    if (features.length && heading && text(innerHtml(heading))) features[0].header = value(innerHtml(heading));
     return features;
 }
 
@@ -382,9 +388,11 @@ async function mapCard(context) {
     const [offer] = (osi && cachedOffers([osi], effectivePromotionCode(raw('promoCode') ?? ''), scope)) || [];
     const labels = raw('customFieldLabels') ?? [];
     const productArrangementCode = offer?.productArrangementCode;
-    const fulfillableItems = elementsOf(raw('whatsIncluded')).some(isAppList)
-        ? await fulfillableItemsOf(productArrangementCode, context)
-        : [];
+    const includedAppCodes = [raw('includedApps') ?? []].flat();
+    const fulfillableItems =
+        includedAppCodes.length || elementsOf(raw('whatsIncluded')).some(isAppList)
+            ? await fulfillableItemsOf(productArrangementCode, context)
+            : [];
     const secureLabel = settings.secureLabel ?? (raw('showSecureLabel') ? '' : undefined);
     return {
         fragment: fragment.id,
@@ -421,7 +429,7 @@ async function mapCard(context) {
         ctas: elementsOf(raw('ctas'))
             .filter(({ tagName }) => tagName === 'a' || tagName === 'button')
             .map((element) => ctaOf(element, scope)),
-        features: featuresOf(raw('whatsIncluded'), fulfillableItems, scope),
+        features: featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope),
         addon: addonOf(raw('addon') ?? settings.addon, raw('addonConfirmation'), raw('variant'), scope),
         quantitySelect: quantitySelectOf(raw('quantitySelect') ?? settings.quantitySelect),
         secureTransaction: secureLabel === undefined ? null : { enabled: true, ...(secureLabel && { label: secureLabel }) },

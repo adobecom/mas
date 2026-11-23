@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-placeholder-references-modal.css.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, PAGE_NAMES, EVENT_KEYDOWN } from '../constants.js';
 import { extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
+import { variationGeoCode } from './placeholder-references.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 
 function referenceTypeLabel(reference) {
@@ -97,6 +98,10 @@ class MasPlaceholderReferencesModal extends LitElement {
         return html`<p><strong>No usage detected</strong> for the placeholder <strong>${this.placeholderKey}</strong>.</p>`;
     }
 
+    referenceLocale(ref) {
+        return variationGeoCode(ref) || extractLocaleFromPath(ref.path);
+    }
+
     render() {
         if (!this.open) return nothing;
         const hasReferences = this.references.length > 0;
@@ -131,7 +136,7 @@ class MasPlaceholderReferencesModal extends LitElement {
                                           <li>
                                               <span class="reference-type"
                                                   >${referenceTypeLabel(reference)} ${extractSurfaceFromPath(reference.path)}
-                                                  ${extractLocaleFromPath(reference.path)}</span
+                                                  ${this.referenceLocale(reference)}</span
                                               >
                                               <a href=${buildReferenceHref(reference)} target="_blank" rel="noopener">
                                                   ${reference.title || reference.path}

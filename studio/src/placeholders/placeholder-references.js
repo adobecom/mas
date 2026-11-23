@@ -6,12 +6,21 @@ import {
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
 import { showToast, extractLocaleFromPath } from '../utils.js';
+import { isGeoTag } from '../editors/variation-utils.js';
+import { Fragment } from '../aem/fragment.js';
 
 /** Below this duration, a publish reference check is fast enough to safely offer Proceed. */
 export const REFERENCE_CHECK_PROCEED_THRESHOLD_MS = 15000;
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function variationGeoCode(ref) {
+    const fragment = new Fragment(ref);
+    const pznTags = fragment.getFieldValues('pznTags') || [];
+    const codes = pznTags.filter((tag) => isGeoTag(tag)).map((tag) => tag.split('/').pop());
+    return codes.length ? codes[0] : undefined;
 }
 
 /**
@@ -53,7 +62,13 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
             if (excludePath && item.path === excludePath) continue;
             if (seenPaths.has(item.path)) continue;
             if (!matchesPlaceholderKey(item, key)) continue;
-            if (locale && locale !== extractLocaleFromPath(item.path)) continue;
+            if (locale) {
+                const language = locale.split('_')[0];
+                const pathLocale = extractLocaleFromPath(item.path);
+                const pznLocale = variationGeoCode(item);
+                const langMatches = pznLocale?.startsWith(`${language}_`) || pathLocale.startsWith(`${language}_`);
+                if (!langMatches) continue;
+            }
             seenPaths.add(item.path);
             references.push(item);
             refsFound++;
@@ -72,22 +87,8 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
  */
 export async function findPlaceholderReferences(aem, { key, excludePath, signal, surface, locale } = {}) {
     showToast('Searching for references ...');
-    let references = [];
-
-    if (surface === 'acom') {
-        if (locale === 'en_US') {
-            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal);
-        } else {
-            references = await findReferences(aem, ROOT_PATH, key, excludePath, signal, locale);
-        }
-    } else {
-        if (locale === 'en_US') {
-            references = await findReferences(aem, `${ROOT_PATH}/${surface}`, key, excludePath, signal);
-        } else {
-            references = await findReferences(aem, `${ROOT_PATH}/${surface}/${locale}`, key, excludePath, signal);
-        }
-    }
-
+    const path = surface === 'acom' ? ROOT_PATH : `${ROOT_PATH}/${surface}`;
+    const references = await findReferences(aem, path, key, excludePath, signal, locale !== 'en_US' ? locale : null);
     return { references };
 }
 

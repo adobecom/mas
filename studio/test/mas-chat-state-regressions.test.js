@@ -206,6 +206,39 @@ describe('MasChat state regressions', () => {
             ]);
         });
     }
+    it('saves the plan_type tag of the selected base offer', async () => {
+        await el.handleResolvedReleaseProduct({ product, arrangementCode: product.arrangement_code });
+        el.selectedReleaseOsi = 'base-selector';
+        el.selectedReleaseOffer = { commitment: 'YEAR', term: 'MONTHLY' };
+        const getElement = customElements.get.bind(customElements);
+        sinon.stub(customElements, 'get').callsFake((name) => {
+            if (name === 'merch-card') {
+                return { getFragmentMapping: () => ({ title: {}, description: {}, ctas: {}, mnemonics: {}, osi: {} }) };
+            }
+            if (name === 'aem-fragment') return undefined;
+            return getElement(name);
+        });
+        let tagged;
+        sinon.stub(el, 'repository').get(() => ({
+            aem: {
+                saveValidTags: async (id, tags) => {
+                    tagged = { id, tags };
+                },
+                sites: {
+                    cf: {
+                        fragments: {
+                            create: async () => ({ id: 'draft-id' }),
+                        },
+                    },
+                },
+            },
+        }));
+        await el.saveDraftToAEM({ variant: 'catalog' }, { parentPath: '/content/dam/mas/sandbox/en_US', name: 'draft' });
+        // AEM create drops tags, so they must be saved on the created fragment.
+        expect(tagged.id).to.equal('draft-id');
+        expect(tagged.tags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
+        expect(tagged.tags).to.include('mas:product_code/phsp');
+    });
     for (const operationResult of [
         { success: true, operation: 'copy', newFragmentId: id, newFragmentTitle: 'Copy', message: 'Copied' },
         { success: true, operation: 'update', fragmentId: id, fragmentTitle: 'Updated', message: 'Updated' },

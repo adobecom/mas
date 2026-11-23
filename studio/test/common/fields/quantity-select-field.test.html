@@ -85,6 +85,11 @@
                         expect(isSameQuantitySelectValue(on, off)).to.be.false;
                     });
 
+                    it('isSameQuantitySelectValue treats an absent value as a switched off selector', () => {
+                        expect(isSameQuantitySelectValue('', '<merch-quantity-select/>')).to.be.true;
+                        expect(isSameQuantitySelectValue('<merch-quantity-select/>', undefined)).to.be.true;
+                    });
+
                     it('isSameQuantitySelectValue matches two switched off selectors', () => {
                         expect(
                             isSameQuantitySelectValue(

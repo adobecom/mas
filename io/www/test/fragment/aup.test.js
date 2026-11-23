@@ -3,16 +3,19 @@ import { transformer } from '../../src/fragment/transformers/aup.js';
 import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { baseOffer } from '../../../../price/test/fixtures/cases.js';
 
-const offersFor = (osi) => [{ ...structuredClone(baseOffer), offerSelectorIds: [osi], productArrangementCode: `pa-${osi}` }];
+const offersFor = (osi, overrides) => [
+    { ...structuredClone(baseOffer), offerSelectorIds: [osi], productArrangementCode: `pa-${osi}`, ...overrides },
+];
 const rich = (value) => ({ value, mimeType: 'text/html' });
 const PRO_FIELDS = {
     variant: 'pro',
     osi: 'OSI-PRO',
     size: 'edu',
-    mnemonicIcon: ['https://www.adobe.com/icons/cc.svg', ''],
+    mnemonicIcon: ['https://www.adobe.com/icons/cc.svg', '', 'https://www.adobe.com/icons/adobe-stock.svg'],
     mnemonicAlt: ['Creative Cloud'],
+    mnemonicLink: ['https://www.adobe.com/creativecloud.html'],
     badge: rich(
-        '<merch-badge background-color="spectrum-yellow-300" border-color="spectrum-yellow-300">Save 50%</merch-badge>',
+        '<merch-badge background-color="spectrum-yellow-300-plans" border-color="gradient-purple-blue" icon="sp-icon-star">Save 50%</merch-badge>',
     ),
     backgroundColor: 'light',
     borderColor: 'black',
@@ -24,7 +27,9 @@ const PRO_FIELDS = {
     ),
     callout: rich('<p>AI assistant add-on</p>'),
     showSecureLabel: true,
-    addon: '<merch-addon background="grey">Add Stock <span is="inline-price" data-wcs-osi="OSI-STOCK" data-plan-type="ABM"></span></merch-addon>',
+    addon:
+        '<merch-addon background="grey"><p>Add <strong>Stock</strong></p><p data-plan-type="M2M"><span is="inline-price" data-wcs-osi="OSI-STOCK">US$29.99/mo</span></p>' +
+        '<p><span is="inline-price" data-wcs-osi="OSI-STOCK-PUF" data-promotion-code="STOCK"></span></p><p><span is="inline-price" data-wcs-osi="OSI-STOCK-NA"></span></p></merch-addon>',
     addonConfirmation: '<p>Stock added</p>',
     ctas: rich(
         '<p><a class="accent" data-checkout-workflow="UCv3" data-checkout-workflow-step="segmentation" data-wcs-osi="OSI-PRO" data-modal="crm" data-quantity="2" data-perpetual="false" data-upgrade="true" data-analytics-id="free-trial">Free trial</a> ' +
@@ -50,7 +55,13 @@ const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, ...over
         model: { id: CARD_MODEL_ID },
         fields: structuredClone(fields),
         ...(settings && { settings }),
-        wcs: wcs ?? { prod: { 'OSI-PRO-us-mult': offersFor('OSI-PRO') } },
+        wcs: wcs ?? {
+            prod: {
+                'OSI-PRO-us-mult': offersFor('OSI-PRO'),
+                'OSI-STOCK-us-mult': offersFor('OSI-STOCK', { offerType: 'TRIAL' }),
+                'OSI-STOCK-PUF-us-mult-stock': offersFor('OSI-STOCK-PUF', { offerType: 'BASE', term: 'ANNUAL' }),
+            },
+        },
     },
 });
 
@@ -80,10 +91,18 @@ describe('aup transformer', () => {
         expect(body.badge).to.deep.equal({
             text: 'Save 50%',
             color: '#000000',
-            backgroundColor: 'spectrum-yellow-300',
-            borderColor: 'spectrum-yellow-300',
+            backgroundColor: '#F5C700',
+            borderColor: 'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)',
+            icon: 'sp-icon-star',
         });
-        expect(body.mnemonics).to.deep.equal([{ icon: 'https://www.adobe.com/icons/cc.svg', alt: 'Creative Cloud' }]);
+        expect(body.mnemonics).to.deep.equal([
+            {
+                icon: 'https://www.adobe.com/icons/cc.svg',
+                alt: 'Creative Cloud',
+                link: 'https://www.adobe.com/creativecloud.html',
+            },
+            { icon: 'https://www.adobe.com/icons/adobe-stock.svg', alt: 'Adobe Stock', link: undefined },
+        ]);
         expect(body.features).to.deep.equal([
             {
                 id: 'whatsIncluded',
@@ -107,8 +126,13 @@ describe('aup transformer', () => {
         ).to.equal('Add');
         expect(body.addon).to.deep.equal({
             background: 'grey',
+            customCheckbox: true,
             label: 'Add Stock',
-            offers: [{ wcsOsi: 'OSI-STOCK', planType: 'ABM' }],
+            offers: [
+                { planType: 'M2M', offerType: 'TRIAL', wcsOsi: 'OSI-STOCK', price: 'US$29.99/mo' },
+                { planType: 'PUF', offerType: 'BASE', wcsOsi: 'OSI-STOCK-PUF', price: '' },
+                { planType: undefined, offerType: undefined, wcsOsi: 'OSI-STOCK-NA', price: '' },
+            ],
             confirmation: '<p>Stock added</p>',
         });
         expect(body.secureTransaction).to.deep.equal({ enabled: true });
@@ -244,8 +268,9 @@ describe('aup transformer', () => {
         expect(body.secureTransaction).to.deep.equal({ enabled: true, label: 'Secure transaction' });
         expect(body.addon).to.deep.equal({
             background: undefined,
+            customCheckbox: false,
             label: 'Add AI',
-            offers: [{ wcsOsi: 'OSI-AI', planType: undefined }],
+            offers: [{ planType: undefined, offerType: undefined, wcsOsi: 'OSI-AI', price: '' }],
             confirmation: undefined,
         });
         expect(body.customFields).to.deep.equal([{ label: '', value: '<p>value only</p>' }]);

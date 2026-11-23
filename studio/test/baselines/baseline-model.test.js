@@ -262,14 +262,17 @@ describe('baseline-model', () => {
 
             expect(result).to.deep.equal({ folder: FOLDER, fragment: { id: 'baseline-id' } });
             expect(
-                repository.createFragment.calledOnceWithExactly({
-                    modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
-                    title: 'My baseline',
-                    name: BASELINE_NAME,
-                    parentPath: FOLDER,
-                    tags: TAGS,
-                    data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
-                }),
+                repository.createFragment.calledOnceWithExactly(
+                    {
+                        modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
+                        title: 'My baseline',
+                        name: BASELINE_NAME,
+                        parentPath: FOLDER,
+                        tags: TAGS,
+                        data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
+                    },
+                    true,
+                ),
             ).to.be.true;
         });
 

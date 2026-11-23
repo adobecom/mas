@@ -1,9 +1,6 @@
 const { init } = require('@adobe/aio-lib-state');
 const { fetchOdin } = require('../common.js');
 const { readProjectFragment } = require('./project.js');
-const { resolvePaths } = require('./resolver.js');
-const { PUBLISH_REFERENCE_STATUSES } = require('./publisher.js');
-const { isDictionaryIndex } = require('./publish-core.js');
 
 const STUDIO_ORG_ID = '3B962FB55F5F922E0A495C88';
 const GROUP_PERMISSIONS = new Map([
@@ -109,23 +106,10 @@ async function readTarget(odinEndpoint, uri, authToken, request = fetchOdin) {
     }
 }
 
-/** Separates snapshot expansion flags from the references implicitly included by Odin publication. */
-function getReferencePaths(
-    fragment,
-    { includeCards = false, includeVariations = false, includeWorkflowReferences = false } = {},
-) {
+/** Returns references included by the snapshot expansion flags. */
+function getReferencePaths(fragment, { includeCards = false, includeVariations = false } = {}) {
     const paths = [];
-    if (includeWorkflowReferences && !Array.isArray(fragment.fields)) fail(502, 'Unable to verify bulk publish targets');
     for (const field of fragment.fields ?? []) {
-        if (
-            includeWorkflowReferences &&
-            (['content-fragment', 'content-reference', 'fragment-reference'].includes(field.type) ||
-                ['fragments', 'cards', 'collections', 'variations'].includes(field.name))
-        ) {
-            if (!Array.isArray(field.values)) fail(502, 'Unable to verify bulk publish targets');
-            paths.push(...field.values);
-            continue;
-        }
         if (includeCards && (field.name === 'cards' || field.name === 'collections')) {
             paths.push(...(field.values ?? []));
         }
@@ -133,90 +117,31 @@ function getReferencePaths(
             paths.push(...(field.values ?? []));
         }
     }
-    if (includeWorkflowReferences) {
-        if (fragment.references != null && !Array.isArray(fragment.references)) {
-            fail(502, 'Unable to verify bulk publish targets');
-        }
-        for (const reference of fragment.references ?? []) paths.push(reference?.path ?? reference?.id);
-    }
     return paths;
 }
 
-async function readReference(input, target, request) {
-    const byPath = target.startsWith('/');
-    const uri = byPath
-        ? `/adobe/sites/cf/fragments?${
-              input.includeWorkflowReferences
-                  ? new URLSearchParams({ path: target, references: 'direct-hydrated' })
-                  : `path=${target}`
-          }`
-        : `/adobe/sites/cf/fragments/${target}?references=direct-hydrated`;
-    const data = await readTarget(input.odinEndpoint, uri, input.authToken, request);
-    const fragment = byPath ? data?.items?.[0] : data;
-    if (!fragment) return null;
-    surfaceOf(fragment.path);
-    if (input.includeWorkflowReferences && (byPath ? fragment.path !== target : fragment.id !== target)) {
-        fail(502, 'Unable to verify bulk publish targets');
-    }
-    return fragment;
-}
-
-/** Authorizes explicit snapshot or implicit publishing references in one read-only, cycle-safe traversal. */
+/** Authorizes snapshot references in one read-only, cycle-safe traversal. */
 async function authorizePaths(input, assertPaths, request = fetchOdin) {
-    const { paths, includeWorkflowReferences = false } = input;
+    const { paths, odinEndpoint, authToken } = input;
     assertPaths(paths);
-    const visited = new Map();
-    const queue = paths.map((target) => ({ target, explicit: true }));
-    for (const { target, explicit } of queue) {
-        if (typeof target !== 'string') fail(403);
-        const byPath = target.startsWith('/');
-        if (byPath) {
-            if (explicit) assertPaths([target]);
-            else surfaceOf(target);
-        }
-        if (!byPath && (!includeWorkflowReferences || !/^[\w-]+$/.test(target))) fail(403);
-        let record = visited.get(target);
-        if (record) {
-            if (explicit) assertPaths([record.fragment.path]);
-            if (explicit ? record.explicit : record.workflow) continue;
-        }
-        const fragment = record?.fragment ?? (await readReference(input, target, request));
-        if (!fragment) {
-            if (includeWorkflowReferences && !explicit) fail(502, 'Unable to verify bulk publish targets');
-            continue;
-        }
-        if (explicit || PUBLISH_REFERENCE_STATUSES.includes(fragment.status)) {
-            assertPaths([fragment.path]);
-        } else if (fragment.status !== 'PUBLISHED') {
-            fail(502, 'Unable to verify bulk publish targets');
-        }
-        if (!record) {
-            record = visited.get(fragment.path);
-            if (record && (explicit ? record.explicit : record.workflow)) {
-                visited.set(target, record);
-                continue;
-            }
-        }
-        record ??= { fragment, explicit: false, workflow: false };
-        record.explicit ||= explicit;
-        record.workflow ||= !explicit || !isDictionaryIndex(fragment.path);
-        visited.set(target, record);
-        visited.set(fragment.path, record);
-        const refs =
-            includeWorkflowReferences && explicit && isDictionaryIndex(fragment.path) ? [] : getReferencePaths(fragment, input);
-        if (includeWorkflowReferences && explicit) {
-            const expanded = resolvePaths(
-                getReferencePaths(fragment, { ...input, includeWorkflowReferences: false }),
-                input.locales,
-            );
-            for (const reference of expanded) {
-                if (reference.startsWith('/')) assertPaths([reference]);
-            }
-            queue.push(...expanded.map((reference) => ({ target: reference, explicit: true })));
-        } else if (!includeWorkflowReferences) {
-            assertPaths(refs);
-        }
-        queue.push(...refs.map((reference) => ({ target: reference, explicit: !includeWorkflowReferences })));
+    const visited = new Set();
+    const queue = [...paths];
+    for (const target of queue) {
+        if (typeof target !== 'string' || !target.startsWith('/')) fail(403);
+        assertPaths([target]);
+        if (visited.has(target)) continue;
+        const data = await readTarget(odinEndpoint, `/adobe/sites/cf/fragments?path=${target}`, authToken, request);
+        const fragment = data?.items?.[0];
+        if (!fragment) continue;
+        surfaceOf(fragment.path);
+        assertPaths([fragment.path]);
+        const alreadyVisited = visited.has(fragment.path);
+        visited.add(target);
+        if (alreadyVisited) continue;
+        visited.add(fragment.path);
+        const refs = getReferencePaths(fragment, input);
+        assertPaths(refs);
+        queue.push(...refs);
     }
 }
 

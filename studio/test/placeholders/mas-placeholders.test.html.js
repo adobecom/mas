@@ -22,8 +22,14 @@ runTests(async () => {
         let element;
         let fetchStub;
         let parent;
+        let originalProfile;
+        let originalUsers;
+        let originalLoaded;
 
         beforeEach(async function () {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            originalLoaded = Store.users.getMeta('loaded');
             // Ensure clean DOM
             const existing = document.body.querySelector('mas-placeholders');
             if (existing) existing.remove();
@@ -53,8 +59,9 @@ runTests(async () => {
                 // Default response for any other calls used in these UI tests
                 return Promise.resolve({ ok: true, json: async () => ({}), text: async () => '' });
             });
-            // Keep repository search side effects out of this component-only suite.
-            Store.profile.set(null);
+            Store.profile.set({ email: 'editor@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+            Store.users.setMeta('loaded', true);
             Store.search.set({ path: 'test-folder' });
             Store.filters.set({ locale: 'en_US' });
             Store.page.set(PAGE_NAMES.PLACEHOLDERS);
@@ -78,6 +85,9 @@ runTests(async () => {
         afterEach(function () {
             sinon.restore(); // Restore all stubs/spies
             parent?.remove();
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+            Store.users.setMeta('loaded', originalLoaded);
         });
 
         // Basic render test

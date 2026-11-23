@@ -33,11 +33,15 @@ describe('mas-placeholders copy links', () => {
     let toastStub;
     let originalProfile;
     let originalUsers;
+    let originalLoaded;
 
     beforeEach(async () => {
         originalProfile = Store.profile.get();
         originalUsers = Store.users.get();
-        Store.profile.set(null);
+        originalLoaded = Store.users.getMeta('loaded');
+        Store.users.setMeta('loaded', true);
+        Store.profile.set({ email: 'editor@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
         Store.search.set({ path: 'sandbox' });
         Store.filters.set({ locale: 'en_US' });
         Store.sort.set({ sortBy: 'key', sortDirection: 'asc' });
@@ -64,6 +68,7 @@ describe('mas-placeholders copy links', () => {
         sinon.restore();
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalLoaded);
     });
 
     it('hides placeholder creation for CCDAH curators outside their surfaces', async () => {
@@ -82,6 +87,34 @@ describe('mas-placeholders copy links', () => {
         await elementUpdated(item);
         expect(item.querySelector('[aria-label="Edit placeholder"]')).to.be.null;
     });
+
+    for (const method of ['onSave', 'onDelete', 'onPublish']) {
+        it(`blocks ${method} before any mutation while memberships are loading`, async () => {
+            Store.profile.set({ email: 'curator@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+            Store.users.setMeta('loaded', false);
+            const item = element.shadowRoot.querySelector('mas-placeholders-item');
+            const updatePending = sinon.stub(item, 'updatePending');
+            const updateField = sinon.spy(item.placeholderStore, 'updateField');
+            const repository = {
+                saveFragment: sinon.stub().resolves(false),
+                publishFragment: sinon.stub().resolves(false),
+            };
+            sinon.stub(document, 'querySelector').callThrough().withArgs('mas-repository').returns(repository);
+
+            const action = item[method](new Event('click'));
+            if (Store.confirmDialogOptions.get()) {
+                document.createElement('mas-confirm-dialog').handleDialogAction(false);
+            }
+            await action;
+
+            expect(updatePending.called).to.be.false;
+            expect(updateField.called).to.be.false;
+            expect(repository.saveFragment.called).to.be.false;
+            expect(repository.publishFragment.called).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative' }))).to.be.true;
+        });
+    }
 
     it('shows editing controls for a CCD placeholder to CCDAH curators', async () => {
         Store.profile.set({ email: 'curator@adobe.com' });

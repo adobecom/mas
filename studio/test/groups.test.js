@@ -20,13 +20,16 @@ describe('groups', () => {
     let originalUsers;
     let originalImsAccess;
     let originalSearch;
+    let originalLoaded;
 
     beforeEach(() => {
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
         originalImsAccess = Store.users.getMeta('imsBulkPublishAccess');
         originalSearch = structuredClone(Store.search.get());
+        originalLoaded = Store.users.getMeta('loaded');
         Store.users.setMeta('imsBulkPublishAccess', null);
+        Store.users.setMeta('loaded', true);
     });
 
     afterEach(() => {
@@ -34,6 +37,7 @@ describe('groups', () => {
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
         Store.users.setMeta('imsBulkPublishAccess', originalImsAccess);
+        Store.users.setMeta('loaded', originalLoaded);
         Store.search.set(originalSearch);
     });
 
@@ -131,6 +135,28 @@ describe('groups', () => {
             { userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-CCD-EDITORS', 'GRP-ODIN-MAS-CCDAH-CURATORS'] },
         ]);
         expect(canEditPlaceholders('express')).to.be.false;
+    });
+
+    it('denies dictionary editing while memberships are loading even with a retained admin role', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        Store.users.setMeta('loaded', false);
+
+        expect(canEditPlaceholders('acom')).to.be.false;
+    });
+
+    it('denies dictionary editing when the current user is missing from the loaded membership list', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([]);
+
+        expect(canEditPlaceholders('acom')).to.be.false;
+    });
+
+    it('preserves dictionary editing for known non-CCDAH members', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+
+        expect(canEditPlaceholders('acom')).to.be.true;
     });
 
     it('restricts IMS-approved CCDAH test users to the approved surfaces', () => {

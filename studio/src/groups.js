@@ -135,9 +135,10 @@ export function canAccessMasks(surface) {
 /** Limits CCDAH curators while preserving existing Odin-controlled dictionary editing. */
 export function canEditPlaceholders(surface) {
     const groups = getCurrentUserNormalizedGroups();
+    if (!groups || !Store.users.getMeta('loaded')) return false;
     const editorGroup = `${SURFACE_EDITOR_PREFIX}${normalizeSurface(surface).toUpperCase()}${SURFACE_EDITOR_SUFFIX}`;
     return (
-        !groups?.includes(MAS_CCDAH_CURATORS_GROUP) ||
+        !groups.includes(MAS_CCDAH_CURATORS_GROUP) ||
         hasCuratorAccess(surface, groups) ||
         groups.includes(editorGroup) ||
         canAccessSettings(surface)

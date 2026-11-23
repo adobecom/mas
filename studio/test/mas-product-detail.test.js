@@ -25,15 +25,16 @@ describe('MasProductDetail create flow', () => {
         it('creates from the base and trial OSIs', () => {
             el.pendingCreate = { product: { arrangement_code: 'x' }, surface: 'acom', locale: 'en_US', variants: ['plans'] };
             const exec = sinon.stub(el, 'executeCreate');
-            el.handleMultiOfferSelect({ detail: { base: { osi: 'base-osi' }, trial: { osi: 'trial-osi' } } });
-            expect(exec.calledOnceWithExactly('base-osi', 'trial-osi')).to.equal(true);
+            const offer = { commitment: 'YEAR', term: 'MONTHLY' };
+            el.handleMultiOfferSelect({ detail: { base: { osi: 'base-osi', offer }, trial: { osi: 'trial-osi' } } });
+            expect(exec.calledOnceWithExactly('base-osi', 'trial-osi', offer)).to.equal(true);
         });
 
         it('passes undefined trial when only a base is selected', () => {
             el.pendingCreate = { product: {}, surface: 'acom', locale: 'en_US', variants: ['plans'] };
             const exec = sinon.stub(el, 'executeCreate');
             el.handleMultiOfferSelect({ detail: { base: { osi: 'base-osi' }, trial: null } });
-            expect(exec.calledOnceWithExactly('base-osi', undefined)).to.equal(true);
+            expect(exec.calledOnceWithExactly('base-osi', undefined, undefined)).to.equal(true);
         });
 
         it('does nothing without a base offer or a pending create', () => {
@@ -75,9 +76,10 @@ describe('MasProductDetail create flow', () => {
                           : realGet(name),
                 );
 
-            await el.executeCreate('base-osi', 'trial-osi');
+            await el.executeCreate('base-osi', 'trial-osi', { commitment: 'YEAR', term: 'MONTHLY' });
 
             expect(create.callCount).to.equal(2);
+            expect(create.firstCall.args[0].tags).to.include('mas:plan_type/abm');
             const payloads = create.getCalls().map((c) => JSON.stringify(c.args[0]));
             expect(payloads.join(' ')).to.include('base-osi');
             expect(payloads.join(' ')).to.include('trial-osi');

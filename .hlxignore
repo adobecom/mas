@@ -12,3 +12,4 @@ tests/
 *.test.*
 *.spec.*
 nala/
+/extension/

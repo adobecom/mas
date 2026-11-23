@@ -826,8 +826,12 @@ class MerchCardEditor extends LitElement {
         return this.hasExplicitSettingOverride(fieldName);
     }
 
-    /** The card has baselines and does not override the setting, so it takes the setting from the baselines. */
+    /**
+     * The card has baselines and does not override the setting, so it takes the setting from the baselines.
+     * A card that stores its own addon copy, e.g. to keep its own background, no longer follows the baseline addon text.
+     */
     isSettingFromBaseline(fieldName) {
+        if (fieldName === ADDON && this.hasExplicitSettingOverride(ADDON)) return false;
         return this.inheritsSettingsFromBaseline && !this.isSettingOverridden(fieldName);
     }
 

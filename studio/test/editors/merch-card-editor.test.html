@@ -2695,6 +2695,22 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('shows Show Addon as from baseline only while the card stores no addon copy', () => {
+                                    const editor = withBaseline(makeBaselineCard([{ name: 'addon', values: ['{{own}}'] }]), [
+                                        { name: 'addon', values: ['<merch-addon background="grey">{{addon1}}</merch-addon>'] },
+                                    ]);
+                                    const addonLabel = () =>
+                                        templateText(editor.renderSettingOverrideIndicator('addon')).textContent.trim();
+                                    editor.resetSettingToDefault('addon', true);
+                                    expect(addonLabel()).to.equal('');
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.hasExplicitSettingOverride('addon')).to.be.false;
+                                    expect(addonLabel()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks a background breakpoint the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] },
@@ -2948,6 +2964,19 @@
                                         const toggle = await switchQuantitySelect(editor, true);
                                         expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
                                         expect(toggle.checked).to.be.true;
+                                        unmount(editor);
+                                    });
+
+                                    it('inherits again when the selector is switched on and off over an empty baseline', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-empty-card', '');
+                                        await switchQuantitySelect(editor, true);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
+                                        const toggle = await switchQuantitySelect(editor, false);
+                                        expect(editor.isSettingFromBaseline('quantitySelect')).to.be.true;
+                                        expect(toggle.checked).to.be.false;
+                                        expect(indicator(editor, 'quantitySelect').textContent.trim()).to.equal(
+                                            'From baseline',
+                                        );
                                         unmount(editor);
                                     });
                                 });

@@ -6,4 +6,10 @@ karma.config.js
 LICENSE
 package.json
 package-lock.json
-test/*
+# tests (keep code-bus pushes under the EDS 10 MB / 500 files limits)
+test/
+tests/
+*.test.*
+*.spec.*
+nala/
+/extension/

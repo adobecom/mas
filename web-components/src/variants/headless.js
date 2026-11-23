@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { VariantLayout } from './variant-layout.js';
+import { VariantLayout, editorLabel } from './variant-layout.js';
 import { CSS, headlessRowStyle } from './headless.css.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Headless slots. */
@@ -38,12 +38,33 @@ const HEADLESS_FIELDS = [
     { slot: 'bg-image', label: 'Background Image' },
     { slot: 'badge', label: 'Badge' },
     { slot: 'icons', label: 'Mnemonic icon' },
-    { slot: 'heading-xs', label: 'Title' },
+    {
+        slot: 'heading-xs',
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'title',
+            'Card title',
+        ),
+    },
     { slot: 'body-xxs', label: 'Subtitle' },
     { slot: 'body-xs', label: 'Product description' },
-    { slot: 'promo-text', label: 'Promo Text' },
+    {
+        slot: 'promo-text',
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'promoText',
+            'Promo text',
+        ),
+    },
     { slot: 'callout-content', label: 'Callout text' },
-    { slot: 'short-description', label: 'Short Description' },
+    {
+        slot: 'short-description',
+        label: editorLabel(
+            HEADLESS_AEM_FRAGMENT_MAPPING,
+            'shortDescription',
+            'Pricing subtext',
+        ),
+    },
     { slot: 'trial-badge', label: 'Trial Badge' },
     { slot: 'prices', label: 'Product price' },
     { slot: 'quantity-select', label: 'Quantity select' },

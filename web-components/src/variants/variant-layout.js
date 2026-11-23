@@ -4,6 +4,10 @@ import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 const BORDER_BOX = { box: 'border-box' };
 
+/** A field's display label: the mapping's editorLabel, else the fallback. */
+export const editorLabel = (mapping, key, fallback) =>
+    mapping[key]?.editorLabel ?? fallback;
+
 export class VariantLayout {
     static styleMap = {};
 

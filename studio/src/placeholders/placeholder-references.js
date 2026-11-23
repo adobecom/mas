@@ -66,7 +66,8 @@ async function findReferences(aem, path, key, excludePath, signal, locale) {
                 const language = locale.split('_')[0];
                 const pathLocale = extractLocaleFromPath(item.path);
                 const pznLocale = variationGeoCode(item);
-                const langMatches = pznLocale?.startsWith(`${language}_`) || pathLocale.startsWith(`${language}_`);
+                const langMatches =
+                    pznLocale === language || pznLocale?.startsWith(`${language}_`) || pathLocale.startsWith(`${language}_`);
                 if (!langMatches) continue;
             }
             seenPaths.add(item.path);

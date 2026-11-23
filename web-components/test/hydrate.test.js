@@ -443,6 +443,21 @@ describe('processCTAs', async () => {
         expect(button.textContent).to.equal('Buy now');
     });
 
+    it('should swap the aria-label text to buy-now when replacing a free-trial CTA', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Free trial - Acrobat Pro" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const button = getFooterElement(merchCard).querySelector('button');
+        expect(button.getAttribute('aria-label')).to.equal(
+            'Buy now - Acrobat Pro',
+        );
+        expect(button.textContent).to.equal('Buy now');
+    });
+
     it('should replace free-trial CTA with buy-now in headless when hideTrialCTAs is true', async () => {
         const merchCard = mockMerchCard();
         const aemFragmentMapping = {

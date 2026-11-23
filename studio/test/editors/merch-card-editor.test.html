@@ -2684,6 +2684,17 @@
                                     editor.fragmentStore.previewStore.dispose();
                                 });
 
+                                it('keeps the card Default addon background when restoring Show Addon to a Grey baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([{ name: 'addon', values: ['{{own}}'] }]), [
+                                        { name: 'addon', values: ['<merch-addon background="grey">{{addon1}}</merch-addon>'] },
+                                    ]);
+                                    expect(editor.resetSettingToDefault('addon', true)).to.be.true;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal('{{addon1}}');
+                                    expect(editor.isSettingOverridden('addon')).to.be.false;
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
                                 it('marks a background breakpoint the card does not set as inherited from the baseline', () => {
                                     const editor = withBaseline(makeBaselineCard([]), [
                                         { name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] },

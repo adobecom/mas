@@ -114,7 +114,11 @@ describe('Orion fragment pipeline', () => {
             .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
             .callsFake((url) =>
                 createResponse(200, {
-                    resolvedOffers: [{ offerId: new URL(url).searchParams.has('serveLatest') ? 'orion' : 'legacy' }],
+                    resolvedOffers: [
+                        {
+                            offerId: new URL(url).searchParams.get('serveLatest') === 'true' ? 'orion' : 'legacy',
+                        },
+                    ],
                 }),
             );
     });
@@ -125,7 +129,7 @@ describe('Orion fragment pipeline', () => {
         clearSettingsCache();
     });
 
-    it('returns isolated latest prefill and keeps production requests unchanged', async () => {
+    it('returns isolated latest prefill for both stage and production', async () => {
         const state = new MockState();
         await state.put(
             'configuration',
@@ -148,13 +152,13 @@ describe('Orion fragment pipeline', () => {
         expect(latest).not.to.be.empty;
         expect(latest.every(({ offerId }) => offerId === 'orion')).to.be.true;
         expect(
-            Object.values(response.body.wcs.prod)
+            Object.values(response.body.wcs['prod-latest'])
                 .flat()
-                .every(({ offerId }) => offerId === 'legacy'),
+                .every(({ offerId }) => offerId === 'orion'),
         ).to.be.true;
     });
 
-    it('uses normal response metadata for latest requests without a Stage configuration', async () => {
+    it('isolates latest production response metadata without a stage configuration', async () => {
         const state = new MockState();
         const response = await getFragment({
             id: 'some-en-us-fragment',
@@ -163,9 +167,33 @@ describe('Orion fragment pipeline', () => {
             state,
         });
         expect(response.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
-        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
-        expect(response.body.wcs).to.have.all.keys('prod');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US');
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(response.body.wcs).to.have.all.keys('prod-latest');
+    });
+
+    it('keeps production default, legacy and latest stored responses separate', async () => {
+        const state = new MockState();
+        const files = new MockFiles();
+        for (const [serveLatest, namespace, suffix] of [
+            [undefined, 'prod', ''],
+            [false, 'prod-legacy', '-legacy'],
+            [true, 'prod-latest', '-latest'],
+        ]) {
+            const response = await getFragment({
+                id: 'some-en-us-fragment',
+                locale: 'en_US',
+                serveLatest,
+                state,
+                files,
+            });
+            expect(response.statusCode).to.equal(200);
+            expect(response.body.wcs).to.have.all.keys(namespace);
+            expect(state.store).to.have.property(`req-some-en-us-fragment-en_US${suffix}`);
+            const offers = Object.values(response.body.wcs[namespace]).flat();
+            expect(offers).not.to.be.empty;
+            expect(offers.every(({ offerId }) => offerId === (serveLatest ? 'orion' : 'legacy'))).to.be.true;
+        }
     });
 });
 

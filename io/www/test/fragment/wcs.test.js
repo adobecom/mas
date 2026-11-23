@@ -52,21 +52,27 @@ describe('Orion WCS prefill', () => {
         fetchStub.restore();
     });
 
-    for (const value of ['true', true]) {
-        it(`adds serveLatest only to stage WCS requests for ${JSON.stringify(value)}`, async () => {
+    for (const value of ['true', true, 'false', false]) {
+        it(`forwards serveLatest to all WCS environments for ${JSON.stringify(value)}`, async () => {
             await computeWcsCaches(tokens, { ...context, serveLatest: value });
             const urls = fetchStub.getCalls().map(({ args: [url] }) => new URL(url));
             expect(urls.find(({ hostname }) => hostname === 'www.stage.adobe.com').searchParams.get('serveLatest')).to.equal(
-                'true',
+                String(value),
             );
-            expect(urls.find(({ hostname }) => hostname === 'www.adobe.com').searchParams.has('serveLatest')).to.be.false;
+            expect(urls.find(({ hostname }) => hostname === 'www.adobe.com').searchParams.get('serveLatest')).to.equal(
+                String(value),
+            );
         });
     }
 
-    for (const value of [undefined, 'false', 'on']) {
-        it(`does not add serveLatest for ${JSON.stringify(value)}`, async () => {
+    for (const value of [undefined, 'on']) {
+        it(`defaults only stage to legacy for ${JSON.stringify(value)}`, async () => {
             await computeWcsCaches(tokens, { ...context, serveLatest: value });
-            expect(fetchStub.getCalls().every(({ args: [url] }) => !new URL(url).searchParams.has('serveLatest'))).to.be.true;
+            const urls = fetchStub.getCalls().map(({ args: [url] }) => new URL(url));
+            expect(urls.find(({ hostname }) => hostname === 'www.stage.adobe.com').searchParams.get('serveLatest')).to.equal(
+                'false',
+            );
+            expect(urls.find(({ hostname }) => hostname === 'www.adobe.com').searchParams.has('serveLatest')).to.be.false;
         });
     }
 
@@ -77,7 +83,7 @@ describe('Orion WCS prefill', () => {
             { offerId: 'orion-EN', language: 'EN' },
             { offerId: 'orion-MULT', language: 'MULT' },
         ]);
-        expect(caches.prod[key].map(({ offerId }) => offerId)).to.deep.equal(['legacy-EN', 'legacy-MULT']);
+        expect(caches['prod-latest'][key].map(({ offerId }) => offerId)).to.deep.equal(['orion-EN', 'orion-MULT']);
     });
 
     it('does not reuse normal prefetched stage offers in latest mode', async () => {
@@ -93,7 +99,21 @@ describe('Orion WCS prefill', () => {
         const caches = await computeWcsCaches(tokens, context, {
             'stage-latest': { [key]: [{ offerId: 'orion' }] },
         });
-        expect(caches.stage[key][0].offerId).to.equal('legacy-EN');
+        expect(caches['stage-legacy'][key][0].offerId).to.equal('legacy-EN');
+    });
+
+    it('does not reuse default production prefill for explicit legacy selection', async () => {
+        const caches = await computeWcsCaches(
+            tokens,
+            { ...context, serveLatest: false },
+            {
+                prod: { [key]: [{ offerId: 'default' }] },
+                stage: { [key]: [{ offerId: 'default' }] },
+            },
+        );
+        expect(caches['prod-legacy'][key][0].offerId).to.equal('legacy-EN');
+        expect(caches['stage-legacy'][key][0].offerId).to.equal('legacy-EN');
+        expect(fetchStub.callCount).to.equal(2);
     });
 
     it('reuses latest offers fetched earlier in the fragment pipeline', async () => {

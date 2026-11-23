@@ -15,9 +15,9 @@ const requestKey = async (params) => (await getRequestMetadata({ state: new Mock
 describe('request metadata key', () => {
     it('keeps latest fragment response metadata apart from normal responses', async () => {
         const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'prod' }, { env: 'stage' }] };
-        const normal = await requestKey(params);
         const latest = await requestKey({ ...params, serveLatest: 'true' });
-        expect(latest).to.equal(`${normal}-latest`);
+        expect(latest).to.equal('req-some-id-en_US-latest');
+        expect(await requestKey(params)).to.equal('req-some-id-en_US-stage-legacy');
     });
 
     it('uses the same latest key for boolean and query-string flags', async () => {
@@ -27,14 +27,14 @@ describe('request metadata key', () => {
         );
     });
 
-    for (const serveLatest of [undefined, false, 'false', 'on', 'TRUE']) {
+    for (const serveLatest of [undefined, 'on', 'TRUE']) {
         it(`preserves the normal key when latest mode is ${JSON.stringify(serveLatest)}`, async () => {
             const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'stage' }] };
             expect(await requestKey({ ...params, serveLatest })).to.equal(await requestKey(params));
         });
     }
 
-    for (const wcsConfiguration of [undefined, [], [{ env: 'prod' }]]) {
+    for (const wcsConfiguration of [undefined, []]) {
         for (const serveLatest of [true, 'true']) {
             it(`preserves the normal key without Stage configuration ${JSON.stringify(wcsConfiguration)} for ${JSON.stringify(serveLatest)}`, async () => {
                 const params = { id: 'some-id', locale: 'en_US', wcsConfiguration };
@@ -42,6 +42,20 @@ describe('request metadata key', () => {
             });
         }
     }
+
+    for (const serveLatest of [false, 'false', true, 'true']) {
+        it(`isolates explicit production selection ${JSON.stringify(serveLatest)}`, async () => {
+            const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'prod' }] };
+            const normal = await requestKey(params);
+            const suffix = String(serveLatest) === 'true' ? 'latest' : 'legacy';
+            expect(await requestKey({ ...params, serveLatest })).to.equal(`${normal}-${suffix}`);
+        });
+    }
+
+    it('does not reuse implicit mixed-environment responses for explicit legacy mode', async () => {
+        const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'prod' }, { env: 'stage' }] };
+        expect(await requestKey(params)).not.to.equal(await requestKey({ ...params, serveLatest: false }));
+    });
 
     it('keys a fragment id request by id, locale & country', async () => {
         expect(await requestKey({ id: 'some-id', locale: 'fr_FR', country: 'CA' })).to.equal('req-some-id-fr_FR-CA');

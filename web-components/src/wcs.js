@@ -17,6 +17,10 @@ import { masFetch } from './utils/mas-fetch.js';
 import { getLogHeaders, getService } from './utilities.js';
 import { printMeasure } from './utils.js';
 import { Defaults } from './defaults.js';
+import {
+    getOfferSelection,
+    getOfferSelectionSuffix,
+} from '../../io/www/src/fragment/utils/common.js';
 
 const NAMESPACE = 'wcs';
 
@@ -83,12 +87,9 @@ const NAMESPACE = 'wcs';
 export function Wcs({ settings, fetchTimeout }) {
     const log = Log.module(NAMESPACE);
     const { env, wcsApiKey: apiKey } = settings;
-    const serveLatest = env === Env.STAGE && settings.orion === true;
-    const envKey = serveLatest
-        ? 'stage-latest'
-        : env === Env.STAGE
-          ? 'stage'
-          : 'prod';
+    const wcsEnv = env === Env.STAGE ? 'stage' : 'prod';
+    const serveLatest = getOfferSelection(settings.orion, wcsEnv);
+    const envKey = `${wcsEnv}${getOfferSelectionSuffix(serveLatest)}`;
     /**
      * Cache of promises resolving to arrays of Wcs offers grouped by osi-based keys.
      * @type {Map<string, Promise<Offer[]>>}
@@ -146,8 +147,8 @@ export function Wcs({ settings, fetchTimeout }) {
                 env === Env.STAGE ? 'ALL' : settings.landscape,
             );
             url.searchParams.set('api_key', apiKey);
-            if (serveLatest) {
-                url.searchParams.set('serveLatest', 'true');
+            if (serveLatest !== undefined) {
+                url.searchParams.set('serveLatest', String(serveLatest));
             }
             // language can be undefined if its a UK offer
             if (options.language) {

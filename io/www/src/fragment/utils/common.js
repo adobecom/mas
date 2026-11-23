@@ -368,6 +368,18 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
+function getOfferSelection(value, env) {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return env === 'stage' ? false : undefined;
+}
+
+function getOfferSelectionSuffix(value) {
+    if (value === true) return '-latest';
+    if (value === false) return '-legacy';
+    return '';
+}
+
 export {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
@@ -378,6 +390,8 @@ export {
     internalFetch as fetch,
     clearPendingFetches,
     getCountry,
+    getOfferSelection,
+    getOfferSelectionSuffix,
     getRegionalLocale,
     getRequestInfos,
     getFragmentId,

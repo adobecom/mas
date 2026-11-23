@@ -129,19 +129,19 @@ function getSettings(config = {}, service) {
         wcsURL = WCS_STAGE_URL;
     }
 
-    const orion =
-        isStage &&
-        ['on', 'true'].includes(
-            getParameter(
-                'mas.orion',
-                {
-                    'mas.orion': document.querySelector(
-                        'meta[name="mas.orion"]',
-                    )?.content,
-                },
-                { storage: false },
-            )?.toLowerCase(),
-        );
+    const orionParameter = getParameter(
+        'mas.orion',
+        {
+            'mas.orion': document.querySelector('meta[name="mas.orion"]')
+                ?.content,
+        },
+        { storage: false },
+    )?.toLowerCase();
+    const orion = ['on', 'true'].includes(orionParameter)
+        ? true
+        : ['off', 'false'].includes(orionParameter) || isStage
+          ? false
+          : undefined;
 
     const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config.preview;
     const preview =
@@ -178,7 +178,7 @@ function getSettings(config = {}, service) {
         wcsURL,
         landscape,
         masIOUrl,
-        ...(orion && { orion }),
+        ...(orion !== undefined && { orion }),
         ...(preselectPlan && { preselectPlan }), // only add if defined
         ...(instant && { instant }),
     };

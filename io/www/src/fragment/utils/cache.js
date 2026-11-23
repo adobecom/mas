@@ -1,4 +1,4 @@
-import { getJsonFromState, mark, measureTiming } from './common.js';
+import { getJsonFromState, getOfferSelection, getOfferSelectionSuffix, mark, measureTiming } from './common.js';
 import { geoCacheKey } from '../locales.js';
 import { log, logError } from './log.js';
 import { createSwrCache } from './swr-cache.js';
@@ -24,11 +24,12 @@ const getRequestMetadataKey = ({
     wcsConfiguration = [],
 }) => {
     const geo = geoCacheKey(locale, country);
-    const useLatestStage =
-        (serveLatest === true || serveLatest === 'true') && wcsConfiguration.some(({ env }) => env === 'stage');
-    const fragment = [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country, useLatestStage && 'latest']
-        .filter(Boolean)
-        .join('-');
+    const selectionSuffix = wcsConfiguration.length
+        ? getOfferSelectionSuffix(getOfferSelection(serveLatest)) ||
+          (wcsConfiguration.some(({ env }) => env === 'stage') ? '-stage-legacy' : '')
+        : '';
+    const fragment =
+        [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country].filter(Boolean).join('-') + selectionSuffix;
     const parameters = Object.entries({ p: pzn, m: mask, o: offer, t: template, s: surface })
         .filter(([, value]) => value)
         .map(([tag, value]) => `.${tag}-${escapeKeyValue(value)}`);

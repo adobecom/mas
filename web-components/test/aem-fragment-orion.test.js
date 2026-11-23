@@ -42,7 +42,7 @@ describe('Orion fragment requests and cache isolation', () => {
                         title: latest ? 'Orion' : 'Legacy',
                     },
                     wcs: {
-                        [latest ? 'stage-latest' : 'stage']: {
+                        [latest ? 'stage-latest' : 'stage-legacy']: {
                             'test-osi-gb': [
                                 { offerId: latest ? 'latest' : 'legacy' },
                             ],
@@ -114,7 +114,7 @@ describe('Orion fragment requests and cache isolation', () => {
                             title: mode === 'on' ? 'Orion' : 'Legacy',
                         },
                         wcs: {
-                            [mode === 'on' ? 'stage-latest' : 'stage']: {
+                            [mode === 'on' ? 'stage-latest' : 'stage-legacy']: {
                                 'test-osi-gb': [{ offerId: mode }],
                             },
                         },
@@ -133,15 +133,83 @@ describe('Orion fragment requests and cache isolation', () => {
         ).to.equal('true');
     });
 
-    it('does not forward latest mode on production', async () => {
+    it('forwards latest mode on production', async () => {
         window.history.replaceState({}, '', `${baseHref}?mas.orion=true`);
         service.activate();
         await load();
         expect(
-            new URL(fetchStub.firstCall.args[0]).searchParams.has(
+            new URL(fetchStub.firstCall.args[0]).searchParams.get(
                 'serveLatest',
             ),
-        ).to.be.false;
+        ).to.equal('true');
+    });
+
+    for (const search of [
+        '?mas.orion=on',
+        '?mas.orion=off',
+        '?commerce.env=stage&mas.orion=on',
+        '?commerce.env=stage&mas.orion=off',
+    ]) {
+        it(`loads unsaved author data from the Studio cache for "${search}"`, async () => {
+            window.history.replaceState({}, '', `${baseHref}${search}`);
+            service.activate();
+            cache.add({
+                id: 'requested-id',
+                fields: [
+                    {
+                        name: 'title',
+                        multiple: false,
+                        values: ['Unsaved editor title'],
+                    },
+                ],
+            });
+
+            const fragment = startLoad('requested-id', { author: '' });
+            await fragment.updateComplete;
+
+            expect(fetchStub.called).to.be.false;
+            expect(fragment.data.fields.title).to.equal('Unsaved editor title');
+        });
+    }
+
+    for (const [search, expected] of [
+        ['?commerce.env=stage', 'false'],
+        ['?commerce.env=stage&mas.orion=off', 'false'],
+        ['?mas.orion=off', 'false'],
+        ['', null],
+    ]) {
+        it(`forwards selection ${expected} for "${search}"`, async () => {
+            window.history.replaceState({}, '', `${baseHref}${search}`);
+            service.activate();
+            await load();
+            expect(
+                new URL(fetchStub.firstCall.args[0]).searchParams.get(
+                    'serveLatest',
+                ),
+            ).to.equal(expected);
+        });
+    }
+
+    it('isolates default, legacy and latest production fragment responses', async () => {
+        const keys = [];
+        for (const search of ['', '?mas.orion=off', '?mas.orion=on']) {
+            window.history.replaceState({}, '', `${baseHref}${search}`);
+            service.activate();
+            const fragment = await load();
+            keys.push(fragment.cacheKey());
+        }
+        expect(new Set(keys).size).to.equal(3);
+        expect(fetchStub.callCount).to.equal(3);
+    });
+
+    it('does not reuse stage Orion responses in production Orion mode', async () => {
+        const stage = await load();
+        const stageKey = stage.cacheKey();
+        window.history.replaceState({}, '', `${baseHref}?mas.orion=on`);
+        service.activate();
+        const prod = await load();
+        expect(prod.cacheKey()).not.to.equal(stageKey);
+        expect(fetchStub.callCount).to.equal(2);
     });
 
     for (const firstMode of ['on', 'off']) {
@@ -217,7 +285,7 @@ describe('Orion fragment requests and cache isolation', () => {
             );
             expect(prefill.calledOnce).to.be.true;
             expect(prefill.firstCall.args[0]).not.to.have.property(
-                firstMode === 'on' ? 'stage-latest' : 'stage',
+                firstMode === 'on' ? 'stage-latest' : 'stage-legacy',
             );
             prefill.restore();
         });
@@ -229,13 +297,21 @@ describe('Orion fragment requests and cache isolation', () => {
                 status: 200,
                 body: {
                     id: 'requested-id',
-                    fields: { title: suffix ? 'Orion' : 'Legacy' },
+                    fields: {
+                        title: suffix === '-orion' ? 'Orion' : 'Legacy',
+                    },
                     wcs: {
-                        [suffix ? 'stage-latest' : 'stage']: {
-                            'test-osi-gb': [
-                                { offerId: suffix ? 'orion' : 'legacy' },
-                            ],
-                        },
+                        [suffix === '-orion' ? 'stage-latest' : 'stage-legacy']:
+                            {
+                                'test-osi-gb': [
+                                    {
+                                        offerId:
+                                            suffix === '-orion'
+                                                ? 'orion'
+                                                : 'legacy',
+                                    },
+                                ],
+                            },
                     },
                 },
             });
@@ -261,12 +337,14 @@ describe('Orion fragment requests and cache isolation', () => {
                 const otherMode = firstMode === 'on' ? 'off' : 'on';
                 switchMode(otherMode, true);
                 const prefill = sandbox.spy(service, 'prefillWcsCache');
-                release(previewResponse(firstMode === 'on' ? '-orion' : ''));
+                release(
+                    previewResponse(firstMode === 'on' ? '-orion' : '-legacy'),
+                );
                 await fragment.updateComplete;
 
                 expect(preview.callCount).to.equal(2);
                 expect(preview.secondCall.args[0]).to.equal(
-                    otherMode === 'on' ? '-orion' : '',
+                    otherMode === 'on' ? '-orion' : '-legacy',
                 );
                 expect(cache.has(originalKey)).to.be.false;
                 expect(fragment.data.fields.title).to.equal(
@@ -275,7 +353,7 @@ describe('Orion fragment requests and cache isolation', () => {
                 expect(loaded.calledOnce).to.be.true;
                 expect(prefill.calledOnce).to.be.true;
                 expect(prefill.firstCall.args[0]).not.to.have.property(
-                    firstMode === 'on' ? 'stage-latest' : 'stage',
+                    firstMode === 'on' ? 'stage-latest' : 'stage-legacy',
                 );
                 expect(fetchStub.called).to.be.false;
             } finally {

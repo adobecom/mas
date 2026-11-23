@@ -203,7 +203,8 @@ export class AemFragment extends HTMLElement {
 
     get cacheSuffix() {
         const settings = (this.#service ?? getService())?.settings;
-        return settings?.env === Env.STAGE && settings.orion ? '-orion' : '';
+        if (this.#author || settings?.orion === undefined) return '';
+        return `-${settings.env === Env.STAGE ? '' : 'prod-'}${settings.orion ? 'orion' : 'legacy'}`;
     }
 
     cacheKey(cacheSuffix = this.cacheSuffix) {
@@ -428,7 +429,7 @@ export class AemFragment extends HTMLElement {
         }
 
         if (cacheSuffix) {
-            endpoint += '&serveLatest=true';
+            endpoint += `&serveLatest=${cacheSuffix.endsWith('orion')}`;
         }
 
         if (this.#mask) {
@@ -592,7 +593,9 @@ export class AemFragment extends HTMLElement {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
-            ...(cacheSuffix ? { serveLatest: true } : {}),
+            ...(cacheSuffix
+                ? { serveLatest: cacheSuffix.endsWith('orion') }
+                : {}),
         };
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??

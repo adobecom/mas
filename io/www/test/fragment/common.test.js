@@ -7,11 +7,42 @@ import {
     geoMatchScore,
     matchesGeo,
     getCountry,
+    getOfferSelection,
+    getOfferSelectionSuffix,
     isGroupedVariationFragmentPath,
     hasGeoTag,
 } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
+    describe('WCS offer selection', () => {
+        for (const env of ['stage', 'prod']) {
+            for (const [value, expected] of [
+                [true, true],
+                ['true', true],
+                [false, false],
+                ['false', false],
+            ]) {
+                it(`preserves explicit ${JSON.stringify(value)} on ${env}`, () => {
+                    expect(getOfferSelection(value, env)).to.equal(expected);
+                });
+            }
+
+            for (const value of [undefined, null, '', 'on', 'TRUE', 'other']) {
+                it(`uses the ${env} default for ${JSON.stringify(value)}`, () => {
+                    expect(getOfferSelection(value, env)).to.equal(env === 'stage' ? false : undefined);
+                });
+            }
+        }
+
+        it('assigns distinct cache namespaces to legacy, latest and WCS default', () => {
+            expect([
+                getOfferSelectionSuffix(false),
+                getOfferSelectionSuffix(true),
+                getOfferSelectionSuffix(undefined),
+            ]).to.deep.equal(['-legacy', '-latest', '']);
+        });
+    });
+
     describe('matchesGeo', () => {
         describe('long-form CQ tag paths', () => {
             it('matches regionLocale against /content/cq:tags/mas/locale/<value>', () => {

@@ -9,6 +9,7 @@ import { Fragment } from '../aem/fragment.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../constants.js';
 import { getFragmentMapping } from '../utils.js';
 import { fetchProductDetail } from '../services/product-api.js';
+import { getPlanType } from './plan-type.js';
 
 /**
  * Maps variant field names to AEM field names
@@ -75,14 +76,15 @@ export function buildReleaseCtas(baseOsi, trialOsi, { includeTrial = true, buyNo
 }
 
 /**
- * Builds the `prices` HTML for a release card, byte-identical to what OST
- * would emit — no data-template attribute (OST omits it for the default price type).
+ * Builds the `prices` HTML for a release card. `data-template="price"` matches hand-authored
+ * Plans cards and the IO generator (create-release-cards); without it the Plans legal line,
+ * and with it the ABM plan type label, never renders.
  *
  * @param {string} osi - Base offer selector ID
  * @returns {string}
  */
 export function buildReleasePrice(osi) {
-    return `<span is="inline-price" data-wcs-osi="${osi}"></span>`;
+    return `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
 }
 
 /**
@@ -406,9 +408,10 @@ export function validateAIConfig(aiConfig, variantConfig, options = {}) {
  * io/operations/src/actions/create-release-cards.js.
  *
  * @param {Object} product - Selected release product (from MCS)
+ * @param {Object} [baseOffer] - Selected base offer (commitment, term); drives the plan_type tag
  * @returns {string[]} - Tag IDs in `mas:...` form
  */
-export function buildReleaseTags(product) {
+export function buildReleaseTags(product, baseOffer) {
     if (!product) return [];
     const tags = [];
     if (product.product_code) tags.push(`mas:product_code/${product.product_code}`);
@@ -423,6 +426,8 @@ export function buildReleaseTags(product) {
           ? Object.keys(product.marketSegments).filter((k) => product.marketSegments[k])
           : [];
     marketSegments.forEach((s) => tags.push(`mas:market_segments/${s}`));
+    const planType = getPlanType(baseOffer);
+    if (planType) tags.push(`mas:plan_type/${planType}`);
     return tags;
 }
 

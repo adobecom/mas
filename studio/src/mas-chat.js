@@ -17,6 +17,7 @@ import {
     buildReleaseTags,
 } from './utils/ai-card-mapper.js';
 import { shouldRequireConfirmation } from './utils/ai-operations-executor.js';
+import { createFragmentWithTags } from './utils/release-cards.js';
 import { classifyEnvelopeIntent, renderConfirmationTemplate, META_INTENTS } from './utils/ai-chat-envelope-dispatcher.js';
 import {
     getProductName,
@@ -1968,10 +1969,10 @@ export class MasChat extends LitElement {
             title,
             name: uniqueName,
             parentPath,
-            tags: buildReleaseTags(this.selectedReleaseProduct),
+            tags: buildReleaseTags(this.selectedReleaseProduct, this.selectedReleaseOffer),
         });
 
-        const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+        const newFragment = await createFragmentWithTags(repository, fragmentData);
         if (!this.isCurrentWork(work)) return;
 
         return newFragment;

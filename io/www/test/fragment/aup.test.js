@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import { transformer } from '../../src/fragment/transformers/aup.js';
+import sinon from 'sinon';
+import { clearFulfillableItemsCache, transformer } from '../../src/fragment/transformers/aup.js';
+import { createResponse } from './mocks/MockFetch.js';
 import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { baseOffer } from '../../../../price/test/fixtures/cases.js';
 
@@ -107,14 +109,7 @@ describe('aup transformer', () => {
             {
                 id: 'whatsIncluded',
                 header: '<p>Students save 50%.</p>',
-                items: [
-                    {
-                        icon: undefined,
-                        alt: undefined,
-                        description: '<h4>Everything in <strong>Pro</strong></h4>',
-                        href: undefined,
-                    },
-                ],
+                items: [{ icon: undefined, title: '<p>Everything in <strong>Pro</strong></p>', items: [] }],
             },
         ]);
         expect(
@@ -290,6 +285,141 @@ describe('aup transformer', () => {
         });
         expect(body.features[0].header).to.be.undefined;
         expect(body.description).to.equal('<p>Hello</p>');
+    });
+
+    it('maps pro sections with their icon, title and rows', async () => {
+        const body = await map({
+            whatsIncluded:
+                '<div class="section"><h4><sp-icon-star></sp-icon-star>Apps</h4><ul><li>Photoshop</li><li>Illustrator</li></ul></div>' +
+                '<div class="section"><h4><merch-icon src="ai.svg"></merch-icon>AI</h4></div>' +
+                '<div class="section"><h4><svg></svg><em>Storage</em></h4></div>',
+        });
+        expect(body.features).to.deep.equal([
+            {
+                id: 'whatsIncluded',
+                items: [
+                    { icon: 'sp-icon-star', title: '<p>Apps</p>', items: ['<p>Photoshop</p>', '<p>Illustrator</p>'] },
+                    { icon: 'ai.svg', title: '<p>AI</p>', items: [] },
+                    { icon: undefined, title: '<p><em>Storage</em></p>', items: [] },
+                ],
+            },
+        ]);
+    });
+
+    describe('fulfillable items', () => {
+        const AOS = { AOS_URL: 'https://aos.example/offers', AOS_API_KEY: 'aos-key' };
+        const APPS =
+            '<p class="whats-included-label">Apps included</p>' +
+            '<merch-mnemonic-list><div slot="icon"><merch-icon src="photoshop.svg" alt=""></merch-icon></div><p slot="description"></p></merch-mnemonic-list>' +
+            '<merch-mnemonic-list data-fi-code="firefly_credits"><merch-icon src="custom.svg" alt="Firefly"></merch-icon><p slot="description">Firefly</p></merch-mnemonic-list>' +
+            '<merch-mnemonic-list><merch-icon src="fonts.svg" alt="Adobe Fonts"></merch-icon><p slot="description">Fonts</p></merch-mnemonic-list>';
+        const FULFILLABLE_ITEMS = [
+            { code: 'photoshop_no_icon', copy: { name: 'Photoshop' } },
+            {
+                code: 'photoshop_cc',
+                copy: { name: 'Adobe Photoshop', short_description: 'Edit photos', description: 'long' },
+                assets: { icons: { svg: 'https://aos/ps.svg' } },
+            },
+            { code: 'firefly_credits', copy: { name: 'Adobe Firefly', description: 'Generative credits' } },
+        ];
+        let fetchStub;
+
+        beforeEach(() => {
+            clearFulfillableItemsCache();
+            fetchStub = sinon
+                .stub(globalThis, 'fetch')
+                .callsFake(() =>
+                    createResponse(200, [
+                        { offer_id: 'no-merch' },
+                        { merchandising: { fulfillable_items: FULFILLABLE_ITEMS } },
+                    ]),
+                );
+        });
+
+        afterEach(() => fetchStub.restore());
+
+        it('splits authored apps into included apps, enriched from AOS, and other items', async () => {
+            const body = await map({ osi: 'OSI-PRO', whatsIncluded: APPS }, AOS);
+            expect(body.features).to.deep.equal([
+                {
+                    id: 'includedApps',
+                    header: '<p>Apps included</p>',
+                    items: [
+                        {
+                            icon: 'photoshop.svg',
+                            alt: 'Adobe Photoshop',
+                            code: 'photoshop_cc',
+                            name: 'Adobe Photoshop',
+                            tooltip: 'Edit photos',
+                            href: undefined,
+                        },
+                        {
+                            icon: 'custom.svg',
+                            alt: 'Firefly',
+                            code: 'firefly_credits',
+                            name: 'Firefly',
+                            tooltip: 'Generative credits',
+                            href: undefined,
+                        },
+                    ],
+                },
+                {
+                    id: 'whatsIncluded',
+                    items: [{ icon: 'fonts.svg', alt: 'Adobe Fonts', description: '<p>Fonts</p>', href: undefined }],
+                },
+            ]);
+            const url = new URL(fetchStub.firstCall.args[0]);
+            expect(url.origin + url.pathname).to.equal('https://aos.example/offers');
+            expect(Object.fromEntries(url.searchParams)).to.include({
+                arrangement_code: 'pa-OSI-PRO',
+                country: 'US',
+                locale: 'en_US',
+            });
+            expect(fetchStub.firstCall.args[1].headers['x-api-key']).to.equal('aos-key');
+            await map({ osi: 'OSI-PRO', whatsIncluded: APPS }, AOS);
+            expect(fetchStub.callCount).to.equal(1);
+            const unlabelled = '<merch-mnemonic-list><p slot="description">Photoshop</p></merch-mnemonic-list>';
+            const [{ items }] = (await map({ osi: 'OSI-PRO', whatsIncluded: unlabelled }, AOS)).features;
+            expect(items[0]).to.include({ icon: 'https://aos/ps.svg', alt: 'Adobe Photoshop', name: 'Photoshop' });
+        });
+
+        it('keeps authored codes without AOS and fills missing names from fulfillable items', async () => {
+            fetchStub.callsFake(() =>
+                createResponse(200, [{ merchandising: { fulfillable_items: [{ code: 'firefly_credits', copy: {} }] } }]),
+            );
+            const icon = '<merch-icon src="ff.svg" data-fi-code="firefly_credits"></merch-icon>';
+            const whatsIncluded = `<merch-mnemonic-list>${icon}</merch-mnemonic-list><merch-mnemonic-list data-fi-code="unknown"></merch-mnemonic-list>`;
+            const expected = [
+                {
+                    icon: 'ff.svg',
+                    alt: undefined,
+                    code: 'firefly_credits',
+                    name: undefined,
+                    tooltip: undefined,
+                    href: undefined,
+                },
+                { icon: undefined, alt: undefined, code: 'unknown', name: undefined, tooltip: undefined, href: undefined },
+            ];
+            expect((await map({ osi: 'OSI-PRO', whatsIncluded }, AOS)).features).to.deep.equal([
+                { id: 'includedApps', items: expected },
+            ]);
+            expect((await map({ whatsIncluded })).features).to.deep.equal([{ id: 'includedApps', items: expected }]);
+        });
+
+        it('falls back to authored items when AOS fails or has no merchandising', async () => {
+            fetchStub.callsFake(() => createResponse(500));
+            const items = [{ icon: 'fonts.svg', alt: 'Adobe Fonts', description: '<p>Fonts</p>', href: undefined }];
+            const fonts = APPS.split('</merch-mnemonic-list>')[2];
+            const whatsIncluded = `${fonts}</merch-mnemonic-list>`;
+            expect((await map({ osi: 'OSI-PRO', whatsIncluded }, AOS)).features).to.deep.equal([
+                { id: 'whatsIncluded', items },
+            ]);
+            fetchStub.callsFake(() => createResponse(200, [{}]));
+            expect(
+                (await map({ osi: 'OSI-PRO', whatsIncluded }, { AOS_URL: 'https://aos.example', AOS_API_KEY: 'k' })).features,
+            ).to.deep.equal([{ id: 'whatsIncluded', items }]);
+            expect(new URL(fetchStub.lastCall.args[0]).pathname).to.equal('/offers');
+        });
     });
 
     it('maps an empty card', async () => {

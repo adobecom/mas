@@ -12,6 +12,9 @@ application:
                         function: src/fragment/pipeline.js
                         web: 'yes'
                         runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
                         limits:
                             concurrency: 20
                             memory: 1024

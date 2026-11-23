@@ -4,8 +4,9 @@ import { buildCheckoutUrl } from '../../../../../checkout/src/buildCheckoutUrl.j
 import { resolveCheckoutData } from '../../../../../checkout/src/checkout.js';
 import { CheckoutWorkflowStep, Landscape, PROVIDER_ENVIRONMENT } from '../../../../../checkout/src/constants.js';
 import { is3in1Modal } from '../../../../../checkout/src/decisions.js';
-import { CARD_MODEL_ID, getCountry } from '../utils/common.js';
+import { CARD_MODEL_ID, fetch, getCountry } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 import { cachedOffersOf, datasetOf, effectivePromotionCode, fragmentPromotionCode, RENDER_ENVIRONMENT } from './render.js';
 import { serializeValue } from './serialize.js';
 
@@ -55,6 +56,9 @@ const COLOR_TOKENS = {
 const colorOf = (token) => (token ? (COLOR_TOKENS[token] ?? token) : token);
 const outerHtml = (node) => innerHtml({ nodeName: '#document-fragment', childNodes: [node] });
 const isPrice = (node) => node.attrs?.some(({ name, value }) => name === 'is' && value === INLINE_PRICE);
+
+const fulfillableItemsCache = createSwrCache({ name: 'aos-fulfillable-items' });
+export const clearFulfillableItemsCache = () => fulfillableItemsCache.clear();
 
 const attributesOf = (node) => Object.fromEntries(node.attrs.map(({ name, value }) => [name, value]));
 const classesOf = (node) => (attributesOf(node).class ?? '').split(/\s+/);
@@ -185,23 +189,111 @@ function ctaOf(element, scope) {
     return { ...cta, wcsOsi: dataset.wcsOsi, url: checkoutUrlOf(checkout, osis, scope), checkout };
 }
 
-/** in-card what's included list: `.whats-included-label` or `[slot=heading]` header, `.section` or mnemonic list items */
-function whatsIncludedOf(html, { value }) {
+/** MCS fulfillable items `{ code, name, icon, tooltip }` of a product arrangement, `[]` when AOS is not configured */
+async function fulfillableItemsOf(productArrangementCode, context) {
+    const { AOS_URL, AOS_API_KEY } = context;
+    if (!productArrangementCode || !AOS_URL?.startsWith('http') || !AOS_API_KEY) return [];
+    const url = new URL(AOS_URL.endsWith('/offers') ? AOS_URL : `${AOS_URL}/offers`);
+    const query = {
+        country: context.wcsCountry ?? getCountry(context),
+        merchant: 'ADOBE',
+        service_providers: 'MERCHANDISING',
+        locale: context.locale,
+        landscape: 'PUBLISHED',
+        arrangement_code: productArrangementCode,
+    };
+    for (const [name, value] of Object.entries(query)) url.searchParams.set(name, value);
+    const load = async () => {
+        const headers = { ...context.DEFAULT_HEADERS, 'x-api-key': AOS_API_KEY };
+        const response = await fetch(url.toString(), { ...context, DEFAULT_HEADERS: headers }, 'aos');
+        if (response.status !== 200) return null;
+        const offer = response.body.find(({ merchandising }) => merchandising);
+        return (offer?.merchandising.fulfillable_items ?? []).map(({ code, copy = {}, assets }) => ({
+            code,
+            name: copy.name,
+            icon: assets?.icons?.svg,
+            tooltip: copy.short_description ?? copy.description,
+        }));
+    };
+    return (await fulfillableItemsCache.get(context, url.toString(), load)) ?? [];
+}
+
+const normalized = (name) =>
+    name
+        ?.toLowerCase()
+        .replace(/^adobe\s+/, '')
+        .replace(/[^a-z0-9]/g, '');
+
+/**
+ * fulfillable item of an authored app: the one of its `data-fi-code`, else (experimental, until authors pick codes)
+ * the one with an icon named as its alt, description or icon file
+ */
+function fulfillableItemFor(code, names, fulfillableItems) {
+    if (code) return fulfillableItems.find((item) => item.code === code);
+    const keys = names.map(normalized).filter(Boolean);
+    return fulfillableItems.find(({ name, icon }) => icon && keys.includes(normalized(name)));
+}
+
+/** pro section: `<h4>{icon}{title}</h4><ul><li>row</li>…</ul>`, as studio's pro-whats-included */
+function sectionOf(section, { value }) {
+    const descendants = descendantsOf(section);
+    const heading = descendants.find(({ tagName }) => tagName === 'h4');
+    if (!heading) return { title: value(innerHtml(section)), items: [] };
+    const [lead] = heading.childNodes.filter(({ tagName }) => tagName);
+    const isIcon = lead && (lead.tagName.startsWith('sp-icon-') || ['merch-icon', 'svg'].includes(lead.tagName));
+    const title = { nodeName: '#document-fragment', childNodes: heading.childNodes.filter((node) => !isIcon || node !== lead) };
+    return {
+        icon: isIcon ? (attributesOf(lead).src ?? (lead.tagName === 'svg' ? undefined : lead.tagName)) : undefined,
+        title: value(innerHtml(title)),
+        items: descendants.filter(({ tagName }) => tagName === 'li').map((item) => value(innerHtml(item))),
+    };
+}
+
+const isAppList = ({ tagName }) => tagName === 'merch-mnemonic-list';
+
+/**
+ * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; mnemonic list
+ * items matching a fulfillable item go to `includedApps`, enriched where not authored, other items to `whatsIncluded`
+ */
+function featuresOf(html, fulfillableItems, { text, value }) {
     const elements = elementsOf(html);
-    if (!elements.length) return undefined;
     const heading = elements.find(
         (element) => classesOf(element).includes('whats-included-label') || attributesOf(element).slot === 'heading',
     );
-    const items = elements
-        .filter((element) => classesOf(element).includes('section') || element.tagName === 'merch-mnemonic-list')
-        .map((element) => {
-            const descendants = descendantsOf(element);
-            const icon = descendants.find(({ tagName }) => tagName === 'merch-icon' || tagName === 'img');
-            const description = descendants.find((descendant) => attributesOf(descendant).slot === 'description');
-            const { src, alt, href } = icon ? attributesOf(icon) : {};
-            return { icon: src, alt, description: value(innerHtml(description ?? element)), href };
+    const includedApps = [];
+    const whatsIncluded = [];
+    for (const element of elements) {
+        if (classesOf(element).includes('section')) {
+            whatsIncluded.push(sectionOf(element, { value }));
+            continue;
+        }
+        if (!isAppList(element)) continue;
+        const descendants = descendantsOf(element);
+        const icon = descendants.find(({ tagName }) => tagName === 'merch-icon' || tagName === 'img');
+        const description = descendants.find((descendant) => attributesOf(descendant).slot === 'description');
+        const { src, alt, href, 'data-fi-code': iconCode } = icon ? attributesOf(icon) : {};
+        const code = attributesOf(element)['data-fi-code'] ?? iconCode;
+        const name = description ? text(innerHtml(description)) : '';
+        const item = fulfillableItemFor(code, [alt, name, src && altOf(src)], fulfillableItems);
+        if (!code && !item) {
+            whatsIncluded.push({ icon: src, alt, description: value(innerHtml(description ?? element)), href });
+            continue;
+        }
+        includedApps.push({
+            icon: src || item?.icon,
+            alt: alt || item?.name,
+            code: code ?? item.code,
+            name: name || item?.name,
+            tooltip: item?.tooltip,
+            href,
         });
-    return { id: 'whatsIncluded', header: heading ? value(innerHtml(heading)) : undefined, items };
+    }
+    const features = [
+        { id: 'includedApps', items: includedApps },
+        { id: 'whatsIncluded', items: whatsIncluded },
+    ].filter(({ items }) => items.length);
+    if (features.length && heading) features[0].header = value(innerHtml(heading));
+    return features;
 }
 
 /** add-on offers: one per inline price, its plan type authored on the price or its paragraph, else the offer's */
@@ -276,7 +368,7 @@ function seeTermsOf(htmls, { text }) {
     return undefined;
 }
 
-function mapCard(context) {
+async function mapCard(context) {
     const { body: fragment, type } = context;
     const { fields } = fragment;
     const settings = fragment.settings ?? {};
@@ -289,7 +381,10 @@ function mapCard(context) {
     const osi = raw('osi');
     const [offer] = (osi && cachedOffers([osi], effectivePromotionCode(raw('promoCode') ?? ''), scope)) || [];
     const labels = raw('customFieldLabels') ?? [];
-    const whatsIncluded = whatsIncludedOf(raw('whatsIncluded'), scope);
+    const productArrangementCode = offer?.productArrangementCode;
+    const fulfillableItems = elementsOf(raw('whatsIncluded')).some(isAppList)
+        ? await fulfillableItemsOf(productArrangementCode, context)
+        : [];
     const secureLabel = settings.secureLabel ?? (raw('showSecureLabel') ? '' : undefined);
     return {
         fragment: fragment.id,
@@ -299,7 +394,7 @@ function mapCard(context) {
             ?.split('/')[1],
         offerId: context.offer,
         osi,
-        productArrangementCode: offer?.productArrangementCode,
+        productArrangementCode,
         title: richValue('cardTitle'),
         subtitle: raw('subtitle'),
         badge: badgeOf(
@@ -326,7 +421,7 @@ function mapCard(context) {
         ctas: elementsOf(raw('ctas'))
             .filter(({ tagName }) => tagName === 'a' || tagName === 'button')
             .map((element) => ctaOf(element, scope)),
-        features: whatsIncluded ? [whatsIncluded] : [],
+        features: featuresOf(raw('whatsIncluded'), fulfillableItems, scope),
         addon: addonOf(raw('addon') ?? settings.addon, raw('addonConfirmation'), raw('variant'), scope),
         quantitySelect: quantitySelectOf(raw('quantitySelect') ?? settings.quantitySelect),
         secureTransaction: secureLabel === undefined ? null : { enabled: true, ...(secureLabel && { label: secureLabel }) },
@@ -352,7 +447,7 @@ async function aup(context) {
         log(`aup mapping only applies to cards, ${context.body?.id} is left as delivered`, context);
         return context;
     }
-    context.body = mapCard(context);
+    context.body = await mapCard(context);
     return context;
 }
 

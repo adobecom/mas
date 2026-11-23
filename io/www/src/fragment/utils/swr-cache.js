@@ -54,12 +54,11 @@ function store(name, backend, memoryKey, entry, maxEntries) {
 
 function heapExcess() {
     const { heap } = memory;
-    const used = heap.getHeapUsed();
-    // Evicted entries are only freed by the next garbage collection, which is what shrinks the heap:
-    // until then they are deducted from the heap used, so that a single excess is not evicted again.
-    if (used < heap.lastUsed) heap.evicted = 0;
-    heap.lastUsed = used;
-    return used - heap.evicted - heap.maxUsed;
+    return heap.getHeapUsed() - heap.evicted - heap.maxUsed;
+}
+
+export function resetHeapEvictionCredit() {
+    if (memory.heap) memory.heap.evicted = 0;
 }
 
 function enforceBudget() {
@@ -135,7 +134,7 @@ export function setMemoryLimit(maxBytes) {
  * goes back to the byte budget.
  */
 export function setHeapBudget(maxHeapUsed, getHeapUsed) {
-    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, lastUsed: 0, evicted: 0 } : null;
+    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, evicted: 0 } : null;
     enforceBudget();
 }
 

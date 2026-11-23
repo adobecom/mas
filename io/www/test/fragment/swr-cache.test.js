@@ -1,7 +1,13 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import v8 from 'v8';
-import { createSwrCache, getMemoryStats, setHeapBudget, setMemoryLimit } from '../../src/fragment/utils/swr-cache.js';
+import {
+    createSwrCache,
+    getMemoryStats,
+    resetHeapEvictionCredit,
+    setHeapBudget,
+    setMemoryLimit,
+} from '../../src/fragment/utils/swr-cache.js';
 
 // A deferred loader: resolve/reject externally so a refill can be held in-flight to observe
 // single-flight coalescing and stale-while-revalidate.
@@ -178,7 +184,7 @@ describe('swr-cache', () => {
             setHeapBudget(maxHeapUsed, () => v8.getHeapStatistics().used_heap_size);
         });
 
-        it('evicts only the excess above the heap budget, until the heap shrinks', async () => {
+        it('evicts only the excess above the heap budget, until garbage collection', async () => {
             const cache = createSwrCache({ name: 'budget-heap' });
             let heapUsed = 0;
             setHeapBudget(1000, () => heapUsed);
@@ -195,9 +201,37 @@ describe('swr-cache', () => {
             expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 2 });
 
             heapUsed = 1050;
+            resetHeapEvictionCredit();
             await cache.get(published, 'f', async () => 'f'.repeat(98));
             expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 3 });
             expect(await cache.get(published, 'c', async () => 'reloaded')).to.equal('reloaded');
+        });
+
+        for (const allocation of [0, 100]) {
+            it(`resumes eviction after garbage collection when heap usage ${allocation ? 'increases' : 'stays unchanged'}`, () => {
+                const cache = createSwrCache({ name: `budget-masked-gc-${allocation}` });
+                let heapUsed = 0;
+                setHeapBudget(1000, () => heapUsed);
+                for (const key of ['a', 'b', 'c', 'd']) cache.set(published, key, key.repeat(98));
+                heapUsed = 1000 + getMemoryStats().bytes - 250;
+                cache.set(published, 'e', 'e'.repeat(98));
+                expect(cacheStats(`budget-masked-gc-${allocation}`).entries).to.equal(3);
+
+                heapUsed = 1150;
+                resetHeapEvictionCredit();
+                cache.set(published, 'f', 'f'.repeat(98));
+                expect(cacheStats(`budget-masked-gc-${allocation}`).entries).to.equal(2);
+
+                heapUsed += allocation;
+                resetHeapEvictionCredit();
+                cache.set(published, 'g', 'g'.repeat(98));
+                expect(cacheStats(`budget-masked-gc-${allocation}`).entries).to.equal(1);
+            });
+        }
+
+        it('ignores garbage collection when the heap budget is disabled', () => {
+            expect(() => resetHeapEvictionCredit()).not.to.throw();
+            expect(getMemoryStats().maxHeapUsed).to.equal(undefined);
         });
 
         it('evicts the least recently used entries across cache instances above the byte budget', async () => {

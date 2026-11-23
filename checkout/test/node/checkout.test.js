@@ -3,6 +3,18 @@ import { describe, it } from 'node:test';
 import { buildCheckoutUrl, applyPageLocaleToCheckoutUrl } from '../../src/buildCheckoutUrl.js';
 import { resolveCheckoutData, resolveCheckoutIntent } from '../../src/checkout.js';
 import { urlCases, offerCases } from '../fixtures/cases.js';
+import { checkoutDecisions } from '../../src/decisions.js';
+import { decisionCases } from '../fixtures/decisions.js';
+
+describe('shared checkout decisions without browser globals', () => {
+    for (const { id, decision, input, expected } of decisionCases) {
+        it(id, () => {
+            const original = structuredClone(input);
+            assert.deepEqual(checkoutDecisions[decision](input), expected);
+            assert.deepEqual(input, original);
+        });
+    }
+});
 
 describe('checkout URLs without browser globals', () => {
     for (const { id, data, pageContext, expected } of urlCases) {
@@ -55,6 +67,41 @@ describe('checkout URLs without browser globals', () => {
         const data = { ...urlCases[2].data, marketSegment: undefined, customerSegment: undefined };
         assert.equal(new URL(buildCheckoutUrl({ ...data, preselectPlan: 'EDU' })).searchParams.get('ms'), 'EDU');
         assert.equal(new URL(buildCheckoutUrl({ ...data, preselectPlan: 'TEAM' })).searchParams.get('cs'), 'TEAM');
+    });
+
+    const genuineNcKeys = ['closeWindow', 'openBrowser', 'static', 'takeAction', 'exitApp'];
+
+    it('keeps closeWindow, openBrowser, static, takeAction and exitApp with their values unchanged', () => {
+        const values = { closeWindow: 'true', openBrowser: 'false', static: '1', takeAction: 'buy', exitApp: '' };
+        const params = new URL(buildCheckoutUrl({ ...urlCases[0].data, ...values })).searchParams;
+        for (const [key, value] of Object.entries(values)) {
+            assert.equal(params.get(key), value);
+        }
+    });
+
+    it('forwards only the authored genuine NC params and adds none of the others', () => {
+        const params = new URL(buildCheckoutUrl({ ...urlCases[0].data, closeWindow: 'true', exitApp: 'yes' })).searchParams;
+        assert.equal(params.get('closeWindow'), 'true');
+        assert.equal(params.get('exitApp'), 'yes');
+        for (const key of ['openBrowser', 'static', 'takeAction']) {
+            assert.equal(params.has(key), false);
+        }
+    });
+
+    it('still drops a key that is not on the allowed list', () => {
+        const params = new URL(buildCheckoutUrl({ ...urlCases[0].data, someOtherKey: 'x', closeWindow: 'true' })).searchParams;
+        assert.equal(params.has('someOtherKey'), false);
+        assert.equal(params.get('closeWindow'), 'true');
+    });
+
+    it('builds URLs without the five params exactly as before', () => {
+        for (const { data, pageContext, expected } of urlCases) {
+            const url = buildCheckoutUrl(data, pageContext);
+            assert.equal(url, expected);
+            for (const key of genuineNcKeys) {
+                assert.equal(new URL(url).searchParams.has(key), false);
+            }
+        }
     });
 
     it('preserves invalid custom action URLs with or without locale context', () => {

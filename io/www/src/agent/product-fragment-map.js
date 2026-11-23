@@ -55,8 +55,6 @@ const PRODUCT_FRAGMENT_MAP = {
             'frame.io': 'ee2636e6-0ecc-49df-9a01-69ffd0558f74',
             'adobe firefly pro': 'd2721e56-7e0b-4b0b-a0fb-94f2396dd80f',
             'adobe firefly pro plus': '98b10834-cff3-4f7e-9a12-05069ed03ef2',
-            'adobe firefly premium': '4d5fdc6e-00f4-4031-84c7-a94a6cca51ae',
-            'adobe express premium': 'e6df1626-22e1-440f-8b98-bdc8137d79f8',
         },
     },
     edu: {
@@ -64,7 +62,6 @@ const PRODUCT_FRAGMENT_MAP = {
         products: {
             'adobe express premium': '413ea6c9-a6ac-422a-90ff-0db9ad30b7e1',
             'adobe firefly pro plus': '5a769d77-efb2-4c1f-83a3-251fa0ff0a0c',
-            'adobe firefly premium': 'de8104d3-fdf2-4587-b6ca-993506da70c6',
         },
     },
 };

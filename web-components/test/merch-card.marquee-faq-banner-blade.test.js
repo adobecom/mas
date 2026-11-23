@@ -43,12 +43,12 @@ describe('marquee variant', () => {
     it('renders a labeled row with a slot for each mapped field', async () => {
         card = await renderCard('marquee', '<h3 slot="heading-xs">Title</h3>');
         const rows = {
-            'heading-xs': 'Title',
-            'body-xs': 'Product description',
-            'short-description': 'Short Description',
+            'heading-xs': 'Marquee title',
+            'body-xs': 'Marquee description',
+            'short-description': 'Pricing subtext',
             'callout-content': 'Callout text',
             prices: 'Product price',
-            footer: 'CTAs',
+            footer: 'Marquee CTA',
         };
         for (const [slot, label] of Object.entries(rows)) {
             const row = headlessRow(card, slot);
@@ -90,9 +90,9 @@ describe('faq variant', () => {
         card = await renderCard('faq', '<div slot="body-xs">Answer 1</div>');
         const rows = {
             prices: 'Product price',
-            'body-xs': 'FAQ answer 1',
-            'short-description': 'FAQ answer 2',
-            'callout-content': 'FAQ answer 3',
+            'body-xs': 'Answer 1',
+            'short-description': 'Answer 2',
+            'callout-content': 'Answer 3',
         };
         for (const [slot, label] of Object.entries(rows)) {
             const row = headlessRow(card, slot);
@@ -116,7 +116,7 @@ describe('banner-blade variant', () => {
         const rows = {
             'heading-xs': 'Title',
             'body-xs': 'Description',
-            footer: 'CTAs',
+            footer: 'CTA',
         };
         for (const [slot, label] of Object.entries(rows)) {
             const row = headlessRow(card, slot);
@@ -154,5 +154,20 @@ describe('headless variant', () => {
         expect(
             row.querySelector('.headless-value').getAttribute('data-slot'),
         ).to.equal('heading-xs');
+    });
+
+    it('labels slots with the renamed defaults', async () => {
+        card = await renderCard('headless', '<h3 slot="heading-xs">Title</h3>');
+        const rows = {
+            'heading-xs': 'Card title',
+            'promo-text': 'Promo text',
+            'short-description': 'Pricing subtext',
+        };
+        for (const [slot, label] of Object.entries(rows)) {
+            expect(
+                headlessRow(card, slot).querySelector('.headless-label')
+                    .textContent,
+            ).to.equal(label);
+        }
     });
 });

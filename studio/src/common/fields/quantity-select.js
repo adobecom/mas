@@ -239,7 +239,7 @@ export class QuantitySelectField extends LitElement {
         return html`
             ${this.splitTitle ? this.#renderLabels() : this.#renderTitle()}
             <sp-field-group>
-                <sp-field-label>Start quantity</sp-field-label>
+                <sp-field-label>Minimum quantity</sp-field-label>
                 <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-start"
@@ -269,7 +269,7 @@ export class QuantitySelectField extends LitElement {
                 </div>
             </sp-field-group>
             <sp-field-group>
-                <sp-field-label>Step</sp-field-label>
+                <sp-field-label>Quantity increment</sp-field-label>
                 <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-step"

@@ -77,28 +77,38 @@ class MasProductPicker extends LitElement {
             right: 0;
             z-index: 10;
             box-sizing: border-box;
-            max-height: 240px;
+            max-height: 294px;
             overflow-y: auto;
             margin-top: 4px;
-            padding: 4px 0;
+            padding: 8px;
             background: #fff;
-            border: 1px solid var(--spectrum-gray-300, #d5d5d5);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+            border: none;
+            border-radius: 10px;
+            box-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.08),
+                0 2px 6px rgba(0, 0, 0, 0.04),
+                0 0 2px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .dropdown .icon-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 4px 12px;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            color: #292929;
+            line-height: 18px;
+            font-weight: 500;
+            color: var(--spectrum-gray-900, #131313);
         }
 
-        .dropdown .icon-item:hover {
-            background: var(--spectrum-gray-100, #f3f3f3);
+        .dropdown .icon-item:hover,
+        .dropdown .icon-item:focus-visible {
+            background: var(--spectrum-gray-200, #e9e9e9);
         }
 
         .dropdown .icon-item img {

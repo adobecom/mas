@@ -130,6 +130,31 @@ describe('mas-product-picker', () => {
         expect(el.query).to.equal('');
     });
 
+    it('styles the dropdown and its rows', async () => {
+        const el = await create();
+        el.query = 'product 1';
+        await el.updateComplete;
+        const dropdown = getComputedStyle(el.shadowRoot.querySelector('.dropdown'));
+        const row = getComputedStyle(el.shadowRoot.querySelector('.dropdown .icon-item'));
+        expect(dropdown.paddingTop).to.equal('8px');
+        expect(dropdown.paddingRight).to.equal('8px');
+        expect(dropdown.paddingBottom).to.equal('8px');
+        expect(dropdown.paddingLeft).to.equal('8px');
+        expect(dropdown.borderTopWidth).to.equal('0px');
+        expect(dropdown.borderTopLeftRadius).to.equal('10px');
+        if (row.padding) {
+            expect(row.padding).to.equal('7px 12px');
+        } else {
+            expect(row.paddingTop).to.equal('7px');
+            expect(row.paddingRight).to.equal('12px');
+            expect(row.paddingBottom).to.equal('7px');
+            expect(row.paddingLeft).to.equal('12px');
+        }
+        expect(row.borderTopLeftRadius).to.equal('8px');
+        expect(row.fontSize).to.equal('14px');
+        expect(row.fontWeight).to.equal('500');
+    });
+
     it('renders no dropdown when nothing matches and keeps the grid', async () => {
         const el = await create();
         el.query = 'zzz';

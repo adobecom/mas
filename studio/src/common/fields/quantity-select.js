@@ -37,6 +37,27 @@ export const parseQuantitySelectValue = (value) => {
     };
 };
 
+const QUANTITY_SELECT_KEYS = ['title', 'min', 'step', 'defaultValue'];
+
+const isQuantitySelectEnabled = (value) =>
+    Boolean(new DOMParser().parseFromString(value, 'text/html').querySelector(QUANTITY_SELECT_TAG)?.hasAttributes());
+
+/**
+ * Compares two serialized quantity selector values: on/off state first, then their parsed configuration.
+ * An absent value counts as switched off.
+ * @param {string} first
+ * @param {string} second
+ * @returns {boolean}
+ */
+export const isSameQuantitySelectValue = (first, second) => {
+    const enabled = isQuantitySelectEnabled(first);
+    if (enabled !== isQuantitySelectEnabled(second)) return false;
+    if (!enabled) return true;
+    const a = parseQuantitySelectValue(first);
+    const b = parseQuantitySelectValue(second);
+    return QUANTITY_SELECT_KEYS.every((key) => a[key] === b[key]);
+};
+
 export const DEFAULT_LICENSE_TITLE = '{{license-label}}|{{licenses-label}}';
 
 export const splitLicenseLabel = (title) => {

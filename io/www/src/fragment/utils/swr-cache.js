@@ -6,6 +6,9 @@ const DEFAULT_TTL = 5 * 60 * 1000;
 const DEFAULT_JITTER = 0.2;
 const DEFAULT_MAX_MEMORY_BYTES = 256 * 1024 * 1024;
 
+/** Resolved by the loader of a `conditional` cache when the cached entry is still current (304). */
+export const NOT_MODIFIED = Symbol('not-modified');
+
 // One heap per container: every memory entry of every cache instance is tracked here, ordered from
 // least to most recently used, so the least recently used ones (whatever their cache) are evicted
 // while the estimated total size exceeds `maxBytes`, or the heap used exceeds the heap budget when one
@@ -169,9 +172,15 @@ export function setHeapBudget(maxHeapUsed, getHeapUsed) {
  * Returning `{ ttl }` instead applies a short retry TTL to incomplete results. Published reads
  * keep an existing stale value during that backoff rather than replacing it with partial data.
  *
+ * `conditional` caches revalidate with ETags (e.g. Odin's): the loader receives `{ etagFor }`, where `etagFor(url)`
+ * is the ETag of the cached entry to send as `If-None-Match` when it was fetched from that same `url` (none on a
+ * cold read or when the url changed, e.g. a key resolving to another fragment id, whose 304 would otherwise renew
+ * the previous fragment's value), and resolves `{ value, etag, url }` to store with the value, or `NOT_MODIFIED`
+ * on a 304, which keeps the cached value, ETag and url and restarts its TTL.
+ *
  * @param {{ name: string, ttl?: number, jitter?: number,
  *   previewTtl?: number, previewMemory?: boolean, maxEntries?: number, staleWhileRevalidate?: boolean,
- *   shouldCache?: (value: *) => (boolean | { ttl: number }) }} options
+ *   conditional?: boolean, shouldCache?: (value: *) => (boolean | { ttl: number }) }} options
  */
 export function createSwrCache({
     name,
@@ -181,6 +190,7 @@ export function createSwrCache({
     previewMemory = false,
     maxEntries = 1000,
     staleWhileRevalidate = true,
+    conditional = false,
     shouldCache = () => true,
 }) {
     // `superseded`: keys whose pending refill must not write its value, `set` having written a newer one meanwhile
@@ -204,8 +214,8 @@ export function createSwrCache({
         return { mode, backend, memoryKey, persistent: context.preview && !previewMemory };
     }
 
-    function write(context, key, value, entryTtl = jitteredTtl(context), target = resolve(context, key)) {
-        const entry = { value, timestamp: Date.now(), ttl: entryTtl };
+    function write(context, key, { value, etag, url }, entryTtl = jitteredTtl(context), target = resolve(context, key)) {
+        const entry = { value, etag, url, timestamp: Date.now(), ttl: entryTtl };
         if (target.persistent) {
             localStorage.setItem(storageKey(key), JSON.stringify(entry));
             return;
@@ -218,7 +228,8 @@ export function createSwrCache({
          * Reads `key`, loading on miss/expiry with herd protection.
          * @param {*} context request context (preview endpoint isolates memory entries).
          * @param {string} key cache key within this instance's namespace.
-         * @param {() => Promise<*>} loader resolves null/undefined to skip caching.
+         * @param {({ etagFor }) => Promise<*>} loader resolves null/undefined to skip caching; see `conditional`
+         *   for what it resolves in conditional caches.
          */
         async get(context, key, loader) {
             const target = resolve(context, key);
@@ -234,12 +245,20 @@ export function createSwrCache({
             const stale = entry && !context.preview && staleWhileRevalidate;
             if (!backend.refills.has(memoryKey)) {
                 let pending = (async () => {
-                    const value = await loader();
+                    const loaded = await loader({ etagFor: (url) => (url === entry?.url ? entry.etag : undefined) });
+                    const notModified = loaded === NOT_MODIFIED;
+                    const { value, etag, url } = notModified ? entry : conditional ? (loaded ?? {}) : { value: loaded };
                     if (value == null) return value;
+                    if (notModified) {
+                        logDebug(
+                            () => `[${name}] "${key}" not modified (304, etag ${etag}): keeping the cached value`,
+                            context,
+                        );
+                    }
                     const policy = shouldCache(value);
                     if (!policy) return value;
                     if (backends[mode] === backend && !backend.superseded.has(memoryKey)) {
-                        write(context, key, stale && policy !== true ? entry.value : value, policy.ttl, target);
+                        write(context, key, stale && policy !== true ? entry : { value, etag, url }, policy.ttl, target);
                     }
                     return value;
                 })();
@@ -272,7 +291,7 @@ export function createSwrCache({
         set(context, key, value) {
             const target = resolve(context, key);
             if (target.backend.refills.has(target.memoryKey)) target.backend.superseded.add(target.memoryKey);
-            write(context, key, value, jitteredTtl(context), target);
+            write(context, key, { value }, jitteredTtl(context), target);
         },
         /** Drops entries and refills; a pending refill cannot repopulate the cleared backend. */
         clear(preview = false) {

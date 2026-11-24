@@ -38,19 +38,26 @@ export function getDeploymentRules(config, group) {
     return selected;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    const group = process.argv[2];
-    const { config } = await appConfig.coalesce('app.config.yaml');
-    const actions = getDeploymentActions(config, group);
+export async function deployActions(
+    group,
+    { config = appConfig, spawn = spawnSync, deployRules = runtimeLib.deployActions } = {},
+) {
+    const { config: manifest } = await config.coalesce('app.config.yaml');
+    const actions = getDeploymentActions(manifest, group);
     if (actions.length === 0) throw new Error('No actions selected; refusing an unfiltered deployment');
-    const result = spawnSync('npx', ['aio', 'app', 'deploy', '-v', ...actions.flatMap((action) => ['--action', action])], {
+    const result = spawn('npx', ['aio', 'app', 'deploy', '-v', ...actions.flatMap((action) => ['--action', action])], {
         stdio: 'inherit',
     });
     if (result.error) throw result.error;
-    process.exitCode = result.status ?? 1;
-    const rules = getDeploymentRules(config, group);
-    if (process.exitCode === 0 && rules.rules.length > 0) {
-        const { all } = await appConfig.load();
-        await runtimeLib.deployActions(all.application, { filterEntities: rules });
+    if (result.status !== 0) return result.status ?? 1;
+    const rules = getDeploymentRules(manifest, group);
+    if (rules.rules.length > 0) {
+        const { all } = await config.load();
+        await deployRules(all.application, { filterEntities: rules });
     }
+    return 0;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    process.exitCode = await deployActions(process.argv[2]);
 }

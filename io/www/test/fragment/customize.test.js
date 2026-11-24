@@ -1243,6 +1243,45 @@ describe('customize baselines', function () {
         expect(result.body.fields.badge).to.equal('');
     });
 
+    it("reports each field's layer, regional variations and masks included", async function () {
+        const variationId = 'card-en-kw';
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            model: { id: CARD_MODEL_ID },
+            fields: { cardTitle: 'Card', variations: [variationId] },
+            references: {
+                [variationId]: {
+                    type: 'content-fragment',
+                    value: { id: variationId, path: '/content/dam/mas/sandbox/en_KW/card', fields: { subtitle: 'Kuwait' } },
+                },
+            },
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'card',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body,
+            maskFragment: { id: 'mask', fields: { badge: 'Best value', callout: '', tags: ['mas:promo'] } },
+            baselines: {
+                card: {
+                    offerBaseline: baseline('offer', { description: 'Offer' }),
+                    fragmentBaseline: baseline('template', { subtitle: 'Template', prices: 'Price', badge: 'Template' }),
+                },
+            },
+        });
+        expect(result.fieldSourcesById.card).to.deep.include({
+            description: 'product',
+            prices: 'template',
+            cardTitle: 'fragment',
+            subtitle: 'fragment',
+            badge: 'mask',
+        });
+        expect(result.fieldSourcesById.card).to.not.have.any.keys('callout', 'tags');
+    });
+
     it('concatenates compare-chart-column features of every baseline layer, then the fragment', async function () {
         const features = (...values) => ({ value: values });
         const body = {

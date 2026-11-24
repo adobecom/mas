@@ -461,6 +461,19 @@ describe('aup transformer', () => {
         });
     });
 
+    it('reports the layer of each filled area, the fragment by default', async () => {
+        const fieldSourcesById = { card: { cardTitle: 'template', prices: 'plan', badge: 'mask', includedApps: 'product' } };
+        const body = await map({ ...PRO_FIELDS, includedApps: ['photoshop_cc'] }, { fieldSourcesById });
+        expect(body.sources).to.deep.include({
+            title: ['template'],
+            price: ['plan'],
+            badge: ['mask'],
+            description: ['fragment'],
+            features: ['product', 'fragment'],
+        });
+        expect(body.sources).to.not.have.property('promoText');
+    });
+
     it('maps an empty card', async () => {
         const body = await map({ addon: '{{disabled}}', whatsIncluded: '' });
         expect(body).to.include({ template: undefined, analyticsId: undefined, osi: undefined, badge: null, addon: null });

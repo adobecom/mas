@@ -374,6 +374,38 @@ function seeTermsOf(htmls, { text }) {
     return undefined;
 }
 
+/** AUP area → fields it's built from, to report the layer (`product`, `template`, `fragment`, `mask`…) each comes from */
+const SOURCE_FIELDS = {
+    title: ['cardTitle'],
+    subtitle: ['subtitle'],
+    badge: ['badge'],
+    trialBadge: ['trialBadge'],
+    mnemonics: ['mnemonicIcon'],
+    backgroundImage: ['backgroundImage'],
+    description: ['description'],
+    shortDescription: ['shortDescription'],
+    promoText: ['promoText'],
+    callout: ['callout'],
+    price: ['prices'],
+    ctas: ['ctas'],
+    features: ['includedApps', 'whatsIncluded'],
+    addon: ['addon'],
+    customFields: ['customFields'],
+    perUnitLabel: ['perUnitLabel'],
+};
+
+const isFilled = (fields, name) => ![rawOf(fields, name)].flat().every((entry) => [undefined, null, ''].includes(entry));
+
+const sourcesOf = (fields, fieldSources = {}) =>
+    Object.fromEntries(
+        Object.entries(SOURCE_FIELDS)
+            .map(([area, names]) => [
+                area,
+                [...new Set(names.filter((name) => isFilled(fields, name)).map((name) => fieldSources[name] ?? 'fragment'))],
+            ])
+            .filter(([, sources]) => sources.length),
+    );
+
 async function mapCard(context) {
     const { body: fragment, type } = context;
     const { fields } = fragment;
@@ -442,6 +474,7 @@ async function mapCard(context) {
         seeTerms: seeTermsOf([raw('description'), raw('shortDescription'), raw('callout'), raw('prices')], scope),
         tags: raw('tags') ?? [],
         pznTags: raw('pznTags') ?? [],
+        sources: sourcesOf(fields, context.fieldSourcesById?.[fragment.id]),
     };
 }
 

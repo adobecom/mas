@@ -598,20 +598,27 @@ function withoutInheritedEmptyFields(fragment, baselines) {
  * fragment, as resolved by the `offer` transformer for that fragment. Applied before variations, so they override
  * baselines too.
  */
-function applyBaselines(fragment, { baselines }) {
+function applyBaselines(fragment, { baselines, fieldSourcesById }) {
     const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline } = baselines?.[fragment.id] ?? {};
     const higherLayers = [fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline, fragment].filter(Boolean);
     const layers = [
-        offerBaseline && withOfferIcon(offerBaseline, higherLayers),
-        fragmentBaseline,
-        fragmentSegmentBaseline,
-        fragmentPlanBaseline,
-    ].filter((baseline) => baseline && baseline.id !== fragment.id);
+        ['product', offerBaseline && withOfferIcon(offerBaseline, higherLayers)],
+        ['template', fragmentBaseline],
+        ['segment', fragmentSegmentBaseline],
+        ['plan', fragmentPlanBaseline],
+    ].filter(([, baseline]) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
     const osi = [fragment.fields.osi].flat()[0];
-    const preparedLayers = layers.map((layer) => prepareBaseline(layer, osi));
+    const preparedLayers = layers.map(([, layer]) => prepareBaseline(layer, osi));
     const card = withoutInheritedEmptyFields(fragment, preparedLayers);
     const merged = deepMerge(card, ...preparedLayers, card);
+    const sources = (fieldSourcesById[fragment.id] ??= {});
+    preparedLayers.forEach(({ fields }, index) => {
+        for (const name of Object.keys(fields)) sources[name] = layers[index][0];
+    });
+    for (const [name, value] of Object.entries(card.fields)) {
+        if (!isEmptyFieldValue(value)) sources[name] = 'fragment';
+    }
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
     if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
@@ -655,8 +662,21 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
         selectedPromoProject,
     );
     let customizedRoot = mergedRoot;
+    const sources = customizeContext.fieldSourcesById[root.id];
+    if (sources) {
+        // variations (locale, promo…) belong to the fragment
+        for (const [name, value] of Object.entries(mergedRoot.fields)) {
+            if (!isEmptyFieldValue(value) && JSON.stringify(value) !== JSON.stringify(root.fields[name])) {
+                sources[name] = 'fragment';
+            }
+        }
+    }
     if (customizeContext.maskFragment && customizedRoot.model?.id === CARD_MODEL_ID) {
         customizedRoot = applyMask(customizedRoot, customizeContext.maskFragment);
+        const maskSources = (customizeContext.fieldSourcesById[root.id] ??= {});
+        for (const [name, value] of Object.entries(customizeContext.maskFragment.fields)) {
+            if (name !== 'tags' && !isEmptyFieldValue(value)) maskSources[name] = 'mask';
+        }
     }
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
@@ -758,6 +778,8 @@ async function customize(context) {
         pzn: getValidatedPzn(context),
         // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
         promoScopeById: {},
+        // layer providing each field (product, template, segment, plan, fragment, mask), by fragment id
+        fieldSourcesById: {},
         // adapted references tree of each customized card / collection, by id
         customizedTrees: new Map(),
     };
@@ -787,6 +809,7 @@ async function customize(context) {
         body: customizedFragment,
         defaultLocale,
         promoScopeById: customizeContext.promoScopeById,
+        fieldSourcesById: customizeContext.fieldSourcesById,
     };
 }
 

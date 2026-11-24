@@ -172,6 +172,19 @@ describe('offer transformer', () => {
             expect(fetched(listing(PLANS_FOLDER))).to.have.length(1);
         });
 
+        it('reports the layer each AUP area comes from', async () => {
+            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS });
+            const { statusCode, body } = await getFragment({
+                api_key: 'unified_checkout_server_v3',
+                offer: OSI,
+                template: 'plans',
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.sources).to.deep.include({ title: ['fragment'], price: ['template'], mnemonics: ['product'] });
+        });
+
         it('uses the market segment override of the fragment baseline as main body (EDU offer)', async () => {
             mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS });
             const { statusCode, body } = await getFragment({

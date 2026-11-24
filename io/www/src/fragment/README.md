@@ -50,7 +50,9 @@ WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgro
 `shortDescription`, `promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,
 target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src` from the cached WCS offers),
 `features` (the in-card what's included list), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
-`perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`. Text-bearing
+`perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
+(each filled area's layers, e.g. `{ title: ['template'], features: ['product', 'template'], badge: ['mask'] }`: `product`
+offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`). Text-bearing
 values are emitted per `type` with serialize (`json` nodes, `html` or `text` strings).
 
 Mock limitations: `price` is the rendered price markup, not a price object; badge colors are authored tokens, not hex;

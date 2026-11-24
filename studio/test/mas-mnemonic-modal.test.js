@@ -79,13 +79,109 @@ describe('MAS Mnemonic Modal', () => {
         expect(event.detail.icon).to.include('.svg');
     });
 
-    it('should show heading "Edit … Icon" when only link is set', async () => {
+    it('should show heading "Edit visual" when only link is set', async () => {
         const el = await fixture(html`<mas-mnemonic-modal open link="https://www.adobe.com"></mas-mnemonic-modal>`, {
             parentNode: spTheme(),
         });
 
         const heading = el.shadowRoot.querySelector('[slot="heading"]');
-        expect(heading.textContent.trim()).to.equal('Edit Mnemonic Icon');
+        expect(heading.textContent.trim()).to.equal('Edit visual');
+    });
+
+    it('should show heading "Add visual" and a disabled Confirm button when nothing is picked', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+
+        expect(el.shadowRoot.querySelector('[slot="heading"]').textContent.trim()).to.equal('Add visual');
+        const confirm = el.shadowRoot.querySelector('sp-button[variant="accent"]');
+        expect(confirm.textContent.trim()).to.equal('Confirm');
+        expect(confirm.hasAttribute('disabled')).to.be.true;
+        expect(el.shadowRoot.querySelector('sp-button[variant="secondary"]').textContent.trim()).to.equal('Cancel');
+    });
+
+    it('should enable Confirm after a product is picked', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+
+        const picker = el.shadowRoot.querySelector('mas-product-picker');
+        picker.dispatchEvent(new CustomEvent('item-select', { detail: { id: ADOBE_PRODUCTS[0].id } }));
+        await el.updateComplete;
+
+        expect(el.shadowRoot.querySelector('sp-button[variant="accent"]').hasAttribute('disabled')).to.be.false;
+    });
+
+    it('should keep iconLibrary heading, buttons and grid unchanged', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open iconlibrary></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        expect(el.shadowRoot.querySelector('[slot="heading"]').textContent.trim()).to.equal('Add Icon');
+        expect(el.shadowRoot.querySelector('sp-button[variant="accent"]').textContent.trim()).to.equal('Add Icon');
+        expect(el.shadowRoot.querySelector('mas-product-picker')).to.be.null;
+        expect(el.shadowRoot.querySelector('.icon-grid')).to.exist;
+        expect(el.shadowRoot.querySelector('sp-dialog').classList.contains('icon-library')).to.be.true;
+    });
+
+    it('should pass ADOBE_PRODUCTS to the picker and show 12 products by default', async () => {
+        localStorage.removeItem('mas-studio-recent-products');
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+
+        const picker = el.shadowRoot.querySelector('mas-product-picker');
+        await picker.updateComplete;
+        expect(picker.items).to.equal(ADOBE_PRODUCTS);
+        expect(picker.shadowRoot.querySelector('.label').textContent.trim()).to.equal('Products:');
+        expect(picker.shadowRoot.querySelectorAll('.grid .icon-item').length).to.equal(12);
+    });
+
+    it('should show recently used products first', async () => {
+        localStorage.setItem('mas-studio-recent-products', JSON.stringify([ADOBE_PRODUCTS[5].id]));
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+
+        const picker = el.shadowRoot.querySelector('mas-product-picker');
+        await picker.updateComplete;
+        expect(picker.shadowRoot.querySelector('.label').textContent.trim()).to.equal('Recently used:');
+        expect(picker.shadowRoot.querySelector('.grid .icon-item').textContent).to.include(ADOBE_PRODUCTS[5].name);
+        localStorage.removeItem('mas-studio-recent-products');
+    });
+
+    it('should record a recent on Confirm but not on Cancel', async () => {
+        localStorage.removeItem('mas-studio-recent-products');
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+        const id = ADOBE_PRODUCTS[0].id;
+
+        el.shadowRoot.querySelector('mas-product-picker').dispatchEvent(new CustomEvent('item-select', { detail: { id } }));
+        await el.updateComplete;
+        expect(localStorage.getItem('mas-studio-recent-products')).to.be.null;
+
+        el.shadowRoot.querySelector('sp-button[variant="secondary"]').click();
+        await el.updateComplete;
+        expect(localStorage.getItem('mas-studio-recent-products')).to.be.null;
+
+        el.open = true;
+        await el.updateComplete;
+        el.shadowRoot.querySelector('mas-product-picker').dispatchEvent(new CustomEvent('item-select', { detail: { id } }));
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.icon).to.equal(`https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${id}.svg`);
+        expect(JSON.parse(localStorage.getItem('mas-studio-recent-products'))).to.deep.equal([id]);
+        localStorage.removeItem('mas-studio-recent-products');
+    });
+
+    it('should filter products by search query', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+
+        const picker = el.shadowRoot.querySelector('mas-product-picker');
+        const name = ADOBE_PRODUCTS[0].name;
+        picker.query = name.toUpperCase();
+        await picker.updateComplete;
+
+        const rows = picker.shadowRoot.querySelectorAll('.dropdown .icon-item');
+        expect(rows.length).to.be.greaterThan(0);
+        for (const row of rows) {
+            expect(row.textContent.toLowerCase()).to.include(name.toLowerCase());
+        }
     });
 
     it('should dispatch save from product-icon tab when useRte altHtml has paragraph markup', async () => {

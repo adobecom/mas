@@ -2,6 +2,8 @@ import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 import './rte/rte-field.js';
+import './fields/product-picker.js';
+import { addRecent, readRecent, writeRecent } from './utils/recent-products.js';
 
 class MasMnemonicModal extends LitElement {
     #originalIcon = '';
@@ -15,6 +17,8 @@ class MasMnemonicModal extends LitElement {
         link: { type: String },
         selectedTab: { type: String, state: true },
         selectedProductId: { type: String, state: true },
+        recentIds: { type: Array, state: true },
+        altHtml: { type: String, state: true },
         iconLibrary: { type: Boolean },
         useRte: { type: Boolean },
         variant: { type: String },
@@ -166,6 +170,42 @@ class MasMnemonicModal extends LitElement {
         sp-button[slot='button'][variant='accent'] {
             margin-left: auto;
         }
+
+        sp-dialog.add-visual {
+            box-sizing: border-box;
+            width: 484px;
+            max-width: 484px;
+            padding: 20px;
+            border-radius: 16px;
+            --spectrum-dialog-footer-justify-content: flex-end;
+            --spectrum-dialog-footer-padding-top: 0;
+            --spectrum-dialog-footer-border-top: none;
+        }
+
+        sp-dialog.add-visual form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 16px;
+            margin-bottom: 32px;
+        }
+
+        sp-dialog.add-visual .tab-content {
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        sp-dialog.add-visual .form-field {
+            margin-bottom: 0;
+        }
+
+        sp-dialog.add-visual sp-button[slot='button'][variant='secondary'] {
+            margin-right: 0;
+        }
+
+        sp-dialog.add-visual sp-button[slot='button'][variant='accent'] {
+            margin-left: 0;
+        }
     `;
 
     constructor() {
@@ -180,6 +220,13 @@ class MasMnemonicModal extends LitElement {
         this.useRte = false;
         this.altHtml = '';
         this.variant = '';
+        this.recentIds = [];
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('open') && this.open && !this.iconLibrary) {
+            this.recentIds = readRecent();
+        }
     }
 
     connectedCallback() {
@@ -304,6 +351,10 @@ class MasMnemonicModal extends LitElement {
             return;
         }
 
+        if (!this.iconLibrary && this.selectedTab === 'product-icon' && this.selectedProductId) {
+            writeRecent(addRecent(readRecent(), this.selectedProductId));
+        }
+
         this.dispatchEvent(
             new CustomEvent('save', {
                 bubbles: true,
@@ -319,30 +370,63 @@ class MasMnemonicModal extends LitElement {
         this.#handleClose();
     }
 
+    get altLabel() {
+        return this.iconLibrary ? 'Alt Text' : 'Alt text';
+    }
+
+    get linkLabel() {
+        return this.iconLibrary ? 'Link URL' : 'Destination URL';
+    }
+
+    get confirmDisabled() {
+        if (this.iconLibrary) return false;
+        const hasVisual = this.selectedTab === 'product-icon' ? !!this.selectedProductId : !!(this.icon || '').trim();
+        return !hasVisual && !this.#hasAltContent(this.altHtml || this.alt || '') && !(this.link || '').trim();
+    }
+
+    renderProductIcon = (product) =>
+        html`<img
+            src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
+            alt=""
+            @error=${(e) => {
+                e.target.style.display = 'none';
+            }}
+        />`;
+
+    get productPickerTemplate() {
+        return html`
+            <mas-product-picker
+                .items=${ADOBE_PRODUCTS}
+                .recentIds=${this.recentIds}
+                .selectedId=${this.selectedProductId ?? ''}
+                .renderIcon=${this.renderProductIcon}
+                @item-select=${(e) => this.#handleProductSelect(e.detail.id)}
+            ></mas-product-picker>
+        `;
+    }
+
+    get iconLibraryGridTemplate() {
+        return html`
+            <div class="icon-grid">
+                ${this.icons.map(
+                    (product) => html`
+                        <div
+                            class="icon-item ${this.selectedProductId === product.id ? 'selected' : ''}"
+                            @click=${() => this.#handleProductSelect(product.id)}
+                        >
+                            ${renderSpIcon(product.id, this.variant)}
+                            <span>${product.name}</span>
+                        </div>
+                    `,
+                )}
+            </div>
+        `;
+    }
+
     get productIconTab() {
         return html`
             <div class="tab-content">
-                <div class="icon-grid">
-                    ${this.icons.map(
-                        (product) => html`
-                            <div
-                                class="icon-item ${this.selectedProductId === product.id ? 'selected' : ''}"
-                                @click=${() => this.#handleProductSelect(product.id)}
-                            >
-                                ${this.iconLibrary
-                                    ? html`${renderSpIcon(product.id, this.variant)}`
-                                    : html` <img
-                                          src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
-                                          alt="${product.name}"
-                                          @error=${(e) => {
-                                              e.target.style.display = 'none';
-                                          }}
-                                      />`}
-                                <span>${product.name}</span>
-                            </div>
-                        `,
-                    )}
-                </div>
+                ${this.iconLibrary ? this.iconLibraryGridTemplate : this.productPickerTemplate}
                 ${this.useRte
                     ? html`
                           <div class="form-field">
@@ -358,7 +442,7 @@ class MasMnemonicModal extends LitElement {
                       `
                     : html`
                           <div class="form-field icon-lib-optional">
-                              <sp-field-label for="product-alt">Alt Text</sp-field-label>
+                              <sp-field-label for="product-alt">${this.altLabel}</sp-field-label>
                               <sp-textfield
                                   id="product-alt"
                                   placeholder="Descriptive text for accessibility"
@@ -369,7 +453,7 @@ class MasMnemonicModal extends LitElement {
                       `}
 
                 <div class="form-field icon-lib-optional">
-                    <sp-field-label for="product-link">Link URL</sp-field-label>
+                    <sp-field-label for="product-link">${this.linkLabel}</sp-field-label>
                     <sp-textfield
                         id="product-link"
                         placeholder="https://example.com"
@@ -409,7 +493,7 @@ class MasMnemonicModal extends LitElement {
                       `
                     : html`
                           <div class="form-field icon-lib-optional">
-                              <sp-field-label for="url-alt">Alt Text</sp-field-label>
+                              <sp-field-label for="url-alt">${this.altLabel}</sp-field-label>
                               <sp-textfield
                                   id="url-alt"
                                   placeholder="Descriptive text for accessibility"
@@ -420,7 +504,7 @@ class MasMnemonicModal extends LitElement {
                       `}
 
                 <div class="form-field icon-lib-optional">
-                    <sp-field-label for="url-link">Link URL</sp-field-label>
+                    <sp-field-label for="url-link">${this.linkLabel}</sp-field-label>
                     <sp-textfield
                         id="url-link"
                         placeholder="https://example.com"
@@ -438,13 +522,15 @@ class MasMnemonicModal extends LitElement {
         return html`
             <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>
                 <sp-underlay ?open=${this.open}></sp-underlay>
-                <sp-dialog class="${this.iconLibrary ? 'icon-library' : ''}">
-                    <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} ${this.iconLibrary ? '' : 'Mnemonic '}Icon</h2>
+                <sp-dialog class="${this.iconLibrary ? 'icon-library' : 'add-visual'}">
+                    <h2 slot="heading">
+                        ${this.iconLibrary ? `${isEditing ? 'Edit' : 'Add'} Icon` : isEditing ? 'Edit visual' : 'Add visual'}
+                    </h2>
 
                     <form @submit=${this.#handleSubmit}>
                         <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
-                            <sp-tab value="product-icon">${this.iconLibrary ? '' : 'Product '}Icon</sp-tab>
-                            <sp-tab value="url">URL</sp-tab>
+                            <sp-tab value="product-icon">${this.iconLibrary ? 'Icon' : 'Select'}</sp-tab>
+                            <sp-tab value="url">${this.iconLibrary ? 'URL' : 'Import via URL'}</sp-tab>
                             <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
                             <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>
                         </sp-tabs>
@@ -453,8 +539,8 @@ class MasMnemonicModal extends LitElement {
                     <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleCancel} type="button">
                         Cancel
                     </sp-button>
-                    <sp-button slot="button" variant="accent" @click=${this.#handleSubmit}>
-                        ${isEditing ? 'Update' : 'Add'} Icon
+                    <sp-button slot="button" variant="accent" ?disabled=${this.confirmDisabled} @click=${this.#handleSubmit}>
+                        ${this.iconLibrary ? `${isEditing ? 'Update' : 'Add'} Icon` : 'Confirm'}
                     </sp-button>
                 </sp-dialog>
             </div>

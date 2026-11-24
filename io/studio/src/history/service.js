@@ -9,7 +9,7 @@ const { resolveScope } = require('./components/index.js');
 const { createVersion } = require('../common/aem-version.js');
 
 const logger = Core.Logger('history', { level: 'info' });
-const REQUEST_TTL = 95 * 86400;
+const REQUEST_TTL = 7 * 86400;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const HISTORY_PAGE_SIZE = 10;
@@ -533,12 +533,8 @@ async function historyCursor(context, cursor) {
 }
 
 async function findEntry(context, id) {
-    const name = entryFile(id);
-    const archived = await readMetadata(context, name);
-    if (archived) return archived.value;
-    const legacy = await context.state.get(`${namespace(context, 'entry')}${id}`);
-    if (!legacy?.value) return null;
-    return updateMetadata(context, name, JSON.parse(legacy.value), (value, exists) => !exists);
+    const archived = await readMetadata(context, entryFile(id));
+    return archived?.value ?? null;
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {

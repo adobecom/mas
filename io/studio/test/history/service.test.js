@@ -294,6 +294,24 @@ describe('Promotion project versions', () => {
         expect(event.changes[0]).to.include({ before: 'Project', after: 'External edit' });
     });
 
+    it('reuses preparation within seven days and captures a fresh snapshot when its checkpoint expires', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const prepared = await call('record', { phase: 'prepare' });
+        const [key, , options] = state.put.lastCall.args;
+        const expiresAt = Date.now() + options.ttl * 1000;
+        const get = state.get;
+        state.get = sinon.spy(async (requestKey) => (requestKey === key && Date.now() >= expiresAt ? null : get(requestKey)));
+        clock.tick(6 * 86400000);
+        expect(await call('record', { phase: 'prepare' })).to.deep.equal(prepared);
+        expect(nativePosts()).to.have.length(1);
+
+        clock.tick(86400000);
+        const renewed = await call('record', { phase: 'prepare' });
+
+        expect(renewed.beforeVersionId).not.to.equal(prepared.beforeVersionId);
+        expect(nativePosts()).to.have.length(2);
+    });
+
     it('reuses the previous change-set snapshot even after 95 days when it matches the current fragment', async () => {
         const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         const { event } = await save();
@@ -503,14 +521,14 @@ describe('Promotion project versions', () => {
         expect(storedEvents()).to.have.length(1);
     });
 
-    it('compacts a large completed legacy ledger without dropping outstanding restore leases', async () => {
+    it('compacts a large completed ledger without dropping outstanding restore leases', async () => {
         const base = (await save()).event;
         const entries = {};
         for (let index = 1; index <= 6500; index++) {
             const id = `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, '0')}`;
             const event = { ...base, id, version: index };
             entries[id] = { version: index, createdAt: event.createdAt };
-            stored.set(`history.promotion.${PROJECT}.entry.${id}`, JSON.stringify(event));
+            numberingFiles.set(eventPath(id), { etag: '"1"', body: event });
             const path = `/private/history/promotion/${PROJECT}/index-${Math.floor((index - 1) / 100)}.json`;
             if (!numberingFiles.has(path)) numberingFiles.set(path, { etag: '"1"', body: { entries: {} } });
             numberingFiles.get(path).body.entries[id] = { id, version: index, createdAt: event.createdAt };
@@ -561,7 +579,7 @@ describe('Promotion project versions', () => {
     it('preserves recent claims, active leases and stale reservations with a live request guard', async () => {
         const now = Date.now();
         sinon.useFakeTimers({ now, toFake: ['Date'] });
-        const cutoff = now - 95 * 86400000;
+        const cutoff = now - 7 * 86400000;
         const createdAt = new Date(cutoff - 86400000).toISOString();
         const entries = {
             recent: { createdAt: new Date(cutoff).toISOString() },
@@ -1209,34 +1227,23 @@ describe('Promotion project versions', () => {
         expect(maximum).to.be.at.most(4);
     });
 
-    it('archives available legacy State events before their TTL expires', async () => {
-        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
-        const { event } = await save();
-        const legacyKey = `history.promotion.${PROJECT}.entry.${event.id}`;
-        stored.set(legacyKey, JSON.stringify(event));
-        numberingFiles.delete(eventPath(event.id));
-        clock.tick(94 * 86400000);
+    for (const operation of ['list', 'restore']) {
+        it(`does not read or archive State-only history during ${operation}`, async () => {
+            const { event } = await save();
+            const legacyKey = `history.promotion.${PROJECT}.entry.${event.id}`;
+            stored.set(legacyKey, JSON.stringify(event));
+            numberingFiles.delete(eventPath(event.id));
+            state.get.resetHistory();
+            fetchStub.resetHistory();
 
-        expect((await call('list')).events).to.deep.equal([event]);
-        expect(numberingFiles.get(eventPath(event.id)).body).to.deep.equal(event);
-        stored.delete(legacyKey);
-        expect((await call('list')).events).to.deep.equal([event]);
-    });
+            if (operation === 'list') expect((await call('list')).events).to.deep.equal([]);
+            else await expectError(undo(event), 404);
 
-    it('preserves the authoritative archive when a legacy migration loses a concurrent create race', async () => {
-        const { event } = await save();
-        stored.set(`history.promotion.${PROJECT}.entry.${event.id}`, JSON.stringify({ ...event, version: 999 }));
-        numberingFiles.delete(eventPath(event.id));
-        fetchStub
-            .withArgs(`https://files.example.com${eventPath(event.id)}`, sinon.match.has('method', 'PUT'))
-            .callsFake(async () => {
-                numberingFiles.set(eventPath(event.id), { body: event, etag: '"1"' });
-                return response({}, 412);
-            });
-
-        expect((await call('list')).events).to.deep.equal([event]);
-        expect(numberingFiles.get(eventPath(event.id)).body).to.deep.equal(event);
-    });
+            expect(state.get.calledWith(legacyKey)).to.equal(false);
+            expect(eventWrites().callCount).to.equal(0);
+            expect(writes()).to.have.length(0);
+        });
+    }
 
     it('releases a re-reserved number when an authoritative archive wins a concurrent record retry', async () => {
         const original = await call('record', { action: 'create' });
@@ -1257,17 +1264,6 @@ describe('Promotion project versions', () => {
         expect(ledger).to.deep.equal({ lastVersion: 2, entries: {} });
         expect((await call('list')).events).to.deep.equal([original.event]);
         expect((await call('record', { action: 'create', requestId: 'after-replay' })).event.version).to.equal(3);
-    });
-
-    it('surfaces legacy archival failures instead of returning history that can still expire', async () => {
-        const { event } = await save();
-        stored.set(`history.promotion.${PROJECT}.entry.${event.id}`, JSON.stringify(event));
-        numberingFiles.delete(eventPath(event.id));
-        fetchStub
-            .withArgs(`https://files.example.com${eventPath(event.id)}`, sinon.match.has('method', 'PUT'))
-            .resolves(response({}, 503));
-
-        await expectError(call('list'), 503);
     });
 
     for (const extra of [{ limit: 0 }, { limit: 101 }, { cursor: 'missing' }, { query: [] }]) {

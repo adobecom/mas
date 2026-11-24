@@ -1,7 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { dialogTableStyles } from './dialog-table.css.js';
 import { styles } from './mas-external-usage-dialog.css.js';
-import { showToast } from '../utils.js';
 /**
  * Modal listing the external pages that requested the open fragment, derived from Akamai CDN
  * referer logs (MWPW-185891).
@@ -114,15 +113,6 @@ class MasExternalUsageDialog extends LitElement {
         this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
     }
 
-    async #copyUrl(url) {
-        try {
-            await navigator.clipboard.writeText(url);
-            showToast('Page URL copied to clipboard', 'positive');
-        } catch {
-            showToast('Failed to copy page URL to clipboard', 'negative');
-        }
-    }
-
     #renderRow(page, commonHost) {
         // The url is the link rather than carrying a separate "Open" action, so the row keeps the
         // countries column without losing the ability to visit the page.
@@ -133,15 +123,6 @@ class MasExternalUsageDialog extends LitElement {
                         <span class="page-url-label">${this.#label(page.url, commonHost)}</span>
                         <sp-icon-open-in size="s"></sp-icon-open-in>
                     </a>
-                    <sp-action-button
-                        quiet
-                        size="s"
-                        label="Copy page URL"
-                        class="page-copy"
-                        @click=${() => this.#copyUrl(page.url)}
-                    >
-                        <sp-icon-copy slot="icon"></sp-icon-copy>
-                    </sp-action-button>
                 </sp-table-cell>
                 <sp-table-cell>
                     <span class="page-countries">${page.countries.join(', ')}</span>

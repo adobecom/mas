@@ -130,10 +130,6 @@ export const styles = css`
         color: #000;
     }
 
-    .page-copy {
-        flex: 0 0 auto;
-    }
-
     .usage-placeholder {
         display: flex;
         align-items: center;

@@ -1,6 +1,8 @@
 import { devices } from '@playwright/test';
+import { studioShardTestMatch } from './nala/utils/studio-shards.js';
 
-const USER_AGENT_DESKTOP =
+/** Desktop browser identity shared by Nala tests and standalone cleanup. */
+export const USER_AGENT_DESKTOP =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
 
 /**
@@ -30,8 +32,8 @@ const config = {
     retries: process.env.CI ? 1 : 0,
     /*
      * EDS (~200 rps / hostname). EDS pacing in nala/libs/eds-throttle.js is per *worker*; multiple
-     * workers multiply traffic to the same preview host → 429s. Default CI workers=1; override
-     * with NALA_PLAYWRIGHT_WORKERS only if EDS grants a higher automation cap.
+     * workers multiply traffic to the same preview host → 429s. Defaults are CI=2/local=3;
+     * NALA_PLAYWRIGHT_WORKERS and workflow CLI options override these defaults.
      */
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
@@ -44,16 +46,27 @@ const config = {
         : [['html', { outputFolder: 'test-html-results' }], ['list'], ['./nala/utils/base-reporter.js']],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
+        serviceWorkers: 'block',
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
         actionTimeout: 60000,
 
-        trace: 'on-first-retry',
+        // CI traces contain IMS credentials; only screenshots and error context are retained.
+        trace: process.env.CI ? 'off' : 'on-first-retry',
         screenshot: 'only-on-failure',
         baseURL: process.env.PR_BRANCH_LIVE_URL || process.env.LOCAL_TEST_LIVE_URL || 'https://main--mas--adobecom.aem.live',
     },
 
     /* Configure projects for major browsers */
     projects: [
+        {
+            name: 'docs-setup',
+            timeout: 90000,
+            use: {
+                ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
+            },
+            testMatch: /libs\/docs\.setup\.js/,
+        },
         // Setup project for authentication (only runs for studio tests). Teardown runs after all projects that depend on setup.
         {
             name: 'setup',
@@ -66,11 +79,9 @@ const config = {
         },
 
         // Teardown project: runs after all projects that depend on setup (same rule as auth).
-        // Sweeps 5 locale paths sequentially against live AEM to delete cloned
-        // fragments — this legitimately exceeds the global 45s test timeout, so
-        // give it its own generous budget. Each path is still bounded by the
-        // internal 90s Promise.race guard in global.teardown.js, so a real hang
-        // still surfaces well before this ceiling.
+        // Deletes ledger-owned IDs using live ETags; searches by run marker only
+        // for interrupted creations. Each maintenance operation is bounded by
+        // 90s in global.teardown.js, within this existing overall budget.
         {
             name: 'nala-teardown',
             timeout: 6 * 60 * 1000,
@@ -99,13 +110,17 @@ const config = {
                 args: ['--disable-web-security', '--disable-gpu', '--disable-http2'],
             },
             dependencies: ['setup'],
-            testMatch: /nala\/studio\/.*\.test\.js/,
+            testMatch: process.env.NALA_STUDIO_SHARD
+                ? studioShardTestMatch(process.env.NALA_STUDIO_SHARD)
+                : /nala\/studio\/.*\.test\.js/,
         },
 
         // Project for @mas-docs tests (no authentication required)
         // Matches files in nala/docs/** directory
         {
             name: 'mas-docs-chromium',
+            fullyParallel: false,
+            dependencies: ['docs-setup'],
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
@@ -131,7 +146,7 @@ const config = {
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
-            dependencies: ['setup'],
+            dependencies: ['setup', 'docs-setup'],
         },
     ],
 };

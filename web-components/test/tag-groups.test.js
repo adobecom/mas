@@ -6,6 +6,7 @@ import {
     groupTagFilters,
     cardFilterTags,
     tagLabel,
+    isExcluded,
 } from '../src/tag-groups.js';
 
 describe('author-defined tag groups', () => {
@@ -84,5 +85,14 @@ describe('author-defined tag groups', () => {
                 type: 'desktop',
             }),
         ).to.be.true;
+    });
+
+    it('excludes a tag only under its own category', () => {
+        const exclude = { all: ['pricing:students'] };
+        const card = ['pricing:students'];
+        expect(isExcluded(card, exclude, 'all')).to.be.true;
+        expect(isExcluded(card, exclude, 'photo')).to.be.false;
+        expect(isExcluded(['pricing:individual'], exclude, 'all')).to.be.false;
+        expect(isExcluded(card, undefined, 'all')).to.be.false;
     });
 });

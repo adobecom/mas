@@ -1,9 +1,13 @@
 import { css } from 'lit';
 import { ghostButtonStyles, selectItemsFormSectionStyles } from '../common/styles/table-styles.css.js';
+import { pageContainerStyles, editorFormFieldStyles, editorHeadingStyles } from '../common/styles/page-container-styles.css.js';
 
 export const styles = [
     ghostButtonStyles,
     selectItemsFormSectionStyles,
+    pageContainerStyles,
+    editorFormFieldStyles,
+    editorHeadingStyles,
     css`
         :host {
             display: block;
@@ -11,13 +15,8 @@ export const styles = [
             padding-bottom: 88px;
         }
 
-        .promotions-form-container {
-            background-color: var(--spectrum-white);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            position: relative;
+        .page-container {
             padding: 6px 24px 24px 24px;
-            border-radius: 8px;
             display: flex;
             flex-direction: column;
             gap: var(--promotion-section-gap);
@@ -75,10 +74,6 @@ export const styles = [
             gap: 20px;
         }
 
-        .promotions-form-items-outer .form-field {
-            margin-top: 0;
-        }
-
         .promotions-form-surfaces-panel sp-button {
             background: white;
         }
@@ -124,21 +119,6 @@ export const styles = [
             font-weight: 600;
         }
 
-        .form-field {
-            padding: 20px;
-            margin-top: 20px;
-            border: 1px solid var(--spectrum-gray-300, #dadada);
-            border-radius: 16px;
-            box-shadow:
-                0 0 2px 0 var(--Alias-drop-shadow-elevated-key, rgba(0, 0, 0, 0.12)),
-                0 2px 6px 0 var(--Alias-drop-shadow-transition, rgba(0, 0, 0, 0.04)),
-                0 4px 12px 0 var(--Alias-drop-shadow-ambient, rgba(0, 0, 0, 0.08));
-
-            h2 {
-                margin: 0 0 20px 0;
-            }
-        }
-
         .promotion-summary {
             display: block;
             width: 100%;
@@ -180,51 +160,6 @@ export const styles = [
             font-weight: 700;
             line-height: 1.1;
             color: var(--spectrum-gray-900);
-        }
-
-        .promotion-codes-by-country {
-            border: 1px solid var(--spectrum-gray-200);
-            border-radius: 8px;
-            padding: 16px;
-            background: var(--spectrum-white);
-            box-sizing: border-box;
-            min-width: 0;
-            height: 100%;
-        }
-
-        .promotion-codes-title {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 400;
-            margin-bottom: 12px;
-            color: var(--spectrum-gray-700);
-        }
-
-        .promo-codes-summary-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .promo-codes-summary-table th,
-        .promo-codes-summary-table td {
-            border: 1px solid var(--spectrum-gray-200);
-            padding: 8px 12px;
-            text-align: left;
-            vertical-align: top;
-        }
-
-        .promo-codes-summary-table th {
-            background: var(--spectrum-gray-75);
-            font-weight: 600;
-            color: var(--spectrum-gray-800);
-        }
-
-        .promo-codes-summary-table td:first-child {
-            font-family: var(--spectrum-code-font-family, monospace);
-            white-space: nowrap;
         }
 
         .promotion-items-empty {
@@ -334,21 +269,6 @@ export const styles = [
                     transform: rotate(180deg);
                 }
             }
-
-            h2 sp-icon-asterisk100 {
-                width: 10px;
-                height: 10px;
-            }
-        }
-
-        h1,
-        h2 {
-            color: var(--spectrum-neutral-content-color-default);
-        }
-
-        h2 sp-icon-asterisk100 {
-            width: 10px;
-            height: 10px;
         }
 
         .confirm-dialog-overlay {
@@ -357,13 +277,18 @@ export const styles = [
             }
         }
 
-        .duplicating-overlay {
+        .duplicating-overlay,
+        .publishing-overlay {
             position: fixed;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+        }
+
+        .publishing-overlay {
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .end-date-row {

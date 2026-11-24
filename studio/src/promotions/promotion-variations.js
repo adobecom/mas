@@ -1,16 +1,15 @@
 import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX, PZN_FOLDER } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
+import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
-import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
-import { INHERITED_SETTINGS_FIELDS } from '../reactivity/preview-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
+import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
+import { createTtlCache } from '../utils/ttl-cache.js';
 import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
     buildPromotionsRootPath,
-    getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,
@@ -24,6 +23,22 @@ export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
 // Page size for folder search cursor (generator still walks all pages).
 const VARIATION_SEARCH_PAGE_SIZE = 50;
+
+// Read-only reference probes reuse a promo folder crawl for this long; writes clear it.
+const PROMO_ROOT_SEARCH_TTL = 60000;
+const cachedPromoRootSearch = createTtlCache(PROMO_ROOT_SEARCH_TTL);
+
+export function clearPromoVariationProbeCache() {
+    cachedPromoRootSearch.clear();
+}
+
+async function searchPromoRoot(aem, promoRoot) {
+    const items = [];
+    for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+        items.push(...batch);
+    }
+    return items;
+}
 
 // How many times / how often we re-check the search index before giving up and moving on.
 const INDEX_POLL_MAX_ATTEMPTS = 10;
@@ -106,9 +121,10 @@ function matchVariationByBasePath(variation, baseToDefaultPath) {
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} defaultPaths
  * @param {string} promoTagId
+ * @param {{ cached?: boolean }} [options] - `cached` reuses a recent crawl of the promo folder (read-only probes only)
  * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>>}
  */
-export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId, { cached = false } = {}) {
     const resultsByPath = new Map((defaultPaths || []).map((defaultPath) => [defaultPath, []]));
     if (!aem || !promoTagId || !defaultPaths?.length) return resultsByPath;
     const promoName = getPromoNameFromTag(promoTagId);
@@ -128,11 +144,12 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
     await processConcurrently(
         [...pathsByRoot.keys()],
         async (promoRoot) => {
-            for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
-                for (const variation of batch) {
-                    const matched = matchVariationByBasePath(variation, baseToDefaultPath);
-                    if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
-                }
+            const variations = cached
+                ? await cachedPromoRootSearch(promoRoot, () => searchPromoRoot(aem, promoRoot))
+                : await searchPromoRoot(aem, promoRoot);
+            for (const variation of variations) {
+                const matched = matchVariationByBasePath(variation, baseToDefaultPath);
+                if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
             }
         },
         VARIATIONS_CONCURRENCY_LIMIT,
@@ -284,27 +301,6 @@ export async function createPromoVariation(
         ? (sourceFragment.fields || []).find((field) => field.name === 'pznTags')?.values || []
         : [];
 
-    // A grouped variation only stores its own overrides, everything else is inherited from the default fragment.
-    // Resolve the effective content first, so the clone matches what's rendered.
-    let effectiveFields = sourceFragment.fields || [];
-    if (isGroupedVariationSource) {
-        const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
-        if (parentFragment) {
-            const mergedFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
-            // A model field is always present on AEM fragments, even when unset (values: ['']).
-            // Check for an actual value, not just presence.
-            const hasOwnValue = (field) => (field?.values || []).some((value) => value !== '' && value != null);
-            const ownFieldNamesWithValue = new Set(
-                (sourceFragment.fields || []).filter(hasOwnValue).map((field) => field.name),
-            );
-            effectiveFields = mergedFields.filter(
-                (field) =>
-                    field.name !== 'variation_tags' &&
-                    (!INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name)),
-            );
-        }
-    }
-
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
     const existingGeoTagsByVariation = existingVariations.map((variation) => ({
         ...variation,
@@ -334,7 +330,7 @@ export async function createPromoVariation(
     const fragmentName = targetPath.split('/').pop();
     await aem.sites.cf.fragments.ensureFolderExists(parentFolder);
 
-    const fieldsWithGeoTags = effectiveFields.filter((field) => field.name !== 'pznTags');
+    const fieldsWithGeoTags = (sourceFragment.fields || []).filter((field) => field.name !== 'pznTags');
     const mergedPznTags = [...new Set([...preservedPznTags, ...geoTags])];
     if (mergedPznTags.length) {
         fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: mergedPznTags });
@@ -357,6 +353,7 @@ export async function createPromoVariation(
     }
 
     await waitForPromoVariationIndexed(aem, sourceFragment.path, promoTagId, createdFragment.path);
+    clearPromoVariationProbeCache();
 
     return createdFragment;
 }
@@ -450,7 +447,8 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];
-            return probePromoVariationsForFragment(aem, defaultPath, tagId);
+            const resultsByPath = await probePromoVariationsForFragments(aem, [defaultPath], tagId, { cached: true });
+            return resultsByPath.get(defaultPath) || [];
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
@@ -625,14 +623,6 @@ export async function resolveDefaultFragmentForPromoVariation(
 }
 
 /**
- * Resolves promo variations for fragments attached to a promotion project.
- * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
- * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
- * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
- */
-/**
  * Probes the `pzn` subfolder under a fragment's promo-variation path for promo variations
  * created from that fragment's own grouped variations.
  * @param {import('../aem/aem.js').AEM} aem
@@ -668,6 +658,14 @@ async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName)
         });
 }
 
+/**
+ * Resolves promo variations for fragments attached to a promotion project.
+ * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
+ */
 async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];

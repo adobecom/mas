@@ -1,6 +1,14 @@
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, matchesGeo } from '../utils/common.js';
+import {
+    fetch,
+    getCountry,
+    getFragmentId,
+    getRegionalLocale,
+    getRequestInfos,
+    markDegraded,
+    matchesGeo,
+} from '../utils/common.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 // Locale-independent: the offer-mapping index lives at `<surface>/offer-mapping/index` with no locale
@@ -9,8 +17,12 @@ const OFFER_MAPPING_ID_PATH = 'offer-mapping/index';
 
 // Offer-mapping entries are shared by every request on a surface regardless of country — geo filtering
 // happens per request in `resolveOfferSubstituteMap` — so one jittered/SWR entry per surface serves
-// the whole fleet and shields Odin from a herd on the shared index (see createSwrCache).
-const offerMappingCache = createSwrCache({ name: 'offer-mapping' });
+// the whole fleet and shields Odin from a herd on the shared index (see createSwrCache). Expired entries are
+// revalidated with their Odin ETag, so an unchanged index is a body-less 304.
+const offerMappingCache = createSwrCache({ name: 'offer-mapping', conditional: true });
+const wcsArtifactCache = createSwrCache({ name: 'wcs-artifacts', previewMemory: true });
+
+export const clearWcsCache = () => wcsArtifactCache.clear(true);
 
 export function clearOfferMappingCache(preview = false) {
     offerMappingCache.clear(preview);
@@ -49,13 +61,16 @@ function collectMappings(fragment, references) {
 async function buildOfferMapping(context) {
     const { surface } = await getRequestInfos(context);
     if (!surface) return [];
-    const mappings = await offerMappingCache.get(context, surface, async () => {
+    const mappings = await offerMappingCache.get(context, surface, async ({ etagFor }) => {
         const { id, status } = await getOfferMappingId(context, surface);
-        if (!id) return status === 404 ? [] : null;
-        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, 'offer-mapping');
+        if (!id) return status === 404 ? { value: [] } : null;
+        const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
+        const response = await fetch(url, context, 'offer-mapping', { etag: etagFor(url) });
+        if (response.status === 304) return NOT_MODIFIED;
         if (response.status !== 200) return null;
-        return collectMappings(response.body, response.body.references || {});
+        return { value: collectMappings(response.body, response.body.references || {}), etag: response.etag, url };
     });
+    if (!mappings) markDegraded(context, `offer mapping ${surface}`);
     logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);
     return mappings ?? [];
 }
@@ -118,6 +133,9 @@ const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
 // promo.
 const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
 
+// identifies an offer token (osi & optional promotion code) whatever the WCS environment
+const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
+
 /**
  * Substitutes each comma-separated part of an OSI string independently, then rejoins.
  * Discount badges author a comma-joined OSI pair in a single data-wcs-osi attribute;
@@ -156,9 +174,11 @@ function hasMasElement(value) {
  * pass and reports the final osi; the original osi is kept too, so promo code matching can look it
  * up in the project map. Headless fragments price against inline OSIs that differ from their own
  * osi field, so those must participate as well (MWPW-201713).
+ * Explicit promo-project mappings are stamped on their matching elements so multiple OSIs in one
+ * fragment can carry different promo codes without inheriting whichever mapping appeared first.
  * @returns {{ osi: string, rawOsi: string, promotionCode?: string }[]}
  */
-function scanMasElements(fields, substituteMap, context) {
+function scanMasElements(fields, substituteMap, context, promoMap = {}) {
     const elements = [];
     if (!fields) return elements;
     for (const [key, field] of Object.entries(fields)) {
@@ -190,20 +210,31 @@ function scanMasElements(fields, substituteMap, context) {
                     }
                 }
             }
-            const promotionCode = injectedPromo ?? existingPromo;
+            let projectPromo;
+            if (!injectedPromo && !existingPromo) {
+                for (const part of [...rawOsi.split(','), ...osi.split(',')]) {
+                    if (!promoMap[part]) continue;
+                    projectPromo = promoMap[part];
+                    break;
+                }
+            }
+            const promotionCode = injectedPromo ?? existingPromo ?? projectPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;
-            if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
-            if (injectedPromo && injectedPromo !== existingPromo) {
+            if (osi !== rawOsi) {
+                updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}" data-replaced-osi="${rawOsi}"`);
+            }
+            const promoToInject = injectedPromo ?? projectPromo;
+            if (promoToInject && promoToInject !== existingPromo) {
                 // Overriding an element's own promo (conditioned match) replaces its attribute in place;
                 // adding one to a promo-free element inserts it right after data-wcs-osi.
                 updated = existingPromo
-                    ? updated.replace(/data-promotion-code="[^"]*"/, `data-promotion-code="${injectedPromo}"`)
-                    : updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${injectedPromo}"`);
+                    ? updated.replace(/data-promotion-code="[^"]*"/, `data-promotion-code="${promoToInject}"`)
+                    : updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${promoToInject}"`);
             }
             if (updated === element) return element;
             logDebug(
-                () => `Substituting OSI ${rawOsi} with ${osi}${injectedPromo ? ` (promo ${injectedPromo})` : ''}`,
+                () => `Substituting OSI ${rawOsi} with ${osi}${promoToInject ? ` (promo ${promoToInject})` : ''}`,
                 context,
             );
             changed = true;
@@ -217,19 +248,16 @@ function scanMasElements(fields, substituteMap, context) {
 }
 
 /**
- * Sets a fragment's promoCode from its promo project scope. The fragment's own osi has priority,
- * then any OSIs referenced in its rich text; an explicit osi entry (directly or via the project's
- * osi substitution) wins over the project wildcard ('*'). `richTextOsis` are the original
- * (pre-substitution) OSIs collected by scanMasElements.
+ * Sets a fragment's context promoCode from its own osi or the project wildcard. Explicit mappings
+ * for rich-text-only OSIs are stamped directly on those elements by scanMasElements; promoting one
+ * of them to fragment context would leak its code onto unrelated elements in the same fragment.
  */
-function resolvePromoCode(fields, richTextOsis, { promoMap, substituteMap }, context) {
-    // No osi (own or referenced in rich text) => nothing priceable, so no promo code (not even wildcard).
-    // Each entry may itself be a comma-joined OSI pair (discount badges, MWPW-201714) — split before matching.
-    const osis = []
-        .concat(fields.osi ?? [])
-        .concat(richTextOsis)
-        .flatMap((osi) => osi.split(','));
-    if (!osis.length) return;
+function resolvePromoCode(fields, hasRichTextOsis, { promoMap, substituteMap }, context) {
+    const osis = [].concat(fields.osi ?? []).flatMap((osi) => osi.split(','));
+    if (!osis.length) {
+        if (hasRichTextOsis && promoMap['*']) fields.promoCode = promoMap['*'];
+        return;
+    }
     let explicitPromoCode;
     for (const osi of osis) {
         if (promoMap[osi]) {
@@ -270,33 +298,42 @@ function substituteOwnOsi(fields, substituteMap) {
  */
 function updateOffers(context, offerMap = {}) {
     const scopeById = context.promoScopeById ?? {};
-    const masElements = [];
-    for (const fragment of fragmentsOf(context.body)) {
+    // Offer-mapping (`{ osi, promotionCode }` values) is the surface-level, geo-scoped fallback; a
+    // promo project's own substitutions (plain osi strings) win — normalize them into the same
+    // `{ osi }` shape and overlay. Overriding a source also drops its offer-mapping promo, since the
+    // normalized scope entry carries no promotionCode (MWPW-203764).
+    const scopeOf = (fragment) => {
         const scope = fragment.id != null ? scopeById[fragment.id] : undefined;
-        const { fields } = fragment;
-        // Offer-mapping (`{ osi, promotionCode }` values) is the surface-level, geo-scoped fallback; a
-        // promo project's own substitutions (plain osi strings) win — normalize them into the same
-        // `{ osi }` shape and overlay. Overriding a source also drops its offer-mapping promo, since the
-        // normalized scope entry carries no promotionCode (MWPW-203764).
         const substituteMap = { ...offerMap };
         for (const [source, osi] of Object.entries(scope?.substituteMap ?? {})) {
             substituteMap[source] = { osi };
         }
         const hasSubstitutions = Object.keys(substituteMap).length > 0;
-        const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context);
+        return { scope, substituteMap: hasSubstitutions ? substituteMap : undefined };
+    };
+    const masElements = [];
+    for (const fragment of fragmentsOf(context.body)) {
+        const { scope, substituteMap } = scopeOf(fragment);
+        const { fields } = fragment;
+        const elements = scanMasElements(fields, substituteMap, context, scope?.promoMap);
         if (scope && fields) {
-            // Promo code matching keys off the promo project's own (string) map only.
-            resolvePromoCode(
-                fields,
-                elements.map((element) => element.rawOsi),
-                scope,
-                context,
-            );
+            resolvePromoCode(fields, elements.length > 0, scope, context);
         }
-        if (fields && hasSubstitutions) {
+        if (fields && substituteMap) {
             substituteOwnOsi(fields, substituteMap);
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
+    }
+    // body.settings belongs to the root fragment. A settings override can carry inline prices (e.g. an
+    // addon) that the fields scan above never reaches, so scan it with the root's offer mapping and
+    // promo project, as its fields are. Otherwise those offers are absent from body.wcs and every
+    // consumer that prefills its WCS cache from it (aem-fragment, the agent action) fetches them live.
+    // They are optional: their lookups are bounded and best-effort (see computeCache).
+    if (context.body?.settings) {
+        const { scope, substituteMap } = scopeOf(context.body);
+        for (const { osi, promotionCode } of scanMasElements(context.body.settings, substituteMap, context, scope?.promoMap)) {
+            masElements.push({ osi, promotionCode, optional: true });
+        }
     }
     return masElements;
 }
@@ -307,6 +344,9 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
     url.searchParams.set('api_key', wcsContext.context.api_key);
+    if (wcsContext.serveLatest) {
+        url.searchParams.set('serveLatest', 'true');
+    }
     if (wcsContext.language) {
         url.searchParams.set('language', wcsContext.language);
     }
@@ -314,39 +354,52 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     if (promotionCode) {
         url.searchParams.set('promotion_code', promotionCode);
     }
-    const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
-    if (response.status === 200) {
-        return response.body;
-    }
-    return null;
+    const load = async () => {
+        const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
+        // an unknown offer (4xx) is an authoring issue, which a rebuild would not fix
+        if (response.status >= 500 || response.status === 429) markDegraded(wcsContext.context, `wcs ${osi}`);
+        return response.status === 200 ? response.body : null;
+    };
+    const { context } = wcsContext;
+    if (!context.preview || Object.keys(context.DEFAULT_HEADERS ?? {}).length) return load();
+    const key = JSON.stringify([url.toString(), context.networkConfig]);
+    return structuredClone(await wcsArtifactCache.get(context, key, load));
+}
+
+// Optional lookups (settings-only OSIs such as an addon) get at most this long. Their failure or
+// timeout only leaves them out of the cache, so they can neither fail nor noticeably slow the fragment.
+const OPTIONAL_WCS_TIMEOUT = 1000;
+
+function withDeadline(promise, ms) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`optional WCS request exceeded ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
+function wcsCacheKey({ osi, promotionCode }, { country, language }) {
+    return [osi, country.toLowerCase(), language?.toLowerCase(), promotionCode?.toLowerCase()].filter((val) => val).join('-');
 }
 
 async function computeCache(tokens, wcsContext) {
     const cache = {};
     let idx = 0;
-    const promises = tokens.map(
-        ({ osi, promotionCode }) =>
-            new Promise(async (resolve, reject) => {
-                const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
-                if (response) {
-                    const { resolvedOffers } = response;
-                    const cacheKey = [
-                        osi,
-                        wcsContext.country.toLowerCase(),
-                        wcsContext.language?.toLowerCase(),
-                        promotionCode?.toLowerCase(),
-                    ]
-                        .filter((val) => val)
-                        .join('-');
-                    resolve({
-                        cacheKey,
-                        resolvedOffers,
-                    });
-                } else {
-                    reject('failed wcs request');
-                }
-            }),
-    );
+    const promises = tokens.map(({ osi, promotionCode, optional }) => {
+        const lookup = new Promise(async (resolve, reject) => {
+            const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
+            if (response) {
+                const { resolvedOffers } = response;
+                resolve({
+                    cacheKey: wcsCacheKey({ osi, promotionCode }, wcsContext),
+                    resolvedOffers,
+                });
+            } else {
+                reject('failed wcs request');
+            }
+        });
+        return optional ? withDeadline(lookup, OPTIONAL_WCS_TIMEOUT) : lookup;
+    });
     const responses = await Promise.allSettled(promises);
     responses.forEach((response) => {
         if (response.status === 'fulfilled') {
@@ -355,6 +408,61 @@ async function computeCache(tokens, wcsContext) {
         }
     });
     return cache;
+}
+
+/**
+ * Fetches WCS artifacts for `tokens` against every WCS configuration, returning `{ [env]: { [cacheKey]: resolvedOffers } }`.
+ * Entries already present in `prefetched` (e.g. the offer transformer's early call) are reused, not requested again.
+ * WCS country/locale follow the request (`wcsCountry`, `regionLocale`), so callers ahead of the `wcs` transformer must
+ * pass a context carrying the same values to share entries.
+ */
+function createWcsContext(context) {
+    const country = context.wcsCountry ?? getCountry(context);
+    return {
+        locale: getRegionalLocale(context),
+        country,
+        language: country !== 'GB' ? 'MULT' : undefined,
+        context,
+    };
+}
+
+async function computeWcsCaches(tokens, context, prefetched = {}) {
+    if (context.preview) {
+        const individualTokens = new Map();
+        for (const token of tokens) {
+            for (const osi of token.osi.split(',').map((value) => value.trim())) {
+                const individualToken = { ...token, osi };
+                const key = tokenKey(individualToken);
+                if (!individualTokens.has(key) || !individualToken.optional) individualTokens.set(key, individualToken);
+            }
+        }
+        tokens = [...individualTokens.values()];
+    }
+    const wcsContext = createWcsContext(context);
+    const caches = {};
+    for (const config of context.wcsConfiguration) {
+        wcsContext.wcsURL = config.wcsURL;
+        wcsContext.landscape = config.landscape || 'PUBLISHED';
+        wcsContext.serveLatest = config.env === 'stage' && ['true', true].includes(context.serveLatest);
+        const envKey = wcsContext.serveLatest ? 'stage-latest' : config.env;
+        const known = prefetched[envKey] ?? {};
+        const missing = tokens.filter((token) => !(wcsCacheKey(token, wcsContext) in known));
+        try {
+            const fetched = await computeCache(missing, wcsContext);
+            // token order (not fetch order) keeps the response, hence its ETag, stable whatever was prefetched
+            const cache = {};
+            for (const token of tokens) {
+                const key = wcsCacheKey(token, wcsContext);
+                const offers = known[key] ?? fetched[key];
+                if (offers) cache[key] = offers;
+            }
+            caches[envKey] = { ...cache, ...known };
+            /* c8 ignore next 3*/
+        } catch (error) {
+            logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
+        }
+    }
+    return caches;
 }
 
 async function wcs(context) {
@@ -372,6 +480,8 @@ async function wcs(context) {
         log('No WCS configurations available', context);
         return context;
     }
+    // Artifacts already fetched by the offer transformer (ADR CONT-0005) are reused instead of requested twice.
+    const prefetched = context.wcsPrefetch ?? {};
     if (masElements.length > 0) {
         // Promo codes applied to referenced cards live on each card's fields.promoCode (keyed by its base osi),
         // not in the price HTML nor on the collection root. Build a base-osi -> promoCode lookup to fill the cache
@@ -391,31 +501,33 @@ async function wcs(context) {
             }
         }
         const tokenMap = new Map();
-        const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
-        const addToken = (token) => {
+        // A token is optional only when every element that needs it is optional.
+        const requiredKeys = new Set();
+        const addToken = (token, optional) => {
             const key = tokenKey(token);
             if (!tokenMap.has(key)) tokenMap.set(key, token);
+            if (!optional) requiredKeys.add(key);
         };
-        masElements.forEach(({ osi, promotionCode }) => {
+        masElements.forEach(({ osi, promotionCode, optional }) => {
             // OSIs and inline promo codes are already final (substituted) from updateOffers above.
             // An inline cancel-context sentinel means "no promotion for this element": cache the plain
             // offer and never inherit the fragment/collection promo, so the client's no-promo request
             // (computePromoStatus strips cancel-context) hits the prefilled cache. MWPW-203600.
             if (promotionCode === PROMO_CONTEXT_CANCEL_VALUE) {
-                addToken({ osi });
+                addToken({ osi }, optional);
                 return;
             }
             if (promotionCode) {
-                addToken({ osi, promotionCode });
+                addToken({ osi, promotionCode }, optional);
                 return;
             }
             // Bare markup OSIs (no own data-promotion-code, no matching reference) belong to the
             // top-level fragment itself — fall back to its own fields.promoCode (set by updateOffers).
             const promoCode = promoCodeByOsi[osi] ?? context.body.fields?.promoCode;
-            if (promoCode) addToken({ osi, promotionCode: promoCode });
+            if (promoCode) addToken({ osi, promotionCode: promoCode }, optional);
             // Cache the plain (no promo) offer when no card promotes this osi, or when a card shares
             // this osi without a promo of its own (mixed case) — otherwise that card would miss the cache.
-            if (!promoCode || noPromoOsis.has(osi)) addToken({ osi });
+            if (!promoCode || noPromoOsis.has(osi)) addToken({ osi }, optional);
         });
 
         if (context.body.fields?.osi) {
@@ -424,31 +536,14 @@ async function wcs(context) {
                 promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);
+            requiredKeys.add(tokenKey(token));
         }
 
-        // Convert Map values back to array
-        const tokens = Array.from(tokenMap.values());
-        const country = context.wcsCountry ?? getCountry(context);
-        const wcsContext = {
-            locale: getRegionalLocale(context),
-            country,
-            context,
-        };
-        context.body.wcs ??= {};
-        for (const config of wcsConfigs) {
-            wcsContext.wcsURL = config.wcsURL;
-            wcsContext.landscape = config.landscape || 'PUBLISHED';
-            if (country !== 'GB') wcsContext.language = 'MULT';
-            context.body.wcs ??= {};
-            try {
-                context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
-                /* c8 ignore next 3*/
-            } catch (error) {
-                logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
-            }
-        }
+        const tokens = Array.from(tokenMap, ([key, token]) => ({ ...token, optional: !requiredKeys.has(key) }));
+        context.body.wcs = { ...context.body.wcs, ...(await computeWcsCaches(tokens, context, prefetched)) };
     } else {
         log('No WCS placeholders found in fragment content', context);
+        if (Object.keys(prefetched).length > 0) context.body.wcs = { ...context.body.wcs, ...prefetched };
     }
     return context;
 }
@@ -470,4 +565,8 @@ export {
     updateOffers,
     buildOfferMapping,
     resolveOfferSubstituteMap,
+    computeWcsCaches,
+    createWcsContext,
+    wcsCacheKey,
+    tokenKey,
 };

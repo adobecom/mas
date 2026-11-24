@@ -8,9 +8,13 @@ const config = {
     severity: 'e',
     tags: 'acom',
     isProdDomain: false,
+    // Resolved by getLocaleSettings(), published by mas-commerce-service on
+    // activation. Lana drops it from the options, we log it as a fact instead.
+    country: '',
 };
 // total lana limit in /utils/lana.js is 2000
 const PAGE_LIMIT = 1000;
+const COUNTRY_FACT = 'mas-commerce-service:country';
 
 function isError(value) {
     return (
@@ -50,6 +54,17 @@ function serializeParam(key, value) {
     return serializeValue(value);
 }
 
+// Merged into the first logged fact so region-specific errors can be reproduced
+// from the log entry alone, including the ones Milo raises through Log.module()
+// without any commerce params.
+function withCountry(values) {
+    const [first, ...rest] = values;
+    if (first?.constructor === Object) {
+        return [{ ...first, [COUNTRY_FACT]: config.country }, ...rest];
+    }
+    return [{ [COUNTRY_FACT]: config.country }, ...values];
+}
+
 const lanaAppender = {
     append(entry) {
         if (entry.level !== 'error') return;
@@ -75,10 +90,8 @@ const lanaAppender = {
         }
         payload += page;
 
-        if (values.length) {
-            payload += `${config.delimiter}facts=`;
-            payload += JSON.stringify(values, serializeParam);
-        }
+        payload += `${config.delimiter}facts=`;
+        payload += JSON.stringify(withCountry(values), serializeParam);
 
         window.lana?.log(payload, config);
     },

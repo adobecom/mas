@@ -1,6 +1,13 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { createSwrCache } from '../../src/fragment/utils/swr-cache.js';
+import v8 from 'v8';
+import {
+    createSwrCache,
+    getMemoryStats,
+    NOT_MODIFIED,
+    setHeapBudget,
+    setMemoryLimit,
+} from '../../src/fragment/utils/swr-cache.js';
 
 // A deferred loader: resolve/reject externally so a refill can be held in-flight to observe
 // single-flight coalescing and stale-while-revalidate.
@@ -20,6 +27,7 @@ function installLocalStorageShim() {
     Object.defineProperties(storage, {
         getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
         setItem: {
+            configurable: true,
             value: (key, val) => {
                 storage[key] = String(val);
             },
@@ -38,6 +46,569 @@ function installLocalStorageShim() {
 const published = { debugLogs: true, requestId: 'swr-ut' };
 
 describe('swr-cache', () => {
+    describe('blocking expiry', () => {
+        let clock;
+        let cache;
+
+        beforeEach(() => {
+            clock = sinon.stub(Date, 'now').returns(1000);
+            cache = createSwrCache({
+                name: 'mask-misses',
+                ttl: 100,
+                jitter: 0,
+                staleWhileRevalidate: false,
+                shouldCache: (result) => result.status === 404,
+            });
+        });
+
+        afterEach(() => sinon.restore());
+
+        it('returns a recovered result instead of an expired cached 404', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            const recovered = () => cache.get(published, 'photo', async () => ({ status: 200, id: 'photo-id' }));
+            expect(await recovered()).to.deep.equal({ status: 200, id: 'photo-id' });
+            expect(await recovered()).to.deep.equal({ status: 200, id: 'photo-id' });
+        });
+
+        it('shares an awaited refill after a negative entry expires', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            const refill = deferred({ status: 200 });
+            const loader = sinon.spy(refill.loader);
+            const first = cache.get(published, 'photo', loader);
+            const second = cache.get(published, 'photo', loader);
+            refill.settle();
+            expect(await Promise.all([first, second])).to.deep.equal([{ status: 200 }, { status: 200 }]);
+            expect(loader.callCount).to.equal(1);
+        });
+
+        it('does not replace a transient failure with an expired cached 404', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            expect(await cache.get(published, 'photo', async () => null)).to.equal(null);
+            expect(await cache.get(published, 'photo', async () => ({ status: 200 }))).to.deep.equal({ status: 200 });
+        });
+    });
+
+    describe('memory entry limits', () => {
+        let clock;
+
+        beforeEach(() => {
+            installLocalStorageShim();
+            clock = sinon.stub(Date, 'now').returns(1000);
+        });
+
+        afterEach(() => {
+            sinon.restore();
+            delete globalThis.localStorage;
+        });
+
+        for (const [mode, context] of [
+            ['published', {}],
+            ['preview', { preview: true }],
+        ]) {
+            it(`limits ${mode} memory entries to 1000 by default`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true });
+                for (let i = 0; i <= 1000; i++) {
+                    await cache.get(context, `${i}`, async () => i);
+                }
+
+                expect(await cache.get(context, '1', async () => 'unexpected')).to.equal(1);
+                expect(await cache.get(context, '1000', async () => 'unexpected')).to.equal(1000);
+                expect(await cache.get(context, '0', async () => 'reloaded')).to.equal('reloaded');
+            });
+
+            it(`evicts the least recently used ${mode} entry at the configured limit`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 2 });
+                await cache.get(context, 'a', async () => 'a');
+                await cache.get(context, 'b', async () => 'b');
+                await cache.get(context, 'a', async () => 'unexpected');
+
+                await cache.get(context, 'c', async () => 'c');
+
+                expect(await cache.get(context, 'a', async () => 'unexpected')).to.equal('a');
+                expect(await cache.get(context, 'c', async () => 'unexpected')).to.equal('c');
+                expect(await cache.get(context, 'b', async () => 'reloaded')).to.equal('reloaded');
+            });
+
+            it(`keeps recently refreshed ${mode} entries when evicting`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 2, ttl: 1000, jitter: 0 });
+                await cache.get(context, 'a', async () => 'original');
+                clock.returns(1500);
+                await cache.get(context, 'b', async () => 'b');
+                clock.returns(2001);
+                await cache.get(context, 'a', async () => 'refreshed');
+                await new Promise((resolve) => setImmediate(resolve));
+
+                await cache.get(context, 'c', async () => 'c');
+
+                expect(await cache.get(context, 'a', async () => 'unexpected')).to.equal('refreshed');
+                expect(await cache.get(context, 'b', async () => 'reloaded')).to.equal('reloaded');
+            });
+        }
+
+        it('applies the limit independently to published and preview memory', async () => {
+            const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 1 });
+            await cache.get({}, 'a', async () => 'published');
+            await cache.get({ preview: true }, 'a', async () => 'preview');
+
+            await cache.get({}, 'b', async () => 'new published');
+
+            expect(await cache.get({ preview: true }, 'a', async () => 'unexpected')).to.equal('preview');
+            expect(await cache.get({}, 'b', async () => 'unexpected')).to.equal('new published');
+            expect(await cache.get({}, 'a', async () => 'reloaded')).to.equal('reloaded');
+        });
+
+        it('does not apply the memory limit to persistent preview entries', async () => {
+            const cache = createSwrCache({ name: 'test', maxEntries: 1 });
+            await cache.get({ preview: true }, 'a', async () => 'a');
+            await cache.get({ preview: true }, 'b', async () => 'b');
+
+            expect(await cache.get({ preview: true }, 'a', async () => 'unexpected')).to.equal('a');
+            expect(await cache.get({ preview: true }, 'b', async () => 'unexpected')).to.equal('b');
+        });
+    });
+
+    describe('shared memory budget', () => {
+        const cacheStats = (name) => getMemoryStats().caches[name];
+        let maxHeapUsed;
+
+        beforeEach(() => {
+            maxHeapUsed = getMemoryStats().maxHeapUsed;
+            setHeapBudget();
+        });
+
+        afterEach(() => {
+            setMemoryLimit(256 * 1024 * 1024);
+            setHeapBudget(maxHeapUsed, () => v8.getHeapStatistics().used_heap_size);
+        });
+
+        it('evicts only the excess above the heap budget, until the heap shrinks', async () => {
+            const cache = createSwrCache({ name: 'budget-heap' });
+            let heapUsed = 0;
+            setHeapBudget(1000, () => heapUsed);
+            for (const key of ['a', 'b', 'c']) await cache.get(published, key, async () => key.repeat(98));
+
+            // older entries of the previous tests are evicted first: the excess also covers them, then a and b
+            heapUsed = 1000 + getMemoryStats().bytes - 150;
+            await cache.get(published, 'd', async () => 'd'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 2, bytes: 200, evictions: 2 });
+            expect(getMemoryStats().maxHeapUsed).to.equal(1000);
+
+            // the evicted entries are not freed yet: the same heap used does not evict again
+            await cache.get(published, 'e', async () => 'e'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 2 });
+
+            heapUsed = 1050;
+            await cache.get(published, 'f', async () => 'f'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300, evictions: 3 });
+            expect(await cache.get(published, 'c', async () => 'reloaded')).to.equal('reloaded');
+        });
+
+        it('evicts the least recently used entries across cache instances above the byte budget', async () => {
+            const first = createSwrCache({ name: 'budget-a' });
+            const second = createSwrCache({ name: 'budget-b' });
+            await first.get(published, 'k', async () => 'x'.repeat(98));
+            await second.get(published, 'k', async () => 'y'.repeat(98));
+            await first.get(published, 'k', async () => 'unexpected');
+            setMemoryLimit(200);
+
+            await second.get(published, 'other', async () => 'z'.repeat(98));
+
+            expect(await first.get(published, 'k', async () => 'unexpected')).to.have.length(98);
+            expect(await second.get(published, 'k', async () => 'reloaded')).to.equal('reloaded');
+            expect(cacheStats('budget-a')).to.deep.equal({ entries: 1, bytes: 100, evictions: 0 });
+        });
+
+        it('counts an undefined value as empty', async () => {
+            const cache = createSwrCache({ name: 'budget-undefined' });
+            cache.set(published, 'k', undefined);
+            expect(cacheStats('budget-undefined')).to.deep.equal({ entries: 1, bytes: 0, evictions: 0 });
+        });
+
+        it('keeps a single entry larger than the budget', async () => {
+            const cache = createSwrCache({ name: 'budget-single' });
+            setMemoryLimit(0);
+            await cache.get(published, 'k', async () => 'large');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('large');
+            expect(getMemoryStats()).to.include({ entries: 1, bytes: 7, maxBytes: 0 });
+        });
+
+        it('stops counting replaced, evicted and cleared entries', async () => {
+            const cache = createSwrCache({ name: 'budget-count', maxEntries: 1 });
+            const { evictions } = getMemoryStats();
+            await cache.get(published, 'a', async () => 'aa');
+            cache.set(published, 'a', 'aaaa');
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 6, evictions: 0 });
+            await cache.get(published, 'b', async () => 'b');
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 3, evictions: 1 });
+            cache.clear();
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 0, bytes: 0, evictions: 1 });
+            expect(getMemoryStats().evictions).to.equal(evictions + 1);
+        });
+    });
+
+    describe('set', () => {
+        it('replaces a fresh memory value without calling the loader', async () => {
+            const cache = createSwrCache({ name: 'test' });
+            await cache.get(published, 'k', async () => 'old');
+            cache.set(published, 'k', 'new');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('new');
+        });
+
+        it('keeps a value set while a refill is in progress, then lets the next refill write', async () => {
+            const now = sinon.stub(Date, 'now').returns(0);
+            const settle = () => new Promise((resolve) => setImmediate(resolve));
+            try {
+                const cache = createSwrCache({ name: 'set-refill', ttl: 1000, jitter: 0 });
+                await cache.get(published, 'k', async () => 'old');
+                now.returns(2000);
+                let resolveRefill;
+                const refill = () => new Promise((resolve) => (resolveRefill = resolve));
+                expect(await cache.get(published, 'k', refill)).to.equal('old');
+                cache.set(published, 'k', 'new');
+                resolveRefill('older');
+                await settle();
+                expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('new');
+
+                now.returns(4000);
+                expect(await cache.get(published, 'k', async () => 'next')).to.equal('new');
+                await settle();
+                expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('next');
+            } finally {
+                now.restore();
+            }
+        });
+
+        it('writes persistent preview values to localStorage', async () => {
+            const storage = installLocalStorageShim();
+            try {
+                const cache = createSwrCache({ name: 'set-preview' });
+                cache.set({ preview: true }, 'k', 'preview');
+                expect(JSON.parse(storage['set-preview-k']).value).to.equal('preview');
+                expect(await cache.get({ preview: true }, 'k', async () => 'unexpected')).to.equal('preview');
+            } finally {
+                delete globalThis.localStorage;
+            }
+        });
+    });
+
+    describe('preview (in-memory) backend', () => {
+        const preview = { preview: { url: 'https://preview.example' }, requestId: 'swr-ut' };
+        let storage;
+        let clock;
+        let cache;
+
+        beforeEach(() => {
+            storage = installLocalStorageShim();
+            clock = sinon.stub(Date, 'now').returns(1000);
+            cache = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+        });
+
+        afterEach(() => {
+            sinon.restore();
+            delete globalThis.localStorage;
+        });
+
+        it('keeps parsed preview values out of localStorage', async () => {
+            const value = new Map([['k', 'value']]);
+            expect(await cache.get(preview, 'k', async () => value)).to.equal(value);
+            expect(Object.keys(storage)).to.deep.equal([]);
+        });
+
+        it('uses the preview TTL independently of the published TTL', async () => {
+            await cache.get(published, 'k', async () => 'published');
+            await cache.get(preview, 'k', async () => 'original');
+            clock.returns(1500);
+            expect(await cache.get(preview, 'k', async () => 'edited')).to.equal('original');
+            clock.returns(2001);
+            expect(await cache.get(preview, 'k', async () => 'edited')).to.equal('edited');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('published');
+        });
+
+        it('reloads every preview read when its TTL is zero, even within the same millisecond', async () => {
+            const cache = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 0 });
+            const loader = sinon.stub();
+            loader.onFirstCall().resolves('original');
+            loader.onSecondCall().resolves('edited');
+            expect(await cache.get(preview, 'k', loader)).to.equal('original');
+            expect(await cache.get(preview, 'k', loader)).to.equal('edited');
+            expect(loader.callCount).to.equal(2);
+        });
+
+        it('retries a failed preview refill without serving expired data', async () => {
+            await cache.get(preview, 'k', async () => 'original');
+            clock.returns(2001);
+            expect(await cache.get(preview, 'k', async () => null)).to.be.null;
+            expect(await cache.get(preview, 'k', async () => 'recovered')).to.equal('recovered');
+        });
+
+        it('releases the preview in-flight slot after a loader rejects', async () => {
+            await cache.get(preview, 'k', async () => 'original');
+            clock.returns(2001);
+            let error;
+            try {
+                await cache.get(preview, 'k', async () => {
+                    throw new Error('offline');
+                });
+            } catch (caught) {
+                error = caught;
+            }
+            expect(error.message).to.equal('offline');
+            expect(await cache.get(preview, 'k', async () => 'recovered')).to.equal('recovered');
+        });
+
+        it('coalesces concurrent expired preview reads while awaiting fresh data', async () => {
+            await cache.get(preview, 'k', async () => 'original');
+            clock.returns(2001);
+            const { loader, settle } = deferred('edited');
+            const spy = sinon.spy(loader);
+            const reads = [cache.get(preview, 'k', spy), cache.get(preview, 'k', spy)];
+            settle();
+            expect(await Promise.all(reads)).to.deep.equal(['edited', 'edited']);
+            expect(spy.callCount).to.equal(1);
+        });
+
+        it('isolates published and preview values and in-flight loads', async () => {
+            const { loader, settle } = deferred('published');
+            const read = cache.get(published, 'k', loader);
+            expect(await cache.get(preview, 'k', async () => 'preview')).to.equal('preview');
+            settle();
+            expect(await read).to.equal('published');
+            expect(await cache.get(published, 'k', async () => null)).to.equal('published');
+        });
+
+        it('isolates different preview endpoints', async () => {
+            await cache.get(preview, 'k', async () => 'one');
+            expect(await cache.get({ preview: { url: 'https://other.example' } }, 'k', async () => 'two')).to.equal('two');
+            expect(await cache.get(preview, 'k', async () => 'unexpected')).to.equal('one');
+        });
+
+        it('clear(true) drops memory-only preview entries without touching published entries', async () => {
+            await cache.get(published, 'k', async () => 'published');
+            await cache.get(preview, 'k', async () => 'preview');
+            cache.clear(true);
+            expect(await cache.get(preview, 'k', async () => 'fresh')).to.equal('fresh');
+            expect(await cache.get(published, 'k', async () => null)).to.equal('published');
+        });
+
+        it('invalidates local entries and pending loads when the revision write exceeds quota', async () => {
+            await cache.get(preview, 'k', async () => 'original');
+            const { loader, settle } = deferred('outdated');
+            const pending = cache.get(preview, 'pending', loader);
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw new DOMException('Storage full', 'QuotaExceededError');
+                },
+            });
+            const errorLog = sinon.stub(console, 'error');
+
+            expect(() => cache.clear(true)).not.to.throw();
+            settle();
+            await pending;
+
+            expect(await cache.get(preview, 'k', async () => 'edited')).to.equal('edited');
+            expect(await cache.get(preview, 'pending', async () => 'fresh')).to.equal('fresh');
+            expect(errorLog.calledWithMatch(/quota/i)).to.be.true;
+        });
+
+        it('removes the previous revision on quota failure to invalidate other instances', async () => {
+            cache.clear(true);
+            const other = createSwrCache({ name: 'test', previewMemory: true });
+            await other.get(preview, 'k', async () => 'original');
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw new DOMException('Storage full', 'QuotaExceededError');
+                },
+            });
+            sinon.stub(console, 'error');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'edited')).to.equal('edited');
+        });
+
+        it('propagates unexpected revision write failures', () => {
+            const error = new Error('Unexpected storage failure');
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw error;
+                },
+            });
+            expect(() => cache.clear(true)).to.throw(error);
+        });
+
+        it('invalidates preview entries in a separately loaded module before their TTL expires', async () => {
+            const { createSwrCache: createOtherCache } = await import('../../src/fragment/utils/swr-cache.js?preview-consumer');
+            const other = createOtherCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            await other.get(preview, 'k', async () => 'original');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'edited')).to.equal('edited');
+        });
+
+        it('invalidates other instances on consecutive clears within the same millisecond', async () => {
+            const other = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            await other.get(preview, 'k', async () => 'original');
+            cache.clear(true);
+            await other.get(preview, 'k', async () => 'first edit');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'second edit')).to.equal('second edit');
+        });
+
+        it('does not reuse a pending preview load in another instance after invalidation', async () => {
+            const other = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            const { loader, settle } = deferred('original');
+            const oldRead = other.get(preview, 'k', loader);
+
+            cache.clear(true);
+            const freshRead = other.get(preview, 'k', async () => 'edited');
+            settle();
+            await oldRead;
+
+            expect(await freshRead).to.equal('edited');
+            expect(await other.get(preview, 'k', async () => 'unexpected')).to.equal('edited');
+        });
+
+        it('leaves other namespaces and published entries intact when preview is invalidated', async () => {
+            const other = createSwrCache({ name: 'other', previewMemory: true });
+            await other.get(preview, 'k', async () => 'unrelated');
+            await cache.get(published, 'k', async () => 'published');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'unexpected')).to.equal('unrelated');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('published');
+        });
+    });
+
+    it('keeps stale data when a background loader rejects and retries later', async () => {
+        const clock = sinon.stub(Date, 'now').returns(1000);
+        const errorLog = sinon.stub(console, 'error');
+        try {
+            const cache = createSwrCache({ name: 'test', ttl: 1000, jitter: 0 });
+            await cache.get(published, 'k', async () => 'original');
+            clock.returns(2001);
+            expect(
+                await cache.get(published, 'k', async () => {
+                    throw new Error('offline');
+                }),
+            ).to.equal('original');
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(errorLog.called).to.be.true;
+            expect(await cache.get(published, 'k', async () => 'recovered')).to.equal('original');
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(await cache.get(published, 'k', async () => null)).to.equal('recovered');
+        } finally {
+            clock.restore();
+            errorLog.restore();
+        }
+    });
+
+    it('does not repopulate a cache cleared while a refill is pending', async () => {
+        const cache = createSwrCache({ name: 'test' });
+        const { loader, settle } = deferred('old');
+        const oldRead = cache.get(published, 'k', loader);
+        cache.clear();
+        await cache.get(published, 'k', async () => 'new');
+        settle();
+        await oldRead;
+        expect(await cache.get(published, 'k', async () => null)).to.equal('new');
+    });
+
+    it('shares uncached values between concurrent readers and reloads on the next read', async () => {
+        const cache = createSwrCache({ name: 'test', shouldCache: () => false });
+        const { loader, settle } = deferred('partial');
+        const reads = [cache.get(published, 'k', loader), cache.get(published, 'k', loader)];
+        settle();
+        expect(await Promise.all(reads)).to.deep.equal(['partial', 'partial']);
+        expect(await cache.get(published, 'k', async () => 'recovered')).to.equal('recovered');
+    });
+
+    it('retains stale data when the cacheability predicate rejects a refill', async () => {
+        const clock = sinon.stub(Date, 'now').returns(1000);
+        try {
+            const cache = createSwrCache({
+                name: 'test',
+                ttl: 1000,
+                jitter: 0,
+                shouldCache: (value) => value !== 'partial',
+            });
+            await cache.get(published, 'k', async () => 'complete');
+            clock.returns(2001);
+            expect(await cache.get(published, 'k', async () => 'partial')).to.equal('complete');
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(await cache.get(published, 'k', async () => null)).to.equal('complete');
+        } finally {
+            clock.restore();
+        }
+    });
+
+    for (const [mode, context, previewMemory] of [
+        ['published', published, false],
+        ['memory preview', { preview: true }, true],
+        ['persistent preview', { preview: true }, false],
+    ]) {
+        it(`uses a short TTL override for incomplete ${mode} loads`, async () => {
+            installLocalStorageShim();
+            const clock = sinon.stub(Date, 'now').returns(1000);
+            try {
+                const cache = createSwrCache({
+                    name: 'test',
+                    ttl: 60000,
+                    previewMemory,
+                    jitter: 0,
+                    shouldCache: ({ complete }) => (complete ? true : { ttl: 10000 }),
+                });
+                const loader = sinon.stub().resolves({ complete: false, data: 'partial' });
+                await cache.get(context, 'k', loader);
+                clock.returns(11000);
+                expect(await cache.get(context, 'k', loader)).to.deep.equal({ complete: false, data: 'partial' });
+                expect(loader.callCount).to.equal(1);
+
+                clock.returns(11001);
+                await cache.get(context, 'k', loader);
+                await new Promise((resolve) => setImmediate(resolve));
+                expect(loader.callCount).to.equal(2);
+            } finally {
+                clock.restore();
+                delete globalThis.localStorage;
+            }
+        });
+    }
+
+    it('retains complete stale data and backs off after an incomplete published refill', async () => {
+        const clock = sinon.stub(Date, 'now').returns(1000);
+        try {
+            const cache = createSwrCache({
+                name: 'test',
+                ttl: 1000,
+                jitter: 0,
+                shouldCache: ({ complete }) => (complete ? true : { ttl: 10000 }),
+            });
+            const complete = { complete: true, data: 'complete' };
+            await cache.get(published, 'k', async () => complete);
+            clock.returns(2001);
+            const loader = sinon.stub().resolves({ complete: false, data: 'partial' });
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            await new Promise((resolve) => setImmediate(resolve));
+            clock.returns(12001);
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            expect(loader.callCount).to.equal(1);
+
+            clock.returns(12002);
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(loader.callCount).to.equal(2);
+        } finally {
+            clock.restore();
+        }
+    });
+
     describe('published (in-memory) backend', () => {
         it('loads on a cold read and returns the value', async () => {
             const cache = createSwrCache({ name: 'test' });
@@ -142,6 +713,101 @@ describe('swr-cache', () => {
             const loader = sinon.stub().resolves('v2');
             expect(await cache.get(published, 'k', loader)).to.equal('v2');
             expect(loader.callCount).to.equal(1);
+        });
+
+        describe('conditional', () => {
+            const T0 = 1_000_000;
+            let clock;
+            let cache;
+
+            beforeEach(() => {
+                clock = sinon.stub(Date, 'now').returns(T0);
+                cache = createSwrCache({ name: 'conditional', ttl: 1000, jitter: 0, conditional: true });
+            });
+
+            afterEach(() => clock.restore());
+
+            const sentEtag = (loader, url = 'u') => loader.firstCall.args[0].etagFor(url);
+
+            // expires the entry, then lets its background refill settle
+            const revalidate = async (loader) => {
+                clock.returns(Date.now() + 2000);
+                const served = await cache.get(published, 'k', loader);
+                await new Promise((r) => setImmediate(r));
+                return served;
+            };
+
+            it('revalidates with the cached ETag and keeps the value, restarting its TTL, when not modified', async () => {
+                const cold = sinon.stub().resolves({ value: 'v1', etag: '"e1"', url: 'u' });
+                expect(await cache.get(published, 'k', cold)).to.equal('v1');
+                expect(sentEtag(cold)).to.be.undefined;
+
+                const notModified = sinon.stub().resolves(NOT_MODIFIED);
+                const output = sinon.stub(console, 'log');
+                try {
+                    expect(await revalidate(notModified)).to.equal('v1');
+                } finally {
+                    output.restore();
+                }
+                expect(sentEtag(notModified)).to.equal('"e1"');
+                const lines = output.getCalls().map(({ args }) => args[0]);
+                expect(
+                    lines.some((line) =>
+                        /\[conditional\] "k" not modified \(304, etag "e1"\): keeping the cached value$/.test(line),
+                    ),
+                ).to.be.true;
+
+                const unused = sinon.stub();
+                expect(await cache.get(published, 'k', unused)).to.equal('v1');
+                expect(unused.called).to.be.false;
+                const again = sinon.stub().resolves(NOT_MODIFIED);
+                await revalidate(again);
+                expect(sentEtag(again)).to.equal('"e1"');
+            });
+
+            it('replaces the value and its ETag when modified', async () => {
+                await cache.get(published, 'k', async () => ({ value: 'v1', etag: '"e1"', url: 'u' }));
+                await revalidate(async () => ({ value: 'v2', etag: '"e2"', url: 'u' }));
+                expect(await cache.get(published, 'k', sinon.stub())).to.equal('v2');
+                const next = sinon.stub().resolves(NOT_MODIFIED);
+                await revalidate(next);
+                expect(sentEtag(next)).to.equal('"e2"');
+            });
+
+            it('sends no ETag when the url changed, so another resource cannot renew the cached value', async () => {
+                await cache.get(published, 'k', async () => ({ value: 'v1', etag: '"e1"', url: 'u' }));
+                const moved = sinon.stub().resolves({ value: 'v2', etag: '"e2"', url: 'w' });
+                expect(await revalidate(moved)).to.equal('v1');
+                expect(sentEtag(moved, 'w')).to.be.undefined;
+                expect(await cache.get(published, 'k', sinon.stub())).to.equal('v2');
+                const next = sinon.stub().resolves(NOT_MODIFIED);
+                await revalidate(next);
+                expect(sentEtag(next, 'w')).to.equal('"e2"');
+                expect(sentEtag(next, 'u')).to.be.undefined;
+            });
+
+            it('keeps the stale entry when the revalidation fails', async () => {
+                await cache.get(published, 'k', async () => ({ value: 'v1', etag: '"e1"', url: 'u' }));
+                await revalidate(async () => null);
+                const next = sinon.stub().resolves(NOT_MODIFIED);
+                expect(await revalidate(next)).to.equal('v1');
+                expect(sentEtag(next)).to.equal('"e1"');
+            });
+
+            it('revalidates expired preview entries before serving them', async () => {
+                installLocalStorageShim();
+                try {
+                    const preview = { preview: true, requestId: 'swr-ut' };
+                    await cache.get(preview, 'k', async () => ({ value: 'v1', etag: '"e1"', url: 'u' }));
+                    clock.returns(T0 + 2000);
+                    const notModified = sinon.stub().resolves(NOT_MODIFIED);
+                    expect(await cache.get(preview, 'k', notModified)).to.equal('v1');
+                    expect(sentEtag(notModified)).to.equal('"e1"');
+                    expect(await cache.get(preview, 'k', sinon.stub())).to.equal('v1');
+                } finally {
+                    delete globalThis.localStorage;
+                }
+            });
         });
     });
 

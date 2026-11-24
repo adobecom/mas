@@ -1,0 +1,116 @@
+import { expect } from '@esm-bundle/chai';
+import {
+    clearCaches,
+    DEFAULT_CONTEXT,
+    loadRequestMetadata,
+    previewFragment,
+    saveRequestMetadata,
+} from '../../libs/fragment-client.js';
+import FRAGMENT_RESPONSE_EN from '../../../io/www/test/fragment/mocks/fragment-en-default.json' with { type: 'json' };
+
+const context = { ...DEFAULT_CONTEXT, id: 'nala-metadata-test', locale: 'en_US', country: 'US' };
+const renderedContext = {
+    ...context,
+    fragmentsIds: { 'settings-id': 'settings-123' },
+    fragmentPath: '/content/dam/mas/nala/en_US/metadata-test',
+};
+
+function expireStoredMetadata(requestKey) {
+    const stored = JSON.parse(localStorage.getItem(requestKey));
+    stored.lastModified = new Date(Date.now() - 6 * 60 * 1000).toUTCString();
+    localStorage.setItem(requestKey, JSON.stringify(stored));
+}
+
+describe('fragment-client request metadata', () => {
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    it('restores fragmentsIds saved by a previous render', async () => {
+        const first = await loadRequestMetadata(context);
+        await saveRequestMetadata(renderedContext, first.requestKey, first.cachedMetadata);
+        const second = await loadRequestMetadata(context);
+        expect(second.metadataContext.fragmentsIds).to.deep.equal({ 'settings-id': 'settings-123' });
+    });
+
+    it('never writes the "[object Object]" key', async () => {
+        const { requestKey, cachedMetadata } = await loadRequestMetadata(context);
+        await saveRequestMetadata(renderedContext, requestKey, cachedMetadata);
+        expect(localStorage.getItem('[object Object]')).to.equal(null);
+    });
+
+    it('returns an empty metadata context on a cold cache', async () => {
+        const { metadataContext } = await loadRequestMetadata(context);
+        expect(metadataContext).to.deep.equal({});
+    });
+
+    it('ignores metadata older than five minutes so fragment ids are looked up again', async () => {
+        const first = await loadRequestMetadata(context);
+        await saveRequestMetadata(renderedContext, first.requestKey, first.cachedMetadata);
+        expireStoredMetadata(first.requestKey);
+        const second = await loadRequestMetadata(context);
+        expect(second.metadataContext).to.deep.equal({});
+    });
+
+    it('rewrites expired metadata on the next save', async () => {
+        const first = await loadRequestMetadata(context);
+        await saveRequestMetadata(renderedContext, first.requestKey, first.cachedMetadata);
+        expireStoredMetadata(first.requestKey);
+        const expired = await loadRequestMetadata(context);
+        await saveRequestMetadata(
+            { ...renderedContext, fragmentsIds: { 'settings-id': 'settings-456' } },
+            expired.requestKey,
+            expired.cachedMetadata,
+        );
+        const third = await loadRequestMetadata(context);
+        expect(third.metadataContext.fragmentsIds).to.deep.equal({ 'settings-id': 'settings-456' });
+    });
+
+    it('clearCaches removes cached request metadata', () => {
+        localStorage.setItem('req-nala-metadata-test-en_US-US', '{}');
+        localStorage.setItem('unrelated-key', 'keep');
+        clearCaches();
+        expect(localStorage.getItem('req-nala-metadata-test-en_US-US')).to.equal(null);
+        expect(localStorage.getItem('unrelated-key')).to.equal('keep');
+    });
+
+    it('clearCaches removes persisted missing-mask lookups', () => {
+        const key = 'mask-ids-https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=photo';
+        localStorage.setItem(key, JSON.stringify({ value: { status: 404 }, timestamp: Date.now(), ttl: 5 * 60 * 1000 }));
+        localStorage.setItem('unrelated-key', 'keep');
+        clearCaches();
+        expect(localStorage.getItem(key)).to.equal(null);
+        expect(localStorage.getItem('unrelated-key')).to.equal('keep');
+    });
+
+    it('preserves rendering after a missing mask in the real preview pipeline', async () => {
+        const originalFetch = window.fetch;
+        let maskLookups = 0;
+        window.fetch = async (url) => {
+            if (url.includes('/masks/missing-photo')) maskLookups++;
+            const fragmentFound = url.includes('/some-en-us-fragment?');
+            return new Response(JSON.stringify(fragmentFound ? FRAGMENT_RESPONSE_EN : { detail: 'Not Found' }), {
+                status: fragmentFound ? 200 : 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        };
+        try {
+            for (const run of [1, 2]) {
+                const result = await previewFragment('some-en-us-fragment', {
+                    locale: 'en_US',
+                    country: 'US',
+                    mask: 'missing-photo',
+                    requestId: `mask-preview-${run}`,
+                    fullContext: true,
+                });
+                expect(result.status).to.equal(200);
+                expect(result.body).to.have.property('id', FRAGMENT_RESPONSE_EN.id);
+                expect(result.body).not.to.have.property('message');
+                expect(result.body).not.to.have.property('maskError');
+                expect(result).not.to.have.property('maskError');
+            }
+            expect(maskLookups).to.equal(1);
+        } finally {
+            window.fetch = originalFetch;
+        }
+    });
+});

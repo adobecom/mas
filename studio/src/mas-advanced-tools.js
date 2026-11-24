@@ -3,7 +3,8 @@ import router from './router.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { PAGE_NAMES } from './constants.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { bulkEditIcon } from './img/bulk-edit-icon.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 
 class MasAdvancedTools extends LitElement {
     static styles = css`
@@ -89,6 +90,11 @@ class MasAdvancedTools extends LitElement {
         .tool-card:hover {
             border-color: var(--spectrum-gray-500, #8c8c8c);
             background: var(--spectrum-gray-75, #fafafa);
+        }
+
+        .tool-card[aria-disabled='true'] {
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .tool-card:focus-visible {
@@ -201,6 +207,7 @@ class MasAdvancedTools extends LitElement {
     }
 
     get bulkPublishCard() {
+        if (!canAccessBulkPublish()) return nothing;
         return html`
             <a
                 class="tool-card"
@@ -215,6 +222,19 @@ class MasAdvancedTools extends LitElement {
                 <div class="tool-card-text">
                     <span class="tool-card-title">Bulk publish</span>
                     <span class="tool-card-description">Schedule and publish content items in bulk across regions.</span>
+                </div>
+                ${this.arrowIcon}
+            </a>
+        `;
+    }
+
+    get bulkEditCard() {
+        return html`
+            <a class="tool-card" role="button" aria-disabled="true" tabindex="-1">
+                <span class="tool-card-icon" aria-hidden="true"> ${bulkEditIcon} </span>
+                <div class="tool-card-text">
+                    <span class="tool-card-title">Bulk edits</span>
+                    <span class="tool-card-description">Update titles, prices, and OSIs across multiple items.</span>
                 </div>
                 ${this.arrowIcon}
             </a>
@@ -298,7 +318,7 @@ class MasAdvancedTools extends LitElement {
                     <p class="subtitle">Access professional tools to speed up your workflow.</p>
                 </div>
                 <div class="tool-list">
-                    ${this.bulkPublishCard} ${this.settingsCard} ${this.masksCard} ${this.offerMappingCard}
+                    ${this.bulkPublishCard} ${this.bulkEditCard} ${this.settingsCard} ${this.masksCard} ${this.offerMappingCard}
                 </div>
             </div>
         `;

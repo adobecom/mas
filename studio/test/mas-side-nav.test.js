@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { render } from 'lit';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
-import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-side-nav.js';
 
 function mockFragment(fields = [], overrides = {}) {
@@ -82,6 +82,7 @@ describe('MasSideNav – Copy Field', () => {
                 { name: 'shortDescription', values: ['Short summary'] },
                 { name: 'promoText', values: ['Save 50%'] },
                 { name: 'callout', values: ['Limited time'] },
+                { name: 'badge', values: ['Special offer'] },
                 { name: 'subtitle', values: ['For teams'] },
                 { name: 'ctas', values: ['<a>Buy</a>'] },
                 { name: 'cta', values: ['Buy now'] },
@@ -99,6 +100,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('shortDescription');
             expect(names).to.include('promoText');
             expect(names).to.include('callout');
+            expect(names).to.include('badge');
             expect(names).to.include('subtitle');
             expect(names).to.include('ctas');
             expect(names).to.not.include('cta');
@@ -106,6 +108,88 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('perUnitLabel');
             expect(names).to.not.include('variant');
             expect(names).to.not.include('osi');
+        });
+
+        it('includes compare chart badges with a text preview or an empty placeholder', () => {
+            for (const value of [
+                '<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans" variant="compare-chart-column">Special offer</merch-badge>',
+                '',
+            ]) {
+                const fragment = mockFragment([
+                    { name: 'variant', values: ['compare-chart-column'] },
+                    { name: 'badge', values: [value] },
+                ]);
+                editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+                const badge = el.copyableFields.find((field) => field.name === 'badge');
+                expect(badge).to.exist;
+                expect(badge.displayName).to.equal('Badge');
+                expect(badge.preview).to.equal(value ? 'Special offer' : '');
+                expect(badge.sourceFragment).to.equal(fragment);
+            }
+        });
+
+        it('includes the image field with the source URL as preview', () => {
+            const url = 'https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png';
+            const picture =
+                `<source type="image/webp" srcset="${url}?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" src="${url}?width=750&format=png&optimize=medium">`;
+            const fragment = mockFragment([{ name: 'image', values: [picture] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const image = el.copyableFields.find((f) => f.name === 'image');
+            expect(image).to.exist;
+            expect(image.displayName).to.equal('Image');
+            expect(image.preview).to.equal(url);
+        });
+
+        it('includes the backgroundImage field with the URL as preview', () => {
+            const url = 'https://www.adobe.com/media/bg.png';
+            const fragment = mockFragment([{ name: 'backgroundImage', values: [url] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const bg = el.copyableFields.find((f) => f.name === 'backgroundImage');
+            expect(bg).to.exist;
+            expect(bg.displayName).to.equal('Background Image');
+            expect(bg.preview).to.equal(url);
+        });
+
+        it('splits the backgrounds field into three separate copyable rows, one per breakpoint', () => {
+            const desktop = 'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+            const tablet = 'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+            const html =
+                `<source srcset="${desktop}" media="(min-width: 1200px)">` +
+                `<source srcset="${tablet}" media="(min-width: 600px)">` +
+                `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));
+
+            expect(rows).to.have.lengthOf(3);
+            expect(rows[0]).to.deep.include({
+                name: 'backgrounds[desktop]',
+                displayName: 'Background Desktop',
+                preview: desktop,
+            });
+            expect(rows[1]).to.deep.include({
+                name: 'backgrounds[tablet]',
+                displayName: 'Background Tablet',
+                preview: tablet,
+            });
+            expect(rows[2]).to.deep.include({
+                name: 'backgrounds[mobile]',
+                displayName: 'Background Mobile',
+                preview: mobile,
+            });
+        });
+
+        it('leaves the preview empty for a breakpoint row that is not filled', () => {
+            const mobile = 'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+            const html = `<img loading="lazy" alt="" data-mobile-set="true" src="${mobile}">`;
+            const fragment = mockFragment([{ name: 'backgrounds', values: [html] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const rows = el.copyableFields.filter((f) => f.name.startsWith('backgrounds'));
+
+            expect(rows.find((r) => r.name === 'backgrounds[desktop]').preview).to.equal('');
+            expect(rows.find((r) => r.name === 'backgrounds[mobile]').preview).to.equal(mobile);
         });
 
         it('should not include mapped fields that are not allowlisted', () => {
@@ -711,6 +795,36 @@ describe('MasSideNav – Copy Field', () => {
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
         });
 
+        it('copies a badge field link from the compare chart Copy Field menu', async () => {
+            const fragment = mockFragment([
+                { name: 'variant', values: ['compare-chart-column'] },
+                {
+                    name: 'badge',
+                    values: ['<merch-badge background-color="spectrum-yellow-300-plans">Special offer</merch-badge>'],
+                },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const badgeLabel = [...container.querySelectorAll('.field-label')].find((label) => label.textContent === 'Badge');
+            expect(badgeLabel).to.exist;
+            expect(badgeLabel.closest('sp-menu-item').querySelector('.field-value').textContent).to.equal('Special offer');
+            badgeLabel.closest('sp-menu-item').click();
+            await Promise.resolve();
+
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const text = await (await item.getType('text/plain')).text();
+            const html = await (await item.getType('text/html')).text();
+            expect(text).to.include('→ Badge');
+            expect(html).to.include('field=badge');
+            expect(html).to.include('query=frag-123');
+            expect(toastStub.firstCall.args[0]).to.deep.equal({
+                variant: 'positive',
+                content: 'Copied Badge field link',
+            });
+        });
+
         it("should use the variant's editorLabel in the copied text and toast for FAQ", async () => {
             sandbox
                 .stub(customElements, 'get')
@@ -820,6 +934,96 @@ describe('MasSideNav – Copy Field', () => {
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
             expect(toastStub.firstCall.args[0].content).to.include('Buy now');
+        });
+
+        it('copies a reference that inherits Studio without changing the reference key or plain text', async () => {
+            const fragment = mockFragment([
+                { name: 'ctas', values: ['<strong><a class="primary" data-key="buy" href="/buy">Buy now</a></strong>'] },
+                { name: 'name', values: ['card-name'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const menuItem = [...container.querySelectorAll('.field-label')]
+                .find((label) => label.textContent.startsWith('CTA '))
+                .closest('sp-menu-item');
+            menuItem.click();
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const template = document.createElement('template');
+            template.innerHTML = await (await item.getType('text/html')).text();
+            expect(template.content.querySelector('strong, em')).to.not.exist;
+            const anchor = template.content.querySelector('a');
+            expect(anchor.textContent).to.include('ctas[Buy now]');
+            expect(new URLSearchParams(new URL(anchor.href).hash.slice(1)).get('field')).to.equal('ctas[buy]');
+            expect(await (await item.getType('text/plain')).text()).to.include('ctas[Buy now]');
+            expect(await (await item.getType('text/plain')).text()).to.not.include('<strong>');
+        });
+
+        for (const markup of [
+            '<a class="secondary" data-key="trial" href="/trial">Free trial</a>',
+            '<em><a class="primary" data-key="trial" href="/trial">Free trial</a></em>',
+            '<strong><a data-key="trial" href="/trial">Free trial</a></strong>',
+            '<em><a data-key="trial" href="/trial">Free trial</a></em>',
+            '<strong><a class="secondary-link" data-key="trial" href="/trial">Free trial</a></strong>',
+        ]) {
+            it(`copies ${markup} without creating a page presentation override`, async () => {
+                const fragment = mockFragment([{ name: 'ctas', values: [markup] }]);
+                editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+                const container = document.createElement('div');
+                render(el.copyFieldButton, container);
+                const menuItem = [...container.querySelectorAll('.field-label')]
+                    .find((label) => label.textContent.startsWith('CTA '))
+                    .closest('sp-menu-item');
+                menuItem.click();
+                const item = clipboardStub.write.firstCall.args[0][0];
+                const template = document.createElement('template');
+                template.innerHTML = await (await item.getType('text/html')).text();
+                expect(template.content.querySelector('strong, em')).to.not.exist;
+                expect(template.content.querySelector('a').textContent).to.include('ctas[Free trial]');
+            });
+        }
+
+        it('escapes literal CTA label markup without changing the plain-text clipboard value', async () => {
+            const fragment = mockFragment([
+                { name: 'ctas', values: ['<a class="secondary" data-key="trial" href="/trial">Trial</a>'] },
+                { name: 'name', values: ['card-name'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCtaItem('Trial <now> & save', 1);
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const template = document.createElement('template');
+            template.innerHTML = await (await item.getType('text/html')).text();
+            expect(template.content.querySelector('now')).to.not.exist;
+            expect(template.content.querySelector('a').textContent).to.include('ctas[Trial <now> & save]');
+            expect(await (await item.getType('text/plain')).text()).to.include('ctas[Trial <now> & save]');
+        });
+
+        it('escapes CTA labels and workflow descriptions without adding presentation formatting', async () => {
+            const fragment = mockFragment([
+                {
+                    name: 'ctas',
+                    values: ['<a class="secondary" data-key="trial" href="/trial">Trial &lt;now&gt; &amp; save</a>'],
+                },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            sandbox.stub(el, 'getCtaInfo').returns('segmentation <modal> & terms');
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const menuItem = [...container.querySelectorAll('.field-label')]
+                .find((label) => label.textContent.startsWith('CTA '))
+                .closest('sp-menu-item');
+            menuItem.click();
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const template = document.createElement('template');
+            template.innerHTML = await (await item.getType('text/html')).text();
+            expect(template.content.querySelector('now, modal')).to.not.exist;
+            expect(template.content.querySelector('strong, em')).to.not.exist;
+            expect(template.content.querySelector('a').textContent).to.include(
+                'ctas[Trial <now> & save - segmentation <modal> & terms]',
+            );
+            expect(await (await item.getType('text/plain')).text()).to.include(
+                'ctas[Trial <now> & save - segmentation <modal> & terms]',
+            );
         });
 
         it('should show negative toast on clipboard failure', async () => {
@@ -1057,7 +1261,7 @@ describe('MasSideNav – Copy Field', () => {
                 .closest('sp-menu-item');
             ctaMenuItem.click();
 
-            expect(copyCtaItemStub.calledOnceWith('Buy now', 1, fragment, 'Buy now')).to.be.true;
+            expect(copyCtaItemStub.calledOnceWithExactly('Buy now', 1, fragment)).to.be.true;
         });
 
         it('should not render CTAs section when no ctas in fragment', () => {
@@ -1444,4 +1648,65 @@ describe('MasSideNav - Promotions nav item', () => {
         expect(promotions).to.exist;
         expect(promotions.hasAttribute('disabled')).to.be.false;
     });
+});
+
+describe('MasSideNav – editNavigation', () => {
+    let sandbox;
+    let el;
+    let editorStub;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        editorStub = sandbox.stub(document, 'querySelector');
+        editorStub.callThrough();
+        el = document.createElement('mas-side-nav');
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const collection = () => mockFragment([], { model: { path: COLLECTION_MODEL_PATH } });
+
+    it('shows the main navigation for collections, which use the floating quick actions bar', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: false });
+        expect(el.editNavigation.strings).to.equal(el.defaultNavigation.strings);
+    });
+
+    it('keeps the editor toolbar for compare charts, which have no quick actions bar', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: true });
+        expect(el.editNavigation.strings).to.not.equal(el.defaultNavigation.strings);
+    });
+
+    it('disables deletion when the fragment editor denies promo variation deletion', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canDeleteFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Delete"]').hasAttribute('disabled')).to.be.true;
+    });
+
+    it('disables publishing when the fragment editor denies promo variation publishing', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canPublishFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Publish"]').hasAttribute('disabled')).to.be.true;
+    });
+
+    for (const allowed of [true, false]) {
+        it(`allows duplication according to the fragment editor permission: ${allowed}`, () => {
+            editorStub.withArgs('mas-fragment-editor').returns({
+                ...mockEditor(mockFragment()),
+                canDuplicateFragment: allowed,
+            });
+            const container = document.createElement('div');
+            render(el.editNavigation, container);
+            expect(container.querySelector('mas-side-nav-item[label="Duplicate"]').hasAttribute('disabled')).to.equal(!allowed);
+        });
+    }
 });

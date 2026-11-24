@@ -33,6 +33,7 @@ class AemTagPickerField extends LitElement {
         },
         namespace: { type: String },
         top: { type: String },
+        excludeCountryTags: { type: Boolean, attribute: 'exclude-country-tags' },
         surface: { type: String },
         multiple: { type: Boolean }, // Whether multiple selection is allowed
         hierarchicalTags: { type: Object, state: true },
@@ -94,17 +95,17 @@ class AemTagPickerField extends LitElement {
             margin-top: var(--margin-picker-top, 0px);
         }
 
-        sp-checkbox {
-            align-items: center;
-        }
-
         #content {
             padding: 8px;
+
+            sp-search {
+                margin-bottom: 10px;
+            }
         }
 
         #footer {
-            padding: 8px;
-            height: 40px;
+            --mod-button-line-height: 1.3;
+            padding: 16px 8px 0 8px;
             align-items: center;
             display: flex;
             gap: 8px;
@@ -126,16 +127,13 @@ class AemTagPickerField extends LitElement {
         }
 
         .checkbox-list {
+            --mod-checkbox-line-height: 1.5;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 10px;
             max-height: 246px;
             overflow-y: auto;
             padding-inline-start: 4px;
-        }
-
-        sp-checkbox {
-            height: 40px;
         }
 
         sp-tag:not([data-field-state='overridden']) {
@@ -397,7 +395,7 @@ class AemTagPickerField extends LitElement {
         this.addContentTypeTags();
 
         let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
-        if (this.top === 'pzn') {
+        if (this.excludeCountryTags) {
             allTags = allTags.filter((tag) => !isPznCountryTagPath(tag.path));
         }
 

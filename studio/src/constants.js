@@ -1,4 +1,5 @@
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../web-components/src/compat-version.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../web-components/src/constants.js';
 
 export const CHECKOUT_CTA_TEXTS = {
     'buy-now': 'Buy now',
@@ -17,6 +18,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'see-plans-and-pricing': 'See plans and pricing',
     'get-for-free': 'Get for free',
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
@@ -39,6 +41,7 @@ export const ANALYTICS_LINK_IDS = [
     'register-now',
     'see-all-plans-and-pricing',
     'see-more',
+    'see-plans-and-pricing',
     'see-terms',
     'select',
     'start-free-trial',
@@ -72,6 +75,8 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_CLOSE = 'ost-close';
+export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
     CREATE: 'create',
@@ -131,16 +136,38 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    PROMOTIONS_HISTORY: 'promotions-history',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    AI_ASSISTANT: 'ai-assistant',
+    PRODUCT_CATALOG: 'product-catalog',
+    PRODUCT_DETAIL: 'product-detail',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    BULK_EDIT: 'bulkEdit',
+    BULK_EDIT_EDITOR: 'bulkEditEditor',
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
     OFFER_MAPPING: 'offer-mapping',
+    BASELINES: 'baselines',
 };
 
+/**
+ * Used only when the io-base-url meta tag is absent (tests, or a page that did
+ * not run studio.html's bootstrap). studio.html is the real source of the
+ * namespace, so point a developer workspace at it with ?io.studio.env=
+ * rather than editing this.
+ *
+ * One namespace serves the assistant: MerchAtScaleStudio (ai-chat,
+ * ost-products-read) and MerchAtScaleOperations must both be deployed to it, and both
+ * URLs are derived from this one base. MerchAtScaleKnowledge is not fetched
+ * over HTTP at all — the corpus ships inside the ai-chat action.
+ */
+export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
+
+export const TAG_STATUS_PUBLISHED = 'mas:status/published';
+export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
@@ -154,7 +181,53 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+
+const TITLE_DESCRIPTION_PRICES_CTAS = ['cardTitle', 'description', 'prices', 'ctas'];
+
+/**
+ * Editor fields each card template requires, among the ones it has. On a card inheriting from baselines, a cleared required
+ * field stays empty & blocks saving; elsewhere, it stores `''` and inherits.
+ */
+export const TEMPLATE_REQUIRED_FIELDS = {
+    'plans-v2': TITLE_DESCRIPTION_PRICES_CTAS,
+    pro: TITLE_DESCRIPTION_PRICES_CTAS,
+    product: TITLE_DESCRIPTION_PRICES_CTAS,
+    'brand-concierge-product': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-pricing': TITLE_DESCRIPTION_PRICES_CTAS,
+    'product-c2': ['description', 'prices', 'ctas'],
+    segment: TITLE_DESCRIPTION_PRICES_CTAS,
+    image: TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart': TITLE_DESCRIPTION_PRICES_CTAS,
+    'mini-compare-chart-mweb': TITLE_DESCRIPTION_PRICES_CTAS,
+    'full-pricing-express': TITLE_DESCRIPTION_PRICES_CTAS,
+    headless: TITLE_DESCRIPTION_PRICES_CTAS,
+    media: ['cardTitle', 'description', 'ctas'],
+    'compare-chart-column': TITLE_DESCRIPTION_PRICES_CTAS,
+    marquee: TITLE_DESCRIPTION_PRICES_CTAS,
+    faq: ['description', 'prices'],
+    'banner-blade': ['cardTitle', 'description', 'ctas'],
+    plans: ['cardTitle', 'prices', 'ctas'],
+    'plans-students': ['cardTitle', 'prices', 'ctas'],
+    'plans-education': ['cardTitle', 'prices', 'ctas'],
+    fries: ['cardTitle', 'description', 'ctas'],
+    mini: ['cardTitle', 'ctas'],
+    'ccd-slice': ['description', 'ctas'],
+    'ccd-suggested': ['cardTitle', 'ctas'],
+    'special-offers': ['cardTitle', 'prices', 'ctas'],
+    catalog: ['cardTitle', 'description', 'ctas'],
+    'ah-try-buy-widget': ['cardTitle', 'description', 'ctas'],
+    'ah-promoted-plans': ['cardTitle', 'description', 'ctas'],
+    'simplified-pricing-express': ['cardTitle', 'description', 'prices', 'ctas'],
+};
+// Plain model paths for the project types. The *_MODEL_ID constants above are the base64 of these
+// same paths (the form the fragment-model API uses), but the referencedBy endpoint returns
+// model.path as the plain path — so reference classification matches on these, like cards/collections.
+export const PROMOTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/promotion';
+export const BULK_PUBLISH_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/bulk-publish-project';
+export const TRANSLATION_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/translation-project';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const BASELINE_CREATE_TYPE = 'baseline';
+export const BASELINE_NAME = 'baseline';
 export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
@@ -183,9 +256,33 @@ export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code
 /** Tag id prefix in short form */
 export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
 
+export const TAG_WORKFLOW_STEP = 'mas:workflow-step';
+
+export const WORKFLOW_STEP = {
+    EMAIL: 'email',
+    COMMITMENT: 'commitment',
+    RECOMMENDATION: 'recommendation',
+    SEGMENTATION: 'segmentation',
+    BUNDLE: 'bundle',
+    PAYMENT: 'payment',
+    CHANGE_PLAN_TEAM_PLANS: 'change_plan_team_plans',
+    CHANGE_PLAN_TEAM_PAYMENT: 'change_plan_team_payment',
+};
+
+export const WORKFLOW_STEP_OPTIONS = [
+    { id: WORKFLOW_STEP.EMAIL, title: 'Email' },
+    { id: WORKFLOW_STEP.COMMITMENT, title: 'Commitment' },
+    { id: WORKFLOW_STEP.RECOMMENDATION, title: 'Recommendation' },
+    { id: WORKFLOW_STEP.SEGMENTATION, title: 'Segmentation' },
+    { id: WORKFLOW_STEP.BUNDLE, title: 'Bundle' },
+    { id: WORKFLOW_STEP.PAYMENT, title: 'Payment' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PLANS, title: 'Change Plan Team Plans' },
+    { id: WORKFLOW_STEP.CHANGE_PLAN_TEAM_PAYMENT, title: 'Change Plan Team Payment' },
+];
+
 export const TAG_MODEL_ID_MAPPING = {
-    [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    [TAG_MERCH_CARD_COLLECTION]: COLLECTION_MODEL_ID,
+    [TAG_MERCH_CARD]: CARD_MODEL_ID,
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
@@ -213,6 +310,10 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+export const BASELINES_FOLDER = 'baselines';
+export const MAS_OFFERS_URL = 'https://www.adobe.com/mas/io/offers?api_key=CreativeCloud_v6_9&locale=en_US&id';
+export const BASELINE_SOURCE_LOCALE = 'en_US';
+
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
 
 /** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
@@ -231,9 +332,17 @@ export const SURFACES = {
         label: 'ACOM DC',
         name: 'acom-dc',
     },
+    ACOM_EDU: {
+        label: 'ACOM EDU',
+        name: 'acom-edu',
+    },
     ADOBE_HOME: {
         label: 'Adobe Home',
         name: 'adobe-home',
+    },
+    BRAND_CONCIERGE: {
+        label: 'Brand Concierge',
+        name: 'brand-concierge',
     },
     CCD: {
         label: 'CCD',
@@ -243,9 +352,21 @@ export const SURFACES = {
         label: 'Commerce',
         name: 'commerce',
     },
+    DALP: {
+        label: 'DALP',
+        name: 'dalp',
+    },
+    ELEMENTS: {
+        label: 'Elements',
+        name: 'elements',
+    },
     EXPRESS: {
         label: 'Express',
         name: 'express',
+    },
+    GENUINE: {
+        label: 'Genuine',
+        name: 'genuine',
     },
     NALA: {
         label: 'Nala',
@@ -272,6 +393,9 @@ export const QUICK_ACTION = {
     LINK: 'link',
     REVERT: 'revert',
     CHECK_MODIFICATIONS: 'check-modifications',
+    CREATE_VARIATION: 'create-variation',
+    PREVIEW: 'preview',
+    HISTORY: 'history',
 };
 
 export const FILTER_TYPE = {
@@ -281,9 +405,12 @@ export const FILTER_TYPE = {
     PRODUCT: 'product',
     OFFER_TYPE: 'offerType',
     PLAN_TYPE: 'planType',
+    WORKFLOW_STEP: 'workflowStep',
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',
+    PRODUCT_ARRANGEMENT_CODE: 'productArrangementCode',
+    CREATED_BY: 'createdBy',
 };
 
 export const FRAGMENT_STATUS = {
@@ -307,9 +434,10 @@ export const TABLE_TYPE = {
     CARDS: 'cards',
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
+    BASELINES: 'baselines',
 };
 
-export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
+export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
@@ -330,6 +458,21 @@ export const BULK_PUBLISH_STATUS = {
 };
 
 export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
+
+export const BULK_EDIT_PROJECTS_FOLDER = 'bulk-edit-projects';
+
+export const BULK_EDIT_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstZWRpdC1wcm9qZWN0';
+
+export const BULK_EDIT_STATUS = {
+    DRAFT: 'Draft',
+    APPLYING: 'Applying',
+    APPLIED: 'Applied',
+    PARTIALLY_APPLIED: 'Partially applied',
+    FAILED: 'Failed',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+    LOCKED: 'Locked',
+};
 
 /**
  * Compat version of the card.

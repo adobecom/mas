@@ -1,0 +1,136 @@
+import {
+    createFragmentDataForAEM,
+    enrichConfigWithMcsMnemonic,
+    buildReleaseCtas,
+    buildReleasePrice,
+    buildReleaseTags,
+} from './ai-card-mapper.js';
+import { getProductName, getPreferredProductDescription, capitalize } from './mas-chat-helpers.js';
+
+const PLANS_VARIANTS = new Set(['plans', 'plans-students', 'plans-education']);
+
+/**
+ * A URL-safe, collision-resistant fragment name derived from the card title.
+ */
+export function releaseFragmentName(title) {
+    const baseName = String(title)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return `${baseName}-${Date.now()}`;
+}
+
+/**
+ * Build the AEM fragment payload for one release card, deterministically from
+ * MCS product data and the OST-selected offers. This is the single source of
+ * release-card construction shared by the MASA chat flow and the Offers-page
+ * create flow, so both emit identical cards.
+ *
+ * The studio is the sole author of all visible fields; only the variant and the
+ * user-selected OSIs vary. Crucially this does NO offer-selector re-validation
+ * against WCS — the OSIs come from the user's OST selection, so NPI/DRAFT offers
+ * (absent from www.adobe.com) pass straight through.
+ *
+ * @param {Object} args
+ * @param {Object} args.product - MCS product (copy/assets/segments/arrangement_code)
+ * @param {string} args.variant - card variant, e.g. 'plans' or 'catalog'
+ * @param {string} [args.baseOsi] - base offer selector id
+ * @param {string} [args.trialOsi] - trial offer selector id
+ * @param {Object} [args.baseOffer] - selected base offer (commitment, term); drives the plan_type tag
+ * @param {string} args.parentPath - AEM parent folder
+ * @param {string} [args.title] - override AEM fragment title (defaults to "<name> - <Variant>")
+ * @param {string} [args.name] - override fragment name (defaults to a slug + timestamp)
+ * @returns {Promise<Object>} fragment data ready for repository.aem.sites.cf.fragments.create
+ */
+export async function buildReleaseFragmentData({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    title,
+    name,
+} = {}) {
+    const productName = getProductName(product);
+    const cardTitle = title || `${productName} - ${capitalize(variant)}`;
+
+    let config = { variant, osi: baseOsi, trialOsi };
+    config = await enrichConfigWithMcsMnemonic(config, product);
+
+    const isCatalog = variant === 'catalog';
+    const isPlans = PLANS_VARIANTS.has(variant);
+    config.ctas = buildReleaseCtas(config.osi, config.trialOsi, {
+        includeTrial: !isPlans,
+        buyNowLabel: isPlans ? 'Select' : 'Buy now',
+    });
+    if (config.osi && !isCatalog) {
+        config.prices = buildReleasePrice(config.osi);
+    }
+    const description = getPreferredProductDescription(product);
+    if (description) config.description = description;
+    if (productName) config.title = `<h3 slot="heading-xs">${productName}</h3>`;
+
+    return createFragmentDataForAEM(config, variant, {
+        title: cardTitle,
+        name: name || releaseFragmentName(cardTitle),
+        parentPath,
+        tags: buildReleaseTags(product, baseOffer),
+    });
+}
+
+/**
+ * Build and persist one release card directly to AEM through the shared
+ * mas-repository without changing shared preview data. Mirrors the MASA chat
+ * create path (mas-chat.saveDraftToAEM) so the Offers-page flow behaves the same.
+ *
+ * @param {Object} args - see buildReleaseFragmentData, plus:
+ * @param {Object} args.repository - the mas-repository element
+ * @returns {Promise<Object>} the created fragment
+ */
+export async function createReleaseCard({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    repository,
+    title,
+    name,
+} = {}) {
+    if (!repository?.aem?.sites?.cf?.fragments?.create) {
+        throw new Error('mas-repository is not available to create release cards');
+    }
+    const fragmentData = await buildReleaseFragmentData({
+        product,
+        variant,
+        baseOsi,
+        trialOsi,
+        baseOffer,
+        parentPath,
+        title,
+        name,
+    });
+    return createFragmentWithTags(repository, fragmentData);
+}
+
+/**
+ * Create a fragment, then save its tags. AEM's create request carries no tags
+ * (`Aem.createFragment` sends only title, name, description and fields), so tags
+ * passed to it are dropped unless saved on the created fragment. AEM tag ids are
+ * lowercase and unknown ids are skipped, as in the IO create path
+ * (studio-operations.createCard).
+ *
+ * @param {Object} repository - the mas-repository element
+ * @param {Object} fragmentData - fragment payload, with optional `tags`
+ * @returns {Promise<Object>} the created fragment
+ */
+export async function createFragmentWithTags(repository, fragmentData) {
+    const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+    if (newFragment && fragmentData.tags?.length) {
+        const tags = fragmentData.tags.map((tag) => tag.toLowerCase());
+        await repository.aem.saveValidTags(newFragment.id, tags);
+    }
+    return newFragment;
+}

@@ -17,6 +17,8 @@ import CCDSliceSpec from '../specs/slice_save.spec.js';
 
 const { features } = CCDSliceSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio CCD Slice card test suite', () => {
     // @studio-slice-save-variant-change-to-suggested - Validate saving card after variant change to ccd suggested
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -25,7 +27,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -41,9 +43,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
-            await editor.variant.click();
-            await page.getByRole('option', { name: 'suggested' }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerValue(editor.variant, 'ccd-suggested');
             await studio.saveCard();
         });
 
@@ -71,7 +71,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -91,9 +91,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-4: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            await page.getByRole('option', { name: 'default' }).click();
+            await editor.selectPickerOption(editor.size, 'Default');
         });
 
         await test.step('step-5: Save card with all changes', async () => {

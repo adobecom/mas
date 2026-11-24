@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class VersionPage {
     constructor(page) {
         this.page = page;
@@ -86,7 +88,7 @@ export default class VersionPage {
             },
             { fId: fragmentId, path: basePath },
         );
-        await this.page.waitForTimeout(2000);
+        await this.waitForVersionPageLoaded();
     }
 
     /**
@@ -102,7 +104,8 @@ export default class VersionPage {
     async selectVersionByIndex(index) {
         const versionItem = this.getVersionByIndex(index);
         await versionItem.click();
-        await this.page.waitForTimeout(1000);
+        await expect(versionItem).toHaveClass(/selected/);
+        await this.waitForPreviewUpdate();
     }
 
     /**
@@ -110,15 +113,15 @@ export default class VersionPage {
      */
     async searchVersions(query) {
         await this.searchInputField.fill(query);
-        await this.page.waitForTimeout(500);
+        await expect(this.versionPage).toHaveJSProperty('searchQuery', query.toLowerCase());
+        await this.versionPage.evaluate((element) => element.updateComplete);
     }
 
     /**
      * Clear search
      */
     async clearSearch() {
-        await this.searchInputField.clear();
-        await this.page.waitForTimeout(500);
+        await this.searchVersions('');
     }
 
     /**
@@ -143,41 +146,27 @@ export default class VersionPage {
      * Wait for version page to be fully loaded
      */
     async waitForVersionPageLoaded() {
-        // Wait for router to process hash params and load the page
-        await this.page.waitForTimeout(3000);
-
-        // Wait for the version page element with longer timeout
-        await this.versionPage.waitFor({ state: 'visible', timeout: 30000 });
-
-        // Wait for version list to load
-        await this.page.waitForSelector('version-page .version-item', { timeout: 30000 });
-
-        // Wait for any loading spinner to disappear
-        await this.page
-            .waitForFunction(
-                () => {
-                    const spinners = document.querySelectorAll('version-page sp-progress-circle');
-                    return (
-                        spinners.length === 0 || Array.from(spinners).every((s) => s.style.display === 'none' || !s.isConnected)
-                    );
-                },
-                { timeout: 20000 },
-            )
-            .catch(() => {});
-
-        // Additional wait for rendering
-        await this.page.waitForTimeout(2000);
+        await expect(this.versionPage).toBeVisible({ timeout: 30000 });
+        await this.page.waitForFunction(
+            () => {
+                const view = document.querySelector('version-page');
+                return view?.fragment && !view.loading && !view.loadingVersionData && view.selectedVersionData;
+            },
+            null,
+            { timeout: 30000 },
+        );
+        await expect(this.versionItems.first()).toBeVisible({ timeout: 30000 });
+        await this.waitForPreviewUpdate();
     }
 
     /**
      * Wait for preview to update
      */
     async waitForPreviewUpdate() {
-        // Wait for preview content to be visible
-        await this.previewContent.waitFor({ state: 'visible', timeout: 10000 });
-
-        // Wait for any loading spinner in preview to disappear
-        await this.page.waitForTimeout(1500);
+        await expect(this.previewContent).toBeVisible({ timeout: 10000 });
+        await expect(this.versionPage).toHaveJSProperty('loadingVersionData', false);
+        await expect(this.loadingSpinner).toHaveCount(0, { timeout: 10000 });
+        await expect(this.previewColumns.first()).toBeVisible();
     }
 
     /**
@@ -185,7 +174,7 @@ export default class VersionPage {
      */
     async clickBreadcrumbFragmentsTable() {
         await this.layoutBreadcrumbItems.first().click();
-        await this.page.waitForTimeout(1500);
+        await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
     }
 
     /**
@@ -193,7 +182,7 @@ export default class VersionPage {
      */
     async clickBreadcrumbEditor() {
         await this.layoutBreadcrumbItems.nth(1).click();
-        await this.page.waitForTimeout(1500);
+        await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'fragment-editor');
     }
 
     /**

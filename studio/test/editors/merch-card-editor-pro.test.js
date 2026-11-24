@@ -2,7 +2,7 @@ import { expect } from '@open-wc/testing';
 import '../../src/swc.js';
 import '../../src/editors/merch-card-editor.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
 import '../../../web-components/src/merch-card.js';
 import { getFragmentMapping } from '../../src/utils.js';
@@ -16,7 +16,7 @@ describe('merch-card-editor whats-included variant routing', () => {
     function makeEditor(variant, whatsIncludedHtml) {
         const MerchCardEditor = customElements.get('merch-card-editor');
         const editor = new MerchCardEditor();
-        editor.fragmentStore = new FragmentStore(
+        editor.fragmentStore = generateFragmentStore(
             new Fragment({
                 fields: [
                     { name: 'variant', values: [variant] },
@@ -93,7 +93,7 @@ describe('merch-card-editor pro appearance mapping', () => {
             title: '',
             description: '',
         });
-        const store = new FragmentStore(fragment);
+        const store = generateFragmentStore(fragment);
         const MerchCardEditor = customElements.get('merch-card-editor');
         const editor = new MerchCardEditor();
         editor.fragmentStore = store;
@@ -244,6 +244,47 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect(picker.value).to.equal('Default');
         expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.not.include('Transparent');
     });
+
+    it('renders a Default/Grey Add-on style picker next to the addon field, defaulting to Default', async () => {
+        const { editor } = makeAppearanceEditor();
+        await finishRendering(editor);
+        const group = editor.querySelector('sp-field-group#addonStyle');
+        const picker = group.querySelector('sp-picker');
+        expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Add-on style');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal(['Default', 'Grey']);
+        expect(picker.value).to.equal('Default');
+    });
+
+    it('does not render the Add-on style field for a non-pro variant', async () => {
+        const { editor } = makeAppearanceEditor(VARIANT_NAMES.HEADLESS);
+        await finishRendering(editor);
+        expect(editor.querySelector('sp-field-group#addonStyle')).to.not.exist;
+    });
+
+    it('shows the Add-on style field after toggleFields runs, since it has no fragment mapping key of its own', async () => {
+        const { editor } = makeAppearanceEditor();
+        await editor.updateComplete;
+        await editor.toggleFields();
+        const group = editor.querySelector('sp-field-group#addonStyle');
+        expect(group.style.display).to.equal('block');
+    });
+
+    it('persists Grey/Default by writing the background attribute onto the authored addon HTML', async () => {
+        const { editor, store } = makeAppearanceEditor();
+        store.get().updateField('addon', ['<merch-addon>{{addon-placeholder}}</merch-addon>']);
+        await finishRendering(editor);
+
+        editor.querySelector('sp-field-group#addonStyle sp-picker').value = 'Grey';
+        editor.querySelector('sp-field-group#addonStyle sp-picker').dispatchEvent(new Event('change'));
+        expect(store.get().getFieldValue('addon')).to.equal(
+            '<merch-addon background="grey">{{addon-placeholder}}</merch-addon>',
+        );
+
+        await editor.updateComplete;
+        editor.querySelector('sp-field-group#addonStyle sp-picker').value = 'Default';
+        editor.querySelector('sp-field-group#addonStyle sp-picker').dispatchEvent(new Event('change'));
+        expect(store.get().getFieldValue('addon')).to.equal('{{addon-placeholder}}');
+    });
 });
 
 describe('merch-card-editor pro edu whats-included label field', () => {
@@ -277,7 +318,7 @@ describe('merch-card-editor pro edu whats-included label field', () => {
             description: '',
         });
         const editor = new (customElements.get('merch-card-editor'))();
-        editor.fragmentStore = new FragmentStore(fragment);
+        editor.fragmentStore = generateFragmentStore(fragment);
         document.body.append(editor);
         return editor;
     }

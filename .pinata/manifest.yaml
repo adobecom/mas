@@ -16,3 +16,11 @@ mental_models:
     use:
         - mas-web-components
         - mas-studio
+        - mas-steering
+        - mas-nala
+        - mas-io
+        - mas-cicd
+        - mas-lead-architect
+
+context:
+    designs: figma

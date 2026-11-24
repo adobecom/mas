@@ -321,6 +321,11 @@ export const styles = css`
         }
     }
 
+    .compchart-general-info-title-status {
+        display: flex;
+        justify-content: space-between;
+    }
+
     .compchart-cards-section {
         margin-bottom: 16px;
         border: 1px solid var(--spectrum-gray-300);
@@ -365,7 +370,7 @@ export const styles = css`
     .compchart-card-row {
         display: grid;
         grid-template-columns:
-            116px minmax(140px, 0.9fr) minmax(220px, 1.1fr) minmax(220px, 1.1fr) minmax(240px, 1.4fr)
+            116px minmax(140px, 0.9fr) minmax(240px, 1.4fr) minmax(220px, 1.1fr) minmax(220px, 1.1fr)
             132px;
     }
 
@@ -493,6 +498,12 @@ export const styles = css`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .compchart-card-row .compchart-card-title,
+    .compchart-card-row .compchart-card-path {
+        overflow-wrap: anywhere;
+        white-space: normal;
     }
 
     .compchart-card-status {

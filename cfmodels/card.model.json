@@ -169,6 +169,10 @@
         "fieldLabel": "Loc ready",
         "type": "boolean"
     },
+    "enableBaselines": {
+        "fieldLabel": "Enable baselines",
+        "type": "boolean"
+    },
     "features": {
         "fieldLabel": "Features",
         "type": "long-text[]"
@@ -186,5 +190,13 @@
         "fieldLabel": "Custom Field Labels",
         "type": "string[]",
         "maxLength": 255
+    },
+    "image": {
+        "fieldLabel": "Image",
+        "type": "long-text"
+    },
+    "backgrounds": {
+        "fieldLabel": "Backgrounds",
+        "type": "long-text"
     }
 }

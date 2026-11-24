@@ -26,7 +26,6 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
             await expect(await studio.placeholdersButton).toBeVisible();
-            await expect(await studio.supportButton).toBeVisible();
         });
     });
 
@@ -210,7 +209,6 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
             await expect(await studio.placeholdersButton).toBeVisible();
-            await expect(await studio.supportButton).toBeVisible();
         });
     });
 
@@ -332,9 +330,7 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
-            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
-                data.price,
-            );
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).toHaveText(data.price);
         });
 
         await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
@@ -412,10 +408,9 @@ test.describe('M@S Studio feature test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const rootRow = studio.tableViewFragmentTable(data.usCardId);
             await expect(rootRow).toBeVisible({ timeout: 15000 });
-            await rootRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.usCardId);
             await expect(studio.regionalVariationsTable(data.usCardId)).toHaveCount(1, { timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.localeVariationEnQaId)).toBeVisible({ timeout: 15000 });
             await studio.groupedVariationsTab(data.usCardId).click();
@@ -429,10 +424,9 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.localePicker).toHaveAttribute('value', data.localeEnglishGb.value);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const fragmentRow = studio.tableViewRowByFragmentId(data.gbCardId);
             await expect(fragmentRow).toBeVisible();
-            await fragmentRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.gbCardId);
             await expect(studio.localeVariationsTabPanel(data.gbCardId).getByText('No locale variations found')).toBeVisible({
                 timeout: 15000,
             });
@@ -447,10 +441,9 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const fragmentRow = studio.tableViewRowByFragmentId(data.deCardId);
             await expect(fragmentRow).toBeVisible();
-            await fragmentRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.deCardId);
             await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
             await expect(studio.localeVariationsTabPanel(data.deCardId).getByText('No locale variations found')).toBeVisible({
                 timeout: 15000,
@@ -480,6 +473,36 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.waitForCardsLoaded(2);
             await expect(studio.createdByTag).toHaveCount(0);
             await expect(studio.renderView.locator('merch-card').nth(1)).toBeVisible();
+        });
+    });
+
+    // @studio-brand-concierge-surface - Validate brand-concierge surface is onboarded in mas studio
+    // Deep-links to the surface: the folder picker only lists AEM folders already provisioned in Odin
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.query}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio brand-concierge page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate brand-concierge surface is selected', async () => {
+            await expect(await studio.topnav).toBeVisible();
+            await expect(await studio.surfacePicker).toHaveAttribute('value', data.surface);
+            await expect(await studio.sideNav).toBeVisible();
+            await expect(await studio.homeButton).toBeVisible();
+            await expect(await studio.fragmentsButton).toBeVisible();
+            await expect(await studio.placeholdersButton).toBeVisible();
+        });
+
+        await test.step('step-3: Validate ACOM locales are available on brand-concierge', async () => {
+            await expect(await studio.localePicker).toBeVisible();
+            await studio.localePicker.click();
+            await page.waitForTimeout(500);
+            await expect(page.getByRole('menuitem', { name: data.localePicker })).toBeVisible();
+            await page.keyboard.press('Escape');
         });
     });
 });

@@ -421,13 +421,14 @@ mas-content {
     --table-content-preview-flex-grow: 0.2;
     width: 100%;
     border-radius: 4px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid var(--spectrum-gray-100);
     --spectrum-table-cell-background-color: transparent;
 }
 
 #content sp-table-body {
-    overflow: hidden;
+    overflow: visible;
 }
 
 #content #render,
@@ -937,6 +938,10 @@ sp-underlay + sp-dialog {
     transform: translateY(-50%);
 }
 
+.preview-popover.white-background {
+    background-color: #ffffff;
+}
+
 .preview-popover.position-left {
     left: var(--popover-position);
 }
@@ -1071,6 +1076,7 @@ mas-top-nav .left-section {
     display: flex;
     align-items: center;
     gap: 24px;
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -1097,7 +1103,9 @@ mas-top-nav .history-nav-button[disabled] {
     color: var(--spectrum-gray-500, #909090);
 }
 
+/* sp-breadcrumbs only re-checks overflow when its own box resizes; a content-sized box that collapsed never re-expands, so let it fill the free space. */
 mas-top-nav .nav-breadcrumbs {
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -1162,6 +1170,8 @@ mas-top-nav .icon-button {
     border-radius: 8px;
     cursor: pointer;
     padding: 0;
+    color: inherit;
+    text-decoration: none;
 }
 
 mas-top-nav .icon-button:hover {

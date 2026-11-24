@@ -38,6 +38,7 @@ For production, the minimun attributes to set are: `wcs-api-key` and `lana-tags`
 
 | Name                     | Description                                                                                         | Default Value                    | Required |
 | ------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------------- | -------- |
+| `aup-select`             | routes checkout links through the AUP SDK, see [AUP Select](checkout-link.html#aup-select). Can be set after activation (e.g. by Milo once Target settles): connected checkout links are refreshed | disabled | `false`  |
 | `allow-override`         | enables override of commerce env/landscape via query parameters(commerce.env/commerce.landscape)    |  `false`                         |  `false` |
 | `checkout-client-id`     | checkout client id                                                                                  |  `false`                         |  `false` |
 | `checkout-workflow-step` | default checkout workflow step                                                                      | `CheckoutWorkflowStep.EMAIL`     | `false`  |
@@ -76,6 +77,35 @@ originating checkout link or button and carries the configured `data-modal-id`.
 ### Feature flags
 
 For detailed documentation on all available feature flags, see [Feature Flags](feature-flags.html).
+
+### Orion stage testing
+
+Author instructions: [Test Orion offers on Stage](https://main--mas--adobecom.aem.live/docs/author-offers-pricing-checkout/orion-stage-testing).
+
+Use `?commerce.env=stage&mas.orion=on` (or `mas.orion=true`) to test the latest
+offers. The service must allow commerce environment overrides with `allow-override`.
+Milo metadata `mas.orion: on` or `true` is also supported when the effective commerce
+environment is stage. The corresponding HTML metadata is `<meta name="mas.orion" content="on">`;
+`mas-orion` metadata is supported as well. The URL parameter takes precedence.
+Values are case-insensitive; values other than `on` and `true` disable the mode,
+and it is ignored in production.
+The Orion setting is not read from browser storage.
+
+The mode adds `serveLatest=true` to client-side stage WCS requests and to the
+MAS IO fragment URL, so server prefill uses the same selection. Latest offers
+are stored under the `stage-latest` WCS cache namespace; normal `stage` and `prod`
+caches are unchanged. Browser fragment caches, including references and collections,
+are also isolated from normal mode.
+
+Browser previews (`mas.preview=on`) forward the same flag to early WCS lookups
+and final prefill. Each in-flight fragment request retains its original cache
+namespace. If the mode changes before it completes, the fragment reloads in the
+current mode before publishing data or prefilling WCS. Stale fallback data is
+reused only within the same normal/latest namespace. Changes to fragment ID,
+mask, or personalization alone retain the existing fragment lifecycle.
+
+WCS must enable `wcs.feature.enableServeLatest` on stage. MAS treats offers
+returned in latest mode as Orion offers and does not classify them by ID or date.
 
 ### Examples
 

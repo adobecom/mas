@@ -79,9 +79,7 @@ export default class AdobeHomePage {
         const fragmentLocator = this.page.locator(`aem-fragment[fragment="${id}"]`);
 
         // Wait for the fragment to be attached with a reasonable timeout
-        await fragmentLocator
-            .waitFor({ state: 'attached', timeout: 10000 })
-            .catch((e) => console.log(`Warning: Fragment ${id} not found: ${e.message}`));
+        await fragmentLocator.waitFor({ state: 'attached', timeout: 10000 });
 
         // Get the parent merch-card
         const widget = this.page

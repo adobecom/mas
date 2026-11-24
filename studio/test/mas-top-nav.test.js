@@ -23,6 +23,8 @@ describe('MasTopNav', () => {
     let originalTranslationInEdit;
     let originalMasksFragmentId;
     let originalMasksCreating;
+    let originalBulkEditInEdit;
+    let originalBulkEditProjectId;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -36,6 +38,8 @@ describe('MasTopNav', () => {
         originalTranslationInEdit = Store.translationProjects.inEdit.value;
         originalMasksFragmentId = Store.masks.fragmentId.value;
         originalMasksCreating = Store.masks.creating.value;
+        originalBulkEditInEdit = Store.bulkEditProjects.inEdit.value;
+        originalBulkEditProjectId = Store.bulkEditProjects.projectId.value;
         window.adobeIMS = {
             getAccessToken: () => ({ token: 'mock-token' }),
             getProfile: () => Promise.resolve({ displayName: 'Test User', email: 'test@example.com' }),
@@ -60,6 +64,8 @@ describe('MasTopNav', () => {
         Store.translationProjects.inEdit.value = originalTranslationInEdit;
         Store.masks.fragmentId.value = originalMasksFragmentId;
         Store.masks.creating.value = originalMasksCreating;
+        Store.bulkEditProjects.inEdit.value = originalBulkEditInEdit;
+        Store.bulkEditProjects.projectId.value = originalBulkEditProjectId;
         delete window.adobeIMS;
     });
 
@@ -105,7 +111,72 @@ describe('MasTopNav', () => {
         });
     });
 
+    describe('locale picker', () => {
+        it('is enabled on the baselines page', async () => {
+            Store.page.value = PAGE_NAMES.BASELINES;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isLocalePickerDisabled).to.be.false;
+            expect(el.querySelector('mas-locale-picker').hasAttribute('disabled')).to.be.false;
+        });
+
+        it('is disabled on the translations page', async () => {
+            Store.page.value = PAGE_NAMES.TRANSLATIONS;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isLocalePickerDisabled).to.be.true;
+        });
+
+        it('updates the locale filter when the locale changes on the baselines page', async () => {
+            Store.page.value = PAGE_NAMES.BASELINES;
+            const originalFilters = Store.filters.value;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR' } });
+            expect(Store.filters.value.locale).to.equal('fr_FR');
+            Store.filters.value = originalFilters;
+        });
+    });
+
+    describe('isBulkEditEditorPage getter', () => {
+        it('should return true when on bulk edit editor page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT_EDITOR;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isBulkEditEditorPage).to.be.true;
+        });
+    });
+
+    describe('bulkEditEditorBreadcrumbLabel getter', () => {
+        it('should return the project title when the project in edit has one', async () => {
+            Store.bulkEditProjects.inEdit.value = { get: () => ({ getFieldValue: () => 'My Bulk Edit' }) };
+            Store.bulkEditProjects.projectId.value = 'project-1';
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('My Bulk Edit');
+        });
+
+        it('should return Edit project when there is a project id but no title', async () => {
+            Store.bulkEditProjects.inEdit.value = null;
+            Store.bulkEditProjects.projectId.value = 'project-1';
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Edit project');
+        });
+
+        it('should return Create project when there is no project id and no title', async () => {
+            Store.bulkEditProjects.inEdit.value = null;
+            Store.bulkEditProjects.projectId.value = null;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Create project');
+        });
+    });
+
     describe('breadcrumbs', () => {
+        it('should render bulk edit breadcrumbs and navigate to advanced tools from first crumb', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Bulk edits']);
+            breadcrumbs[0].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.ADVANCED_TOOLS)).to.be.true;
+        });
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.promotions.promotionId.value = null;
@@ -741,6 +812,49 @@ describe('MasTopNav', () => {
         });
     });
 
+    describe('isProductCatalogPage getter', () => {
+        it('returns true when on product catalog page', async () => {
+            Store.page.value = PAGE_NAMES.PRODUCT_CATALOG;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isProductCatalogPage).to.be.true;
+        });
+
+        it('returns false for other pages', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isProductCatalogPage).to.be.false;
+        });
+    });
+
+    describe('product search', () => {
+        let originalProductCatalogSearch;
+
+        beforeEach(() => {
+            originalProductCatalogSearch = Store.productCatalog.search.value;
+        });
+
+        afterEach(() => {
+            Store.productCatalog.search.value = originalProductCatalogSearch;
+        });
+
+        it('renders search bar on product catalog page', async () => {
+            Store.page.value = PAGE_NAMES.PRODUCT_CATALOG;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchBar = el.querySelector('sp-search.top-nav-search');
+            expect(searchBar).to.exist;
+            expect(searchBar.getAttribute('placeholder')).to.include('Search by product name');
+        });
+
+        it('renders spacer on non-product-catalog pages', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchBar = el.querySelector('sp-search.top-nav-search');
+            const spacer = el.querySelector('.spacer');
+            expect(searchBar).to.not.exist;
+            expect(spacer).to.exist;
+        });
+    });
+
     describe('landscape switch', () => {
         it('should render landscape switch when pickers are shown', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
@@ -793,6 +907,18 @@ describe('MasTopNav', () => {
             landscapeSwitch.dispatchEvent(new Event('change'));
 
             expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_PUBLISHED);
+        });
+    });
+
+    describe('help link', () => {
+        it('should link the help icon to the Slack channel in a new tab', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const link = el.querySelector('a[title="Help"]');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal('https://adobe.enterprise.slack.com/archives/C02RZERR9CH');
+            expect(link.getAttribute('target')).to.equal('_blank');
         });
     });
 });

@@ -1,7 +1,8 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, markDegraded } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
+import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const DICTIONARY_ID_PATH = 'dictionary/index';
@@ -12,6 +13,8 @@ const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 export const SYSTEM_PLACEHOLDERS = {
     'plan-type-text':
         '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\" data-display-plan-type=\\"true\\" data-display-per-unit=\\"false\\" data-display-tax=\\"false\\"></span>',
+    // Countdown units: authors fill the singular/plural entries, merch-countdown picks one by the live count.
+    ...Object.fromEntries(COUNTDOWN_UNITS.map((unit) => [`countdown-${unit}`, countdownUnitPlaceholder(unit)])),
 };
 
 const TRANSFORMER_NAME = 'replace';
@@ -20,7 +23,8 @@ const TRANSFORMER_NAME = 'replace';
 // single-flight refills, and stale-while-revalidate. The shared `acom/<baseLocale>` global
 // baseline is read by every placeholder request across every surface, so a synchronized
 // expiry would herd the whole fleet onto one `direct-hydrated` Odin fetch — see createSwrCache.
-const dictionaryCache = createSwrCache({ name: 'dictionary' });
+// Expired layers are revalidated with their Odin ETag: an unchanged dictionary is a body-less 304.
+const dictionaryCache = createSwrCache({ name: 'dictionary', conditional: true });
 
 export function clearDictionaryCache(preview = false) {
     dictionaryCache.clear(preview);
@@ -71,15 +75,18 @@ function collectEntries(fragment, references, dictionary) {
 // 404 there means a mid-publish/softpurge race — caching `{}` would render raw `{{tokens}}` fleet-wide
 // until TTL. Transient results resolve `null`, which is NOT cached (see createSwrCache) so they retry.
 async function buildDictionaryLayer(context, surface, locale, prefix) {
-    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async () => {
+    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async ({ etagFor }) => {
         const { id, status } = await getDictionaryId(context, surface, locale);
-        if (!id) return status === 404 && prefix === 'region' ? {} : null;
-        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, `dictionary-${prefix}`);
+        if (!id) return status === 404 && prefix === 'region' ? { value: {} } : null;
+        const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
+        const response = await fetch(url, context, `dictionary-${prefix}`, { etag: etagFor(url) });
+        if (response.status === 304) return NOT_MODIFIED;
         if (response.status != 200) return null;
         const dictionary = {};
         collectEntries(response.body, response.body.references || {}, dictionary);
-        return dictionary;
+        return { value: dictionary, etag: response.etag, url };
     });
+    if (!layer) markDegraded(context, `dictionary ${surface}/${locale}`);
     return layer ?? {};
 }
 
@@ -117,6 +124,15 @@ export async function getDictionary(context) {
     return { ...globalBaseline, ...surfaceBaseline, ...regionOverlay, ...context.dictionary };
 }
 
+// HTML forbids a <p> inside a <p>: a Rich Text value stored as one paragraph is unwrapped when it lands in an open <p>.
+// The text is JSON-stringified (attribute quotes are escaped) but the `<p ` opener prefix is unaffected.
+const SINGLE_PARAGRAPH_REGEXP = /^<p(?: [^>]*)?>((?:(?!<p[ >]).)*)<\/p>$/s;
+
+function isInsideOpenParagraph(text) {
+    const opener = Math.max(text.lastIndexOf('<p>'), text.lastIndexOf('<p '));
+    return opener !== -1 && !text.includes('</p>', opener);
+}
+
 function replaceValues(input, dictionary, calls) {
     const placeholders = input.matchAll(PH_REGEXP);
     let replaced = '';
@@ -134,8 +150,9 @@ function replaceValues(input, dictionary, calls) {
             value = replaceValues(value, dictionary, calls);
             calls.pop();
         }
-        //we concatenate value
-        replaced = replaced + value;
+        const paragraph = isInsideOpenParagraph(replaced) && value.match(SINGLE_PARAGRAPH_REGEXP);
+        //we concatenate value, without its <p> wrapper when it would nest inside an open <p>
+        replaced = replaced + (paragraph ? paragraph[1] : value);
         //and update index for next iteration
         nextIndex = match.index + match[0].length;
     }

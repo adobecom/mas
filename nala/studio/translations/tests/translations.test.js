@@ -1,4 +1,4 @@
-import { test, expect, translations, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, placeholders, translations, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import TranslationsSpec from '../specs/translations.spec.js';
 
 const { features } = TranslationsSpec;
@@ -156,72 +156,43 @@ test.describe('M@S Studio Translations Test Suite', () => {
 
         // @translation-editor-search
         await test.step('step-2: Enter search term, verify results update', async () => {
-            await translationEditor.searchInput.fill(data.searchTerm);
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(1000);
-            await translationEditor.expectCardRowsMatchSearchTerm(data.searchTerm);
+            const { searchTerm } = data;
+            await translationEditor.searchInput.fill(searchTerm);
+            await expect(translationEditor.addItemsSelector).toHaveJSProperty('searchQuery', searchTerm);
+            await expect(translationEditor.cardsTable).toHaveJSProperty('isLoading', false);
+            await translationEditor.expectCardRowsMatchSearchTerm(searchTerm);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.searchInput.fill('');
-            await page.keyboard.press('Enter');
-            await page.waitForTimeout(1000);
+            await expect(translationEditor.addItemsSelector).toHaveJSProperty('searchQuery', '');
+            await expect(translationEditor.cardsTable).toHaveJSProperty('isLoading', false);
             await expect(translationEditor.tableRows.first()).toBeVisible({ timeout: 30000 });
             await translationEditor.expectResultCountMatchesTableRows();
         });
 
         // @translation-editor-filters
         await test.step('step-3: Apply Template filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(0);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.template, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Template', data.filters.template);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.template })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.template);
         });
 
         await test.step('step-4: Apply Market Segment filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(1);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.marketSegment, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Market Segment', data.filters.marketSegment);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.marketSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.marketSegment);
         });
 
         await test.step('step-5: Apply Customer Segment filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(2);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.customerSegment, {
-                exact: true,
-            });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Customer Segment', data.filters.customerSegment);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.customerSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.customerSegment);
         });
 
         await test.step('step-6: Apply Product filter', async () => {
-            const filterBtn = translationEditor.filterButtons.nth(3);
-            await expect(filterBtn).toBeVisible({ timeout: 10000 });
-            await filterBtn.click();
-            await expect(translationEditor.filterPopover).toBeVisible({ timeout: 8000 });
-            const checkbox = translationEditor.filterPopover.getByText(data.filters.product, { exact: true });
-            await checkbox.click();
-            await filterBtn.click();
-            await page.waitForTimeout(500);
+            await translationEditor.selectFilter('Product Code', data.filters.product);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.product })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
             await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.OFFER, data.filters.product);
@@ -302,6 +273,55 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await translations.waitForListToLoad();
             const allTitles = await translations.getAllProjectTitles();
             expect(allTitles.some((t) => t.includes(projectTitle))).toBe(false);
+        });
+    });
+
+    // 7. @studio-translations-import-placeholder-url
+    // Pasting a copied placeholder link into a Localization project's "Import via URL" adds it as a placeholder.
+    // A link that names the placeholder by key instead of id is rejected.
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[7];
+        const placeholdersPage = `${baseURL}/studio.html${miloLibs}#page=placeholders&path=nala&locale=en_US`;
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        let placeholderLink;
+        setTestPage(testPage);
+
+        await test.step('step-1: Copy a real placeholder Studio link', async () => {
+            await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+            await page.goto(placeholdersPage);
+            await page.waitForLoadState('domcontentloaded');
+            await placeholders.waitForTableToLoad();
+            await placeholders.searchPlaceholder(data.key);
+            await placeholders.getRowMenuButton(data.key).click();
+            await placeholders.getRowMenuItems(data.key).filter({ hasText: 'Copy Link' }).click();
+            await expect(placeholders.toastPositive).toHaveText('Copied 1 placeholder link(s)', { timeout: 10000 });
+            placeholderLink = await page.evaluate(() => navigator.clipboard.readText());
+        });
+
+        await test.step('step-2: Open the translation item URL importer', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(translationEditor.form).toBeVisible({ timeout: 15000 });
+            await translationEditor.addItemsButton.click();
+            await expect(translationEditor.selectItemsDialog).toBeVisible({ timeout: 10000 });
+            await translationEditor.importUrlButton.click();
+            await expect(translationEditor.importUrlInput).toBeVisible();
+        });
+
+        await test.step('step-3: Paste the UUID link and validate the imported placeholder', async () => {
+            await translationEditor.pasteImportUrl(placeholderLink);
+            await expect(translationEditor.importedUrlRows).toHaveCount(1, { timeout: 15000 });
+            await expect(translationEditor.importedUrlRows.first().locator('.import-item-status')).toHaveText('Validated');
+            await expect(translationEditor.importToastPositive).toHaveText('Fragment added', { timeout: 15000 });
+            await expect(translationEditor.selectedItemsButton).toHaveText('Hide selection (1)');
+            await translationEditor.selectedItemsButton.click();
+            await expect(translationEditor.selectedItemsButton).toHaveText('Selected items (1)');
+        });
+
+        await test.step('step-4: Paste a key-based link and validate that it is rejected', async () => {
+            const keyLink = placeholderLink.replace(/search=[0-9a-f-]{36}$/, `search=${data.key}`);
+            await translationEditor.pasteImportUrl(keyLink);
+            await expect(translationEditor.importToastNegative).toHaveText('No valid URLs found', { timeout: 10000 });
         });
     });
 });

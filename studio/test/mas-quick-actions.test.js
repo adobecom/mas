@@ -234,6 +234,23 @@ describe('MasQuickActions', () => {
             const icon = button.querySelector('sp-icon-delete');
             expect(icon).to.exist;
         });
+        it('should render the create variation, preview and history action buttons', async () => {
+            const actions = [QUICK_ACTION.CREATE_VARIATION, QUICK_ACTION.PREVIEW, QUICK_ACTION.HISTORY];
+            const el = await fixture(html`<mas-quick-actions .actions=${actions}></mas-quick-actions>`, {
+                parentNode: spTheme(),
+            });
+            const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
+            expect(buttons.map((button) => button.title)).to.deep.equal(['Create Variation', 'Preview', 'History']);
+            expect(buttons[0].querySelector('sp-icon-add')).to.exist;
+            expect(buttons[1].querySelector('sp-icon-preview')).to.exist;
+            expect(buttons[2].querySelector('sp-icon-history')).to.exist;
+
+            for (const [index, action] of actions.entries()) {
+                const listener = oneEvent(el, action);
+                buttons[index].click();
+                expect((await listener).type).to.equal(action);
+            }
+        });
         it('should render multiple actions', async () => {
             const actions = [QUICK_ACTION.SAVE, QUICK_ACTION.DUPLICATE, QUICK_ACTION.PUBLISH, QUICK_ACTION.DELETE];
             const el = await fixture(html`<mas-quick-actions .actions=${actions}></mas-quick-actions>`, {

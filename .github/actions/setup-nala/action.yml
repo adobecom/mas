@@ -1,0 +1,89 @@
+name: Prepare Nala dependencies
+description: Reuse compatible root dependencies and Chromium; repair system libraries only when the browser probe requires it.
+
+runs:
+    using: composite
+    steps:
+        - name: Fingerprint runner compatibility
+          id: runner
+          shell: bash
+          run: |
+              node nala/utils/ci-dependencies.js fingerprint
+              echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/nala-playwright" >> "$GITHUB_ENV"
+
+        - name: Restore installed Nala dependencies
+          id: dependencies
+          uses: actions/cache/restore@v4
+          continue-on-error: true
+          env:
+              SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+          with:
+              path: node_modules
+              key: nala-root-dependencies-v1-${{ steps.runner.outputs.runner-key }}-${{ hashFiles('package-lock.json', 'package.json', '.npmrc') }}
+
+        - name: Install or verify Nala dependencies
+          shell: bash
+          env:
+              CACHE_HIT: ${{ steps.dependencies.outputs.cache-hit }}
+          run: |
+              if [ "$CACHE_HIT" = true ]; then
+                  if node nala/utils/ci-dependencies.js dependencies; then
+                      echo "Reused compatible Nala dependencies."
+                      exit 0
+                  fi
+                  echo "::warning::Installed dependency cache failed verification; rebuilding from the lockfile."
+              fi
+              npm ci --workspaces=false --include=dev --prefer-offline --no-audit --no-fund --fetch-retries=1 --fetch-timeout=30000
+
+        - name: Save installed Nala dependencies
+          if: steps.dependencies.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v4
+          continue-on-error: true
+          with:
+              path: node_modules
+              key: nala-root-dependencies-v1-${{ steps.runner.outputs.runner-key }}-${{ hashFiles('package-lock.json', 'package.json', '.npmrc') }}
+
+        - name: Resolve locked Playwright version
+          id: playwright
+          shell: bash
+          run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+        - name: Restore Chromium binaries
+          id: browsers
+          uses: actions/cache/restore@v4
+          continue-on-error: true
+          env:
+              SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+          with:
+              path: ${{ runner.temp }}/nala-playwright
+              key: nala-chromium-v1-${{ steps.runner.outputs.runner-key }}-${{ steps.playwright.outputs.version }}
+
+        - name: Install or verify Chromium binaries
+          shell: bash
+          run: npx --no-install playwright install chromium
+
+        - name: Save Chromium binaries
+          if: steps.browsers.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v4
+          continue-on-error: true
+          with:
+              path: ${{ runner.temp }}/nala-playwright
+              key: nala-chromium-v1-${{ steps.runner.outputs.runner-key }}-${{ steps.playwright.outputs.version }}
+
+        - name: Probe Chromium system libraries
+          id: libraries
+          shell: bash
+          run: node nala/utils/ci-dependencies.js chromium
+
+        - name: Repair missing Chromium system libraries
+          if: steps.libraries.outputs.system-deps-ready != 'true'
+          uses: ./.github/actions/prep-apt
+          with:
+              browser: chromium
+
+        - name: Verify repaired Chromium
+          if: steps.libraries.outputs.system-deps-ready != 'true'
+          shell: bash
+          run: |
+              node nala/utils/ci-dependencies.js chromium | tee "$RUNNER_TEMP/nala-chromium-probe.log"
+              grep -qx 'system-deps-ready=true' "$RUNNER_TEMP/nala-chromium-probe.log"

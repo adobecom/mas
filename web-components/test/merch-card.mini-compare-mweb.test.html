@@ -67,6 +67,15 @@
                             data-wcs-osi="abm"
                         ></span>
                     </p>
+                    <div slot="quantity-select">
+                        <merch-quantity-select
+                            title="Number of licenses"
+                            min="1"
+                            max="10"
+                            step="2"
+                            default-value="3"
+                        ></merch-quantity-select>
+                    </div>
                     <div slot="promo-text">
                         <p>
                             Save 19% with an annual plan
@@ -102,6 +111,8 @@
                     </div>
                     <p class="action-area" slot="footer">
                         <a
+                            is="checkout-link"
+                            data-wcs-osi="abm"
                             href="https://adobe.com/"
                             class="con-button blue button-l"
                             >Buy now</a
@@ -117,6 +128,13 @@
                     id="card-mweb-2"
                 >
                     <h3 slot="heading-xs">Illustrator</h3>
+                    <div slot="callout-content">
+                        <p>
+                            Fee applies of half your remaining annual commitment
+                            if you cancel after 14 days. Up to 10 licenses with
+                            free trial.
+                        </p>
+                    </div>
                     <p slot="subtitle">Desktop only</p>
                     <p slot="heading-m-price">
                         <span
@@ -173,6 +191,9 @@
                     tabindex="0"
                     id="card-mweb-3"
                 >
+                    <div slot="callout-content">
+                        <p><br /></p>
+                    </div>
                     <h3 slot="heading-xs">Photoshop</h3>
                     <p slot="heading-m-price">
                         <span

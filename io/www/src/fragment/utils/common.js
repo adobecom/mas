@@ -71,6 +71,14 @@ function mark(context, label) {
     return (context.marks[label] = performance.now()?.toFixed(2));
 }
 
+/**
+ * Flags the response being built as degraded: an upstream failure left some of its data out. The pipeline then does
+ * not store it (see `buildResponse`); outside of it (e.g. Studio) there is no `degraded` set and this is a no-op.
+ */
+function markDegraded(context, reason) {
+    context.degraded?.add(reason);
+}
+
 function measureTiming(context, label, startLabel = label) {
     const measure = { label, duration: 0 };
     if (context.marks && context.marks[startLabel]) {
@@ -88,10 +96,10 @@ function measureTiming(context, label, startLabel = label) {
  * @param {*} path
  * @param {*} context
  * @param {*} timeout
- * @returns response with status, out of which status 200 is success, 503 is fetch error, 504 is timeout,
- * other errors code from the server
+ * @returns response with status, out of which status 200 is success (with the response `etag`), 304 is not modified
+ * (`etag` matched), 503 is fetch error, 504 is timeout, other errors code from the server
  */
-async function fetchAttempt(path, context, timeout, marker) {
+async function fetchAttempt(path, context, timeout, marker, etag) {
     try {
         mark(context, marker);
         const headers = { ...context.DEFAULT_HEADERS };
@@ -100,23 +108,28 @@ async function fetchAttempt(path, context, timeout, marker) {
         if (!context.preview) {
             headers['X-Request-ID'] = globalThis.crypto.randomUUID();
         }
+        if (etag) headers['If-None-Match'] = etag;
         const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
         const measure = measureTiming(context, marker);
         const success = response.status === 200;
-        response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
+        const notModified = response.status === 304;
+        if (notModified) response.message = 'not modified';
+        else response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
         log(
             `fetch ${path} (${response?.status}) ${response?.message} in ${measure.duration}ms`,
             context,
-            success ? 'info' : 'error',
+            success || notModified ? 'info' : 'error',
         );
         logDebug(() => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, context);
+        if (notModified) return { status: 304, message: response.message };
         if (success) {
             return {
                 status: 200,
                 message: 'ok',
+                etag: response.headers.get('etag'),
                 body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
             };
         }
@@ -143,21 +156,27 @@ async function fetchAttempt(path, context, timeout, marker) {
     }
 }
 
+const networkPolicy = ({ networkConfig }) => {
+    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = networkConfig || {};
+    return { retries, fetchTimeout, retryDelay };
+};
+
 /**
  * fetches a path with retries and timeout
  * @param {*} path
  * @param {*} context
  * @param {*} timeout
  * @param {*} retries
+ * @param {string} [etag] sent as `If-None-Match`
  */
-async function internalFetch(path, context, marker) {
+async function fetchWithRetries(path, context, marker, etag) {
     mark(context, `${marker}`);
-    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    const { retries, fetchTimeout, retryDelay } = networkPolicy(context);
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
         // Race the fetch promise with a timeout
-        response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`);
+        response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`, etag);
         if ([503, 504].includes(response.status)) {
             log(
                 `fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${delay}ms...`,
@@ -171,6 +190,42 @@ async function internalFetch(path, context, marker) {
     }
     measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
+}
+
+// Preview pipelines run in the browser, one per aem-fragment, so identical Odin GETs overlap.
+// Concurrent reads share a single request (retries included) only when URL, request headers and
+// network policy (retries, timeout, delay) all match. An entry lives only while its request is
+// pending: any later read goes to Odin, so author edits are never served stale.
+// Published (server) reads are not shared.
+let pendingFetches = new Map();
+
+function clearPendingFetches() {
+    pendingFetches = new Map();
+}
+
+// Every reader gets its own copy: transformers mutate `body`, and failures drop the first caller's context.
+const ownResponse = (response) =>
+    response.status === 200
+        ? { ...response, body: structuredClone(response.body) }
+        : { status: response.status, message: response.message };
+
+/**
+ * fetches a path with retries and timeout; in preview, concurrent calls with the same path, headers and network policy share one request
+ * @param {*} path
+ * @param {*} context
+ * @param {*} marker
+ * @param {{ etag?: string }} [options] `etag` is sent as `If-None-Match`, a match resolving a 304 without body
+ */
+async function internalFetch(path, context, marker, { etag } = {}) {
+    if (!context.preview) return fetchWithRetries(path, context, marker, etag);
+    const key = JSON.stringify([path, context.DEFAULT_HEADERS ?? {}, etag, networkPolicy(context)]);
+    let pending = pendingFetches.get(key);
+    if (!pending) {
+        const requests = pendingFetches;
+        pending = fetchWithRetries(path, context, marker, etag).finally(() => requests.delete(key));
+        requests.set(key, pending);
+    }
+    return ownResponse(await pending);
 }
 
 async function getFromState(key, context) {
@@ -328,6 +383,7 @@ export {
     isGroupedVariationFragmentPath,
     createTimeoutPromise,
     internalFetch as fetch,
+    clearPendingFetches,
     getCountry,
     getRegionalLocale,
     getRequestInfos,
@@ -337,6 +393,7 @@ export {
     hasGeoTag,
     geoMatchScore,
     mark,
+    markDegraded,
     matchesGeo,
     measureTiming,
     skimFragmentFromReferences,

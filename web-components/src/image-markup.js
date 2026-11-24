@@ -1,0 +1,231 @@
+/** On prod (adobe.com), authored *.aem.page asset URLs must be served from the
+ *  prod origin. Rewrites the origin to `origin`, keeping path + query; returns
+ *  null for non-aem.page URLs so callers leave them untouched. */
+export function aemPageToProd(url, origin) {
+    if (typeof url !== 'string' || !url) return null;
+    let parsed;
+    try {
+        parsed = new URL(url, origin);
+    } catch {
+        return null;
+    }
+    if (!parsed.hostname.endsWith('.aem.page')) return null;
+    return `${origin}${parsed.pathname}${parsed.search}`;
+}
+
+export function sanitizeAssetUrl(url) {
+    if (typeof url !== 'string' || !url) return '';
+    try {
+        return new URL(url).href;
+    } catch {
+        return '';
+    }
+}
+
+export function isSupportedAssetHostname(url) {
+    if (typeof url !== 'string' || !url) return false;
+    try {
+        return new URL(url).hostname.endsWith('.aem.page');
+    } catch {
+        return false;
+    }
+}
+
+const FORMAT_BY_EXT = {
+    png: { type: 'image/png', format: 'png' },
+    jpg: { type: 'image/jpeg', format: 'jpg' },
+    jpeg: { type: 'image/jpeg', format: 'jpg' },
+    webp: { type: 'image/webp', format: 'webp' },
+    gif: { type: 'image/gif', format: 'gif' },
+};
+
+const DESKTOP = { width: 2000, media: '(min-width: 600px)' };
+const MOBILE_WIDTH = 750;
+
+export function rendition(url, width, format) {
+    const parsed = new URL(url);
+    parsed.searchParams.set('width', width);
+    parsed.searchParams.set('format', format);
+    parsed.searchParams.set('optimize', 'medium');
+    return parsed.href;
+}
+
+/** Never request a rendition wider than the original — upscaling only adds bytes. */
+export function renditionWidth(width, dimensions) {
+    return dimensions?.width ? Math.min(width, dimensions.width) : width;
+}
+
+export function formatFor(url) {
+    const ext = new URL(url).pathname.split('.').pop().toLowerCase();
+    return FORMAT_BY_EXT[ext] ?? null;
+}
+
+const RENDITION_PARAMS = ['width', 'format', 'optimize'];
+
+export function getImageDimensions(url) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () =>
+            resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        image.onerror = reject;
+        image.src = url;
+    });
+}
+
+export function extractImageDimensions(inner) {
+    if (!inner) return undefined;
+    const doc = new DOMParser().parseFromString(
+        `<picture>${inner}</picture>`,
+        'text/html',
+    );
+    const image = doc.querySelector('img');
+    const width = Number(image?.getAttribute('width'));
+    const height = Number(image?.getAttribute('height'));
+    return width && height ? { width, height } : undefined;
+}
+
+export function escapeAttribute(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+}
+
+export function dimensionsAttributes(dimensions) {
+    if (!dimensions?.width || !dimensions?.height) return '';
+    return ` width="${dimensions.width}" height="${dimensions.height}"`;
+}
+
+/** Strips the width/format/optimize params rendition() adds, recovering the plain
+ * authored URL for editing/display/copy surfaces.
+ * Returns '' for empty or unparseable input. */
+export function stripRenditionParams(url) {
+    if (!url) return '';
+    try {
+        const parsed = new URL(url);
+        RENDITION_PARAMS.forEach((param) => parsed.searchParams.delete(param));
+        return parsed.href;
+    } catch {
+        return '';
+    }
+}
+
+export function buildPictureInnerMarkup(url, dimensions, alt = '') {
+    if (!isSupportedAssetHostname(url)) return '';
+    const safeUrl = sanitizeAssetUrl(url);
+    const formatInfo = formatFor(safeUrl);
+    if (!formatInfo)
+        return `<img loading="lazy" alt="${escapeAttribute(alt)}"${dimensionsAttributes(dimensions)} src="${safeUrl}">`;
+    const { type, format } = formatInfo;
+    const desktopWidth = renditionWidth(DESKTOP.width, dimensions);
+    const mobileWidth = renditionWidth(MOBILE_WIDTH, dimensions);
+    return [
+        `<source type="image/webp" srcset="${rendition(safeUrl, desktopWidth, 'webply')}" media="${DESKTOP.media}">`,
+        `<source type="image/webp" srcset="${rendition(safeUrl, mobileWidth, 'webply')}">`,
+        `<source type="${type}" srcset="${rendition(safeUrl, desktopWidth, format)}" media="${DESKTOP.media}">`,
+        `<img loading="lazy" alt="${escapeAttribute(alt)}" src="${rendition(
+            safeUrl,
+            mobileWidth,
+            format,
+        )}"${dimensionsAttributes(dimensions)}>`,
+    ].join('');
+}
+
+function isProdLocation(location) {
+    return (
+        location?.hostname === 'www.adobe.com' ||
+        location?.hostname === 'adobe.com'
+    );
+}
+
+/** Rewrites *.aem.page asset URLs in image markup (the picture's inner
+ *  <source>/<img>) to the current prod origin when running on prod; otherwise
+ *  returns the markup unchanged. Shared by hydrate.js (merch-card) and
+ *  mas-field.js (standalone field) so both surfaces resolve assets identically.
+ *  No-ops off-prod and in non-DOM runtimes (e.g. MAS IO in Node). */
+export function rewriteImageUrlsForProd(inner, location = globalThis.location) {
+    if (typeof inner !== 'string' || !inner || !isProdLocation(location)) {
+        return inner;
+    }
+    const template = document.createElement('template');
+    template.innerHTML = `<picture>${inner}</picture>`;
+    template.content
+        .querySelectorAll('source[srcset], img[src]')
+        .forEach((el) => {
+            const attr = el.tagName === 'IMG' ? 'src' : 'srcset';
+            const prod = aemPageToProd(el.getAttribute(attr), location.origin);
+            if (prod) el.setAttribute(attr, prod);
+        });
+    return template.content.querySelector('picture').innerHTML;
+}
+
+const ALLOWED_PICTURE_TAGS = new Set(['SOURCE', 'IMG']);
+const ALLOWED_PICTURE_ATTRS = new Set([
+    'src',
+    'srcset',
+    'media',
+    'type',
+    'alt',
+    'role',
+    'loading',
+    'data-mobile-set',
+    'width',
+    'height',
+]);
+
+/** Strips stored image/backgrounds markup down to picture/source/img before innerHTML —
+ *  the AEM field isn't schema-constrained, so this guards render time, not Studio's output. */
+export function sanitizePictureMarkup(inner) {
+    if (typeof inner !== 'string' || !inner) return '';
+    const template = document.createElement('template');
+    const alreadyWrapped = /^\s*<picture[\s>]/i.test(inner);
+    template.innerHTML = alreadyWrapped ? inner : `<picture>${inner}</picture>`;
+    const picture = template.content.querySelector('picture');
+    if (!picture) return '';
+    picture.querySelectorAll('*').forEach((el) => {
+        if (!ALLOWED_PICTURE_TAGS.has(el.tagName)) {
+            el.remove();
+            return;
+        }
+        [...el.attributes].forEach((attr) => {
+            if (!ALLOWED_PICTURE_ATTRS.has(attr.name.toLowerCase())) {
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+    return picture.innerHTML;
+}
+
+export const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
+export const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
+
+/** Extracts one breakpoint's URL out of buildBackgroundsHtml's combined markup.
+ *  'desktop'/'tablet' read the matching <source media> srcset. 'mobile' reads
+ *  the <img> src only if data-mobile-set is present (else it's just a borrowed fallback). */
+export function extractBackgroundUrl(html, key) {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(
+        `<picture>${html}</picture>`,
+        'text/html',
+    );
+    if (key === 'desktop')
+        return (
+            doc
+                .querySelector(`source[media="${BACKGROUNDS_DESKTOP_MEDIA}"]`)
+                ?.getAttribute('srcset') ?? ''
+        );
+    if (key === 'tablet')
+        return (
+            doc
+                .querySelector(`source[media="${BACKGROUNDS_TABLET_MEDIA}"]`)
+                ?.getAttribute('srcset') ?? ''
+        );
+    if (key === 'mobile') {
+        const img = doc.querySelector('img');
+        return img?.hasAttribute('data-mobile-set')
+            ? (img.getAttribute('src') ?? '')
+            : '';
+    }
+    return '';
+}

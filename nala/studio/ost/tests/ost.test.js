@@ -17,6 +17,8 @@ import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost.spec.js';
 
 const { features } = OSTSpec;
 
+test.use({ reuseEditor: true });
+
 const editorUrl = (baseURL, feature, fragmentId) => {
     const libs = miloLibs ? `&${miloLibs.replace(/^[?&]/, '')}` : '';
     return `${baseURL}${feature.path}?ost=new${libs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
@@ -25,7 +27,7 @@ const editorUrl = (baseURL, feature, fragmentId) => {
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);
     setTestPage(testPage);
-    await page.goto(testPage);
+    await studio.openPage(testPage);
     await page.waitForLoadState('domcontentloaded');
     await expect(await editor.panel).toBeVisible();
     await expect(await studio.getCard(fragmentId)).toBeVisible();
@@ -339,6 +341,22 @@ test.describe('M@S Studio OST test suite', () => {
         // WITHOUT toggling — the inverse of the INDIVIDUAL case (tcid 11).
         await test.step('step-2: Per-unit token shows by default for the TEAM offer', async () => {
             await expect(await ost.price).toContainText(data.expectedPerUnit);
+        });
+    });
+    // @studio-ost-discount-amount - Show discount amount
+    test(`${features[18].name},${features[18].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[18];
+        const ost = await openEditorAndOST(page, baseURL, features[18]);
+
+        await test.step('step-1: Search the OSI and advance to the offer step', async () => {
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.osi);
+            await ost.nextButton.click();
+            await expect(await ost.price).toBeVisible();
+            await expect(await ost.discountReference).toBeVisible();
+            await ost.discountReference.fill(data.refOsi);
+            await expect(await ost.discountAmount).toContainText(data.expectedPrice);
+            await expect(await ost.discount).toContainText(data.expectedPercentage);
         });
     });
 });

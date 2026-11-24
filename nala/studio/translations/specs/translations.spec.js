@@ -24,7 +24,7 @@ export default {
             name: '@translation-editor-search-filters',
             path: '/studio.html',
             data: {
-                searchTerm: 'grouped',
+                searchTerm: 'Photoshop',
                 filters: {
                     template: 'Plans',
                     marketSegment: 'com',
@@ -68,6 +68,17 @@ export default {
             browserParams: '#page=translation-editor&path=nala',
             tags: '@mas-studio @translation-editor @regression',
             description: 'Translation Editor Actions: create project save, add languages overlay, add files overlay',
+        },
+        {
+            tcid: '7',
+            name: '@studio-translations-import-placeholder-url',
+            path: '/studio.html',
+            data: {
+                key: 'test',
+            },
+            browserParams: '#page=translation-editor&path=nala',
+            tags: '@mas-studio @translations',
+            description: 'Import a placeholder Studio URL and reject a key-based placeholder URL',
         },
     ],
 };

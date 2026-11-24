@@ -255,6 +255,22 @@ export class MerchCard extends LitElement {
         }
     }
 
+    #cardOsi;
+
+    get cardOsi() {
+        return this.#cardOsi;
+    }
+
+    set cardOsi(value) {
+        this.#cardOsi = value;
+        const attrValue = Array.isArray(value) ? value.join(',') : value;
+        if (attrValue) {
+            this.setAttribute('data-card-osi', attrValue);
+        } else {
+            this.removeAttribute('data-card-osi');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -296,6 +312,7 @@ export class MerchCard extends LitElement {
     static getFragmentMapping = getFragmentMapping;
 
     firstUpdated() {
+        this.variantLayout?.disconnectedCallbackHook();
         this.variantLayout = getVariantLayout(this);
         this.variantLayout?.connectedCallbackHook();
     }
@@ -400,7 +417,9 @@ export class MerchCard extends LitElement {
     }
 
     get iconButton() {
-        return this.querySelector('[slot="callout-content"] .icon-button');
+        return this.querySelector(
+            '[slot="callout-content"] .icon-button, [slot="short-description"] .icon-button',
+        );
     }
 
     get price() {

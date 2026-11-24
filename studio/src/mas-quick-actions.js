@@ -60,6 +60,18 @@ const ACTION_CONFIG = {
         icon: 'sp-icon-refresh',
         title: 'Check for modifications',
     },
+    [QUICK_ACTION.CREATE_VARIATION]: {
+        icon: 'sp-icon-add',
+        title: 'Create Variation',
+    },
+    [QUICK_ACTION.PREVIEW]: {
+        icon: 'sp-icon-preview',
+        title: 'Preview',
+    },
+    [QUICK_ACTION.HISTORY]: {
+        icon: 'sp-icon-history',
+        title: 'History',
+    },
 };
 
 class MasQuickActions extends LitElement {
@@ -269,6 +281,12 @@ class MasQuickActions extends LitElement {
                 return html`<sp-icon-link-check slot="icon"></sp-icon-link-check>`;
             case 'sp-icon-copy':
                 return html`<sp-icon-copy slot="icon"></sp-icon-copy>`;
+            case 'sp-icon-add':
+                return html`<sp-icon-add slot="icon"></sp-icon-add>`;
+            case 'sp-icon-preview':
+                return html`<sp-icon-preview slot="icon"></sp-icon-preview>`;
+            case 'sp-icon-history':
+                return html`<sp-icon-history slot="icon"></sp-icon-history>`;
             default:
                 return nothing;
         }

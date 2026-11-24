@@ -1,6 +1,6 @@
 /**
  * Shared building blocks for search + select-all + indeterminate-checkbox list UIs
- * (e.g. mas-promo-variation-geos, mas-translation-languages).
+ * (e.g. mas-promo-variation-geos, mas-region-picker).
  */
 
 /**

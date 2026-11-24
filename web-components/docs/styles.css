@@ -183,6 +183,20 @@ code {
     justify-content: start;
 }
 
+.three-merch-cards.promo-use-cases {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 32px;
+}
+
+.promo-use-cases section {
+    display: flex;
+    flex-direction: column;
+}
+
+.promo-use-cases section > p:first-of-type {
+    flex: 1;
+}
+
 .three-merch-cards.ccd-suggested {
     grid-template-columns: minmax(270px, 305px);
 }

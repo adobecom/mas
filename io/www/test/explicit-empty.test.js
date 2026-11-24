@@ -31,10 +31,26 @@ describe('explicit-empty sentinel', () => {
     describe('isExplicitEmptyField', () => {
         it('returns true for allowed fields', () => {
             expect(isExplicitEmptyField('badge')).to.be.true;
+            expect(isExplicitEmptyField('backgrounds')).to.be.true;
+            expect(isExplicitEmptyField('image')).to.be.true;
+        });
+
+        it('returns true for optional card text fields', () => {
+            for (const field of ['subtitle', 'promoText', 'callout', 'shortDescription', 'backgroundImage']) {
+                expect(isExplicitEmptyField(field), field).to.be.true;
+            }
+        });
+
+        it('returns false for template-required fields', () => {
+            for (const field of ['cardTitle', 'description', 'prices', 'ctas']) {
+                expect(isExplicitEmptyField(field), field).to.be.false;
+            }
         });
 
         it('returns false for non-allowed fields', () => {
             expect(isExplicitEmptyField('promoCode')).to.be.false;
+            expect(isExplicitEmptyField('addon')).to.be.false;
+            expect(isExplicitEmptyField('osi')).to.be.false;
             expect(isExplicitEmptyField('')).to.be.false;
         });
     });
@@ -61,6 +77,16 @@ describe('explicit-empty sentinel', () => {
         it('normalizes persisted badge array sentinel to empty array', () => {
             const result = normalizeExplicitEmptyInFields({ badge: [EXPLICIT_EMPTY_SENTINEL] });
             expect(result.badge).to.deep.equal([]);
+        });
+
+        it('normalizes persisted backgrounds array sentinel to empty array', () => {
+            const result = normalizeExplicitEmptyInFields({ backgrounds: [EXPLICIT_EMPTY_SENTINEL] });
+            expect(result.backgrounds).to.deep.equal([]);
+        });
+
+        it('normalizes persisted image array sentinel to empty array', () => {
+            const result = normalizeExplicitEmptyInFields({ image: [EXPLICIT_EMPTY_SENTINEL] });
+            expect(result.image).to.deep.equal([]);
         });
 
         it('normalizes badge object value sentinel', () => {
@@ -120,6 +146,20 @@ describe('explicit-empty sentinel', () => {
                 { name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL], multiple: true },
             ]);
             expect(fields[0].values).to.deep.equal([]);
+        });
+
+        it('maps persisted backgrounds sentinel to single-element empty array when non-multiple', () => {
+            const fields = normalizeExplicitEmptyInFields([
+                { name: 'backgrounds', values: [EXPLICIT_EMPTY_SENTINEL], multiple: false },
+            ]);
+            expect(fields.find((field) => field.name === 'backgrounds').values).to.deep.equal(['']);
+        });
+
+        it('maps persisted image sentinel to single-element empty array when non-multiple', () => {
+            const fields = normalizeExplicitEmptyInFields([
+                { name: 'image', values: [EXPLICIT_EMPTY_SENTINEL], multiple: false },
+            ]);
+            expect(fields.find((field) => field.name === 'image').values).to.deep.equal(['']);
         });
 
         it('maps persisted badge sentinel to single-element empty array when non-multiple', () => {

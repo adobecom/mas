@@ -36,9 +36,19 @@ export class MerchMnemonicList extends LitElement {
         super();
     }
 
+    #hideDecorativeIcons() {
+        const text = this.querySelector(
+            '[slot="description"]',
+        )?.textContent.trim();
+        if (!text) return;
+        this.querySelectorAll('merch-icon').forEach((icon) => {
+            icon.alt = '';
+        });
+    }
+
     render() {
         return html`
-            <slot name="icon"></slot>
+            <slot name="icon" @slotchange=${this.#hideDecorativeIcons}></slot>
             <slot name="description">${this.description}</slot>
         `;
     }

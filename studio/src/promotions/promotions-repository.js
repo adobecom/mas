@@ -4,11 +4,182 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment } from '../utils.js';
+import { Promotion } from '../aem/promotion.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard, showToast } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { savePromotionVersion, withPromotionVersion } from './promotion-version.js';
+import { canEditPromotions } from '../groups.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
+const PROMOTIONS_LIST_FETCHED_AT_META = 'fetchedAt';
+const PROMOTIONS_LIST_STORAGE_PREFIX = 'mas-promotions-list:';
+export const PROMOTIONS_LIST_MAX_AGE = 60000;
+
+// Writes made while a list refresh is in flight, keyed by id (null for a deletion): its response
+// predates them, so they are replayed over it.
+let refreshMutations = null;
+
+/**
+ * Marks the promotions list as freshly fetched from AEM and persists it for the next Studio load.
+ * @param {string|null} scope - AEM environment + user, so neither environments nor accounts share a list; null disables persistence
+ */
+export function markPromotionsListFetched(scope) {
+    const list = Store.promotions.list.data;
+    list.setMeta(PROMOTIONS_LIST_FETCHED_META, true);
+    list.setMeta(PROMOTIONS_LIST_FETCHED_AT_META, Date.now());
+    persistPromotionsList(scope);
+}
+
+/**
+ * Persists the fetched promotions list. Quota errors only cost the next load its head start.
+ * @param {string|null} scope
+ */
+export function persistPromotionsList(scope) {
+    const list = Store.promotions.list.data;
+    if (!scope || !list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    const fragments = list.get().map((store) => {
+        const { initialValue, hasChanges, newTags, references, fieldTags, ...data } = store.get();
+        return data;
+    });
+    const entry = JSON.stringify({ at: list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META), fragments });
+    try {
+        localStorage.setItem(`${PROMOTIONS_LIST_STORAGE_PREFIX}${scope}`, entry);
+    } catch (error) {
+        console.warn('Could not persist the promotions list:', error.message);
+    }
+}
+
+/**
+ * Seeds the promotions list from the last persisted copy, so every page can use it right away.
+ * Its original fetch time is kept: getPromotionProjectsForProbe revalidates it in the background.
+ * @param {string|null} scope
+ */
+export function hydratePromotionsList(scope) {
+    const list = Store.promotions.list.data;
+    if (!scope || list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    let persisted;
+    try {
+        persisted = JSON.parse(localStorage.getItem(`${PROMOTIONS_LIST_STORAGE_PREFIX}${scope}`));
+    } catch {
+        return;
+    }
+    if (!Array.isArray(persisted?.fragments)) return;
+    list.set(persisted.fragments.map((data) => new FragmentStore(new Promotion(data))));
+    list.setMeta(PROMOTIONS_LIST_FETCHED_META, true);
+    list.setMeta(PROMOTIONS_LIST_FETCHED_AT_META, persisted.at ?? 0);
+    Store.promotions.list.loading.set(false);
+}
+
+/** Drops every persisted promotions list, so the next account signing in on this browser starts clean. */
+export function clearPersistedPromotionsLists() {
+    for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(PROMOTIONS_LIST_STORAGE_PREFIX)) localStorage.removeItem(key);
+    }
+}
+
+/** Starts recording promotion writes, to be replayed over the response of the refresh starting now. */
+export function beginPromotionsListRefresh() {
+    refreshMutations = new Map();
+}
+
+/**
+ * Replaces the list with a refresh response, then replays the writes made since that refresh began.
+ * @param {Array<import('../reactivity/fragment-store.js').FragmentStore>} stores
+ * @param {string|null} scope
+ */
+export function applyPromotionsListRefresh(stores, scope) {
+    const list = Store.promotions.list.data;
+    list.set(stores);
+    for (const [id, fragmentData] of refreshMutations ?? []) {
+        if (fragmentData) writePromotion(list, fragmentData);
+        else dropPromotion(list, id);
+    }
+    refreshMutations = null;
+    markPromotionsListFetched(scope);
+}
+
+function writePromotion(list, fragmentData) {
+    const store = list.get().find((candidate) => candidate.get()?.id === fragmentData.id);
+    if (store) store.set(new Promotion(fragmentData));
+    else list.set([new FragmentStore(new Promotion(fragmentData)), ...list.get()]);
+}
+
+function dropPromotion(list, id) {
+    const remaining = list.get().filter((store) => store.get()?.id !== id);
+    if (remaining.length === list.get().length) return false;
+    list.set(remaining);
+    return true;
+}
+
+/**
+ * Writes a created/saved/republished promotion project through to the loaded list.
+ * @param {Object} fragmentData
+ * @param {string|null} scope
+ */
+export function upsertPromotionInList(fragmentData, scope) {
+    refreshMutations?.set(fragmentData.id, fragmentData);
+    const list = Store.promotions.list.data;
+    if (!list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    writePromotion(list, fragmentData);
+    persistPromotionsList(scope);
+}
+
+/**
+ * @param {string} id
+ * @param {string|null} scope
+ */
+export function removePromotionFromList(id, scope) {
+    refreshMutations?.set(id, null);
+    const list = Store.promotions.list.data;
+    if (dropPromotion(list, id)) persistPromotionsList(scope);
+}
+
+/** Creates promotion content and records its initial version after the repository finishes. */
+export async function createPromotionFragment(repository, fragmentData, withToast = true) {
+    return withPromotionVersion(repository, fragmentData, () => repository.createFragment(fragmentData, withToast));
+}
+
+/** Captures promotion content before saving; ordinary fragments use the repository without versioning. */
+export async function savePromotionFragment(repository, fragmentStore, options = {}) {
+    return withPromotionVersion(repository, fragmentStore.get(), (precondition) =>
+        repository.saveFragment(fragmentStore, { ...options, ...precondition }),
+    );
+}
+
+export async function deletePromotionFragment(repository, fragment, remove) {
+    let result;
+    await withPromotionVersion(
+        repository,
+        fragment,
+        async () => {
+            result = await remove();
+            return result.deleted ?? result.success;
+        },
+        { action: 'delete' },
+    );
+    return result;
+}
+
+/** Records promo variation deletion when a cascade identifies the fragment by path. */
+export async function forceDeletePromoVariation(repository, path) {
+    const remove = async () => {
+        await repository.aem.sites.cf.fragments.forceDelete({ path });
+        return true;
+    };
+    if (!isPromoVariationPath(path) || !canEditPromotions()) return remove();
+    let fragment;
+    try {
+        fragment = await repository.aem.sites.cf.fragments.getByPath(path);
+    } catch (error) {
+        console.error('Promotion history fragment lookup failed:', error);
+        const deleted = await remove();
+        showToast('Your change was completed, but it will be missing from the promotion history.', 'warning');
+        return deleted;
+    }
+    return withPromotionVersion(repository, fragment, remove, { action: 'delete' });
+}
 
 /**
  * @returns {Array<Object>}
@@ -50,17 +221,48 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
 }
 
 /**
+ * Shared entry point to the promotion projects: awaits the first load, then serves the loaded
+ * (or persisted) list right away and revalidates it in the background once it is older than
+ * PROMOTIONS_LIST_MAX_AGE. Concurrent callers share a single load.
+ * With `fresh`, a stale list is revalidated before returning, for callers whose result is cached as authoritative.
+ * A caller that joins a load started by another caller retries with its own loader when that load left the
+ * list missing or stale, since the other caller's loader may swallow the failure this caller needs to see.
  * @param {() => Promise<void>} loadPromotions
+ * @param {{ fresh?: boolean }} [options]
  * @returns {Promise<Array<Object>>}
  */
-export async function getPromotionProjectsForProbe(loadPromotions) {
-    let projects = readPromotionProjectsFromStore();
-    if (!projects.length && !Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META)) {
-        await loadPromotions();
-        projects = readPromotionProjectsFromStore();
-    }
-    return projects;
-}
+export const getPromotionProjectsForProbe = (() => {
+    let promotionProjectsLoad;
+    const isFetched = () =>
+        Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META) || readPromotionProjectsFromStore().length > 0;
+    const isStale = () => {
+        const list = Store.promotions.list.data;
+        return (
+            list.hasMeta(PROMOTIONS_LIST_FETCHED_AT_META) &&
+            Date.now() - list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META) > PROMOTIONS_LIST_MAX_AGE
+        );
+    };
+    return async (loadPromotions, { fresh = false } = {}) => {
+        const fetched = isFetched();
+        const stale = isStale();
+        const joined = Boolean(promotionProjectsLoad);
+        if (!fetched || stale) {
+            promotionProjectsLoad ??= Promise.resolve(loadPromotions()).finally(() => {
+                promotionProjectsLoad = null;
+            });
+        }
+        if (!fetched || (stale && fresh)) {
+            await promotionProjectsLoad;
+            if (joined && (!isFetched() || isStale())) await loadPromotions();
+            // A loader that swallows its failure leaves the list stale: a fresh caller must not get it back.
+            if (fresh && isStale()) throw new Error('Could not revalidate the promotions list.');
+        } else if (stale) {
+            // Nobody awaits a background refresh, so its failure must not surface as an unhandled rejection.
+            promotionProjectsLoad.catch((error) => console.warn('Background promotions refresh failed:', error?.message));
+        }
+        return readPromotionProjectsFromStore();
+    };
+})();
 
 /**
  * @param {import('../aem/aem.js').AEM} aem
@@ -74,7 +276,8 @@ export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, lo
     const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
-        await getPromotionProjectsForProbe(loadPromotions),
+        // The merge is flagged promoVariationProbeNotNeeded and never redone, so it must not use a stale list.
+        await getPromotionProjectsForProbe(loadPromotions, { fresh: true }),
         options,
     );
     return { ...merged, promoVariationProbeNotNeeded: true };
@@ -95,12 +298,13 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
         const promoTag = getPromotionTagFromFragment(variation);
         if (promoTag) attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTag);
     }
-    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+    const source = await promotionVariations.resolveDefaultFragmentForPromoVariation(
         aem,
         promoVariationPath,
         promoVariationId,
         attachedFragmentPaths,
     );
+    const parent = await resolvePromoVariationDefaultCard(aem, source);
     if (!parent) return null;
     return mergePromoReferencesIntoFragmentData(aem, parent, loadPromotions);
 }
@@ -191,6 +395,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         geoTags,
         attachedFragmentPaths,
     );
+    await savePromotionVersion({ loadPromotions }, createdFragment);
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }
@@ -241,7 +446,7 @@ export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, l
     const promoTagId = getPromotionTagFromFragment(fragment);
     if (!promoTagId) return;
 
-    const projects = await getPromotionProjectsForProbe(loadPromotions);
+    const projects = await getPromotionProjectsForProbe(loadPromotions, { fresh: true });
     const project = findProjectByTag(projects, promoTagId);
     const attachedFragmentPaths = getAttachedFragmentPaths(project);
     const defaultFragment = await promotionVariations.resolveDefaultFragmentForPromoVariation(
@@ -262,10 +467,11 @@ export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, l
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} defaultPaths
  * @param {string} promoTagId
+ * @param {{ cached?: boolean }} [options] - `cached` reuses a recent promo folder crawl (read-only probes only)
  * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[] }>>>}
  */
-export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
-    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId, options) {
+    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId, options);
 }
 
 /**
@@ -274,12 +480,14 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
  * Runs sequentially since createPromoVariation resolves sibling-index/geo collisions against current AEM state per source fragment.
  * Failed variations are skipped, not thrown.
  * The project already exists in AEM by this point and throwing would block retry (title already taken).
- * @param {import('../aem/aem.js').AEM} aem
+ * @param {{ aem: import('../aem/aem.js').AEM, loadPromotions: Function }} repository
  * @param {Object} sourcePromotion
  * @param {string} newPromoTagId
+ * @param {string} projectId
  * @returns {Promise<Array<{ path: string, error: Error }>>}
  */
-async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTagId) {
+async function duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId, projectId) {
+    const { aem } = repository;
     const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
     const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
     const failedVariations = [];
@@ -295,7 +503,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
             if (!sourceFragment) {
                 throw new Error(`Could not resolve the default fragment for promo variation ${variation.path}`);
             }
-            await promotionVariations.createPromoVariation(
+            const created = await promotionVariations.createPromoVariation(
                 aem,
                 sourceFragment.id,
                 newPromoTagId,
@@ -303,6 +511,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
                 attachedFragmentPaths,
                 sourceFragment,
             );
+            await savePromotionVersion(repository, created, { projectId });
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });
@@ -333,7 +542,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     };
     let newPromotion;
     try {
-        newPromotion = await repository.createFragment(payload, false);
+        newPromotion = await createPromotionFragment(repository, payload, false);
         if (!newPromotion) throw new Error('Failed to duplicate project.');
     } catch (error) {
         if (tag) await repository.aem.tags.delete(tag.tagPath).catch(() => {});
@@ -343,7 +552,12 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     let failedVariations = [];
     if (duplicateVariations && newPromoTagId) {
         try {
-            failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+            failedVariations = await duplicateAttachedPromoVariations(
+                repository,
+                sourcePromotion,
+                newPromoTagId,
+                newPromotion.id,
+            );
         } catch (error) {
             console.error('Error cloning attached promo variations:', error);
             failedVariations = [{ path: 'attached promo variations', error }];

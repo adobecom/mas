@@ -7,7 +7,7 @@ regeneration:
     max_candidates: 5
 
 # Checked-in build outputs that ship with any src change. dist-sync rebuilds
-# and compares them; the adversary skips them by default.
+# them (CI commits them on the PR); the adversary skips them by default.
 generated:
     - 'web-components/dist/**'
     - 'web-components/docs/**'
@@ -63,29 +63,28 @@ gates:
         repair:
             cmd: npx prettier --write {changed_files} --ignore-unknown
 
-    # unit-tests: DISABLED 2026-08-17 (operator decision). `npm test` across the
-    # workspaces is order-dependent/flaky (web-components merch-card.adjustAddon
-    # "(global CSS)" suites, mas-promotions-items-table): every run escalated on
-    # failures that pass on the base branch and pass with the candidate applied
-    # in isolation. Re-enable once the suites are stable:
-    #   unit-tests:
-    #     template: command
-    #     name: Unit suites, all workspaces
-    #     cmd: npm test
-    #     timeout_s: 600
-    #     blocking: true
-    #     failure_route: regenerate
+    # Re-enabled 2026-10-01 (operator decision; disabled 2026-08-17 for flaky
+    # workspace suites).
+    unit-tests:
+        template: command
+        name: Unit suites for the changed workspaces
+        # The full suite takes ~8 min on a fast laptop and overran the old 600s
+        # limit; GitHub CI (run-tests.yaml) still runs all of it on every PR.
+        cmd: node .pinata/scripts/run-affected-tests.mjs
+        timeout_s: 1200
+        blocking: true
+        failure_route: regenerate
 
     dist-sync:
         template: command
-        name: Built artifacts in sync (web-components)
+        name: Rebuild web-components artifacts
         # Demo pages load the checked-in dist/mas.js, so a stale bundle hides
-        # src changes from the visual gate. Mirrors CI's web-components-pr check.
+        # src changes from the visual gate. Must run before it. Drift is not a
+        # failure: CI rebuilds and commits dist on the PR.
         cmd: bash .pinata/scripts/check-dist-sync.sh
         timeout_s: 300
         blocking: true
-        # A repair step can't rebuild the bundle (the missing dist files sit
-        # outside its mutation boundary), so the producer redoes the candidate.
+        # Only a failing build lands here; the producer redoes the candidate.
         failure_route: regenerate
 
     visual:
@@ -105,6 +104,10 @@ gates:
             neighboring cards are not regressed.
         require_human: false
         blocking: false
+        # Lets Piñata navigate the page (for example, open a menu) when a
+        # screenshot alone can't show what the ticket asks for. Off by default.
+        # https://studious-waffle-1v53m45.pages.github.io/tenants/reference/gates/#each-gate-explore
+        explore: true
 
     # Last on purpose: the adversary reviews the code together with every
     # deterministic and visual gate result, not blind of them.

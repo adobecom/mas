@@ -1,0 +1,75 @@
+{
+    "id": "collection-default-child",
+    "path": "/content/dam/mas/test/collection-default-child",
+    "name": "collection-default-child",
+    "title": "Collection Default Child",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {},
+    "placeholders": {},
+    "references": {
+        "express-all": {
+            "type": "content-fragment",
+            "value": {
+                "id": "express-all",
+                "path": "/content/dam/mas/test/express-all",
+                "name": "express-all",
+                "title": "All",
+                "description": "",
+                "fields": {
+                    "label": "All",
+                    "cards": ["express-card-a", "express-card-b"],
+                    "defaultchild": "express-card-b"
+                }
+            }
+        },
+        "express-card-a": {
+            "type": "content-fragment",
+            "value": {
+                "id": "express-card-a",
+                "path": "/content/dam/mas/test/express-card-a",
+                "name": "express-card-a",
+                "title": "Express Card A",
+                "description": "",
+                "fields": {
+                    "variant": "simplified-pricing-express",
+                    "tags": []
+                }
+            }
+        },
+        "express-card-b": {
+            "type": "content-fragment",
+            "value": {
+                "id": "express-card-b",
+                "path": "/content/dam/mas/test/express-card-b",
+                "name": "express-card-b",
+                "title": "Express Card B",
+                "description": "",
+                "fields": {
+                    "variant": "simplified-pricing-express",
+                    "tags": []
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "collections",
+            "identifier": "express-all",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "express-card-a",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "express-card-b",
+                    "referencesTree": []
+                }
+            ]
+        }
+    ]
+}

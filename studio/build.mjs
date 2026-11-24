@@ -14,6 +14,21 @@ const defaults = {
 
 await build({
     ...defaults,
+    stdin: {
+        contents: `export {
+            versionFieldValues,
+            compareVersionValues,
+            restoreVersionFields,
+        } from '../io/studio/src/common/fragment-version.cjs';`,
+        resolveDir: process.cwd(),
+        sourcefile: 'fragment-version.js',
+    },
+    outfile: 'libs/fragment-version.js',
+    sourcemap: false,
+});
+
+await build({
+    ...defaults,
     entryPoints: ['src/swc.js'],
     outfile: 'libs/swc.js',
 });
@@ -28,6 +43,12 @@ await build({
     ...defaults,
     entryPoints: ['src/spectrum.css.js'],
     outfile: 'libs/spectrum.js',
+});
+
+await build({
+    ...defaults,
+    entryPoints: ['src/markdown.js'],
+    outfile: 'libs/markdown.js',
 });
 
 await build({

@@ -1,4 +1,11 @@
-import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP, TABLET_DOWN } from './media.js';
+import { infoIconUrl } from './info-icon.js';
+import {
+    DESKTOP_UP,
+    LARGE_DESKTOP,
+    TABLET_UP,
+    TABLET_DOWN,
+    MOBILE_LANDSCAPE,
+} from './media.js';
 
 const styles = document.createElement('style');
 
@@ -161,6 +168,10 @@ styles.innerHTML = `
 
     /* background image */
     --consonant-merch-card-bg-img-height: 180px;
+
+    /* backgrounds field image */
+    --consonant-merch-card-backgrounds-img-object-fit: contain;
+    --consonant-merch-card-backgrounds-img-radius: 16px;
 
     /* inline SVGs */
     --checkmark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M3.788 9A.999.999 0 0 1 3 8.615l-2.288-3a1 1 0 1 1 1.576-1.23l1.5 1.991 3.924-4.991a1 1 0 1 1 1.576 1.23l-4.712 6A.999.999 0 0 1 3.788 9z' class='spectrum-UIIcon--medium'/%3E%3C/svg%3E%0A");
@@ -590,6 +601,16 @@ merch-card div[slot='bg-image'] img {
     border-top-right-radius: 16px;
 }
 
+merch-card picture[slot='backgrounds'] img {
+    position: relative;
+    width: 100%;
+    min-height: var(--consonant-merch-card-bg-img-height);
+    max-height: var(--consonant-merch-card-bg-img-height);
+    object-fit: var(--consonant-merch-card-backgrounds-img-object-fit);
+    border-top-left-radius: var(--consonant-merch-card-backgrounds-img-radius);
+    border-top-right-radius: var(--consonant-merch-card-backgrounds-img-radius);
+}
+
 .price-unit-type:not(.disabled)::before,
 .price-tax-inclusivity:not(.disabled)::before {
   content: "\\00a0";
@@ -702,7 +723,7 @@ merch-card [slot='callout-content'] .icon-button {
   min-height: 18px;
   align-items: center;
   justify-content: center;
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+  background-image: ${infoIconUrl(14)};
   background-size: 18px;
 }
 
@@ -768,7 +789,7 @@ merch-card merch-mnemonic-list [slot="description"] .icon-button {
   align-items: center;
   justify-content: center;
   vertical-align: middle;
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+  background-image: ${infoIconUrl(14)};
   background-size: 18px;
   background-repeat: no-repeat;
   background-position: center;
@@ -836,7 +857,7 @@ merch-card .price-plan-type .icon-button {
   align-items: center;
   justify-content: center;
   vertical-align: middle;
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+  background-image: ${infoIconUrl(14)};
   background-size: 18px;
   background-repeat: no-repeat;
   background-position: center;
@@ -968,11 +989,13 @@ merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
-@media (max-width: 600px) {
+@media screen and ${MOBILE_LANDSCAPE} {
+    merch-card [slot='short-description'] .icon-button.tooltip-left::before,
     merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
         left: -30px;
     }
 
+    merch-card [slot='short-description'] .icon-button.tooltip-right::before,
     merch-card [slot='callout-content'] .icon-button.tooltip-right::before {
         left: unset;
         right: -20px;

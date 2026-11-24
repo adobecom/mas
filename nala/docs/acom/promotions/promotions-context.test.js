@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../libs/docs-test.js';
 import { features } from './promotions-context.spec.js';
 import MasPlans from '../plans.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
@@ -6,10 +6,14 @@ import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../../utils/commerc
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
 const workerSetup = createWorkerPageSetup({
-    pages: [{ name: 'US', url: DOCS_GALLERY_PATH.PLANS.US }],
+    pages: [
+        { name: 'US', url: DOCS_GALLERY_PATH.PLANS.US },
+        { name: 'US_collection', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.US },
+    ],
 });
 
 test.describe('ACOM MAS Promotions Context feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -18,14 +22,18 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     // @MAS-Promotions-Context-All-Prices
     test(`${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         const acomPage = new MasPlans(page);
 
         await test.step('step-1: Verify all card prices are promotional', async () => {
@@ -50,7 +58,7 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
     // @MAS-Promotions-Context-Description-Changed-Promo-Code
     test(`${features[1].name},${features[1].tags}`, async () => {
         const { data } = features[1];
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         const acomPage = new MasPlans(page);
 
         await test.step('step-1: Verify all card prices are promotional', async () => {
@@ -85,7 +93,7 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
     // @MAS-Promotions-Context-Main-Price-Canceled-Context
     test(`${features[2].name},${features[2].tags}`, async () => {
         const { data } = features[2];
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         const acomPage = new MasPlans(page);
 
         await test.step('step-1: Verify all card prices are promotional', async () => {
@@ -115,7 +123,7 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
     // @MAS-Promotions-Context-Main-Price-Only
     test(`${features[3].name},${features[3].tags}`, async () => {
         const { data } = features[3];
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         const acomPage = new MasPlans(page);
 
         await test.step('step-1: Verify main price is promotional', async () => {
@@ -141,6 +149,48 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
         });
 
         await test.step('step-5: Verify CTA does not have apc parameter', async () => {
+            await expect(acomPage.getCardCTA(data.id)).not.toHaveAttribute('href', /apc=/);
+        });
+    });
+
+    // @MAS-Promotions-Project-Context-Price-And-CTA-Applied
+    test(`${features[4].name},${features[4].tags}`, async () => {
+        const { data } = features[4];
+        const page = await workerSetup.getPage('US_collection');
+        const acomPage = new MasPlans(page);
+
+        await test.step('step-1: Verify card has promotion project and promo code applied to price', async () => {
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promoProject);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.regularPrice);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-code', data.promoCode);
+        });
+
+        await test.step('step-2: Verify Buy Now CTA has apc parameter with promo code', async () => {
+            await expect(acomPage.getCardCTA(data.id)).toHaveAttribute('href', new RegExp(`apc=${data.promoCode}`));
+        });
+    });
+
+    // @MAS-Promotions-Project-Context-Price-And-CTA-Canceled
+    test(`${features[5].name},${features[5].tags}`, async () => {
+        const { data } = features[5];
+        const page = await workerSetup.getPage('US_collection');
+        const acomPage = new MasPlans(page);
+
+        await test.step('step-1: Verify price has cancel-context for promo code', async () => {
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', data.promoProject);
+            await expect(acomPage.getCardPrice(data.id)).toContainText(data.regularPrice);
+            await expect(acomPage.getCardPrice(data.id)).not.toContainText(data.promoPrice);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-code', data.promoCode);
+            await expect(acomPage.getCardPrice(data.id).locator(acomPage.price)).toHaveAttribute(
+                'data-promotion-code',
+                data.mainPricePromoCode,
+            );
+        });
+
+        await test.step('step-2: Verify CTA does not have apc parameter', async () => {
             await expect(acomPage.getCardCTA(data.id)).not.toHaveAttribute('href', /apc=/);
         });
     });

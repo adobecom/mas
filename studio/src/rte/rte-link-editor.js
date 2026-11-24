@@ -256,8 +256,6 @@ export class RteLinkEditor extends LitElement {
             <sp-field-label for="linkVariant">Variant</sp-field-label>
             <sp-button-group id="linkVariant">
                 ${HEADLESS_LINK_VARIANTS.map(({ value, label }) => {
-                    const emphasisStyle =
-                        value === 'primary' ? 'font-weight:700' : value === 'secondary' ? 'font-style:italic' : '';
                     return value === 'secondary-link'
                         ? html`<sp-link
                               class=${classMap({ selected: displayVariant === value })}
@@ -270,7 +268,6 @@ export class RteLinkEditor extends LitElement {
                           >`
                         : html`<sp-button
                               class=${classMap({ selected: displayVariant === value })}
-                              style=${emphasisStyle}
                               @click=${() => (this.variant = value)}
                               variant=${value}
                               >${label}</sp-button

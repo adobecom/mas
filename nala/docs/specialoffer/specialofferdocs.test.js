@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './specialofferdocs.spec.js';
 import MasSpecialoffer from './specialoffer.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Special Offer gallery feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,15 +21,19 @@ test.describe('Special Offer gallery feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`[Test Id - ${features[0].tcid}] ${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Special Offer gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasSpecialoffer(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.SPECIALOFFER, expect);
         });
@@ -38,7 +43,7 @@ test.describe('Special Offer gallery feature test suite', () => {
             await expect(card).toBeVisible();
             await expect(card).toHaveAttribute('variant', data.variant);
             await expect(card.locator('[slot="heading-xs"]').first()).toContainText(data.title);
-            await expect(card.locator('div.badge')).toContainText(data.badge);
+            await expect(card.locator('merch-badge')).toContainText(data.badge);
             await expect(card.locator('[slot="detail-m"]')).toContainText(data.detailM);
             await expect(card.locator('div[slot="body-xs"]')).toContainText(data.description);
             const footerCtas = card.locator('div[slot="footer"] :is(a, button)');
@@ -49,7 +54,7 @@ test.describe('Special Offer gallery feature test suite', () => {
 
     test(`[Test Id - ${features[1].tcid}] ${features[1].name},${features[1].tags}`, async () => {
         await test.step('step-1: Go to Special Offer gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasSpecialoffer(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.SPECIALOFFER, expect);
         });

@@ -150,8 +150,8 @@ export async function createDictionaryIndexFragment({ parentPath, parentReferenc
             return null;
         }
 
-        if (publish) {
-            await repo.publishFragment(indexFragment, {}, false);
+        if (publish && !(await repo.publishFragment(indexFragment, { skipReferenceDiagnosis: true, replicate: true }, false))) {
+            return null;
         }
         return indexFragment;
     } catch (error) {
@@ -269,8 +269,7 @@ export async function addToIndexFragment(fragment) {
             console.info(`Fragment already added to index: ${fragment.path}`);
         }
 
-        await repo.publishFragment(updatedIndexFragment, {}, false);
-        return true;
+        return await repo.publishFragment(updatedIndexFragment, { skipReferenceDiagnosis: true, replicate: true }, false);
     } catch (error) {
         repo.processError(error, 'Failed to add fragment to index.');
         return false;
@@ -307,8 +306,7 @@ export async function removeFromIndexFragment(fragments) {
             console.info('Fragment(s) already added to index.');
         }
 
-        await repo.publishFragment(updatedIndexFragment, {}, false);
-        return true;
+        return await repo.publishFragment(updatedIndexFragment, { skipReferenceDiagnosis: true, replicate: true }, false);
     } catch (error) {
         repo.processError(error, 'Failed to add fragment(s) to index.');
         return false;
@@ -349,18 +347,22 @@ export async function createPlaceholder(placeholder) {
         const newPlaceholder = new Placeholder(fragment);
         newPlaceholder.updateField('tags', [TAG_STATUS_DRAFT]);
         await repo.aem.saveTags(newPlaceholder);
+        Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
 
         const addedToIndex = await addToIndexFragment(newPlaceholder);
-        if (!addedToIndex) throw new Error('Failed to update index fragment with new placeholder reference');
-
-        Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
-        return true;
+        return { created: true, indexed: addedToIndex };
     } catch (error) {
         repo.processError(error, 'Failed to create placeholder.');
         return false;
     }
 }
 
+/**
+ * Start the placeholder workflow, then activate its index independently.
+ * The index may reach publish before the placeholder because the workflow is asynchronous.
+ * @param {Placeholder} placeholder
+ * @returns {Promise<boolean>}
+ */
 export async function publishPlaceholder(placeholder) {
     const repo = getRepository();
     if (!(await repo.publishFragment(placeholder))) return false;
@@ -374,7 +376,7 @@ export async function publishPlaceholder(placeholder) {
         return false;
     }
 
-    return repo.publishFragment(indexFragment, {}, false);
+    return repo.publishFragment(indexFragment, { skipReferenceDiagnosis: true, replicate: true }, false);
 }
 
 export function clearDictionaryCache() {

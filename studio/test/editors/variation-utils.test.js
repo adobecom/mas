@@ -18,9 +18,32 @@ import {
     getCtaKeyIssues,
     summarizeCtaKeyIssues,
     VARIATION_TABS,
+    parseCtas,
 } from '../../src/editors/variation-utils.js';
 
 describe('variation-utils', () => {
+    describe('parseCtas', () => {
+        it('preserves CTA metadata without deriving label formatting from variants', () => {
+            const ctas = parseCtas(
+                '<strong><a class="secondary" data-key="trial" href="/trial">Trial</a></strong>' +
+                    '<em><a class="primary" data-key="buy" href="/buy">Buy</a></em>' +
+                    '<strong><a class="secondary-link" data-key="details" href="/details">Details</a></strong>',
+            );
+            expect(ctas).to.deep.equal([
+                { text: 'Trial', href: '/trial', key: 'trial', className: 'secondary' },
+                { text: 'Buy', href: '/buy', key: 'buy', className: 'primary' },
+                { text: 'Details', href: '/details', key: 'details', className: 'secondary-link' },
+            ]);
+        });
+
+        it('extracts plain labels from legacy wrapper-only CTAs', () => {
+            const ctas = parseCtas('<strong><a href="/buy">Buy</a></strong><em><a href="/trial">Trial</a></em>');
+            expect(ctas).to.deep.equal([
+                { text: 'Buy', href: '/buy', key: null, className: '' },
+                { text: 'Trial', href: '/trial', key: null, className: '' },
+            ]);
+        });
+    });
     it('effectiveIsVariation requires a parent fragment', () => {
         expect(effectiveIsVariation({ path: '/foo' }, null, true)).to.equal(false);
         expect(effectiveIsVariation({ path: '/foo' }, { path: '/parent' }, true)).to.equal(true);

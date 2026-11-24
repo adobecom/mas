@@ -5,8 +5,9 @@ import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
-import { extractLocaleFromPath } from './utils.js';
+import { extractLocaleFromPath, debounce } from './utils.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { clearPersistedPromotionsLists } from './promotions/promotions-repository.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -22,6 +23,7 @@ class MasTopNav extends LitElement {
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
+    bulkEditProjects = Store.bulkEditProjects;
     masks = Store.masks;
 
     reactiveController = new ReactiveController(this, [
@@ -37,8 +39,11 @@ class MasTopNav extends LitElement {
         this.promotions.promotionId,
         this.translationProjects.translationProjectId,
         this.translationProjects.inEdit,
+        Store.productCatalog.search,
         this.bulkPublishProjects.inEdit,
         this.bulkPublishProjects.projectId,
+        this.bulkEditProjects.inEdit,
+        this.bulkEditProjects.projectId,
         this.masks.fragmentId,
         this.masks.creating,
     ]);
@@ -93,6 +98,7 @@ class MasTopNav extends LitElement {
             });
             signOutLink.addEventListener('click', (e) => {
                 e.preventDefault();
+                clearPersistedPromotionsLists();
                 window.adobeIMS.signOut();
             });
             studioContentEl?.addEventListener('click', () => {
@@ -154,6 +160,10 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.WELCOME;
     }
 
+    get isBaselinesPage() {
+        return this.page.value === PAGE_NAMES.BASELINES;
+    }
+
     get isFragmentEditorPage() {
         return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
@@ -170,8 +180,20 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    get isProductCatalogPage() {
+        return this.page.value === PAGE_NAMES.PRODUCT_CATALOG;
+    }
+
+    handleProductSearch = debounce((e) => {
+        Store.productCatalog.search.set(e.target.value || '');
+    }, 200);
+
     get isBulkPublishEditorPage() {
         return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
+    get isBulkEditEditorPage() {
+        return this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR;
     }
 
     get isPromotionsPage() {
@@ -206,7 +228,7 @@ class MasTopNav extends LitElement {
     }
 
     get isLocalePickerDisabled() {
-        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
+        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage || this.isBaselinesPage) {
             return false;
         }
         if (this.isFragmentEditorPage) {
@@ -297,6 +319,12 @@ class MasTopNav extends LitElement {
         return this.bulkPublishProjects.projectId.get() ? 'Edit project' : 'Create project';
     }
 
+    get bulkEditEditorBreadcrumbLabel() {
+        const title = this.bulkEditProjects.inEdit.get()?.get()?.getFieldValue('title');
+        if (title) return title;
+        return this.bulkEditProjects.projectId.get() ? 'Edit project' : 'Create project';
+    }
+
     get breadcrumbItems() {
         const handlers = {
             content: () => router.navigateToPage(PAGE_NAMES.CONTENT)(),
@@ -335,6 +363,19 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_HISTORY) {
+            return [
+                { label: 'Promotions', handler: handlers.promotions },
+                {
+                    label: this.promotions.inEdit.get()?.get()?.getFieldValue('title') || 'Promotion project',
+                    handler: () => {
+                        Store.promotions.inEdit.set(null);
+                        router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                    },
+                },
+                { label: 'Version history' },
+            ];
+        }
         if (this.page.value === PAGE_NAMES.SETTINGS) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
@@ -360,6 +401,18 @@ class MasTopNav extends LitElement {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
                 { label: 'Bulk publish' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_EDIT) {
+            return [
+                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Bulk edits' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR) {
+            return [
+                { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
+                { label: this.bulkEditEditorBreadcrumbLabel },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR) {
@@ -439,7 +492,15 @@ class MasTopNav extends LitElement {
                     ${this.historyNavigationTemplate} ${this.breadcrumbsTemplate}
                 </div>
 
-                <div class="spacer"></div>
+                ${this.isProductCatalogPage
+                    ? html`<sp-search
+                          class="top-nav-search"
+                          placeholder="Search by product name, code, or arrangement..."
+                          @input=${this.handleProductSearch}
+                          @submit=${(e) => e.preventDefault()}
+                          value=${Store.productCatalog.search.value}
+                      ></sp-search>`
+                    : html`<div class="spacer"></div>`}
 
                 <div class="right-section">
                     ${!this.pickersToHide.includes(PICKERS.FOLDER)
@@ -448,6 +509,7 @@ class MasTopNav extends LitElement {
                               this.isTranslationEditorPage ||
                               this.isSettingsEditorPage ||
                               this.isBulkPublishEditorPage ||
+                              this.isBulkEditEditorPage ||
                               this.isPromotionsPage ||
                               this.isPromotionsEditorPage}
                           ></mas-nav-folder-picker>`
@@ -462,21 +524,31 @@ class MasTopNav extends LitElement {
                           ></mas-locale-picker>`
                         : nothing}
                     ${!this.pickersToHide.includes(PICKERS.LANDSCAPE)
-                        ? html` <sp-switch
-                                  class="landscape-switch"
-                                  size="m"
-                                  ?checked=${this.isDraftLandscape}
-                                  @change=${(e) => {
-                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
-                                  }}
-                              >
-                                  Draft landscape offer
-                              </sp-switch>
+                        ? html` ${this.isProductCatalogPage
+                                  ? nothing
+                                  : html` <sp-switch
+                                        class="landscape-switch"
+                                        size="m"
+                                        ?checked=${this.isDraftLandscape}
+                                        @change=${(e) => {
+                                            Store.landscape.set(
+                                                e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED,
+                                            );
+                                        }}
+                                    >
+                                        Draft landscape offer
+                                    </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
-                                  <button class="icon-button" title="Help">
+                                  <a
+                                      class="icon-button"
+                                      title="Help"
+                                      href="https://adobe.enterprise.slack.com/archives/C02RZERR9CH"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                  >
                                       <sp-icon-help size="m"></sp-icon-help>
-                                  </button>
+                                  </a>
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>

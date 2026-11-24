@@ -7,9 +7,11 @@ import {
     getFragmentId,
     getRegionalLocale,
     getRequestInfos,
+    markDegraded,
     matchesGeo,
 } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
+import { supportsCountdown } from '../utils/countdown.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -161,15 +163,21 @@ export async function getSettings(context) {
     if (context.hasExternalSettings) return context.settings;
     const cachedSettings = await getCachedSettings(context);
     if (cachedSettings && !cachedSettings.isExpired) return cachedSettings.settings;
-    const { id } = await getSettingsId(context);
-    if (!id) {
+    // a transient failure serves the expired settings when there are some, and otherwise degrades the response; a
+    // 404 (no settings for the surface) is not a failure
+    const failed = (status) => {
+        if (status < 500 && status !== 429) return null;
+        if (cachedSettings) return cachedSettings.settings;
+        markDegraded(context, 'settings');
         return null;
-    }
+    };
+    const { id, status } = await getSettingsId(context);
+    if (!id) return failed(status);
     const response = await fetch(odinReferences(id, context.preview, REFERENCES.ALL), context, 'settings');
 
     if (response.status !== 200) {
         logDebug(() => 'Failed to fetch settings fragment', context);
-        return null;
+        return failed(response.status);
     }
 
     const settings = collectSettingEntries(response.body);
@@ -324,6 +332,11 @@ function applyCollectionSettings(context, locale, settings, country) {
         noSearchResultsText: '{{coll-no-search-results-text}}',
         noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
+        allFilters: '{{coll-all-filters-text}}',
+        filtersCategory: '{{coll-filters-category-text}}',
+        filtersApplied: '{{coll-filters-applied-text}}',
+        filtersResults: '{{coll-filters-results-text}}',
+        filtersReset: '{{coll-filters-reset-text}}',
     };
 
     context.dictionary = {
@@ -353,19 +366,50 @@ function applyCollectionSettings(context, locale, settings, country) {
         Object.fromEntries([...tagKeys].map((key) => [key, `{{coll-tag-filter-${placeholderKey(key)}}}`])) || {};
 }
 
-// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
-// into body.placeholders, like applyPriceLiterals. `replace` resolves them
-// from the dictionary; pro.js places the resolved strings client-side.
-function applyEduPlaceholders(body) {
-    const fields = body?.fields;
-    if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
-    body.placeholders = {
-        ...body.placeholders,
+// Dictionary tokens published per feature into body.placeholders. `replace` resolves them.
+const PLACEHOLDER_TEMPLATES = {
+    edu: {
         whatsIncludedLabel: '{{whats-included}}',
-    };
-    if (!body.settings?.hideEduDisclaimer) {
-        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
+        eduDisclaimer: '{{edu-disclaimer}}',
+    },
+    // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
+    countdown: { countdownTimerText: '{{countdown-timer-text}}' },
+    whatsIncludedToggle: { whatsIncludedToggleLabel: '{{see-whats-included}}' },
+    license: { licenseLabel: '{{license-label}}|{{licenses-label}}' },
+};
+
+const supportsWhatsIncludedToggle = (variant) => variant === 'pro';
+
+const supportsLicenseLabel = (variant) => ['pro', 'bizpro'].includes(variant);
+
+const addPlaceholders = (target, templates) => {
+    target.placeholders = { ...target.placeholders, ...templates };
+};
+
+const supportsEdu = (variant, fields) => variant === 'pro' && fields?.size === 'edu';
+
+// Edu "whats-included" chrome tokens (sub-label + disclaimer); pro.js places the resolved strings client-side.
+// The card's own hideEduDisclaimer wins, falling back to the collection's.
+const eduTemplatesFor = (body) => (target) => {
+    if (!(target.settings?.hideEduDisclaimer ?? body.settings?.hideEduDisclaimer)) return PLACEHOLDER_TEMPLATES.edu;
+    const { eduDisclaimer, ...withoutDisclaimer } = PLACEHOLDER_TEMPLATES.edu;
+    return withoutDisclaimer;
+};
+
+// A collection card is hydrated from its own reference, so it carries the templates too.
+// `templates` is an object, or a function returning the templates for a given target.
+// With bodyRequiresSupportedCard, a collection without any supported card gets nothing.
+function addPlaceholdersToCards(body, supports, templates, { bodyRequiresSupportedCard = false } = {}) {
+    const templatesFor = (target) => (typeof templates === 'function' ? templates(target) : templates);
+    if (body?.model?.id !== COLLECTION_MODEL_ID) {
+        if (supports(body?.fields?.variant, body?.fields)) addPlaceholders(body, templatesFor(body));
+        return;
     }
+    const cards = Object.values(body.references ?? {})
+        .map((ref) => ref?.value)
+        .filter((card) => supports(card?.fields?.variant, card?.fields));
+    if (bodyRequiresSupportedCard && cards.length === 0) return;
+    for (const target of [body, ...cards]) addPlaceholders(target, templatesFor(target));
 }
 
 function applyPriceLiterals(fragment) {
@@ -382,6 +426,8 @@ function applyPriceLiterals(fragment) {
             alternativePriceAriaLabel: '{{price-literal-alternative-price-aria-label}}',
             strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
             planTypeLabel: '{{price-literal-plan-type-label}}',
+            priceUnavailableLabel: '{{price-literal-price-unavailable-label}}',
+            buyNow: '{{buy-now}}',
         };
     }
 }
@@ -405,7 +451,10 @@ async function settings(context) {
         }
     }
 
-    applyEduPlaceholders(body);
+    addPlaceholdersToCards(body, supportsEdu, eduTemplatesFor(body), { bodyRequiresSupportedCard: true });
+    addPlaceholdersToCards(body, supportsCountdown, PLACEHOLDER_TEMPLATES.countdown);
+    addPlaceholdersToCards(body, supportsWhatsIncludedToggle, PLACEHOLDER_TEMPLATES.whatsIncludedToggle);
+    addPlaceholdersToCards(body, supportsLicenseLabel, PLACEHOLDER_TEMPLATES.license);
 
     return context;
 }

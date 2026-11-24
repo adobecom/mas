@@ -1,13 +1,18 @@
+import zlib from 'zlib';
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
+import { getRequestMetadata } from '../../src/fragment/utils/cache.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
+import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/offer.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
+import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 import { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl } from './promotions.test.js';
@@ -25,7 +30,6 @@ let fetchStub;
 describe('pipeline end to end', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -33,6 +37,7 @@ describe('pipeline end to end', () => {
         resetCache();
         clearSettingsCache();
         clearPromoCache();
+        clearBaselineCache();
     });
 
     afterEach(() => {
@@ -45,22 +50,29 @@ describe('pipeline end to end', () => {
             path: 'someFragment',
         });
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_FR',
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.body.placeholders.countdownTimerText).to.equal('countdown-timer-text');
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
+        const stored = JSON.parse(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']);
+        expect(stored.hash).to.equal(EXPECTED_BODY_HASH);
+        expect(JSON.parse(zlib.brotliDecompressSync(Buffer.from(stored.body, 'base64')))).to.deep.equal(result.body);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
+                'dictionary-id-acom-fr_FR': 'acom_fr_FR_dictionary',
                 'dictionary-id-sandbox-fr_FR': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
                 'settings-id': 'settings-id',
@@ -68,6 +80,400 @@ describe('pipeline end to end', () => {
             hash: EXPECTED_BODY_HASH,
         });
     });
+
+    it('should log a cache miss with its timings, then cache hits with their status', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        const summary = (prefix) =>
+            output
+                .getCalls()
+                .map(({ args }) => args[0])
+                .filter((line) => line.includes(prefix));
+        try {
+            await getFragment(request);
+            await getFragment(request);
+            await getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } });
+            expect(summary('memory:')).to.have.lengthOf(1);
+            const now = Date.now();
+            sinon.stub(Date, 'now').returns(now + 61 * 1000);
+            await getFragment(request);
+        } finally {
+            output.restore();
+            Date.now.restore?.();
+        }
+        // memory usage is logged on its own line, on the first request then at most once a minute
+        const memory = summary('memory:');
+        expect(memory).to.have.lengthOf(2);
+        expect(memory[0]).to.match(
+            /memory: process rss=[\d.]+MB heap used [\d.]+MB of [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in \d+ entries, \d+ evicted: .* \| container [0-9a-f]{8} up \d+m$/,
+        );
+        const [miss, ...others] = summary('cache miss');
+        expect(others).to.be.empty;
+        expect(miss).to.match(
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache miss req-some-en-us-fragment-fr_FR \| timings \(time and duration\) .*main-fetch-fragment t:.*d:[\d.]+$/,
+        );
+        const hits = summary('cache hit');
+        expect(hits).to.have.lengthOf(3);
+        expect(hits[0]).to.match(
+            /pipeline completed: some-en-us-fragment fr_FR -> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\)$/,
+        );
+        expect(hits[1]).to.match(/-> 304 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\)$/);
+        expect(hits[1]).not.to.include('timings');
+    });
+
+    it('should rebuild once for concurrent requests on the same key', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // a slow fragment fetch keeps the first rebuild in progress while the second request reads the cache
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        let results;
+        try {
+            results = await Promise.all([
+                getFragment(request),
+                getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } }),
+            ]);
+        } finally {
+            output.restore();
+        }
+        const [first, second] = results;
+        expect(first.statusCode).to.equal(200);
+        expect(first.body).to.deep.include(EXPECTED_BODY);
+        expect(second.statusCode).to.equal(304);
+        expect(second.headers.ETag).to.equal(first.headers.ETag);
+        const fragmentFetches = fetchStub
+            .getCalls()
+            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        expect(fragmentFetches).to.have.lengthOf(1);
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+        expect(lines.find((line) => line.includes('cache joined'))).to.match(
+            /-> 304 in [\d.]+ms \| cache joined req-some-en-us-fragment-fr_FR$/,
+        );
+    });
+
+    for (const { title, refreshedAt, fallback } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
+    ]) {
+        it(`should ${fallback ? '' : 'not '}serve the previous stored response (${title}) when the rebuild fails`, async () => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(500, {})), 30)));
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                lastModified: RANDOM_OLD_DATE,
+                refreshedAt,
+            });
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const output = sinon.stub(console, 'log');
+            const request = { id: 'some-en-us-fragment', state, files, locale: 'fr_FR' };
+            let results;
+            try {
+                results = await Promise.all([getFragment(request), getFragment(request)]);
+            } finally {
+                output.restore();
+            }
+            const lines = output.getCalls().map(({ args }) => args[0]);
+            if (!fallback) {
+                expect(results[0].statusCode).to.be.at.least(500);
+                expect(lines.filter((line) => line.includes('cache stale-error'))).to.be.empty;
+                return;
+            }
+            for (const result of results) {
+                expect(result.statusCode).to.equal(200);
+                expect(result.body).to.deep.equal({ stale: true });
+                expect(result.headers.ETag).to.equal('old-hash');
+            }
+            // the request that started the rebuild falls back, the concurrent one already got the stale response
+            expect(lines.filter((line) => line.includes('cache stale-error'))).to.have.lengthOf(1);
+            expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
+            expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
+                /-> 200 in [\d.]+ms \| cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\)$/,
+            );
+        });
+    }
+
+    for (const { title, refreshedAt, fallback } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
+    ]) {
+        it(`should not store a degraded rebuild, ${fallback ? 'but serve' : 'nor serve'} the previous stored response (${title})`, async () => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/fr_FR/dictionary/index',
+                )
+                .returns(createResponse(500, {}));
+            const metadata = JSON.stringify({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt });
+            const response = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = metadata;
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = response;
+            const output = sinon.stub(console, 'log');
+            let result;
+            try {
+                result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+            } finally {
+                output.restore();
+            }
+            const summary = output
+                .getCalls()
+                .map(({ args }) => args[0])
+                .find((line) => line.includes('pipeline completed'));
+            expect(state.store['req-some-en-us-fragment-fr_FR']).to.equal(metadata);
+            expect(files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json']).to.equal(response);
+            expect(result.statusCode).to.equal(200);
+            if (fallback) {
+                expect(result.body).to.deep.equal({ stale: true });
+                expect(summary).to.match(
+                    /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild degraded by dictionary acom\/fr_FR\)/,
+                );
+                return;
+            }
+            expect(result.body.id).to.equal('some-fr-fr-fragment');
+            expect(summary).to.match(
+                /cache miss req-some-en-us-fragment-fr_FR \(degraded by dictionary acom\/fr_FR, not stored\)/,
+            );
+        });
+    }
+
+    it('should serve the previous stored response rather than time out when the rebuild is slow, then store the rebuild', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 300)));
+        const state = new MockState();
+        await state.put('configuration', '{"networkConfig":{"mainTimeout":200,"retries":1}}');
+        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            hash: 'old-hash',
+            lastModified: RANDOM_OLD_DATE,
+            refreshedAt: Date.now() - 6 * 60 * 1000,
+        });
+        const files = new MockFiles();
+        files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+            hash: 'old-hash',
+            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+        });
+        const output = sinon.stub(console, 'log');
+        let result;
+        try {
+            result = await getFragment({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+            await new Promise((resolve) => setTimeout(resolve, 300));
+        } finally {
+            output.restore();
+        }
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.equal({ stale: true });
+        expect(output.getCalls().find(({ args }) => args[0].includes('pipeline completed')).args[0]).to.match(
+            /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 6m\d+s ago, rebuild timed out\)/,
+        );
+        expect(JSON.parse(state.store['req-some-en-us-fragment-fr_FR']).hash).to.equal(EXPECTED_BODY_HASH);
+    });
+
+    describe('re-reading State before rebuilding', () => {
+        const requestKey = 'req-some-en-us-fragment-fr_FR';
+        const responsePath = 'fragment-cache/res-some-en-us-fragment-fr_FR.json';
+        const metadata = (age) => ({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() - age });
+        let files;
+        const request = (state) => ({ id: 'some-en-us-fragment', state, files, locale: 'fr_FR' });
+        const fragmentFetches = () =>
+            fetchStub.getCalls().filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        // State and Files hold a response refreshed `age` ago, and this container has a memory copy of it
+        const storedState = async (age, body = '{"stored":true}') => {
+            const state = new MockState();
+            state.store[requestKey] = JSON.stringify(metadata(age));
+            files.store[responsePath] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync(body).toString('base64'),
+            });
+            await getRequestMetadata(request(state));
+            return state;
+        };
+        const logs = async (run) => {
+            const output = sinon.stub(console, 'log');
+            const errors = sinon.stub(console, 'error');
+            try {
+                return { result: await run(), lines: [...output.getCalls(), ...errors.getCalls()].map(({ args }) => args[0]) };
+            } finally {
+                output.restore();
+                errors.restore();
+            }
+        };
+
+        beforeEach(() => {
+            files = new MockFiles();
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+        });
+
+        it('should serve what another container refreshed', async () => {
+            const state = await storedState(6 * 60 * 1000);
+            state.store[requestKey] = JSON.stringify(metadata(0));
+            const { result: results, lines } = await logs(async () => [
+                await getFragment(request(state)),
+                await getFragment(request(state)),
+            ]);
+            for (const result of results) {
+                expect(result.statusCode).to.equal(200);
+                expect(result.body).to.deep.equal({ stored: true });
+            }
+            expect(fragmentFetches()).to.be.empty;
+            const hits = lines.filter((line) => line.includes('cache hit'));
+            expect(hits).to.have.lengthOf(2);
+            expect(hits[0]).to.match(
+                /-> 200 in [\d.]+ms \| cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\)$/,
+            );
+            // the memory copy was updated by the re-read
+            expect(hits[1]).not.to.include('re-read from State');
+        });
+
+        it('should keep the memory copy when State lost it', async () => {
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(createResponse(500, {}));
+            const state = await storedState(10 * 60 * 1000);
+            state.store = {};
+            files.store = {};
+            const result = await getFragment(request(state));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.equal({ stored: true });
+        });
+
+        it('should rebuild when the State re-read fails', async () => {
+            const state = await storedState(6 * 60 * 1000);
+            const get = state.get.bind(state);
+            sinon
+                .stub(state, 'get')
+                .callsFake((key) => (key.startsWith('re') ? Promise.reject(new Error('throttled')) : get(key)));
+            const { result, lines } = await logs(() => getFragment(request(state)));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(fragmentFetches()).to.have.lengthOf(1);
+            expect(lines.some((line) => line.includes(`failed to re-read ${requestKey}: throttled`))).to.be.true;
+        });
+
+        it('should not re-read what was just read from State', async () => {
+            const state = new MockState();
+            state.store[requestKey] = JSON.stringify(metadata(6 * 60 * 1000));
+            const get = sinon.spy(state, 'get');
+            const read = sinon.spy(files, 'read');
+            const result = await getFragment(request(state));
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(get.getCalls().filter(({ args }) => args[0] === requestKey)).to.have.lengthOf(1);
+            expect(read.getCalls().filter(({ args }) => args[0] === responsePath)).to.have.lengthOf(1);
+        });
+    });
+
+    it('should not make an instant request join a rebuild in progress', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .callsFake(
+                () => new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)),
+            );
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        try {
+            // the instant request starts once the normal rebuild is in progress
+            const delayed = new Promise((resolve) => setTimeout(resolve, 10)).then(() =>
+                getFragment({ ...request, instant: '2050-01-01T00:00:00Z' }),
+            );
+            await Promise.all([getFragment(request), delayed]);
+        } finally {
+            output.restore();
+        }
+        const fragmentFetches = fetchStub
+            .getCalls()
+            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        expect(fragmentFetches).to.have.lengthOf(2);
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache joined'))).to.be.empty;
+    });
+
+    for (const { title, refreshedAt, detail } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000 },
+        { title: 'never refreshed' },
+    ]) {
+        it(`should ${detail ? 'serve' : 'not serve'} the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                lastModified: RANDOM_OLD_DATE,
+                refreshedAt,
+            });
+            const files = new MockFiles();
+            files.store['fragment-cache/res-some-en-us-fragment-fr_FR.json'] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const output = sinon.stub(console, 'log');
+            const request = { id: 'some-en-us-fragment', state, files, locale: 'fr_FR' };
+            let results;
+            try {
+                results = await Promise.all([getFragment(request), getFragment(request)]);
+            } finally {
+                output.restore();
+            }
+            const [first, second] = results;
+            expect(first.body).to.deep.include(EXPECTED_BODY);
+            expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
+            expect(second.statusCode).to.equal(200);
+            const lines = output.getCalls().map(({ args }) => args[0]);
+            expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+            if (!detail) {
+                // older than STALE_MAX_AGE: the concurrent request waits for the rebuild
+                expect(second.body).to.deep.include(EXPECTED_BODY);
+                expect(lines.filter((line) => line.includes('cache joined'))).to.have.lengthOf(1);
+                return;
+            }
+            expect(second.body).to.deep.equal({ stale: true });
+            expect(second.headers.ETag).to.equal('old-hash');
+            const stale = lines.find((line) => line.includes('cache stale'));
+            expect(stale).to.match(
+                /-> 200 in [\d.]+ms \| cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\)$/,
+            );
+            expect(stale).to.match(detail);
+        });
+    }
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
@@ -103,9 +509,11 @@ describe('pipeline end to end', () => {
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_CA',
         });
         expect(result.statusCode).to.equal(200);
@@ -115,8 +523,8 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_CA.json']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
@@ -129,13 +537,15 @@ describe('pipeline end to end', () => {
         });
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index',
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
+        const files = new MockFiles();
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
+            files,
             locale: 'fr_FR',
             country: 'CA',
         });
@@ -146,8 +556,8 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR-CA']);
+        expect(Object.keys(files.store)).to.have.members(['fragment-cache/res-some-en-us-fragment-fr_FR-CA.json']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
@@ -208,7 +618,7 @@ describe('pipeline end to end', () => {
             pzn: 'segment-A',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.p-segment-A');
     });
 
     function stubMask(fetchStub) {
@@ -250,7 +660,65 @@ describe('pipeline end to end', () => {
         expect(result.body.id).to.equal('some-fr-fr-fragment');
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR.m-black-friday');
+    });
+
+    it('masks every card of a collection and keys the cache on the mask', async () => {
+        const collectionId = 'mask-coll-fr-fr';
+        const cardIds = ['mask-card-a-fr-fr', 'mask-card-b-fr-fr'];
+        const cardModel = { id: CARD_MODEL_ID };
+        const buildCard = (id) => ({
+            type: 'content-fragment',
+            value: {
+                id,
+                path: `/content/dam/mas/sandbox/fr_FR/${id}`,
+                model: cardModel,
+                fields: { variant: 'plans', badge: 'ORIGINAL', variations: [] },
+            },
+        });
+        const collection = {
+            id: collectionId,
+            path: '/content/dam/mas/sandbox/fr_FR/mask-coll',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { cards: cardIds, collections: [], variations: [] },
+            references: Object.fromEntries(cardIds.map((id) => [id, buildCard(id)])),
+            referencesTree: cardIds.map((id) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-coll-en-us?references=all-hydrated').returns(
+            createResponse(200, {
+                ...collection,
+                id: 'mask-coll-en-us',
+                path: '/content/dam/mas/sandbox/en_US/mask-coll',
+                references: {},
+                referencesTree: [],
+            }),
+        );
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/mask-coll')
+            .returns(createResponse(200, { id: collectionId }));
+        fetchStub
+            .withArgs(`https://odin.adobe.com/adobe/contentFragments/${collectionId}?references=all-hydrated`)
+            .returns(createResponse(200, collection));
+        stubMask(fetchStub);
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id').returns(
+            createResponse(200, {
+                id: 'mask-holiday-id',
+                path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
+                model: cardModel,
+                fields: { badge: 'MASKED' },
+                references: {},
+            }),
+        );
+        const state = new MockState();
+        const result = await getFragment({ id: 'mask-coll-en-us', state, locale: 'fr_FR', mask: 'holiday' });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.maskId).to.be.undefined;
+        for (const id of cardIds) {
+            expect(result.body.references[id].value.maskId).to.equal('mask-holiday-id');
+            expect(result.body.references[id].value.fields.badge).to.equal('MASKED');
+        }
+        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR.m-holiday');
     });
 
     it('should replace fragment placeholders with values from mask variables', async () => {
@@ -670,7 +1138,7 @@ describe('pipeline end to end', () => {
         const stubSurfaceNoise = () => {
             fetchStub
                 .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom-cc/settings/index')
-                .returns(createResponse(200, {}));
+                .returns(createResponse(404, {}));
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
             fetchStub
                 .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
@@ -764,6 +1232,8 @@ describe('pipeline end to end', () => {
     describe('countdown timer from a promo variation', () => {
         const CDT_START = '2001-12-12T12:12:00Z';
         const CDT_END = '2027-12-12T12:12:00Z';
+        const CDT_START_LOCAL = '2001-12-12T12:12:00';
+        const CDT_END_LOCAL = '2027-12-12T12:12:00';
         const CARD_OSI = 'PpnQ-UmW9NBwZwXlFw79zw2JybhvwIUwMTDYiIlu5qI';
         const VARIATION_DESCRIPTION =
             '<p>Buy creative for only <span is="inline-price" data-quantity="true" data-template="price" ' +
@@ -846,8 +1316,8 @@ describe('pipeline end to end', () => {
             expect(result.body.variationId).to.equal('promo-var-cdt');
             expect(result.body.promoProject).to.equal('NalaEvergreen');
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         // The `countdown-timer` link is supplied by a dictionary placeholder, so it only exists once
@@ -881,8 +1351,8 @@ describe('pipeline end to end', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         it('exposes nothing when the promo project only defines one of the two dates', async () => {
@@ -898,6 +1368,319 @@ describe('pipeline end to end', () => {
             expect(result.body.fields.description.value).to.include('countdown-timer');
             expect(result.body.cdtStart).to.be.undefined;
             expect(result.body.cdtEnd).to.be.undefined;
+        });
+    });
+    describe('collection of plans cards on one product with offer & fragment baselines (ADR CONT-0005)', () => {
+        const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
+        const PA = 'phsp_direct_individual';
+        const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+        const OFFER_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy';
+        const PLAN_TYPES = {
+            ABM: { commitment: 'YEAR', term: 'MONTHLY' },
+            PUF: { commitment: 'YEAR', term: 'ANNUAL' },
+            M2M: { commitment: 'MONTH', term: 'MONTHLY' },
+        };
+        const price = (osi) => `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
+        // one card per market segment & plan type, each overriding its own fields over the baselines
+        const CARDS = [
+            { segment: 'COM', planType: 'ABM', overrides: { badge: 'Best value' } },
+            { segment: 'COM', planType: 'PUF', overrides: { callout: '<p>Pay upfront and save</p>' } },
+            { segment: 'COM', planType: 'M2M', overrides: { shortDescription: '<p>Cancel anytime</p>' } },
+            { segment: 'EDU', planType: 'ABM', overrides: { cardTitle: 'Photoshop for students and teachers' } },
+            {
+                segment: 'EDU',
+                planType: 'PUF',
+                overrides: { cardTitle: 'Photoshop for students and teachers', badge: 'Save 60%' },
+            },
+            {
+                segment: 'EDU',
+                planType: 'M2M',
+                overrides: { description: '<p>Student pricing, cancel anytime.</p>' },
+            },
+        ].map(({ segment, planType, overrides }) => {
+            const id = `phsp-${segment}-${planType}`.toLowerCase();
+            const osi = `osi-${id}`;
+            return {
+                id,
+                osi,
+                segment,
+                planType,
+                overrides,
+                fragment: {
+                    id,
+                    path: `/content/dam/mas/sandbox/en_US/photoshop/${id}`,
+                    model: { id: CARD_MODEL_ID },
+                    fields: {
+                        variant: 'plans',
+                        osi,
+                        prices: price(osi),
+                        tags: [`mas:market_segments/${segment.toLowerCase()}`, `mas:plan_type/${planType.toLowerCase()}`],
+                        ...overrides,
+                    },
+                },
+                resolvedOffer: {
+                    offerSelectorIds: [osi],
+                    productArrangementCode: PA,
+                    customerSegment: 'INDIVIDUAL',
+                    marketSegments: [segment],
+                    offerType: 'BASE',
+                    ...PLAN_TYPES[planType],
+                },
+            };
+        });
+        const COLLECTION = {
+            id: 'photoshop-plans-collection',
+            path: '/content/dam/mas/sandbox/en_US/photoshop/plans-collection',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
+            references: Object.fromEntries(
+                CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
+            ),
+            referencesTree: CARDS.map(({ id }) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        const OFFER_BASELINE = {
+            id: 'phsp-offer-baseline',
+            path: `/content/dam/mas/offers/en_US/baselines/${PA}/baseline`,
+            model: { id: OFFER_MODEL_ID },
+            fields: {
+                name: 'Photoshop',
+                description: 'Creative Cloud single-app membership for Photoshop',
+                icons: ['https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/ps_appicon_256x256.svg'],
+                paCode: PA,
+            },
+        };
+        const FRAGMENT_BASELINE = {
+            id: 'phsp-plans-baseline',
+            path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/baseline`,
+            model: { id: CARD_MODEL_ID },
+            fields: {
+                variant: 'plans',
+                cardTitle: 'Photoshop',
+                mnemonicIcon: ['https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg'],
+                description: '<p>Create gorgeous images, rich graphics, and incredible art.</p>',
+                shortDescription: '<p>Includes 100GB of cloud storage</p>',
+                ctas: '<a href="https://www.adobe.com/products/photoshop.html">Learn more</a>',
+                variations: ['ignored-baseline-variation'],
+            },
+        };
+        const offerSelectorIds = (url) =>
+            typeof url === 'string' && url.includes('web_commerce_artifact')
+                ? new URL(url).searchParams.get('offer_selector_ids')
+                : null;
+        const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
+        let state;
+        const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
+
+        beforeEach(() => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub.withArgs(`${ODIN}/${COLLECTION.id}?references=all-hydrated`).returns(createResponse(200, COLLECTION));
+            for (const { osi, resolvedOffer } of CARDS) {
+                fetchStub
+                    .withArgs(sinon.match((url) => offerSelectorIds(url) === osi))
+                    .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
+            }
+            state = new MockState();
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
+            fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: [FRAGMENT_BASELINE] }));
+        });
+
+        it('layers offer baseline < plans baseline < card overrides for each of the 6 cards', async () => {
+            const result = await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.id).to.equal(COLLECTION.id);
+            expect(result.body.fields.cards).to.deep.equal(CARDS.map(({ id }) => id));
+            for (const { id, osi, segment, planType, overrides } of CARDS) {
+                const card = result.body.references[id].value;
+                const label = `${segment} ${planType}`;
+                expect(card.offerBaselineId, label).to.equal(OFFER_BASELINE.id);
+                expect(card.fragmentBaselineId, label).to.equal(FRAGMENT_BASELINE.id);
+                // offer baseline fields are mapped to card fields (cardTitle, mnemonicIcon), the others dropped
+                expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
+                // the plans baseline sets its own icon: the offer baseline's alt text, describing its icon, is dropped
+                expect(card.fields.mnemonicAlt, label).to.be.undefined;
+                expect(card.fields, label).to.deep.include({
+                    // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
+                    variant: 'plans',
+                    cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
+                    mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
+                    description: FRAGMENT_BASELINE.fields.description,
+                    shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
+                    ctas: FRAGMENT_BASELINE.fields.ctas,
+                    // card's own fields
+                    osi,
+                    prices: price(osi),
+                    ...overrides,
+                });
+                // baselines' variations never leak into cards
+                expect(card.fields.variations, label).to.be.undefined;
+                expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([
+                    CARDS.find((c) => c.osi === osi).resolvedOffer,
+                ]);
+            }
+            const EDU_ABM = result.body.references['phsp-edu-abm'].value;
+            expect(EDU_ABM.fields.badge).to.be.undefined;
+            expect(result.body.references['phsp-com-abm'].value.fields.cardTitle).to.equal('Photoshop');
+        });
+
+        it('requests each offer, the offer baseline and the plans baselines once', async () => {
+            await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            for (const { osi } of CARDS) {
+                const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
+                expect(calls, osi).to.have.length(1);
+            }
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
+            expect(callsTo(PLANS_LISTING)).to.have.length(1);
+        });
+    });
+    describe('collection of plans cards on 3 products & 3 plan types with offer & fragment baselines (ADR CONT-0005)', () => {
+        const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
+        const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+        const OFFER_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy';
+        const PLAN_TYPES = {
+            ABM: { commitment: 'YEAR', term: 'MONTHLY' },
+            PUF: { commitment: 'YEAR', term: 'ANNUAL' },
+            M2M: { commitment: 'MONTH', term: 'MONTHLY' },
+        };
+        const PRODUCTS = [
+            { key: 'phsp', pa: 'phsp_direct_individual', name: 'Photoshop', icon: 'ps' },
+            { key: 'ilst', pa: 'ilst_direct_individual', name: 'Illustrator', icon: 'ai' },
+            { key: 'ppro', pa: 'ppro_direct_individual', name: 'Premiere Pro', icon: 'pr' },
+        ].map((product) => ({
+            ...product,
+            offerBaseline: {
+                id: `${product.key}-offer-baseline`,
+                path: `/content/dam/mas/offers/en_US/baselines/${product.pa}/baseline`,
+                model: { id: OFFER_MODEL_ID },
+                fields: {
+                    name: product.name,
+                    description: `Creative Cloud single-app membership for ${product.name}`,
+                    icons: [`https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/${product.icon}_appicon_256x256.svg`],
+                    paCode: product.pa,
+                },
+            },
+            fragmentBaseline: {
+                id: `${product.key}-plans-baseline`,
+                path: `/content/dam/mas/sandbox/en_US/baselines/plans/${product.pa}/baseline`,
+                model: { id: CARD_MODEL_ID },
+                fields: {
+                    variant: 'plans',
+                    cardTitle: product.name,
+                    description: `<p>${product.name} plans description.</p>`,
+                    ctas: `<a href="https://www.adobe.com/products/${product.key}.html">Learn more</a>`,
+                    variations: ['ignored-baseline-variation'],
+                },
+            },
+        }));
+        const PLAN_OVERRIDES = {
+            ABM: { badge: 'Best value' },
+            PUF: { callout: '<p>Pay upfront and save</p>' },
+            M2M: { shortDescription: '<p>Cancel anytime</p>' },
+        };
+        const CARDS = PRODUCTS.flatMap((product) =>
+            Object.keys(PLAN_TYPES).map((planType) => {
+                const id = `${product.key}-${planType}`.toLowerCase();
+                const osi = `osi-${id}`;
+                return {
+                    id,
+                    osi,
+                    product,
+                    planType,
+                    overrides: PLAN_OVERRIDES[planType],
+                    fragment: {
+                        id,
+                        path: `/content/dam/mas/sandbox/en_US/plans/${id}`,
+                        model: { id: CARD_MODEL_ID },
+                        fields: {
+                            variant: 'plans',
+                            osi,
+                            tags: [`mas:plan_type/${planType.toLowerCase()}`],
+                            ...PLAN_OVERRIDES[planType],
+                        },
+                    },
+                    resolvedOffer: {
+                        offerSelectorIds: [osi],
+                        productArrangementCode: product.pa,
+                        customerSegment: 'INDIVIDUAL',
+                        marketSegments: ['COM'],
+                        offerType: 'BASE',
+                        ...PLAN_TYPES[planType],
+                    },
+                };
+            }),
+        );
+        const COLLECTION = {
+            id: 'cc-single-apps-plans-collection',
+            path: '/content/dam/mas/sandbox/en_US/plans/single-apps-collection',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
+            references: Object.fromEntries(
+                CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
+            ),
+            referencesTree: CARDS.map(({ id }) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        const offerSelectorIds = (url) =>
+            typeof url === 'string' && url.includes('web_commerce_artifact')
+                ? new URL(url).searchParams.get('offer_selector_ids')
+                : null;
+        const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
+        let state;
+        const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
+
+        beforeEach(() => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub.withArgs(`${ODIN}/${COLLECTION.id}?references=all-hydrated`).returns(createResponse(200, COLLECTION));
+            for (const { osi, resolvedOffer } of CARDS) {
+                fetchStub
+                    .withArgs(sinon.match((url) => offerSelectorIds(url) === osi))
+                    .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
+            }
+            state = new MockState();
+            const offerBaselines = Object.fromEntries(PRODUCTS.map(({ pa, offerBaseline }) => [pa, offerBaseline]));
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, offerBaselines));
+            const fragmentBaselines = PRODUCTS.map(({ fragmentBaseline }) => fragmentBaseline);
+            fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: fragmentBaselines }));
+        });
+
+        it('layers each product offer baseline < its plans baseline < card overrides for the 9 cards', async () => {
+            const result = await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.fields.cards).to.deep.equal(CARDS.map(({ id }) => id));
+            for (const { id, osi, product, planType, overrides, resolvedOffer } of CARDS) {
+                const card = result.body.references[id].value;
+                const label = `${product.name} ${planType}`;
+                const { offerBaseline, fragmentBaseline } = product;
+                expect(card.offerBaselineId, label).to.equal(offerBaseline.id);
+                expect(card.fragmentBaselineId, label).to.equal(fragmentBaseline.id);
+                expect(card.fields, label).to.deep.include({
+                    // offer baseline: the plans baseline defines no icon
+                    mnemonicIcon: [offerBaseline.fields.icons[0]],
+                    mnemonicAlt: [offerBaseline.fields.name],
+                    variant: 'plans',
+                    cardTitle: fragmentBaseline.fields.cardTitle,
+                    description: fragmentBaseline.fields.description,
+                    ctas: fragmentBaseline.fields.ctas,
+                    osi,
+                    ...overrides,
+                });
+                expect(card.fields.variations, label).to.be.undefined;
+                for (const [otherPlanType, otherOverrides] of Object.entries(PLAN_OVERRIDES)) {
+                    if (otherPlanType === planType) continue;
+                    for (const field of Object.keys(otherOverrides)) {
+                        expect(card.fields[field], `${label} ${field}`).to.be.undefined;
+                    }
+                }
+                expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([resolvedOffer]);
+            }
+        });
+
+        it('requests each of the 9 offers, the offer baselines and the plans baselines once', async () => {
+            await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            for (const { osi } of CARDS) {
+                const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
+                expect(calls, osi).to.have.length(1);
+            }
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
+            expect(callsTo(PLANS_LISTING)).to.have.length(1);
         });
     });
 });

@@ -315,6 +315,58 @@
                         local.remove();
                     });
 
+                    it('renders a callout segment when a card supplies callout text', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart-column">
+                                <h3 slot="header">A</h3>
+                                <div slot="callout-content"><p>Callout A</p></div>
+                            </merch-card>
+                            <merch-card slot="cards" variant="compare-chart-column">
+                                <h3 slot="header">B</h3>
+                            </merch-card>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+
+                        const calloutSegments =
+                            local.shadowRoot.querySelectorAll(
+                                '.callout-segment',
+                            );
+                        expect(calloutSegments).to.have.length(2);
+
+                        const [segmentA, segmentB] = calloutSegments;
+                        const slotA = segmentA.querySelector('slot');
+                        expect(slotA).to.exist;
+                        expect(
+                            slotA.assignedNodes()[0].textContent.trim(),
+                        ).to.equal('Callout A');
+                        expect(
+                            segmentB.querySelector('slot').assignedNodes(),
+                        ).to.have.length(0);
+
+                        local.remove();
+                    });
+
+                    it('omits the callout segment when no card supplies callout text', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart-column"><h3 slot="header">A</h3></merch-card>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+
+                        expect(
+                            local.shadowRoot.querySelector('.callout-segment'),
+                        ).to.not.exist;
+
+                        local.remove();
+                    });
+
                     it('disconnects sticky observers on disconnect', async () => {
                         const counter = disconnectCounter();
                         try {

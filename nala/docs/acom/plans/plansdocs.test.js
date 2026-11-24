@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../libs/docs-test.js';
 import { features } from './plansdocs.spec.js';
 import MasPlans from '../plans.page.js';
 import WebUtil from '../../../libs/webutil.js';
@@ -17,6 +17,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('ACOM MAS cards feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -25,8 +26,12 @@ test.describe('ACOM MAS cards feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     // *** PLANS CARDS: ***
@@ -36,7 +41,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -76,7 +81,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[1];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -115,7 +120,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[3];
 
         await test.step('step-1: Go to Plans CA Visitor Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('CA_VISITOR');
+            const page = await workerSetup.getPage('CA_VISITOR');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -146,7 +151,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         const { data } = features[2];
 
         await test.step('step-1: Go to Plans Merch Card feature test page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
@@ -162,74 +167,81 @@ test.describe('ACOM MAS cards feature test suite', () => {
 
     // @MAS-Plans-Row-Height-Sync
     test(`${features[4].name},${features[4].tags}`, async () => {
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
 
-        await test.step('step-1: Go to Plans page and wait for cards to render', async () => {
-            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS.US, expect);
-            await page.setViewportSize({ width: 1280, height: 900 });
-            await page.waitForSelector('merch-card[variant^="plans"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
-        });
-
-        await test.step('step-2: Verify heading-xs height CSS var is set per card, not on container', async () => {
-            const result = await page.evaluate(() => {
-                const cssVar = '--consonant-merch-card-plans-heading-xs-height';
-                const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
-                    (c) => c.getBoundingClientRect().width > 2,
-                );
-                const containerVar =
-                    cards[0]?.closest('merch-card-collection, [class*="-merch-cards"]')?.style.getPropertyValue(cssVar) ?? '';
-                const cardVars = cards.map((c) => c.style.getPropertyValue(cssVar));
-                return { containerVar, cardVars, cardCount: cards.length };
+        try {
+            await test.step('step-1: Go to Plans page and wait for cards to render', async () => {
+                await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS.US, expect);
+                await page.setViewportSize({ width: 1280, height: 900 });
+                await page.waitForSelector('merch-card[variant^="plans"]', { timeout: 30000 });
+                await page.waitForTimeout(3000);
             });
 
-            expect(result.cardCount).toBeGreaterThan(0);
-            // CSS var must NOT be on the shared container (would apply globally to all rows)
-            expect(result.containerVar).toBe('');
-            // CSS var must be set on each individual card element
-            for (const cardVar of result.cardVars) {
-                expect(cardVar).toMatch(/^\d+(\.\d+)?px$/);
-            }
-        });
+            await test.step('step-2: Verify heading-xs height CSS var is set per card, not on container', async () => {
+                const result = await page.evaluate(() => {
+                    const cssVar = '--consonant-merch-card-plans-heading-xs-height';
+                    const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
+                        (c) => c.getBoundingClientRect().width > 2,
+                    );
+                    const containerVar =
+                        cards[0]?.closest('merch-card-collection, [class*="-merch-cards"]')?.style.getPropertyValue(cssVar) ??
+                        '';
+                    const cardVars = cards.map((c) => c.style.getPropertyValue(cssVar));
+                    return { containerVar, cardVars, cardCount: cards.length };
+                });
 
-        await test.step('step-3: Verify cards in the same row share one height, different rows are independent', async () => {
-            const rowData = await page.evaluate(() => {
-                const cssVar = '--consonant-merch-card-plans-heading-xs-height';
-                const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
-                    (c) => c.getBoundingClientRect().width > 2,
-                );
-                const rowMap = new Map();
-                for (const card of cards) {
-                    const rowKey = Math.round(card.getBoundingClientRect().top);
-                    if (!rowMap.has(rowKey)) rowMap.set(rowKey, []);
-                    rowMap.get(rowKey).push(card.style.getPropertyValue(cssVar));
+                expect(result.cardCount).toBeGreaterThan(0);
+                // CSS var must NOT be on the shared container (would apply globally to all rows)
+                expect(result.containerVar).toBe('');
+                // CSS var must be set on each individual card element
+                for (const cardVar of result.cardVars) {
+                    expect(cardVar).toMatch(/^\d+(\.\d+)?px$/);
                 }
-                return [...rowMap.entries()].map(([rowTop, vars]) => ({ rowTop, vars }));
             });
 
-            // Need at least one row of cards
-            expect(rowData.length).toBeGreaterThan(0);
+            await test.step('step-3: Verify cards in the same row share one height, different rows are independent', async () => {
+                const rowData = await page.evaluate(() => {
+                    const cssVar = '--consonant-merch-card-plans-heading-xs-height';
+                    const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
+                        (c) => c.getBoundingClientRect().width > 2,
+                    );
+                    const rowMap = new Map();
+                    for (const card of cards) {
+                        const rowKey = Math.round(card.getBoundingClientRect().top);
+                        if (!rowMap.has(rowKey)) rowMap.set(rowKey, []);
+                        rowMap.get(rowKey).push(card.style.getPropertyValue(cssVar));
+                    }
+                    return [...rowMap.entries()].map(([rowTop, vars]) => ({ rowTop, vars }));
+                });
 
-            for (const row of rowData) {
-                // All cards in the same row must share an identical height value
-                const unique = new Set(row.vars);
-                expect(unique.size).toBe(1);
-                expect([...unique][0]).toMatch(/^\d+(\.\d+)?px$/);
-            }
+                // Need at least one row of cards
+                expect(rowData.length).toBeGreaterThan(0);
 
-            // If multiple rows exist, at least two rows should have independent (potentially different) values
-            if (rowData.length > 1) {
-                const rowHeights = rowData.map((r) => r.vars[0]);
-                // Rows are independently computed — not all forced to one global max
-                const allIdentical = rowHeights.every((h) => h === rowHeights[0]);
-                // It's valid for rows to share a value by coincidence, but we assert each row
-                // computed its own value (checked above per-row). Log for visibility.
-                console.info(
-                    '[Row height sync] Row heights per row:',
-                    rowHeights,
-                    allIdentical ? '(coincidentally equal)' : '(independent values confirmed)',
-                );
-            }
-        });
+                for (const row of rowData) {
+                    // All cards in the same row must share an identical height value
+                    const unique = new Set(row.vars);
+                    expect(unique.size).toBe(1);
+                    expect([...unique][0]).toMatch(/^\d+(\.\d+)?px$/);
+                }
+
+                // If multiple rows exist, at least two rows should have independent (potentially different) values
+                if (rowData.length > 1) {
+                    const rowHeights = rowData.map((r) => r.vars[0]);
+                    // Rows are independently computed — not all forced to one global max
+                    const allIdentical = rowHeights.every((h) => h === rowHeights[0]);
+                    // It's valid for rows to share a value by coincidence, but we assert each row
+                    // computed its own value (checked above per-row). Log for visibility.
+                    console.info(
+                        '[Row height sync] Row heights per row:',
+                        rowHeights,
+                        allIdentical ? '(coincidentally equal)' : '(independent values confirmed)',
+                    );
+                }
+            });
+        } finally {
+            // This test resizes the shared 'US' page - restore the default viewport (mas-docs-chromium
+            // project's Desktop Chrome size) so a test added after this one isn't left at 1280x900.
+            await page.setViewportSize({ width: 1280, height: 720 });
+        }
     });
 });

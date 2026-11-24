@@ -2,9 +2,11 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
+import Store from '../../store.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
 import { uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
+import { Placeholder } from '../../aem/placeholder.js';
 import {
     renderFragmentStatusCell,
     getStudioFragmentDisplayPath,
@@ -14,11 +16,11 @@ import {
 } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
-import './mas-search-and-filters.js';
+import { DEFAULT_ENABLED_FILTERS } from './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce, isUUID, extractSurfaceFromPath } from '../../utils.js';
+import { debounce, isUUID, extractSurfaceFromPath, extractLocaleFromPath } from '../../utils.js';
 
-const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart'];
+const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart', 'placeholder'];
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -31,6 +33,7 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, reflect: true, attribute: 'view-only' },
+        includeBaselines: { type: Boolean, attribute: 'include-baselines' },
         variant: { type: String, reflect: true },
         hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         searchQuery: { type: String, state: true },
@@ -42,8 +45,14 @@ class MasItemsSelector extends LitElement {
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
+        enabledFilters: { type: Array, attribute: false },
         selectableTabs: { type: Array, attribute: 'selectable-tabs' },
         variationTabs: { type: Array },
+        variationColumns: { type: Array, attribute: false },
+        variationCells: { type: Array, attribute: false },
+        groupedVariationColumns: { type: Array, attribute: false },
+        groupedVariationCells: { type: Array, attribute: false },
+        hideVariationExpand: { type: Boolean, attribute: false },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -67,6 +76,7 @@ class MasItemsSelector extends LitElement {
     constructor() {
         super();
         this.viewOnly = false;
+        this.includeBaselines = false;
         this.variant = '';
         this.hideSelectedToggle = false;
         this.searchQuery = '';
@@ -76,6 +86,7 @@ class MasItemsSelector extends LitElement {
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
+        this.enabledFilters = DEFAULT_ENABLED_FILTERS;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
@@ -91,6 +102,11 @@ class MasItemsSelector extends LitElement {
         this.onSearchChange = () => {};
         this.onTabChange = () => {};
         this.renderData = null;
+        this.variationColumns = null;
+        this.variationCells = null;
+        this.groupedVariationColumns = null;
+        this.groupedVariationCells = null;
+        this.hideVariationExpand = false;
     }
 
     connectedCallback() {
@@ -111,14 +127,22 @@ class MasItemsSelector extends LitElement {
     }
 
     get selectedCount() {
-        const s = this.itemsSelection.value;
-        return this.tabs.reduce((count, tab) => count + s[`selected${this.#typeUppercased(tab.value)}`].value.length, 0);
+        return this.tabs.reduce((count, tab) => count + this.#selectedPaths(tab.value).length, 0);
     }
 
     get tabs() {
         if (this.customTabs?.length) return this.customTabs;
         const allowedTypes = this.allowedTypes?.length ? this.allowedTypes : TABS.map((tab) => tab.value);
-        return TABS.filter((tab) => allowedTypes.includes(tab.value));
+        const tabs = TABS.filter((tab) => allowedTypes.includes(tab.value));
+        return this.includeBaselines ? [...tabs, { value: TABLE_TYPE.BASELINES, label: 'Baselines' }] : tabs;
+    }
+
+    #selectedPaths(type) {
+        const selectionType = type === TABLE_TYPE.BASELINES ? TABLE_TYPE.CARDS : type;
+        const paths = this.itemsSelection.value[`selected${this.#typeUppercased(selectionType)}`].value;
+        if (type === TABLE_TYPE.BASELINES) return paths.filter(Fragment.isBaselinePath);
+        if (type === TABLE_TYPE.CARDS && this.includeBaselines) return paths.filter((path) => !Fragment.isBaselinePath(path));
+        return paths;
     }
 
     resetFilters() {
@@ -185,6 +209,26 @@ class MasItemsSelector extends LitElement {
         return true;
     }
 
+    #upsertDisplayPlaceholder(fragmentData) {
+        if (!fragmentData?.path || fragmentData.model?.path !== DICTIONARY_MODEL_PATH) return;
+        const store = this.itemsSelection.value;
+        const placeholder = new Placeholder(fragmentData);
+        const upsert = (items = []) => [placeholder, ...items.filter((item) => item.path !== placeholder.path)];
+        store.placeholdersByPaths.set(new Map(store.placeholdersByPaths.value).set(placeholder.path, placeholder));
+        store.displayPlaceholders.set(upsert(store.displayPlaceholders.value));
+        store.allPlaceholders.set(upsert(store.allPlaceholders.value));
+        return placeholder;
+    }
+
+    #appendSelectedPlaceholder(placeholder) {
+        if (!placeholder?.path) return false;
+        const store = this.itemsSelection.value;
+        const selectedPlaceholders = store.selectedPlaceholders.value || [];
+        if (selectedPlaceholders.includes(placeholder.path)) return false;
+        store.selectedPlaceholders.set([...selectedPlaceholders, placeholder.path]);
+        return true;
+    }
+
     #setImportedUrlStatus(fragmentId, status, errorMessage = null, path = null, displayName = null) {
         this.importedUrls = this.importedUrls.map((item) =>
             item.fragmentId === fragmentId ? { ...item, status, errorMessage, path, displayName } : item,
@@ -200,9 +244,13 @@ class MasItemsSelector extends LitElement {
         const store = this.itemsSelection.value;
         const valid = this.importedUrls.filter((i) => i.status === 'valid');
         const cardPaths = valid.filter((i) => i.contentType === 'merch-card').map((i) => i.path);
-        const collectionPaths = valid.filter((i) => i.contentType !== 'merch-card').map((i) => i.path);
+        const collectionPaths = valid
+            .filter((i) => i.contentType !== 'merch-card' && i.contentType !== 'placeholder')
+            .map((i) => i.path);
+        const placeholderPaths = valid.filter((i) => i.contentType === 'placeholder').map((i) => i.path);
         store.selectedCards.set(store.selectedCards.value.filter((p) => !cardPaths.includes(p)));
         store.selectedCollections.set(store.selectedCollections.value.filter((p) => !collectionPaths.includes(p)));
+        store.selectedPlaceholders.set(store.selectedPlaceholders.value.filter((p) => !placeholderPaths.includes(p)));
         this.importedUrls = [];
     }
 
@@ -210,7 +258,12 @@ class MasItemsSelector extends LitElement {
         this.importedUrls = this.importedUrls.filter((i) => i.fragmentId !== item.fragmentId);
         if (item.status !== 'valid') return;
         const store = this.itemsSelection.value;
-        const key = item.contentType === 'merch-card' ? 'selectedCards' : 'selectedCollections';
+        const key =
+            item.contentType === 'merch-card'
+                ? 'selectedCards'
+                : item.contentType === 'placeholder'
+                  ? 'selectedPlaceholders'
+                  : 'selectedCollections';
         store[key].set(store[key].value.filter((p) => p !== item.path));
     }
 
@@ -227,15 +280,19 @@ class MasItemsSelector extends LitElement {
             }
             const params = new URLSearchParams(parsedUrl.hash.slice(1));
             const contentType = params.get('content-type');
-            const fragmentId = params.get('query');
+            const fragmentId = params.get(contentType === 'placeholder' ? 'search' : 'query');
             if (!fragmentId || !isUUID(fragmentId) || !IMPORT_CONTENT_TYPES.includes(contentType)) continue;
             if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) {
                 duplicates++;
                 continue;
             }
-            const allowed = this.allowedTypes.includes(
-                contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS,
-            );
+            const tableType =
+                contentType === 'merch-card'
+                    ? TABLE_TYPE.CARDS
+                    : contentType === 'placeholder'
+                      ? TABLE_TYPE.PLACEHOLDERS
+                      : TABLE_TYPE.COLLECTIONS;
+            const allowed = this.allowedTypes.includes(tableType);
             allParsed.push({ url, fragmentId, contentType, allowed });
         }
 
@@ -306,6 +363,14 @@ class MasItemsSelector extends LitElement {
                 );
                 continue;
             }
+            if (item.contentType === 'placeholder') {
+                const locale = extractLocaleFromPath(fragment.path);
+                if (locale !== Store.localeOrRegion()) {
+                    failed++;
+                    this.#setImportedUrlStatus(item.fragmentId, 'error', `${locale} not allowed here.`, path, displayName);
+                    continue;
+                }
+            }
             const validation = this.validateImportFragment(fragment);
             if (validation !== true) {
                 failed++;
@@ -319,13 +384,29 @@ class MasItemsSelector extends LitElement {
                 continue;
             }
             const isCard = item.contentType === 'merch-card';
-            const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
+            const isPlaceholder = item.contentType === 'placeholder';
+            const display = isCard
+                ? this.#upsertDisplayCard(fragment)
+                : isPlaceholder
+                  ? this.#upsertDisplayPlaceholder(fragment)
+                  : this.#upsertDisplayCollection(fragment);
             if (!display) {
                 failed++;
                 this.#setImportedUrlStatus(item.fragmentId, 'error', 'Unsupported fragment type.', path, displayName);
                 continue;
             }
-            const appended = isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display);
+            const selectedField = isCard ? 'selectedCards' : isPlaceholder ? 'selectedPlaceholders' : 'selectedCollections';
+            const selectedPaths = this.itemsSelection.value[selectedField].value || [];
+            if (selectedPaths.includes(display.path)) {
+                duplicates++;
+                this.#setImportedUrlStatus(item.fragmentId, 'error', 'Already added.', path, displayName);
+                continue;
+            }
+            const appended = isCard
+                ? this.#appendSelectedCard(display)
+                : isPlaceholder
+                  ? this.#appendSelectedPlaceholder(display)
+                  : this.#appendSelectedCollection(display);
             if (!appended) {
                 failed++;
                 this.#setImportedUrlStatus(
@@ -347,6 +428,8 @@ class MasItemsSelector extends LitElement {
             this.openToast(`${added} added, ${failed} not found`, 'negative');
         } else if (failed > 0) {
             this.openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
+        } else if (duplicates > 0) {
+            this.openToast(duplicates === 1 ? 'Already added' : `${duplicates} already added`, 'negative');
         }
     }
 
@@ -410,7 +493,7 @@ class MasItemsSelector extends LitElement {
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
-            const count = this.itemsSelection.value[`selected${this.#typeUppercased(tab.value)}`].value.length;
+            const count = this.#selectedPaths(tab.value).length;
             return `${tab.label} (${count})`;
         }
         return tab.label;
@@ -437,6 +520,7 @@ class MasItemsSelector extends LitElement {
                 type=${type}
                 .viewOnly=${this.viewOnly}
                 .type=${type}
+                .separateBaselines=${this.includeBaselines}
                 .maxSelectedCards=${this.maxSelectedCards}
                 .selectableTabs=${this.selectableTabs}
                 .tabs=${this.variationTabs}
@@ -444,6 +528,11 @@ class MasItemsSelector extends LitElement {
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 .hidePromoVariations=${this.hidePromoVariations}
                 .hideGroupedVariations=${this.hideGroupedVariations}
+                .variationColumns=${this.variationColumns}
+                .variationCells=${this.variationCells}
+                .groupedVariationColumns=${this.groupedVariationColumns}
+                .groupedVariationCells=${this.groupedVariationCells}
+                .hideVariationExpand=${this.hideVariationExpand}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>
         `;
@@ -458,9 +547,10 @@ class MasItemsSelector extends LitElement {
             <mas-search-and-filters
                 .type=${tab.value}
                 .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
-                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
+                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS, TABLE_TYPE.BASELINES].includes(tab.value)}
                 .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.lockedTemplateFilter : ''}
                 .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.defaultTemplateFilter : ''}
+                .enabledFilters=${this.enabledFilters}
             ></mas-search-and-filters>
         `;
     }
@@ -500,7 +590,6 @@ class MasItemsSelector extends LitElement {
                                         ? nothing
                                         : html`<mas-selected-items
                                               .getDisplayName=${this.getDisplayName}
-                                              .hideGroupedVariations=${this.hideGroupedVariations}
                                           ></mas-selected-items>`}
                                 </div>
                                 <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>

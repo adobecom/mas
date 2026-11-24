@@ -71,6 +71,9 @@
                 "settings": {
                     "secureLabel": "Secure transaction",
                     "displayPlanType": true
+                },
+                "placeholders": {
+                    "countdownTimerText": "countdown-timer-text"
                 }
             }
         },
@@ -170,6 +173,9 @@
                 "settings": {
                     "secureLabel": "Secure transaction",
                     "displayPlanType": true
+                },
+                "placeholders": {
+                    "countdownTimerText": "countdown-timer-text"
                 }
             }
         },
@@ -368,6 +374,11 @@
         "searchResultMobileText": "coll-search-result-mobile-text",
         "searchResultsMobileText": "coll-search-results-mobile-text",
         "noSearchResultsText": "coll-no-search-results-text",
-        "showMoreText": "coll-show-more-text"
+        "showMoreText": "coll-show-more-text",
+        "allFilters": "coll-all-filters-text",
+        "filtersCategory": "coll-filters-category-text",
+        "filtersApplied": "coll-filters-applied-text",
+        "filtersResults": "coll-filters-results-text",
+        "filtersReset": "coll-filters-reset-text"
     }
 }

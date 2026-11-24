@@ -1,21 +1,27 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { setViewport } from '@web/test-runner-commands';
 import '../src/mas-field.js';
 import '../src/checkout-link.js';
 import {
     checkoutOptionsProvider,
     priceOptionsProvider,
+    renderImageMarkup,
+    stripTrialCtas,
 } from '../src/mas-field.js';
-import { FF_DEFAULTS } from '../src/constants.js';
+import { FF_DEFAULTS, MERCH_CARD_LOAD_TIMEOUT } from '../src/constants.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
+import { delay } from './utils.js';
 
 const CTA_HTML =
     '<a data-wcs-osi="ABC123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="buy-now" class="accent">Buy now</a>';
+const CTA_TRIAL_HTML =
+    '<a data-wcs-osi="DEF123" data-test-id="my-trial-cta" data-replaced-osi="XYZ123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="free-trial" class="accent">Free trial</a>';
 
 const SECONDARY_CTA_HTML =
     '<a data-wcs-osi="XYZ" class="secondary">Try for free</a>';
 
-function makeField(fieldName, fieldValue) {
+function makeField(fieldName, fieldValue, variant = 'headless') {
     const el = document.createElement('mas-field');
     el.setAttribute('field', fieldName);
     const fragment = document.createElement('aem-fragment');
@@ -26,7 +32,7 @@ function makeField(fieldName, fieldValue) {
     fragment.dispatchEvent(
         new CustomEvent('aem:load', {
             bubbles: true,
-            detail: { fields: { [fieldName]: fieldValue } },
+            detail: { fields: { [fieldName]: fieldValue, variant } },
         }),
     );
     return el;
@@ -79,15 +85,32 @@ describe('mas-field – ctas rendering', () => {
         expect(link.classList.contains('fill')).to.be.false;
     });
 
-    it('applies fill class for primary without outline', () => {
+    it('applies blue class for primary without outline', () => {
         const el = makeField(
             'ctas',
             '<a data-wcs-osi="ABC" class="primary">Start trial</a>',
         );
         const link = el.querySelector('[slot="footer"] a');
         expect(link.classList.contains('con-button')).to.be.true;
-        expect(link.classList.contains('fill')).to.be.true;
+        expect(link.classList.contains('blue')).to.be.true;
     });
+
+    for (const variant of [
+        'primary-outline',
+        'secondary-outline',
+        'accent-outline',
+    ]) {
+        it(`hydrates the persisted ${variant} as an outlined button`, () => {
+            const el = makeField(
+                'ctas',
+                `<a class="${variant}" href="/details">Details</a>`,
+            );
+            const link = el.querySelector('[slot="footer"] > a');
+            expect(link.classList.contains('con-button')).to.be.true;
+            expect(link.classList.contains('outline')).to.be.true;
+            expect(link.classList.contains('blue')).to.be.false;
+        });
+    }
 
     it('does not apply fill for primary-outline', () => {
         const el = makeField(
@@ -110,31 +133,95 @@ describe('mas-field – ctas rendering', () => {
         expect(link.parentElement).to.equal(footer);
     });
 
-    it('preserves the <strong> wrapper around an unclassed link with no MAS-added style classes (headless "Primary button" variant)', () => {
+    it('hydrates a legacy strong-wrapped primary CTA without needing Milo decoration', () => {
         const el = makeField(
             'ctas',
             '<strong><a data-wcs-osi="ABC">Buy</a></strong>',
         );
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('con-button')).to.be.false;
-        expect(link.classList.contains('fill')).to.be.false;
-        expect(link.parentElement.tagName).to.equal('STRONG');
+        expect(link.classList.contains('con-button')).to.be.true;
+        expect(link.classList.contains('blue')).to.be.true;
+        expect(link.parentElement.getAttribute('slot')).to.equal('footer');
     });
 
-    it('preserves the <em> wrapper around an unclassed link with no MAS-added style classes (headless "Secondary button" variant)', () => {
+    it('hydrates a legacy em-wrapped secondary CTA without needing Milo decoration', () => {
         const el = makeField('ctas', '<em><a data-wcs-osi="ABC">Buy</a></em>');
         const link = el.querySelector('[slot="footer"] a');
-        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('blue')).to.be.false;
-        expect(link.parentElement.tagName).to.equal('EM');
+        expect(link.classList.contains('outline')).to.be.true;
+        expect(link.parentElement.getAttribute('slot')).to.equal('footer');
     });
 
-    it('wraps link text in spectrum-Button-label span', () => {
+    it('styles non-checkout CTAs and keeps the authored order, URLs and custom classes', () => {
+        const el = makeField(
+            'ctas',
+            '<a href="/trial" class="secondary button-xl" data-key="trial">Trial</a>' +
+                '<a href="/buy" class="primary button-xl" data-key="buy">Buy</a>' +
+                '<a href="/details" class="secondary-link" data-key="details">Details</a>',
+        );
+        const links = [...el.querySelectorAll('[slot="footer"] > a')];
+        expect(links.map((link) => link.dataset.key)).to.deep.equal([
+            'trial',
+            'buy',
+            'details',
+        ]);
+        expect(links[0].classList.contains('outline')).to.be.true;
+        expect(links[1].classList.contains('blue')).to.be.true;
+        expect(links[0].classList.contains('button-xl')).to.be.true;
+        expect(links[1].classList.contains('button-xl')).to.be.true;
+        expect(links[2].classList.contains('con-button')).to.be.false;
+        expect(links.map((link) => link.getAttribute('href'))).to.deep.equal([
+            '/trial',
+            '/buy',
+            '/details',
+        ]);
+    });
+
+    it('uses explicit variants over bold/italic and retains their text formatting', () => {
+        const el = makeField(
+            'ctas',
+            '<strong><a class="secondary" data-wcs-osi="ABC">Secondary</a></strong>' +
+                '<em><a class="primary" data-wcs-osi="XYZ">Primary</a></em>',
+        );
+        const links = [...el.querySelectorAll('[slot="footer"] > a')];
+        expect(links[0].classList.contains('outline')).to.be.true;
+        expect(links[1].classList.contains('blue')).to.be.true;
+        expect(links[0].querySelector('strong')).to.exist;
+        expect(links[1].querySelector('em')).to.exist;
+    });
+
+    it('preserves checkout metadata, accessibility, analytics and inline markup', () => {
+        const el = makeField(
+            'ctas',
+            '<a class="primary button-xl" data-wcs-osi="ABC" data-key="buy" data-checkout-workflow-step="segmentation" ' +
+                'data-modal="true" data-extra-options=\'{"promoid":"test"}\' data-analytics-id="buy-now" ' +
+                'data-locked-osi="true" data-quantity="2" data-promotion-code="PROMO" ' +
+                'aria-label="Buy Adobe" target="_blank" title="Buy"><em>Buy</em> now</a>',
+        );
+        const link = el.querySelector('[slot="footer"] > a');
+        expect(link.dataset.key).to.equal('buy');
+        expect(link.dataset.checkoutWorkflowStep).to.equal('segmentation');
+        expect(link.dataset.modal).to.equal('true');
+        expect(link.dataset.extraOptions).to.equal('{"promoid":"test"}');
+        expect(link.dataset.analyticsId).to.equal('buy-now');
+        expect(link.dataset.lockedOsi).to.equal('true');
+        expect(link.dataset.quantity).to.equal('2');
+        expect(link.dataset.promotionCode).to.equal('PROMO');
+        expect(link.getAttribute('aria-label')).to.equal('Buy Adobe');
+        expect(link.getAttribute('target')).to.equal('_blank');
+        expect(link.title).to.equal('Buy');
+        expect(link.querySelector('em').textContent).to.equal('Buy');
+        expect(link.classList.contains('button-xl')).to.be.true;
+    });
+
+    it('keeps checkout link text without injecting Spectrum-only label classes', () => {
         const el = makeField('ctas', CTA_HTML);
         const link = el.querySelector('[slot="footer"] a');
-        const label = link.querySelector('.spectrum-Button-label');
+        const label = link.querySelector('span');
         expect(label).to.exist;
         expect(label.textContent).to.equal('Buy now');
+        expect(link.querySelector('.spectrum-Button-label')).to.not.exist;
     });
 
     it('renders multiple CTAs when multiple links are present', () => {
@@ -142,6 +229,17 @@ describe('mas-field – ctas rendering', () => {
         const el = makeField('ctas', html);
         const links = el.querySelectorAll('[slot="footer"] a');
         expect(links.length).to.equal(2);
+    });
+
+    it('uses the same document CTA styling regardless of the source card template', () => {
+        const el = makeField(
+            'ctas',
+            '<a data-wcs-osi="ABC" class="primary">Buy</a>',
+            'plans',
+        );
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.classList.contains('fill')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.true;
     });
 
     it('uses createCheckoutLink when checkout-link is registered', () => {
@@ -185,20 +283,32 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
 
     afterEach(() => {
         document.body
-            .querySelectorAll('mas-field')
+            .querySelectorAll('mas-field, .indexed-cta-override')
             .forEach((el) => el.remove());
     });
 
-    function makeIndexedField(index, ctasHtml) {
+    function makeIndexedField(index, ctasHtml, variant = 'plans', wrapperTag) {
         const el = document.createElement('mas-field');
         el.setAttribute('field', `ctas[${index}]`);
         const fragment = document.createElement('aem-fragment');
         el.append(fragment);
-        document.body.append(el);
+        if (wrapperTag) {
+            const wrapper = document.createElement(
+                wrapperTag === 'feds-cta-wrapper' ? 'span' : wrapperTag,
+            );
+            wrapper.className = 'indexed-cta-override';
+            if (wrapperTag === 'feds-cta-wrapper') {
+                wrapper.classList.add(wrapperTag);
+            }
+            wrapper.append(el);
+            document.body.append(wrapper);
+        } else {
+            document.body.append(el);
+        }
         fragment.dispatchEvent(
             new CustomEvent('aem:load', {
                 bubbles: true,
-                detail: { fields: { ctas: ctasHtml } },
+                detail: { fields: { ctas: ctasHtml, variant } },
             }),
         );
         return el;
@@ -218,10 +328,12 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Free trial');
     });
 
-    it('strips class attribute from extracted anchor', () => {
+    it('inherits the Studio variant when the page has no presentation override', () => {
         const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
-        expect(a.hasAttribute('class')).to.be.false;
+        expect(a.classList.contains('con-button')).to.be.true;
+        expect(a.classList.contains('blue')).to.be.true;
+        expect(a.classList.contains('outline')).to.be.false;
     });
 
     it('preserves data-wcs-osi and is attributes', () => {
@@ -229,6 +341,31 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
         expect(a.getAttribute('is')).to.equal('checkout-link');
+    });
+
+    it('preserves indexed checkout metadata and inline formatting with Studio presentation', () => {
+        const el = makeIndexedField(
+            'buy',
+            '<a class="primary button-xl" data-wcs-osi="ABC" data-key="buy" data-checkout-workflow="UCv3" ' +
+                'data-checkout-workflow-step="segmentation" data-modal="twp" data-promotion-code="PROMO" ' +
+                'data-analytics-id="buy-now" data-quantity="2" aria-label="Buy Adobe" target="_blank">' +
+                '<em>Buy</em> now</a>',
+        );
+        const link = el.querySelector('a');
+        expect(link.isCheckoutLink).to.be.true;
+        expect(link.classList.contains('blue')).to.be.true;
+        expect(link.classList.contains('button-xl')).to.be.true;
+        expect(link.dataset.key).to.equal('buy');
+        expect(link.dataset.wcsOsi).to.equal('ABC');
+        expect(link.dataset.checkoutWorkflow).to.equal('UCv3');
+        expect(link.dataset.checkoutWorkflowStep).to.equal('segmentation');
+        expect(link.dataset.modal).to.equal('twp');
+        expect(link.dataset.promotionCode).to.equal('PROMO');
+        expect(link.dataset.analyticsId).to.equal('buy-now');
+        expect(link.dataset.quantity).to.equal('2');
+        expect(link.getAttribute('aria-label')).to.equal('Buy Adobe');
+        expect(link.target).to.equal('_blank');
+        expect(link.querySelector('em').textContent).to.equal('Buy');
     });
 
     it('does not create a slot="footer" wrapper', () => {
@@ -288,6 +425,629 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.getAttribute('is')).to.equal('checkout-link');
         expect(a.isCheckoutLink).to.be.true;
     });
+
+    for (const variant of ['headless', 'marquee', 'banner-blade']) {
+        it(`inherits numeric and keyed ${variant} variants without treating fragment formatting as a page override`, () => {
+            const ctas =
+                '<strong><a href="/trial" class="secondary" data-key="trial"><em>Trial</em></a></strong>' +
+                '<em><a href="/buy" class="primary" data-key="buy"><strong>Buy</strong></a></em>';
+            const first = makeIndexedField(1, ctas, variant);
+            const buy = makeIndexedField('buy', ctas, variant);
+            expect(first.querySelector('a').classList.contains('outline')).to.be
+                .true;
+            expect(first.querySelector('a').classList.contains('blue')).to.be
+                .false;
+            expect(buy.querySelector('a').classList.contains('blue')).to.be
+                .true;
+            expect(buy.querySelector('a').classList.contains('outline')).to.be
+                .false;
+            expect(first.querySelector('a em')).to.exist;
+            expect(buy.querySelector('a strong')).to.exist;
+            expect(first.querySelector('[slot="footer"]')).to.not.exist;
+            expect(buy.querySelector('[slot="footer"]')).to.not.exist;
+        });
+    }
+
+    it('inherits a legacy fragment wrapper-only variant when the page has no override', () => {
+        const el = makeIndexedField(
+            1,
+            '<strong><a href="/buy">Buy</a></strong>',
+            'headless',
+        );
+        expect(el.querySelector('a').classList.contains('blue')).to.be.true;
+        expect(el.querySelector('strong')).to.not.exist;
+    });
+
+    for (const reference of [1, 'buy']) {
+        for (const variant of ['primary', 'secondary', 'secondary-link']) {
+            it(`inherits ${variant} for unformatted ctas[${reference}]`, () => {
+                const el = makeIndexedField(
+                    reference,
+                    `<a class="${variant}" href="/buy" data-key="buy">Buy</a>`,
+                    'headless',
+                );
+                const link = el.querySelector('a');
+                expect(link.classList.contains('con-button')).to.equal(
+                    variant !== 'secondary-link',
+                );
+                expect(link.classList.contains('blue')).to.equal(
+                    variant === 'primary',
+                );
+                expect(link.classList.contains('outline')).to.equal(
+                    variant === 'secondary',
+                );
+                expect(link.getAttribute('href')).to.equal('/buy');
+                expect(el.querySelector('[slot="footer"]')).to.not.exist;
+            });
+            for (const wrapper of ['strong', 'em', 'feds-cta-wrapper']) {
+                it(`skips Studio ${variant} for ctas[${reference}] with a page-authored ${wrapper} override`, () => {
+                    const el = makeIndexedField(
+                        reference,
+                        `<a class="${variant}" data-wcs-osi="ABC" data-key="buy">Buy</a>`,
+                        'headless',
+                        wrapper,
+                    );
+                    const link = el.querySelector('a');
+                    expect(link.hasAttribute('class')).to.be.false;
+                    expect(link.isCheckoutLink).to.be.true;
+                    expect(link.dataset.key).to.equal('buy');
+                    expect(el.parentElement.tagName).to.equal(
+                        wrapper === 'feds-cta-wrapper'
+                            ? 'SPAN'
+                            : wrapper.toUpperCase(),
+                    );
+                });
+            }
+        }
+    }
+
+    it('preserves indexed non-CTA classes and formatting', () => {
+        const el = makeField(
+            'description',
+            '<strong><a class="primary-link" data-key="details" href="/details">Details</a></strong>',
+        );
+        el.setAttribute('field', 'description[details]');
+        expect(el.querySelector('a').className).to.equal('primary-link');
+        expect(el.querySelector('strong > a')).to.exist;
+    });
+});
+
+describe('mas-field – Studio defaults and page-owned individual overrides', () => {
+    const ctas =
+        '<strong><a href="/plans" class="primary-link" data-key="link"><strong>bn</strong></a></strong>' +
+        '<em><a href="/plans" class="secondary-link" data-key="italic">bn</a></em>' +
+        '<a href="/plans" class="primary-outline" data-key="outline">bn</a>' +
+        '<strong><a href="/plans" class="secondary-outline" data-key="bold-outline">bn</a></strong>' +
+        '<a href="/plans" class="accent" data-key="accent">bn</a>' +
+        '<em><a href="/plans" class="primary" data-key="primary">bn</a></em>' +
+        '<a data-wcs-osi="ABC" class="secondary" data-key="checkout">bn</a>';
+    let fixture;
+    let style;
+
+    beforeEach(() => {
+        fixture = document.createElement('div');
+        fixture.className = 'section';
+        fixture.innerHTML =
+            '<div class="marquee"><div class="text"></div></div>';
+        document.body.append(fixture);
+        style = document.createElement('style');
+        style.textContent = `
+            .con-button { font-size: 14px; line-height: 20px; padding: 4px 14px; border-radius: 16px; }
+            .con-button.button-l { font-size: 17px; padding: 7px 18px 8px; border-radius: 20px; }
+            .con-button.button-xl { font-size: 19px; line-height: 24px; padding: 10px 24px 8px; border-radius: 25px; }
+            .con-button.blue { background: rgb(20, 115, 230); color: white; }
+            .con-button.outline { background: transparent; color: black; }
+            .marquee .action-area { display: flex; flex-flow: column wrap; gap: 24px; align-items: stretch; }
+            @media (min-width: 600px) {
+                .marquee .action-area { flex-direction: row; align-items: center; }
+            }
+        `;
+        document.head.append(style);
+    });
+
+    afterEach(() => {
+        fixture.remove();
+        style.remove();
+    });
+
+    after(async () => {
+        await setViewport({ width: 800, height: 600 });
+    });
+
+    function renderField(field, variant = 'headless', html = ctas, merchLink) {
+        const paragraph = document.createElement('p');
+        const element = document.createElement('mas-field');
+        element.setAttribute('field', field);
+        element.merchLink = merchLink;
+        const fragment = document.createElement('aem-fragment');
+        element.append(fragment);
+        paragraph.append(element);
+        fixture.querySelector('.text').append(paragraph);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: html, variant } },
+            }),
+        );
+        return element;
+    }
+
+    for (const width of [430, 1200]) {
+        it(`matches native styling for groups and inheriting references at ${width}px`, async () => {
+            await setViewport({ width, height: 900 });
+            const native = document.createElement('a');
+            native.className =
+                'con-button blue button-l button-justified-mobile';
+            native.textContent = 'Native';
+            fixture.querySelector('.text').append(native);
+            for (const variant of [
+                'headless',
+                'marquee',
+                'banner-blade',
+                'plans',
+            ]) {
+                const group = renderField('ctas', variant);
+                const links = [
+                    ...group.querySelectorAll('[slot="footer"] > a'),
+                ];
+                expect(group.querySelector('.spectrum-Button-label')).to.not
+                    .exist;
+                expect(links.map((link) => link.dataset.key)).to.deep.equal([
+                    'link',
+                    'italic',
+                    'outline',
+                    'bold-outline',
+                    'accent',
+                    'primary',
+                    'checkout',
+                ]);
+                for (const link of links) {
+                    const single = renderField(
+                        `ctas[${link.dataset.key}]`,
+                        variant,
+                    );
+                    const anchor = single.querySelector('a');
+                    expect([...anchor.classList].sort()).to.deep.equal(
+                        [...link.classList].sort(),
+                    );
+                    expect(anchor.innerHTML).to.equal(link.innerHTML);
+                    expect(getComputedStyle(anchor).padding).to.equal(
+                        getComputedStyle(link).padding,
+                    );
+                    expect(getComputedStyle(anchor).backgroundColor).to.equal(
+                        getComputedStyle(link).backgroundColor,
+                    );
+                    expect(
+                        getComputedStyle(single.parentElement).flexDirection,
+                    ).to.equal(width < 600 ? 'column' : 'row');
+                    if (link.classList.contains('con-button')) {
+                        expect(getComputedStyle(link).fontSize).to.equal(
+                            getComputedStyle(native).fontSize,
+                        );
+                        expect(getComputedStyle(link).padding).to.equal(
+                            getComputedStyle(native).padding,
+                        );
+                        expect(
+                            link.classList.contains('button-justified-mobile'),
+                        ).to.be.true;
+                    } else {
+                        expect(link.classList.contains('button-l')).to.be.false;
+                    }
+                }
+                expect(
+                    group
+                        .querySelector('[slot="footer"]')
+                        .classList.contains('action-area'),
+                ).to.be.true;
+                expect(
+                    getComputedStyle(group.querySelector('[slot="footer"]'))
+                        .flexDirection,
+                ).to.equal(width < 600 ? 'column' : 'row');
+            }
+        });
+    }
+
+    for (const field of ['ctas', 'ctas[link]']) {
+        for (const tag of ['strong', 'em']) {
+            for (const checkout of [false, true]) {
+                it(`does not duplicate ${tag} in the ${field} ${checkout ? 'checkout' : 'web'} label`, () => {
+                    const html =
+                        `<${tag}><a class="secondary-link" data-key="link" ${checkout ? 'data-wcs-osi="ABC"' : 'href="/plans"'}>` +
+                        ` <${tag}>Get started</${tag}> </a></${tag}>`;
+                    const element = renderField(field, 'headless', html);
+                    const link = element.querySelector('a[data-key="link"]');
+                    expect(link.querySelectorAll(tag)).to.have.lengthOf(1);
+                    expect(link.querySelector(tag).textContent).to.equal(
+                        'Get started',
+                    );
+                });
+            }
+        }
+    }
+
+    it('retains outer formatting when only part of the label already has it', () => {
+        const element = renderField(
+            'ctas[link]',
+            'headless',
+            '<strong><a class="secondary-link" data-key="link" href="/plans"><strong>Get</strong> started</a></strong>',
+        );
+        expect(element.querySelector('a > strong').textContent).to.equal(
+            'Get started',
+        );
+    });
+
+    for (const variant of ['headless', 'marquee', 'banner-blade', 'plans']) {
+        it(`keeps a ${variant} Link reference inline within a sentence`, () => {
+            const paragraph = document.createElement('p');
+            paragraph.innerHTML =
+                'Read <mas-field field="ctas[details]"><aem-fragment></aem-fragment></mas-field> about plans.';
+            fixture.querySelector('.text').append(paragraph);
+            const field = paragraph.querySelector('mas-field');
+            field.querySelector('aem-fragment').dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: {
+                        fields: {
+                            ctas: '<a class="secondary-link" data-key="details" href="/details">more</a>',
+                            variant,
+                        },
+                    },
+                }),
+            );
+            expect(paragraph.textContent).to.equal('Read more about plans.');
+            expect(paragraph.classList.contains('action-area')).to.be.false;
+            expect(getComputedStyle(paragraph).display).to.equal('block');
+            expect(field.querySelector('a').classList.contains('con-button')).to
+                .be.false;
+        });
+    }
+
+    it('keeps action-area presentation for a button reference beside text', () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            'Next: <mas-field field="ctas[buy]"><aem-fragment></aem-fragment></mas-field>';
+        fixture.querySelector('.text').append(paragraph);
+        paragraph.querySelector('aem-fragment').dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas: '<a class="primary" data-key="buy" href="/buy">Buy</a>',
+                        variant: 'headless',
+                    },
+                },
+            }),
+        );
+        expect(paragraph.classList.contains('action-area')).to.be.true;
+        expect(paragraph.querySelector('a').classList.contains('con-button')).to
+            .be.true;
+    });
+
+    for (const [classes, size] of [
+        ['marquee', 'button-l'],
+        ['marquee large', 'button-xl'],
+        ['marquee xlarge', 'button-xl'],
+        ['marquee xl-button', 'button-xl'],
+        ['marquee s-button', 'button-s'],
+        ['marquee hero-marquee', 'button-xl'],
+    ]) {
+        it(`derives ${size} for groups and inheriting references in ${classes}`, () => {
+            fixture.firstElementChild.className = classes;
+            const group = renderField('ctas');
+            const single = renderField('ctas[accent]');
+            expect(
+                group
+                    .querySelector('a[data-key="accent"]')
+                    .classList.contains(size),
+            ).to.be.true;
+            expect(single.querySelector('a').classList.contains(size)).to.be
+                .true;
+            expect(single.parentElement.classList.contains('action-area')).to.be
+                .true;
+            if (classes.includes('hero-marquee')) {
+                expect(
+                    group
+                        .querySelector('a[data-key="accent"]')
+                        .classList.contains('button-justified-mobile'),
+                ).to.be.true;
+                expect(
+                    single
+                        .querySelector('a')
+                        .classList.contains('button-justified-mobile'),
+                ).to.be.true;
+            }
+        });
+    }
+
+    it('does not borrow a size from another block in the section', () => {
+        fixture.insertAdjacentHTML(
+            'beforeend',
+            '<div class="other"><a class="con-button button-xl">Foreign</a></div>',
+        );
+        const group = renderField('ctas');
+        expect(
+            group
+                .querySelector('a[data-key="accent"]')
+                .classList.contains('button-l'),
+        ).to.be.true;
+        expect(
+            group
+                .querySelector('a[data-key="accent"]')
+                .classList.contains('button-xl'),
+        ).to.be.false;
+    });
+
+    it('retains explicitly authored sizes and utility options for groups and inheriting references', () => {
+        const html =
+            '<a class="primary button-xl" href="/buy" data-key="buy">Buy</a>';
+        const merchLink =
+            'https://mas.adobe.com/studio.html#field=ctas&_button-button-justified-mobile';
+        const group = renderField('ctas', 'headless', html, merchLink);
+        const single = renderField('ctas[buy]', 'headless', html, merchLink);
+        const link = group.querySelector('a');
+        expect(link.classList.contains('button-xl')).to.be.true;
+        expect(link.classList.contains('button-l')).to.be.false;
+        expect(link.classList.contains('button-justified-mobile')).to.be.true;
+        expect(single.querySelector('a').classList.contains('button-xl')).to.be
+            .true;
+        expect(single.querySelector('a').classList.contains('button-l')).to.be
+            .false;
+        expect(
+            single
+                .querySelector('a')
+                .classList.contains('button-justified-mobile'),
+        ).to.be.true;
+        expect(single.merchLink).to.equal(merchLink);
+    });
+
+    it('updates an inheriting reference when the Studio variant changes', () => {
+        const field = renderField(
+            'ctas[buy]',
+            'headless',
+            '<a class="primary" data-key="buy" href="/buy">Buy</a>',
+        );
+        const fragment = field.querySelector('aem-fragment');
+        for (const variant of ['secondary', 'secondary-link', 'primary']) {
+            fragment.dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: {
+                        fields: {
+                            ctas: `<a class="${variant}" data-key="buy" href="/buy">Buy</a>`,
+                        },
+                    },
+                }),
+            );
+            expect(field.querySelectorAll('a')).to.have.lengthOf(1);
+            const link = field.querySelector('a');
+            expect(link.classList.contains('blue')).to.equal(
+                variant === 'primary',
+            );
+            expect(link.classList.contains('outline')).to.equal(
+                variant === 'secondary',
+            );
+            expect(link.classList.contains('con-button')).to.equal(
+                variant !== 'secondary-link',
+            );
+        }
+    });
+
+    it('keeps the same presentation and authored order when fragment content re-renders', () => {
+        const group = renderField('ctas');
+        const fragment = group.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas, variant: 'headless' } },
+            }),
+        );
+        expect(group.querySelectorAll('[slot="footer"]')).to.have.lengthOf(1);
+        expect(group.querySelectorAll('a')).to.have.lengthOf(7);
+        expect(
+            group
+                .querySelector('a[data-key="accent"]')
+                .classList.contains('button-l'),
+        ).to.be.true;
+    });
+
+    it('preserves page-authored wrappers and fragment inline formatting through the ready event', async () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            '<em><strong><mas-field field="ctas[outline]"><aem-fragment></aem-fragment></mas-field></strong></em>';
+        fixture.querySelector('.text').append(paragraph);
+        const field = paragraph.querySelector('mas-field');
+        const fragment = field.querySelector('aem-fragment');
+        const ready = sinon.spy();
+        paragraph.addEventListener('mas:ready', ready);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        variant: 'headless',
+                        ctas: '<a href="/trial" class="secondary-outline" data-key="outline"><strong>Trial</strong></a>',
+                    },
+                },
+            }),
+        );
+        await delay(50);
+        expect(ready.calledOnce).to.be.true;
+        expect(
+            paragraph.querySelector(':scope > em > strong > mas-field'),
+        ).to.equal(field);
+        expect(field.querySelector('a').hasAttribute('class')).to.be.false;
+        expect(field.querySelector('a strong')).to.exist;
+        expect(paragraph.classList.contains('action-area')).to.be.false;
+    });
+
+    it('retains one indexed CTA and its page wrappers when fragment content re-renders', () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            '<em><strong><mas-field field="ctas[trial]"><aem-fragment></aem-fragment></mas-field></strong></em>';
+        fixture.querySelector('.text').append(paragraph);
+        const field = paragraph.querySelector('mas-field');
+        const fragment = field.querySelector('aem-fragment');
+        for (const label of ['Free trial', 'Start trial']) {
+            fragment.dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: {
+                        fields: {
+                            ctas: `<a class="primary" data-key="trial" href="/trial">${label}</a>`,
+                        },
+                    },
+                }),
+            );
+            expect(paragraph.querySelectorAll('a')).to.have.lengthOf(1);
+            expect(paragraph.querySelector('a').textContent).to.equal(label);
+            expect(
+                paragraph.querySelector(':scope > em > strong > mas-field'),
+            ).to.equal(field);
+            expect(paragraph.querySelector('a').hasAttribute('class')).to.be
+                .false;
+        }
+    });
+
+    for (const reference of ['1', 'trial']) {
+        it(`preserves the page contract for split ctas[${reference}] references before a hidden CTA paragraph`, () => {
+            const text = fixture.querySelector('.text');
+            const field = `<mas-field field="ctas[${reference}]"><aem-fragment></aem-fragment></mas-field>`;
+            text.innerHTML =
+                `<p><strong>${field}</strong><em><strong>${field}</strong></em><strong>${field}</strong></p>` +
+                `<p hidden><em><strong>${field}</strong></em></p>`;
+            const paragraph = text.firstElementChild;
+            for (const element of text.querySelectorAll('mas-field')) {
+                element.addEventListener('mas:ready', () =>
+                    element.replaceWith(element.querySelector('a')),
+                );
+                element.querySelector('aem-fragment').dispatchEvent(
+                    new CustomEvent('aem:load', {
+                        bubbles: true,
+                        detail: {
+                            fields: {
+                                ctas: '<a data-wcs-osi="ABC" class="secondary-outline" data-key="trial">Free trial</a>',
+                            },
+                        },
+                    }),
+                );
+            }
+            expect(paragraph.querySelectorAll('a')).to.have.lengthOf(3);
+            const actionParagraph = text.querySelector(':scope > p:has(> em)');
+            expect(actionParagraph).to.equal(paragraph);
+            const primary = actionParagraph.querySelector('em > strong a');
+            expect(primary).to.exist;
+            expect(primary.hasAttribute('class')).to.be.false;
+            actionParagraph.replaceChildren(primary);
+            expect(paragraph.querySelectorAll('a')).to.have.lengthOf(1);
+            expect(primary.textContent).to.equal('Free trial');
+            expect(primary.isCheckoutLink).to.be.true;
+            expect(primary.dataset.key).to.equal('trial');
+            expect(text.querySelector('p[hidden] a')).to.exist;
+        });
+    }
+
+    for (const reference of ['1', 'trial']) {
+        for (const wrapperOnHost of [false, true]) {
+            it(`preserves unformatted FEDS ctas[${reference}] with the wrapper on the ${wrapperOnHost ? 'host' : 'parent'}`, () => {
+                const paragraph = document.createElement('p');
+                const fieldMarkup = `<mas-field field="ctas[${reference}]"${wrapperOnHost ? ' class="feds-cta-wrapper"' : ''}><aem-fragment></aem-fragment></mas-field>`;
+                paragraph.innerHTML = wrapperOnHost
+                    ? fieldMarkup
+                    : `<span class="feds-cta-wrapper">${fieldMarkup}</span>`;
+                fixture.querySelector('.text').append(paragraph);
+                const field = paragraph.querySelector('mas-field');
+                const fragment = field.querySelector('aem-fragment');
+                for (const variant of [
+                    'primary',
+                    'secondary',
+                    'secondary-link',
+                ]) {
+                    fragment.dispatchEvent(
+                        new CustomEvent('aem:load', {
+                            bubbles: true,
+                            detail: {
+                                fields: {
+                                    ctas: `<a class="${variant}" data-wcs-osi="ABC" data-key="trial"><em>Free</em> trial</a>`,
+                                },
+                            },
+                        }),
+                    );
+                    expect(paragraph.querySelectorAll('a')).to.have.lengthOf(1);
+                    const link = field.querySelector('a');
+                    expect(link.hasAttribute('class')).to.be.false;
+                    expect(link.isCheckoutLink).to.be.true;
+                    expect(link.dataset.key).to.equal('trial');
+                    expect(link.querySelector('em').textContent).to.equal(
+                        'Free',
+                    );
+                    expect(paragraph.classList.contains('action-area')).to.be
+                        .false;
+                    expect(field.closest('.feds-cta-wrapper')).to.exist;
+                }
+            });
+        }
+    }
+
+    it('keeps a classless indexed CTA available to page decoration after readiness', async () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            '<em><strong><mas-field field="ctas[trial]"><aem-fragment></aem-fragment></mas-field></strong></em>';
+        fixture.querySelector('.text').append(paragraph);
+        const field = paragraph.querySelector('mas-field');
+        const ready = sinon.spy(() =>
+            field.replaceWith(field.querySelector('a')),
+        );
+        field.addEventListener('mas:ready', ready);
+        field.querySelector('aem-fragment').dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas: '<a href="/trial" data-key="trial">Free trial</a>',
+                    },
+                },
+            }),
+        );
+        await delay(50);
+        expect(ready.calledOnce).to.be.true;
+        expect(
+            paragraph.querySelector('em > strong a').getAttribute('href'),
+        ).to.equal('/trial');
+        expect(paragraph.querySelector('a').hasAttribute('class')).to.be.false;
+    });
+
+    it('does not unwrap formatting shared with other document content', () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            '<strong>Keep this text <mas-field field="ctas[accent]"><aem-fragment></aem-fragment></mas-field></strong>';
+        fixture.querySelector('.text').append(paragraph);
+        const field = paragraph.querySelector('mas-field');
+        const fragment = field.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas, variant: 'headless' } },
+            }),
+        );
+        expect(field.closest('strong')).to.exist;
+        expect(paragraph.textContent).to.include('Keep this text');
+    });
+
+    for (const block of ['accordion', 'media']) {
+        it(`does not impose a button size on ${block} CTAs`, () => {
+            fixture.firstElementChild.className = block;
+            const group = renderField('ctas');
+            const single = renderField('ctas[accent]');
+            for (const element of [group, single]) {
+                expect(
+                    [
+                        ...element.querySelector('a[data-key="accent"]')
+                            .classList,
+                    ].some((value) => /^button-(s|m|l|xl|xxl)$/.test(value)),
+                ).to.be.false;
+            }
+        });
+    }
 });
 
 describe('mas-field – label-keyed fields (customFields[label])', () => {
@@ -458,6 +1218,108 @@ describe('mas-field – checkReady()', () => {
         const result = await readyPromise;
         expect(result).to.be.true;
     });
+
+    it('resolves false when aem:error fires while waiting', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        expect(await readyPromise).to.be.false;
+    });
+
+    it('resolves false when the fragment already failed', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+
+        expect(await el.checkReady()).to.be.false;
+    });
+
+    it('ignores aem:error events that do not come from its own aem-fragment', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        const other = document.createElement('div');
+        el.append(fragment, other);
+        document.body.append(el);
+
+        other.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        const readyPromise = el.checkReady();
+        other.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+
+        expect(await readyPromise).to.be.true;
+    });
+
+    it('does not leave stale listeners after a successful load', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+        expect(await readyPromise).to.be.true;
+        expect(removeSpy.calledWith('aem:load')).to.be.true;
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
+
+    it('does not leave stale listeners after a failure', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        expect(await readyPromise).to.be.false;
+        expect(removeSpy.calledWith('aem:load')).to.be.true;
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
+
+    it('stops tracking aem:error once disconnected', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        el.remove();
+
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
 });
 
 describe('mas-field – normalized field values', () => {
@@ -481,15 +1343,17 @@ describe('mas-field – non-checkout and link-style CTAs', () => {
             .forEach((el) => el.remove());
     });
 
-    it('clones non-checkout link without button styling', () => {
+    it('styles non-checkout CTAs consistently when consuming other card templates', () => {
         const el = makeField(
             'ctas',
             '<a href="https://example.com" class="accent">Learn more</a>',
+            'plans',
         );
         const link = el.querySelector('[slot="footer"] a');
         expect(link).to.exist;
         expect(link.getAttribute('href')).to.equal('https://example.com');
-        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('con-button')).to.be.true;
+        expect(link.classList.contains('blue')).to.be.true;
     });
 
     it('does not add button classes for link-style variant (accent-link)', () => {
@@ -1109,7 +1973,7 @@ describe('mas-field – mas:ready event', () => {
             .forEach((el) => el.remove());
     });
 
-    it('dispatches a bubbling mas:ready after rendering on aem:load', () => {
+    it('dispatches a bubbling mas:ready after rendering on aem:load', async () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'title');
         const fragment = document.createElement('aem-fragment');
@@ -1124,7 +1988,7 @@ describe('mas-field – mas:ready event', () => {
                 detail: { fields: { title: 'CC' } },
             }),
         );
-
+        await delay(50);
         expect(onReady.calledOnce).to.be.true;
         expect(onReady.firstCall.args[0].target).to.equal(el);
     });
@@ -1150,6 +2014,18 @@ describe('mas-field – tooltip icon-button rendering', () => {
             svg.getAttribute('class') || '',
             'milo info icon class',
         ).to.contain('icon-milo-info');
+        expect(svg.getAttribute('viewBox'), 'Spectrum 2 viewBox').to.equal(
+            '0 0 20 20',
+        );
+        expect(svg.getAttribute('class')).to.equal('icon-milo icon-milo-info');
+        expect(svg.getAttribute('aria-hidden')).to.equal('true');
+        expect(svg.getAttribute('height')).to.equal('18');
+        expect(svg.getAttribute('width')).to.equal('18');
+        const paths = svg.querySelectorAll('path');
+        expect(paths.length, 'InfoCircle has three paths').to.equal(3);
+        paths.forEach((path) =>
+            expect(path.getAttribute('fill')).to.equal('currentcolor'),
+        );
         expect(
             btn.getBoundingClientRect().width,
             'glyph occupies space',
@@ -1327,14 +2203,31 @@ describe('mas-field – hideTrialCTAs setting', () => {
         ].map((a) => a.textContent);
     }
 
-    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', () => {
+    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', async () => {
         const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Buy now', 'Save today']);
     });
 
     it('keeps every CTA when hideTrialCTAs is false', () => {
         const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: false });
         expect(anchorsOf(el)).to.have.lengthOf(4);
+    });
+
+    it('stripTrialCtas leaves Free trial and Select untouched when the swap setting is off', () => {
+        const el = makeField(
+            'ctas',
+            '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-replaced-osi="osi0" data-analytics-id="free-trial">Free trial</a>' +
+                '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="select">Select</a>',
+            { hideTrialCTAs: false },
+        );
+        const anchors = [
+            ...el.querySelectorAll('[data-role="mas-field-content"] a'),
+        ];
+        expect(anchors.map((a) => a.dataset.analyticsId)).to.deep.equal([
+            'free-trial',
+            'select',
+        ]);
     });
 
     it('keeps every CTA when the setting is absent', () => {
@@ -1347,13 +2240,15 @@ describe('mas-field – hideTrialCTAs setting', () => {
         expect(anchorsOf(el)).to.be.empty;
     });
 
-    it('does not shift indices when a trial CTA is suppressed', () => {
+    it('does not shift indices when a trial CTA is suppressed', async () => {
         const el = makeField('ctas[4]', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Save today']);
     });
 
-    it('renders a non-trial indexed CTA unchanged', () => {
+    it('renders a non-trial indexed CTA unchanged', async () => {
         const el = makeField('ctas[1]', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Buy now']);
     });
 
@@ -1361,9 +2256,10 @@ describe('mas-field – hideTrialCTAs setting', () => {
         '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>' +
         '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="start-free-trial">Start free trial</a>';
 
-    it('keeps every CTA on a plain ctas field when all of them are trials', () => {
+    it('do not keep any CTA on a plain ctas field when all of them are trials', async () => {
         const el = makeField('ctas', ALL_TRIAL_CTAS, { hideTrialCTAs: true });
-        expect(anchorsOf(el)).to.deep.equal(['Free trial', 'Start free trial']);
+        await delay(50);
+        expect(anchorsOf(el)).to.deep.equal([]);
     });
 
     it('renders nothing for an indexed ref into an all-trial field', () => {
@@ -1375,11 +2271,36 @@ describe('mas-field – hideTrialCTAs setting', () => {
 });
 
 describe('mas-field – hidden attribute when render resolves to empty', () => {
+    let clock;
     afterEach(() => {
         document.body
             .querySelectorAll('mas-field')
             .forEach((el) => el.remove());
+
+        clock?.restore();
+        clock = null;
     });
+
+    function makeIndexedField(index, ctasHtml, doLoad = true) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', `ctas[${index}]`);
+        const fragment = document.createElement('aem-fragment');
+        fragment.data = {
+            priceLiterals: {
+                buyNow: 'Buy now',
+            },
+        };
+        el.append(fragment);
+        document.body.append(el);
+        if (doLoad)
+            fragment.dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: { fields: { ctas: ctasHtml } },
+                }),
+            );
+        return el;
+    }
 
     it('sets hidden when field value is undefined', () => {
         const el = document.createElement('mas-field');
@@ -1436,7 +2357,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(el.hidden).to.be.true;
     });
 
-    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', () => {
+    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', async () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'ctas[2]');
         const fragment = document.createElement('aem-fragment');
@@ -1455,7 +2376,30 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
                 },
             }),
         );
+        await delay(50);
         expect(el.hidden).to.be.true;
+    });
+
+    it('sets hidden when an non-indexed CTA is stripped by hideTrialCTAs', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[gfdgfd]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas: '<a is="checkout-link" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>',
+                        ctaLabels: 'gfdgfd',
+                    },
+                    settings: { hideTrialCTAs: true },
+                },
+            }),
+        );
+        await delay(50);
+        expect(el.querySelector('a')).to.equal(null);
     });
 
     it('clears hidden when re-rendered with content after being empty', () => {
@@ -1490,6 +2434,243 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(el.hidden).to.be.true;
         expect(getComputedStyle(el).display).to.equal('none');
     });
+
+    it('hide free-trial CTA with stripTrialCtas when buy-now CTA is outside template', async () => {
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const el1 = makeIndexedField(1, CTA_HTML);
+        const el2 = makeIndexedField(2, CTA_HTML);
+
+        const div = document.createElement('div');
+        div.appendChild(el1);
+        div.appendChild(el2);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el2);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
+        expect(ctas.length).to.equal(0);
+    });
+
+    it('hide free-trial CTA with stripTrialCtas when buy-now CTA is outside template with timeout', async () => {
+        clock = sinon.useFakeTimers();
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const el1 = makeIndexedField(1, CTA_HTML, false);
+        const el2 = makeIndexedField(2, CTA_HTML, false);
+
+        const div = document.createElement('div');
+        div.appendChild(el1);
+        div.appendChild(el2);
+        document.body.append(div);
+
+        let settled = false;
+        const hookPromise = stripTrialCtas(template, true, el2).then(
+            (resultHtml) => {
+                settled = true;
+                return resultHtml;
+            },
+        );
+
+        expect(settled).to.be.false;
+        await clock.tickAsync(MERCH_CARD_LOAD_TIMEOUT);
+        const resultHtml = await hookPromise;
+        expect(settled).to.be.true;
+
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        // after waiting for MERCH_CARD_LOAD_TIMEOUT nothing changed
+        const masFields = doc.querySelectorAll('mas-field[field="ctas[77]"]');
+        expect(masFields.length).to.equal(1);
+        const trialCta = doc.querySelector(
+            'mas-field[field="ctas[77]"] a[data-analytics-id="free-trial"]',
+        );
+        expect(trialCta).to.exist;
+    });
+
+    it('hide free-trial CTA with stripTrialCtas when buy-now CTA is next to it', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[78]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: CTA_TRIAL_HTML } },
+            }),
+        );
+
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p><p><mas-field field="ctas[99]"><span data-role="mas-field-content">${CTA_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector(
+            'mas-field [data-analytics-id="free-trial"]',
+        );
+        const buyNowEl = doc.querySelector('[data-analytics-id="buy-now"]');
+        expect(trialEl).to.equal(null);
+        expect(buyNowEl).to.exist;
+        expect(buyNowEl.classList.contains('accent')).to.be.false;
+        expect(buyNowEl.classList.contains('blue')).to.be.true;
+    });
+
+    it('replace free-trial CTA with buy-now CTA with stripTrialCtas', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas[78]');
+        const fragment = document.createElement('aem-fragment');
+        fragment.data = {
+            priceLiterals: {
+                buyNow: 'Buy now',
+            },
+        };
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: CTA_TRIAL_HTML } },
+            }),
+        );
+
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.exist;
+        expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+    });
+
+    const SELECT_CTA_HTML =
+        '<a data-wcs-osi="ABC123" data-analytics-id="select" class="accent">Select</a>';
+    const LEARN_MORE_CTA_HTML =
+        '<a data-wcs-osi="ABC123" data-analytics-id="learn-more" class="accent">Learn more</a>';
+
+    it('stripTrialCtas removes Free trial when the select CTA is outside the template', async () => {
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const el1 = makeIndexedField(1, SELECT_CTA_HTML);
+        const el2 = makeIndexedField(2, SELECT_CTA_HTML);
+
+        const div = document.createElement('div');
+        div.appendChild(el1);
+        div.appendChild(el2);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el2);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
+        expect(ctas.length).to.equal(0);
+    });
+
+    it('stripTrialCtas removes Free trial next to data-analytics-id=select', async () => {
+        const analyticsId = 'select';
+        const ctaHtml = SELECT_CTA_HTML;
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML + ctaHtml;
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not.exist;
+        expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not.exist;
+        const qualifying = doc.querySelector(
+            `[data-analytics-id="${analyticsId}"]`,
+        );
+        expect(qualifying).to.exist;
+        expect(qualifying.classList.contains('blue')).to.be.true;
+        expect(qualifying.classList.contains('con-button')).to.be.true;
+    });
+
+    it('Free trial next to Learn more still becomes Buy now', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML + LEARN_MORE_CTA_HTML;
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.exist;
+        expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(trialEl.textContent).to.equal('Buy now');
+    });
+
+    it('Free trial aria-label text becomes Buy now', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML.replace(
+            '<a ',
+            '<a aria-label="Free trial - Acrobat Pro" ',
+        );
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl.getAttribute('aria-label')).to.equal(
+            'Buy now - Acrobat Pro',
+        );
+        expect(trialEl.textContent).to.equal('Buy now');
+    });
+
+    it('stripTrialCtas removes Free trial when the select CTA is in a neighbouring mas-field', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML;
+
+        const el = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="primary-outline" href="" data-analytics-id="free-trial" data-wcs-osi="osi2">Free trial</a>',
+        );
+        const elSelect = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="accent" href="" data-analytics-id="select" data-wcs-osi="osi2">Select</a>',
+        );
+        elSelect.setAttribute('field', 'ctas[2]');
+
+        const div = document.createElement('div');
+        div.appendChild(el);
+        div.appendChild(elSelect);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not.exist;
+        expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not.exist;
+    });
+
+    it('replace free-trial CTA with buy-now CTA with stripTrialCtas when mas-field with buy now is next to it', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML;
+
+        const el = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="primary-outline" href="" data-analytics-id="free-trial" data-wcs-osi="osi2">Free trial</a>',
+        );
+        const elBuy = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="accent" href="" data-analytics-id="buy-now" data-wcs-osi="osi2">Buy now</a>',
+        );
+        elBuy.setAttribute('field', 'ctas[2]');
+
+        const div = document.createElement('div');
+        div.appendChild(el);
+        div.appendChild(elBuy);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.not.exist; // CTA removed, buy now is next to it
+    });
 });
 
 describe('mas-field osi getter', () => {
@@ -1507,5 +2688,457 @@ describe('mas-field osi getter', () => {
             value: { data: { fields: { osi: 'FIELD' } } },
         });
         expect(field.osi).to.equal('FIELD');
+    });
+});
+
+const IMAGE_INNER =
+    '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=2000&format=webply&optimize=medium" media="(min-width: 600px)">' +
+    '<source type="image/webp" srcset="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=webply&optimize=medium">' +
+    '<img loading="lazy" alt="" src="https://main--mas-test--adobecom.aem.page/test-fragments/media_1.png?width=750&format=png&optimize=medium">';
+
+describe('renderImageMarkup', () => {
+    const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
+
+    it('wraps inner markup in a <picture>, preserving all sources', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        const picture = doc.querySelector('picture');
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('leaves *.aem.page URLs untouched off prod', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, { hostname: 'localhost' }),
+        );
+        expect(doc.querySelector('img').getAttribute('src')).to.contain(
+            'main--mas-test--adobecom.aem.page',
+        );
+    });
+
+    it('rewrites *.aem.page origins to the prod origin on adobe.com', () => {
+        const doc = parse(
+            renderImageMarkup(IMAGE_INNER, {
+                hostname: 'www.adobe.com',
+                origin: 'https://www.adobe.com',
+            }),
+        );
+        const img = doc.querySelector('img');
+        expect(img.getAttribute('src')).to.equal(
+            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png&optimize=medium',
+        );
+        doc.querySelectorAll('source').forEach((s) => {
+            expect(s.getAttribute('srcset')).to.contain(
+                'https://www.adobe.com/test-fragments/media_1.png',
+            );
+            expect(s.getAttribute('srcset')).to.not.contain('aem.page');
+        });
+    });
+
+    it('returns empty string for empty input', () => {
+        expect(renderImageMarkup('', { hostname: 'www.adobe.com' })).to.equal(
+            '',
+        );
+    });
+});
+
+describe('mas-field – image rendering', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders image as a <picture data-role> content root (no wrapping span)', () => {
+        const el = makeField('image', IMAGE_INNER);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img')).to.exist;
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered image field', () => {
+        const malicious = `${IMAGE_INNER}<script>1+1</script>`;
+        const el = makeField('image', malicious);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelector('img')).to.exist;
+    });
+
+    it('renders backgroundImage as a <picture data-role> with a single <img>', () => {
+        const url = 'https://main--mas-test--adobecom.aem.page/media/bg.png';
+        const el = makeField('backgroundImage', url);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(0);
+        const img = picture.querySelector('img');
+        expect(img).to.exist;
+        expect(img.getAttribute('src')).to.equal(url);
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to.not
+            .exist;
+    });
+
+    it('keeps the rendered <picture> after a reconnect (e.g. marquee repositioning its background)', () => {
+        const el = makeField('backgroundImage', 'https://example.com/bg.png');
+        el.remove();
+        document.body.append(el);
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelector('img')?.getAttribute('src')).to.equal(
+            'https://example.com/bg.png',
+        );
+    });
+
+    it('clears a previously rendered <picture> and hides the field when backgroundImage becomes empty', () => {
+        const el = makeField(
+            'backgroundImage',
+            'https://main--mas-test--adobecom.aem.page/media/bg.png',
+        );
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgroundImage: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
+});
+
+describe('mas-field – backgrounds rendering (field="backgrounds" / "backgrounds[breakpoint]")', () => {
+    const DESKTOP_URL =
+        'https://main--mas-test--adobecom.aem.page/media_desktop.png';
+    const TABLET_URL =
+        'https://main--mas-test--adobecom.aem.page/media_tablet.png';
+    const MOBILE_URL =
+        'https://main--mas-test--adobecom.aem.page/media_mobile.png';
+    const COMBINED =
+        `<source srcset="${DESKTOP_URL}" media="(min-width: 1200px)">` +
+        `<source srcset="${TABLET_URL}" media="(min-width: 600px)">` +
+        `<img loading="lazy" alt="" data-mobile-set="true" src="${MOBILE_URL}">`;
+
+    function makeBackgroundsField(field) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: COMBINED } },
+            }),
+        );
+        return el;
+    }
+
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders the whole combined <picture> for plain "backgrounds" (no breakpoint)', () => {
+        const el = makeBackgroundsField('backgrounds');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            MOBILE_URL,
+        );
+    });
+
+    it('strips markup outside the picture/source/img allow-list from a tampered backgrounds field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: { backgrounds: `${COMBINED}<script>1+1</script>` },
+                },
+            }),
+        );
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+    });
+
+    it('renders the full webp/format rendition set (not a bare img) for "backgrounds[desktop]"', () => {
+        const el = makeBackgroundsField('backgrounds[desktop]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture).to.exist;
+        const sources = [...picture.querySelectorAll('source')];
+        expect(sources).to.have.lengthOf(3);
+        sources.forEach((s) =>
+            expect(s.getAttribute('srcset')).to.contain(DESKTOP_URL),
+        );
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            DESKTOP_URL,
+        );
+    });
+
+    it('renders the full webp/format rendition set for "backgrounds[tablet]"', () => {
+        const el = makeBackgroundsField('backgrounds[tablet]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            TABLET_URL,
+        );
+    });
+
+    it('renders the full webp/format rendition set for "backgrounds[mobile]"', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const picture = el.querySelector(
+            ':scope > picture[data-role="mas-field-content"]',
+        );
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(3);
+        expect(picture.querySelector('img').getAttribute('src')).to.contain(
+            MOBILE_URL,
+        );
+    });
+
+    it('renders nothing for a breakpoint absent from the combined markup', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[tablet]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" src="${MOBILE_URL}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('renders nothing for a backgrounds[breakpoint] URL on an unsupported host', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="https://example.com/media_mobile.png">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+    });
+
+    it('clears a previously rendered <picture> and hides the field when the breakpoint URL becomes empty', () => {
+        const el = makeBackgroundsField('backgrounds[mobile]');
+        const fragment = el.querySelector('aem-fragment');
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { backgrounds: '' } },
+            }),
+        );
+        expect(el.querySelector('picture')).to.not.exist;
+        expect(el.hidden).to.be.true;
+    });
+
+    it('does not let a quote in a stored backgrounds[breakpoint] URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--mas-test--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgrounds[mobile]');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgrounds: `<img loading="lazy" alt="" data-mobile-set="true" src="${malicious}">`,
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('mas-field, backgroundImage attribute injection safety', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('does not let a quote in a stored backgroundImage URL break out of the src attribute', () => {
+        const malicious =
+            'https://main--mas-test--adobecom.aem.page/a.png" onerror="alert(1)';
+        const el = makeField('backgroundImage', malicious);
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+
+    it('does not let a quote in backgroundImageAltText break out of the alt attribute', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgroundImage');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        backgroundImage:
+                            'https://main--mas-test--adobecom.aem.page/bg.png',
+                        backgroundImageAltText: '" onerror="alert(1)',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('[onerror]')).to.not.exist;
+    });
+});
+
+describe('mas-field, backgroundImage alt text', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    function makeBackgroundImageField(backgroundImage, backgroundImageAltText) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'backgroundImage');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: { backgroundImage, backgroundImageAltText },
+                },
+            }),
+        );
+        return el;
+    }
+
+    it('uses backgroundImageAltText as the alt text when present', () => {
+        const el = makeBackgroundImageField(
+            'https://main--mas-test--adobecom.aem.page/bg.png',
+            'Autumn sale banner',
+        );
+        const img = el.querySelector(
+            'picture[data-role="mas-field-content"] img',
+        );
+        expect(img.getAttribute('alt')).to.equal('Autumn sale banner');
+    });
+
+    it('marks the image decorative with role="none" (not an empty alt) when backgroundImageAltText is absent, matching hydrate.js', () => {
+        const el = makeBackgroundImageField(
+            'https://main--mas-test--adobecom.aem.page/bg.png',
+            undefined,
+        );
+        const img = el.querySelector(
+            'picture[data-role="mas-field-content"] img',
+        );
+        expect(img.hasAttribute('alt')).to.be.false;
+        expect(img.getAttribute('role')).to.equal('none');
+    });
+});
+
+describe('mas-field: switching field types on a live instance', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('replaces a stale <picture> content element when the field attribute switches from an image field to a text field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'image');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        image: '<img src="https://main--mas-test--adobecom.aem.page/x.png">',
+                        cardTitle: '<p>Hello title</p>',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('picture[data-role="mas-field-content"]')).to
+            .exist;
+
+        el.setAttribute('field', 'cardTitle');
+
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.tagName).to.equal('SPAN');
+        expect(content.textContent).to.equal('Hello title');
+    });
+
+    it('replaces a stale <span> content element when the field attribute switches from a text field to an image field', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'cardTitle');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        cardTitle: '<p>Hello title</p>',
+                        image: '<img src="https://main--mas-test--adobecom.aem.page/x.png">',
+                    },
+                },
+            }),
+        );
+        expect(el.querySelector('span[data-role="mas-field-content"]')).to
+            .exist;
+
+        el.setAttribute('field', 'image');
+
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.tagName).to.equal('PICTURE');
+        expect(content.querySelector('img')?.getAttribute('src')).to.equal(
+            'https://main--mas-test--adobecom.aem.page/x.png',
+        );
     });
 });

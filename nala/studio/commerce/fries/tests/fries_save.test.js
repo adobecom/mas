@@ -13,6 +13,8 @@ import COMFriesSpec from '../specs/fries_save.spec.js';
 
 const { features } = COMFriesSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-save-edited-trial-badge - Validate edit trial badge for fries card in mas studio
     // combines: text, color and border color
@@ -23,7 +25,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -37,25 +39,17 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit trial badge field', async () => {
             await expect(await editor.trialBadge).toBeVisible();
-            await editor.trialBadge.fill(data.trialBadge);
+            await editor.fillRteField(editor.trialBadge, data.trialBadge);
         });
 
         await test.step('step-5: Edit trial badge color', async () => {
             await expect(await editor.trialBadgeColor).toBeVisible();
-            await editor.trialBadgeColor.scrollIntoViewIfNeeded();
-            await editor.trialBadgeColor.click();
-            await expect(await editor.trialBadgeColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.trialBadgeColor.name, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.trialBadgeColor, data.trialBadgeColor.name);
         });
 
         await test.step('step-6: Edit trial badge border color', async () => {
             await expect(await editor.trialBadgeBorderColor).toBeVisible();
-            await editor.trialBadgeBorderColor.scrollIntoViewIfNeeded();
-            await editor.trialBadgeBorderColor.click();
-            await expect(await editor.trialBadgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.trialBadgeBorderColor.name, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.trialBadgeBorderColor, data.trialBadgeBorderColor.name);
         });
 
         await test.step('step-7: Save card with all changes', async () => {

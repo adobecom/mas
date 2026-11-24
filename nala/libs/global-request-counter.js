@@ -5,9 +5,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getRateLimitMetrics, getReadRetryCounts } from './rate-limit.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
+    ODIN_PREVIEW: 'https://odinpreview.corp.adobe.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
     // MAS_IO: 'https://mas.adobe.com/io',
@@ -23,6 +25,8 @@ if (!globalThis.requestCounter) {
         serviceCounts: {}, // { serviceName: { totalRequests: 0, methods: {} } }
         trackedUrls: { ...DEFAULT_TRACKED_URLS },
         counterFile: './test-results/request-count.json',
+        rateLimitsBefore: {},
+        retriesBefore: new Map(),
     };
 } else {
     // Merge defaults with any runtime additions (preserves addTrackedUrl calls)
@@ -40,17 +44,21 @@ class GlobalRequestCounter {
     static async init(page) {
         // Reset counters for this individual test
         globalThis.requestCounter.serviceCounts = {};
+        globalThis.requestCounter.rateLimitsBefore = getRateLimitMetrics();
+        globalThis.requestCounter.retriesBefore = getReadRetryCounts();
 
         // Initialize each tracked service
         for (const serviceName of Object.keys(globalThis.requestCounter.trackedUrls)) {
             globalThis.requestCounter.serviceCounts[serviceName] = {
                 totalRequests: 0,
                 methods: {},
+                cacheHits: 0,
+                coalescedReads: 0,
             };
         }
 
         // Count requests without intercepting — avoids conflicting with any page.route() throttle handler
-        page.on('request', (request) => {
+        const listener = (request) => {
             const url = request.url();
             const method = request.method();
 
@@ -62,15 +70,29 @@ class GlobalRequestCounter {
                     break;
                 }
             }
-        });
+        };
+        page.on('request', listener);
+        const coalesced = (url) => {
+            for (const [name, prefix] of Object.entries(globalThis.requestCounter.trackedUrls)) {
+                if (url.startsWith(prefix)) {
+                    globalThis.requestCounter.serviceCounts[name].coalescedReads++;
+                    break;
+                }
+            }
+        };
+        page.on('nala:coalesced-settings-read', coalesced);
+        return () => {
+            page.removeListener('request', listener);
+            page.removeListener('nala:coalesced-settings-read', coalesced);
+        };
     }
 
     /**
      * Save count to individual file per test to avoid race conditions completely
      */
-    static saveCountToFileSync() {
+    static saveCountToFileSync(phase = 'tests') {
         try {
-            this._saveToIndividualFile();
+            this._saveToIndividualFile(phase);
         } catch (error) {
             console.log(`\x1b[31m✘\x1b[0m Failed to save request count: ${error.message}`);
         }
@@ -79,7 +101,7 @@ class GlobalRequestCounter {
     /**
      * Write this test's count to a unique file - reporter will sum them all
      */
-    static _saveToIndividualFile() {
+    static _saveToIndividualFile(phase = 'tests') {
         const fs = globalThis._fsModule;
         const path = globalThis._pathModule;
 
@@ -97,12 +119,40 @@ class GlobalRequestCounter {
         // Create unique filename for this test execution
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(7);
-        const individualFile = path.join(dir, `request-count-${timestamp}-${random}.json`);
+        const individualFile = path.join(
+            dir,
+            `request-count-${phase === 'cleanup' ? 'cleanup-' : ''}${timestamp}-${random}.json`,
+        );
 
         // Write this test's counts and methods as JSON
         const data = {
-            serviceCounts: globalThis.requestCounter.serviceCounts,
+            serviceCounts: Object.fromEntries(
+                Object.entries(globalThis.requestCounter.serviceCounts).map(([service, counts]) => [
+                    service,
+                    {
+                        ...counts,
+                        upstreamRetries: [...getReadRetryCounts()]
+                            .filter(([url]) => url.startsWith(globalThis.requestCounter.trackedUrls[service]))
+                            .reduce(
+                                (total, [url, count]) =>
+                                    total + count - (globalThis.requestCounter.retriesBefore.get(url) ?? 0),
+                                0,
+                            ),
+                    },
+                ]),
+            ),
             trackedUrls: globalThis.requestCounter.trackedUrls,
+            rateLimits: Object.fromEntries(
+                Object.entries(getRateLimitMetrics()).map(([origin, counts]) => [
+                    origin,
+                    Object.fromEntries(
+                        Object.entries(counts).map(([name, count]) => [
+                            name,
+                            count - (globalThis.requestCounter.rateLimitsBefore[origin]?.[name] ?? 0),
+                        ]),
+                    ),
+                ]),
+            ),
         };
 
         fs.writeFileSync(individualFile, JSON.stringify(data));
@@ -118,10 +168,24 @@ class GlobalRequestCounter {
     }
 
     /**
+     * Account for browser requests fulfilled locally rather than sent upstream.
+     */
+    static recordCacheHit(url) {
+        for (const [name, prefix] of Object.entries(globalThis.requestCounter.trackedUrls)) {
+            if (url.startsWith(prefix)) {
+                globalThis.requestCounter.serviceCounts[name].cacheHits++;
+                break;
+            }
+        }
+    }
+
+    /**
      * Reset request counter (for new test runs)
      */
     static reset() {
         globalThis.requestCounter.serviceCounts = {};
+        globalThis.requestCounter.rateLimitsBefore = getRateLimitMetrics();
+        globalThis.requestCounter.retriesBefore = getReadRetryCounts();
         this.saveCountToFileSync();
     }
 

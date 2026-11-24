@@ -1,10 +1,15 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import { nothing, render } from 'lit';
 import {
     renderFragmentStatusCell,
     renderPromotionStatusCell,
+    renderCopyableValue,
+    renderCopyableValueCell,
+    copyToClipboardWithToast,
     getItemTypeLabel,
     getItemTitle,
+    getOfferName,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
     renderInheritedTagsNotice,
@@ -25,6 +30,15 @@ import {
 } from '../../../src/constants.js';
 
 describe('render-utils', () => {
+    it('labels surface baseline selections as Baseline instead of Default', () => {
+        expect(
+            getItemTypeLabel({
+                path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                model: { path: CARD_MODEL_PATH },
+            }),
+        ).to.equal('Baseline');
+    });
+
     describe('renderFragmentStatusCell', () => {
         it('returns nothing when status is missing', () => {
             expect(renderFragmentStatusCell()).to.equal(nothing);
@@ -82,6 +96,152 @@ describe('render-utils', () => {
         });
     });
 
+    describe('renderCopyableValue', () => {
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('renders the value in the trigger slot and the tooltip', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValue(container, 'VAL-1'), container);
+            expect(container.querySelector('div[slot="trigger"]')?.textContent.trim()).to.equal('VAL-1');
+            expect(container.querySelector('sp-tooltip')?.textContent.trim()).to.equal('VAL-1');
+        });
+
+        it('uses the default aria-label when none is provided', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValue(container, 'VAL-2'), container);
+            expect(container.querySelector('sp-action-button')?.getAttribute('aria-label')).to.equal('Copy to clipboard');
+        });
+
+        it('copies the value and dispatches a positive show-toast on click', async () => {
+            const container = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            render(renderCopyableValue(container, 'VAL-3', { successMessage: 'Copied!' }), container);
+            const toastPromise = new Promise((resolve) => {
+                container.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            container.querySelector('sp-action-button').click();
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copied!', variant: 'positive' });
+            expect(navigator.clipboard.writeText.calledWith('VAL-3')).to.be.true;
+        });
+    });
+
+    describe('renderCopyableValueCell', () => {
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('renders the empty label when value is falsy', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValueCell(container, null, { emptyLabel: 'no data' }), container);
+            expect(container.textContent).to.include('no data');
+            expect(container.querySelector('sp-action-button')).to.not.exist;
+        });
+
+        it('renders the value with a copy button when present', () => {
+            const container = document.createElement('div');
+            render(renderCopyableValueCell(container, 'ABC-123', { ariaLabel: 'Copy value' }), container);
+            expect(container.textContent).to.include('ABC-123');
+            const copyBtn = container.querySelector('sp-action-button[aria-label="Copy value"]');
+            expect(copyBtn).to.exist;
+        });
+
+        it('copies the value and dispatches a positive show-toast on click', async () => {
+            const container = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            render(
+                renderCopyableValueCell(container, 'XYZ-456', {
+                    ariaLabel: 'Copy value',
+                    successMessage: 'Copied!',
+                }),
+                container,
+            );
+            const toastPromise = new Promise((resolve) => {
+                container.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            container.querySelector('sp-action-button[aria-label="Copy value"]').click();
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copied!', variant: 'positive' });
+            expect(navigator.clipboard.writeText.calledWith('XYZ-456')).to.be.true;
+        });
+
+        it('dispatches a negative show-toast when the clipboard write fails', async () => {
+            const container = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('denied'));
+            sandbox.stub(console, 'error');
+            render(
+                renderCopyableValueCell(container, 'FAIL-789', {
+                    ariaLabel: 'Copy value',
+                    errorMessage: 'Copy failed',
+                }),
+                container,
+            );
+            const toastPromise = new Promise((resolve) => {
+                container.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            container.querySelector('sp-action-button[aria-label="Copy value"]').click();
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copy failed', variant: 'negative' });
+        });
+    });
+
+    describe('copyToClipboardWithToast', () => {
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('stops event propagation', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const event = { stopPropagation: sinon.spy() };
+            await copyToClipboardWithToast(host, event, 'VAL');
+            expect(event.stopPropagation.calledOnce).to.be.true;
+        });
+
+        it('dispatches the default success message on a successful copy', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const toastPromise = new Promise((resolve) => {
+                host.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            await copyToClipboardWithToast(host, { stopPropagation: sinon.spy() }, 'VAL');
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Copied to clipboard', variant: 'positive' });
+        });
+
+        it('dispatches the default error message when the clipboard write fails', async () => {
+            const host = document.createElement('div');
+            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('denied'));
+            sandbox.stub(console, 'error');
+            const toastPromise = new Promise((resolve) => {
+                host.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            await copyToClipboardWithToast(host, { stopPropagation: sinon.spy() }, 'VAL');
+            const detail = await toastPromise;
+            expect(detail).to.deep.equal({ text: 'Failed to copy', variant: 'negative' });
+        });
+    });
+
     describe('getItemTypeLabel', () => {
         it('returns Unknown for falsy item', () => {
             expect(getItemTypeLabel(null)).to.equal('Unknown');
@@ -114,6 +274,22 @@ describe('render-utils', () => {
 
         it('returns Default for card model', () => {
             expect(getItemTypeLabel({ model: { path: CARD_MODEL_PATH } })).to.equal('Default');
+        });
+    });
+
+    describe('getOfferName', () => {
+        it('returns the product code tag title', () => {
+            const item = {
+                tags: [
+                    { id: 'mas:plan_type/abm', title: 'ABM' },
+                    { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                ],
+            };
+            expect(getOfferName(item)).to.equal('Photoshop');
+        });
+
+        it('returns an empty string without a product code tag', () => {
+            expect(getOfferName(null)).to.equal('');
         });
     });
 
@@ -159,12 +335,12 @@ describe('render-utils', () => {
             Store.promotions.itemPickerSurface.set(null);
         });
 
-        it('returns the prefixed studio path (authorPath) for the active surface', () => {
+        it('returns the studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
             expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
-            expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
+            expect(getStudioFragmentDisplayPath(fragment)).to.match(/^ACOM \/ merch-card/);
         });
 
         it('returns an empty string when no web component maps to the model', () => {

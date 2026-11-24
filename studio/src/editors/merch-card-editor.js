@@ -2,6 +2,8 @@ import { html, LitElement, nothing } from 'lit';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
+import '../fields/whats-included-modal.js';
+import { ICON_LIBRARY, renderSpIcon } from '../constants/icon-library.js';
 import { BASELINE_FIELD_STATE } from '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
@@ -217,6 +219,7 @@ class MerchCardEditor extends LitElement {
         titleBlockPage: { type: String, state: true },
         titleOrgTouched: { type: Boolean, state: true },
         addedSections: { type: Object, state: true },
+        whatsIncludedPopup: { type: Object, state: true },
         metaCollapsed: { type: Boolean, state: true },
     };
 
@@ -290,6 +293,7 @@ class MerchCardEditor extends LitElement {
         this.metaCollapsed = false;
         this.localeSearch = '';
         this.addedSections = new Set();
+        this.whatsIncludedPopup = { open: false, items: [], focusIndex: 0 };
         this.reactiveController = new ReactiveController(this, []);
         this.baselinesController = new CardBaselinesController(this);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -1207,6 +1211,7 @@ class MerchCardEditor extends LitElement {
 
     #handleAddSection(event, id) {
         this.addSection(id);
+        if (id === WHAT_IS_INCLUDED) this.#openWhatsIncludedPopup([{ icon: '', alt: '', link: '' }], 0);
         event.target.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     }
 
@@ -2039,6 +2044,51 @@ class MerchCardEditor extends LitElement {
                     margin: 8px 16px 8px 0;
                 }
 
+                #whatsIncluded .feature-rows {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    margin: 8px 16px 8px 0;
+                }
+
+                #whatsIncluded .feature-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 8px 12px;
+                    border: 1px solid var(--spectrum-gray-300, #dadada);
+                    border-radius: 8px;
+                    cursor: pointer;
+                }
+
+                #whatsIncluded .feature-row:hover,
+                #whatsIncluded .feature-row:focus-visible {
+                    background: var(--spectrum-gray-200, #e9e9e9);
+                }
+
+                #whatsIncluded .feature-row-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 32px;
+                    height: 32px;
+                    flex-shrink: 0;
+                }
+
+                #whatsIncluded .feature-row-icon img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
+
+                #whatsIncluded .feature-row-text {
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                    font-size: 14px;
+                    line-height: 18px;
+                }
+
                 .menu-item-container {
                     display: flex;
                     align-items: center;
@@ -2659,19 +2709,7 @@ class MerchCardEditor extends LitElement {
                               ${this.#sectionHeaderTemplate('whatsIncluded')}
                               <sp-field-group class="toggle" id="whatsIncluded">
                                   <sp-field-label for="whatsIncludedLabel">Section title</sp-field-label>
-                                  ${this.#renderWhatsIncludedLabel()}
-                                  <mas-multifield
-                                      button-label="Add bullet"
-                                      data-field-state="bullet"
-                                      .variant="${this.getEffectiveFieldValue('variant')}"
-                                      .value="${this.whatsIncluded.bullets}"
-                                      @change="${(e) => this.#updateWhatsIncluded(e, true)}"
-                                      @input="${(e) => this.#updateWhatsIncluded(e, true)}"
-                                  >
-                                      <template>
-                                          <mas-included-field></mas-included-field>
-                                      </template>
-                                  </mas-multifield>
+                                  ${this.#renderWhatsIncludedLabel()} ${this.#featureRowsTemplate}
                                   <mas-multifield
                                       button-label="Add application"
                                       data-field-state="${this.getFieldState('whatsIncluded')}"
@@ -2683,6 +2721,16 @@ class MerchCardEditor extends LitElement {
                                           <mas-included-field></mas-included-field>
                                       </template>
                                   </mas-multifield>
+                                  <mas-whats-included-modal
+                                      .open=${this.whatsIncludedPopup.open}
+                                      .label=${this.whatsIncluded.label}
+                                      .items=${this.whatsIncludedPopup.items}
+                                      .focusIndex=${this.whatsIncludedPopup.focusIndex}
+                                      .richLabel=${this.#whatsIncludedLabelIsRich}
+                                      .variant=${this.getEffectiveFieldValue('variant')}
+                                      @save=${this.#handleWhatsIncludedSave}
+                                      @modal-close=${this.#closeWhatsIncludedPopup}
+                                  ></mas-whats-included-modal>
                                   ${this.renderFieldStatusIndicator('whatsIncluded')}
                               </sp-field-group>
                               <sp-field-group class="toggle" id="whatsIncludedIconPicker">
@@ -2989,6 +3037,70 @@ class MerchCardEditor extends LitElement {
 
         return element;
     }
+
+    #featureRowName(icon) {
+        if (icon.startsWith('sp-icon-')) return ICON_LIBRARY.find((entry) => entry.id === icon)?.name ?? icon;
+        return icon.split(/[?#]/)[0].split('/').pop();
+    }
+
+    #featureRowDescription(alt) {
+        if (!alt.startsWith('<p>')) return alt;
+        return new DOMParser().parseFromString(alt, 'text/html').body.textContent;
+    }
+
+    #featureRowIcon(icon) {
+        if (icon.startsWith('sp-icon-')) return renderSpIcon(icon, this.getEffectiveFieldValue('variant'));
+        if (icon) return html`<img src="${icon}" alt="" />`;
+        return html`<sp-icon-image></sp-icon-image>`;
+    }
+
+    #renderFeatureRow(bullet, index) {
+        const icon = bullet.icon ?? '';
+        const open = () => this.#openWhatsIncludedPopup(this.whatsIncluded.bullets, index);
+        const handleKeydown = (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            open();
+        };
+        return html`
+            <div class="feature-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
+                <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
+                <div class="feature-row-text">
+                    <strong>${this.#featureRowName(icon)}</strong>
+                    <span>${this.#featureRowDescription(bullet.alt ?? '')}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    get #featureRowsTemplate() {
+        const { bullets } = this.whatsIncluded;
+        return html`
+            <div class="feature-rows">${bullets.map((bullet, index) => this.#renderFeatureRow(bullet, index))}</div>
+            <sp-action-button
+                quiet
+                class="add-feature"
+                @click=${() => this.#openWhatsIncludedPopup([...bullets, { icon: '', alt: '', link: '' }], bullets.length)}
+            >
+                <sp-icon-add slot="icon"></sp-icon-add>
+                Add feature
+            </sp-action-button>
+        `;
+    }
+
+    #openWhatsIncludedPopup(items, focusIndex) {
+        this.whatsIncludedPopup = { open: true, items, focusIndex };
+    }
+
+    #closeWhatsIncludedPopup = () => {
+        this.whatsIncludedPopup = { ...this.whatsIncludedPopup, open: false };
+    };
+
+    #handleWhatsIncludedSave = (event) => {
+        const { label, items } = event.detail;
+        this.#updateWhatsIncluded({ target: { value: items } }, true);
+        this.#updateWhatsIncluded({ target: { value: label } });
+    };
 
     /** edu shows the label as an OST-capable rich field; other sizes use a plain text input. */
     get #whatsIncludedLabelIsRich() {

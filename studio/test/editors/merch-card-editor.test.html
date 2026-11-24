@@ -1758,9 +1758,15 @@
                         it('serializes bullet multifield changes and preserves the stored label', async () => {
                             const store = await setupPro('pro-wi-bullets');
 
-                            const multifield = editor.querySelector('#whatsIncluded mas-multifield[button-label="Add bullet"]');
-                            multifield.value = [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }];
-                            multifield.dispatchEvent(new CustomEvent('change'));
+                            const modal = editor.querySelector('#whatsIncluded mas-whats-included-modal');
+                            modal.dispatchEvent(
+                                new CustomEvent('save', {
+                                    detail: {
+                                        label: 'Voir :',
+                                        items: [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }],
+                                    },
+                                }),
+                            );
 
                             const stored = store.get().getFieldValue('whatsIncluded');
                             expect(stored).to.include('<div class="section">');

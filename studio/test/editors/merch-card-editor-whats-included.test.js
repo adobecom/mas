@@ -24,6 +24,8 @@ const LOGOS = [
     { icon: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg', alt: 'Illustrator', link: '' },
 ];
 
+const CUSTOM_LOGO = { icon: 'https://example.com/custom-logo.svg', alt: 'Custom', link: 'https://example.com' };
+
 const EMPTY_FIELDS = [
     'cardName',
     'osi',
@@ -79,6 +81,7 @@ const setup = async (variant, size, whatsIncluded) => {
 
 const modalOf = (editor) => editor.querySelector('#whatsIncluded mas-whats-included-modal');
 const rowsOf = (editor) => [...editor.querySelectorAll('#whatsIncluded .feature-row')];
+const logoRowsOf = (editor) => [...editor.querySelectorAll('#whatsIncluded .logo-row')];
 const storedOf = (editor) => editor.fragmentStore.get().getFieldValue('whatsIncluded');
 
 const confirm = async (editor) => {
@@ -128,6 +131,7 @@ describe('merch-card-editor whats-included popup', () => {
         expect(modal.items).to.have.lengthOf(4);
         expect(modal.items[3]).to.deep.equal({ icon: '', alt: '', link: '' });
         expect(modal.focusIndex).to.equal(3);
+        expect(modal.tab).to.equal('icon');
     });
 
     it('adding the section via Add section opens the popup with one empty item', async () => {
@@ -146,11 +150,132 @@ describe('merch-card-editor whats-included popup', () => {
         expect(edu.querySelector('rte-field#whatsIncludedLabel')).to.exist;
     });
 
-    it('keeps the Add application multifield and the icon picker group', async () => {
+    it('one Add feature button and no Add application in the section', async () => {
         const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
-        expect(editor.querySelector('#whatsIncluded mas-multifield[button-label="Add application"]')).to.exist;
+        expect(editor.querySelectorAll('#whatsIncluded .add-feature')).to.have.lengthOf(1);
+        expect(editor.querySelector('#whatsIncluded mas-multifield[button-label="Add application"]')).to.be.null;
         expect(editor.querySelector('sp-field-group#whatsIncludedIconPicker')).to.exist;
         expect(editor.querySelector('#whatsIncluded mas-multifield[button-label="Add bullet"]')).to.be.null;
+    });
+
+    it('logo rows render after feature rows with 32px image, bold product name and alt text', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        const children = [...editor.querySelector('#whatsIncluded .feature-rows').children];
+        expect(children.map((child) => child.className)).to.deep.equal([
+            'feature-row',
+            'feature-row',
+            'feature-row',
+            'logo-row',
+            'logo-row',
+        ]);
+        const logoRows = logoRowsOf(editor);
+        expect(logoRows.map((row) => row.querySelector('strong').textContent)).to.deep.equal(['Photoshop', 'Illustrator']);
+        expect(logoRows[0].querySelector('span').textContent).to.equal('Photoshop');
+        const box = logoRows[0].querySelector('.feature-row-icon');
+        expect(box.querySelector('img')).to.exist;
+        expect(box.getBoundingClientRect().width).to.equal(32);
+        expect(box.getBoundingClientRect().height).to.equal(32);
+    });
+
+    it('clicking a logo row (or Enter/Space) opens the dialog on Logo with that logo and index', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        logoRowsOf(editor)[1].click();
+        await editor.updateComplete;
+        const modal = modalOf(editor);
+        expect(modal.open).to.be.true;
+        expect(modal.tab).to.equal('logo');
+        expect(modal.logo).to.deep.equal(LOGOS[1]);
+        expect(modal.logoIndex).to.equal(1);
+        modal.dispatchEvent(new CustomEvent('modal-close'));
+        await editor.updateComplete;
+        for (const key of ['Enter', ' ']) {
+            logoRowsOf(editor)[0].dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+            await editor.updateComplete;
+            expect(modal.tab).to.equal('logo');
+            expect(modal.logo).to.deep.equal(LOGOS[0]);
+            expect(modal.logoIndex).to.equal(0);
+            modal.dispatchEvent(new CustomEvent('modal-close'));
+            await editor.updateComplete;
+        }
+    });
+
+    it('Confirm without edits is byte-identical for a product logo and for a custom-URL logo', async () => {
+        const productSeed = standardSeed();
+        const productEditor = await setup(VARIANT_NAMES.PLANS, '', productSeed);
+        logoRowsOf(productEditor)[0].click();
+        await productEditor.updateComplete;
+        await confirm(productEditor);
+        expect(storedOf(productEditor)).to.equal(productSeed);
+
+        const helper = createEditor(VARIANT_NAMES.PLANS);
+        const customSeed = helper.createIncludedElement('Includes:', [CUSTOM_LOGO], STANDARD_BULLETS).outerHTML;
+        helper.remove();
+        const customEditor = await setup(VARIANT_NAMES.PLANS, '', customSeed);
+        logoRowsOf(customEditor)[0].click();
+        await customEditor.updateComplete;
+        await confirm(customEditor);
+        expect(storedOf(customEditor)).to.equal(customSeed);
+    });
+
+    it('Delete removes only that logo', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        const menu = logoRowsOf(editor)[0].querySelector('sp-action-menu');
+        menu.value = 'delete';
+        menu.dispatchEvent(new Event('change', { bubbles: true }));
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.values).to.deep.equal([LOGOS[1]]);
+        expect(editor.whatsIncluded.bullets).to.deep.equal(STANDARD_BULLETS);
+        expect(editor.whatsIncluded.label).to.equal('Includes:');
+        expect(modalOf(editor).open).to.be.false;
+    });
+
+    it('tab icon writes label and features as before', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        const bullets = [{ icon: 'sp-icon-star', alt: 'Only one', link: '' }];
+        modalOf(editor).dispatchEvent(
+            new CustomEvent('save', { detail: { tab: 'icon', label: 'New label', items: bullets }, bubbles: true }),
+        );
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.label).to.equal('New label');
+        expect(editor.whatsIncluded.bullets).to.deep.equal(bullets);
+        expect(editor.whatsIncluded.values).to.deep.equal(LOGOS);
+    });
+
+    it('tab logo replaces at index', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        modalOf(editor).dispatchEvent(
+            new CustomEvent('save', { detail: { tab: 'logo', index: 0, logo: CUSTOM_LOGO }, bubbles: true }),
+        );
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.values).to.deep.equal([CUSTOM_LOGO, LOGOS[1]]);
+    });
+
+    it('tab logo with index -1 appends', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        modalOf(editor).dispatchEvent(
+            new CustomEvent('save', { detail: { tab: 'logo', index: -1, logo: CUSTOM_LOGO }, bubbles: true }),
+        );
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.values).to.deep.equal([...LOGOS, CUSTOM_LOGO]);
+    });
+
+    it('logo edit leaves features and label untouched', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        modalOf(editor).dispatchEvent(
+            new CustomEvent('save', { detail: { tab: 'logo', index: 1, logo: CUSTOM_LOGO }, bubbles: true }),
+        );
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.bullets).to.deep.equal(STANDARD_BULLETS);
+        expect(editor.whatsIncluded.label).to.equal('Includes:');
+    });
+
+    it('Pro has no Logo tab and no logo rows', async () => {
+        const editor = await setup(VARIANT_NAMES.PRO, '', serializeProWhatsIncluded(BULLETS, 'Voir :', false));
+        const modal = modalOf(editor);
+        expect(modal.showLogoTab).to.be.false;
+        expect(editor.querySelector('.logo-row')).to.be.null;
+        await modal.updateComplete;
+        expect(modal.shadowRoot.querySelector('sp-tab[value="logo"]')).to.be.null;
     });
 
     it('Confirm without edits leaves whatsIncluded byte-identical for a standard card', async () => {

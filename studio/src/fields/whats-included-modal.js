@@ -1,11 +1,17 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { renderSpIcon } from '../constants/icon-library.js';
+import { ADOBE_PRODUCTS } from '../constants/adobe-products.js';
 import '../rte/rte-field.js';
 import './icon-select.js';
+import './product-picker.js';
+import { addRecent, readRecent, writeRecent } from '../utils/recent-products.js';
+
+const PRODUCT_ICON_BASE = 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/';
 
 class MasWhatsIncludedModal extends LitElement {
     #nextKey = 0;
+    #pickedProductId = '';
 
     static properties = {
         open: { type: Boolean, reflect: true },
@@ -16,7 +22,14 @@ class MasWhatsIncludedModal extends LitElement {
         variant: { type: String },
         draftLabel: { type: String, state: true },
         draftItems: { type: Array, state: true },
-        heading: { type: String, state: true },
+        tab: { type: String },
+        logo: { type: Object },
+        logoIndex: { type: Number },
+        showLogoTab: { type: Boolean },
+        activeTab: { type: String, state: true },
+        draftLogo: { type: Object, state: true },
+        selectedProductId: { type: String, state: true },
+        recentIds: { type: Array, state: true },
     };
 
     static styles = css`
@@ -73,6 +86,11 @@ class MasWhatsIncludedModal extends LitElement {
             gap: 20px;
             margin-top: 32px;
             width: 100%;
+        }
+
+        .tab-content.logo {
+            gap: 16px;
+            margin-top: 16px;
         }
 
         .field {
@@ -175,15 +193,26 @@ class MasWhatsIncludedModal extends LitElement {
         this.variant = '';
         this.draftLabel = '';
         this.draftItems = [];
-        this.heading = "Add what's included";
+        this.tab = 'icon';
+        this.logo = { icon: '', alt: '', link: '' };
+        this.logoIndex = -1;
+        this.showLogoTab = true;
+        this.activeTab = 'icon';
+        this.draftLogo = { icon: '', alt: '', link: '' };
+        this.selectedProductId = '';
+        this.recentIds = [];
     }
 
     willUpdate(changedProperties) {
         if (changedProperties.has('open') && this.open) {
             this.draftLabel = this.label ?? '';
             this.draftItems = this.items.map((item) => this.#toDraft(item));
-            const hasContent = this.items.some((item) => item.icon || item.alt);
-            this.heading = hasContent ? "Edit what's included" : "Add what's included";
+            this.activeTab = this.showLogoTab ? this.tab : 'icon';
+            this.draftLogo = { ...this.logo };
+            const id = this.logo.icon?.includes('/product-icons/svg/') ? this.logo.icon.match(/\/([^/]+)\.svg$/)?.[1] : '';
+            this.selectedProductId = ADOBE_PRODUCTS.some((product) => product.id === id) ? id : '';
+            this.recentIds = readRecent();
+            this.#pickedProductId = '';
         }
     }
 
@@ -223,14 +252,43 @@ class MasWhatsIncludedModal extends LitElement {
         this.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
     }
 
+    #handleTabChange(event) {
+        if (event.target.nodeName !== 'SP-TABS') return;
+        this.activeTab = event.target.selected;
+    }
+
+    #handleProductSelect(id) {
+        this.#pickedProductId = id;
+        this.selectedProductId = id;
+        this.draftLogo = { ...this.draftLogo, icon: `${PRODUCT_ICON_BASE}${id}.svg` };
+    }
+
+    #updateLogo(changes) {
+        this.draftLogo = { ...this.draftLogo, ...changes };
+    }
+
     #handleConfirm(event) {
         event.preventDefault();
+        if (this.activeTab === 'logo') {
+            if (!this.draftLogo.icon) return;
+            if (this.#pickedProductId) writeRecent(addRecent(readRecent(), this.#pickedProductId));
+            const { icon, alt, link } = this.draftLogo;
+            this.dispatchEvent(
+                new CustomEvent('save', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { tab: 'logo', index: this.logoIndex, logo: { icon, alt, link } },
+                }),
+            );
+            this.#close();
+            return;
+        }
         const items = this.draftItems.map(({ icon, alt, link }) => ({ icon, alt, link }));
         this.dispatchEvent(
             new CustomEvent('save', {
                 bubbles: true,
                 composed: true,
-                detail: { label: this.draftLabel, items },
+                detail: { tab: 'icon', label: this.draftLabel, items },
             }),
         );
         this.#close();
@@ -338,22 +396,73 @@ class MasWhatsIncludedModal extends LitElement {
         `;
     }
 
+    renderProductIcon = (product) =>
+        html`<img
+            src="${PRODUCT_ICON_BASE}${product.id}.svg"
+            alt=""
+            @error=${(event) => {
+                event.target.style.display = 'none';
+            }}
+        />`;
+
+    get logoTabTemplate() {
+        return html`
+            <div class="tab-content logo">
+                <mas-product-picker
+                    .items=${ADOBE_PRODUCTS}
+                    .recentIds=${this.recentIds}
+                    .selectedId=${this.selectedProductId ?? ''}
+                    .renderIcon=${this.renderProductIcon}
+                    @item-select=${(event) => this.#handleProductSelect(event.detail.id)}
+                ></mas-product-picker>
+                <div class="field">
+                    <sp-field-label for="product-alt">Alt text</sp-field-label>
+                    <sp-textfield
+                        id="product-alt"
+                        placeholder="Descriptive text for accessibility"
+                        .value=${this.draftLogo.alt ?? ''}
+                        @input=${(event) => this.#updateLogo({ alt: event.target.value })}
+                    ></sp-textfield>
+                </div>
+                <div class="field">
+                    <sp-field-label for="product-link">Destination URL</sp-field-label>
+                    <sp-textfield
+                        id="product-link"
+                        placeholder="https://example.com"
+                        .value=${this.draftLogo.link ?? ''}
+                        @input=${(event) => this.#updateLogo({ link: event.target.value })}
+                    ></sp-textfield>
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         return html`
             <div @input=${(event) => event.stopPropagation()} @change=${(event) => event.stopPropagation()}>
                 <sp-underlay ?open=${this.open}></sp-underlay>
                 <sp-dialog class="whats-included" no-divider>
-                    <h2 slot="heading">${this.heading}</h2>
+                    <h2 slot="heading">Add what's included</h2>
                     <form @submit=${this.#handleConfirm}>
-                        <sp-tabs selected="icon">
+                        <sp-tabs selected=${this.activeTab} @change=${this.#handleTabChange}>
                             <sp-tab value="icon">Icon</sp-tab>
+                            ${this.showLogoTab ? html`<sp-tab value="logo">Logo</sp-tab>` : nothing}
                             <sp-tab-panel value="icon">${this.open ? this.iconTabTemplate : nothing}</sp-tab-panel>
+                            ${this.showLogoTab
+                                ? html`<sp-tab-panel value="logo">${this.open ? this.logoTabTemplate : nothing}</sp-tab-panel>`
+                                : nothing}
                         </sp-tabs>
                     </form>
                     <sp-button slot="button" variant="secondary" treatment="outline" type="button" @click=${this.#close}>
                         Cancel
                     </sp-button>
-                    <sp-button slot="button" variant="accent" @click=${this.#handleConfirm}>Confirm</sp-button>
+                    <sp-button
+                        slot="button"
+                        variant="accent"
+                        ?disabled=${this.activeTab === 'logo' && !this.draftLogo.icon}
+                        @click=${this.#handleConfirm}
+                        >Confirm</sp-button
+                    >
                 </sp-dialog>
             </div>
         `;

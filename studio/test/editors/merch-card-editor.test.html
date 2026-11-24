@@ -1762,6 +1762,7 @@
                             modal.dispatchEvent(
                                 new CustomEvent('save', {
                                     detail: {
+                                        tab: 'icon',
                                         label: 'Voir :',
                                         items: [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }],
                                     },
@@ -1788,14 +1789,15 @@
                             expect(stored).to.include('PDF');
                         });
 
-                        it('ignores the "Add application" multifield for pro', async () => {
+                        it('ignores logo saves for pro', async () => {
                             const store = await setupPro('pro-wi-applications');
 
-                            const multifield = editor.querySelector(
-                                '#whatsIncluded mas-multifield[button-label="Add application"]',
+                            const modal = editor.querySelector('#whatsIncluded mas-whats-included-modal');
+                            modal.dispatchEvent(
+                                new CustomEvent('save', {
+                                    detail: { tab: 'logo', index: -1, logo: { icon: '', alt: 'ignored', link: '' } },
+                                }),
                             );
-                            multifield.value = [{ icon: '', alt: 'ignored', link: '' }];
-                            multifield.dispatchEvent(new CustomEvent('change'));
 
                             expect(store.get().getFieldValue('whatsIncluded')).to.equal(PRO_SEED);
                         });

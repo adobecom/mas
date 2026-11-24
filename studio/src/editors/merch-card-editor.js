@@ -3,6 +3,7 @@ import '../fields/multifield.js';
 import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
 import '../fields/whats-included-modal.js';
+import { ADOBE_PRODUCTS } from '../constants/adobe-products.js';
 import { ICON_LIBRARY, renderSpIcon } from '../constants/icon-library.js';
 import { BASELINE_FIELD_STATE } from '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
@@ -293,7 +294,14 @@ class MerchCardEditor extends LitElement {
         this.metaCollapsed = false;
         this.localeSearch = '';
         this.addedSections = new Set();
-        this.whatsIncludedPopup = { open: false, items: [], focusIndex: 0 };
+        this.whatsIncludedPopup = {
+            open: false,
+            items: [],
+            focusIndex: 0,
+            tab: 'icon',
+            logo: { icon: '', alt: '', link: '' },
+            logoIndex: -1,
+        };
         this.reactiveController = new ReactiveController(this, []);
         this.baselinesController = new CardBaselinesController(this);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
@@ -2051,7 +2059,8 @@ class MerchCardEditor extends LitElement {
                     margin: 8px 16px 8px 0;
                 }
 
-                #whatsIncluded .feature-row {
+                #whatsIncluded .feature-row,
+                #whatsIncluded .logo-row {
                     display: flex;
                     align-items: center;
                     gap: 12px;
@@ -2062,8 +2071,21 @@ class MerchCardEditor extends LitElement {
                 }
 
                 #whatsIncluded .feature-row:hover,
-                #whatsIncluded .feature-row:focus-visible {
+                #whatsIncluded .feature-row:focus-visible,
+                #whatsIncluded .logo-row:hover,
+                #whatsIncluded .logo-row:focus-visible {
                     background: var(--spectrum-gray-200, #e9e9e9);
+                }
+
+                #whatsIncluded .logo-row .action-menu {
+                    margin-left: auto;
+                }
+
+                #whatsIncluded .action-menu sp-menu {
+                    --mod-menu-item-selectable-edge-to-text-not-selected: var(
+                        --spectrum-menu-item-label-inline-edge-to-content,
+                        12px
+                    );
                 }
 
                 #whatsIncluded .feature-row-icon {
@@ -2710,19 +2732,12 @@ class MerchCardEditor extends LitElement {
                               <sp-field-group class="toggle" id="whatsIncluded">
                                   <sp-field-label for="whatsIncludedLabel">Section title</sp-field-label>
                                   ${this.#renderWhatsIncludedLabel()} ${this.#featureRowsTemplate}
-                                  <mas-multifield
-                                      button-label="Add application"
-                                      data-field-state="${this.getFieldState('whatsIncluded')}"
-                                      .value="${this.whatsIncluded.values}"
-                                      @change="${(e) => this.#updateWhatsIncluded(e, false)}"
-                                      @input="${(e) => this.#updateWhatsIncluded(e, false)}"
-                                  >
-                                      <template>
-                                          <mas-included-field></mas-included-field>
-                                      </template>
-                                  </mas-multifield>
                                   <mas-whats-included-modal
                                       .open=${this.whatsIncludedPopup.open}
+                                      .tab=${this.whatsIncludedPopup.tab}
+                                      .logo=${this.whatsIncludedPopup.logo}
+                                      .logoIndex=${this.whatsIncludedPopup.logoIndex}
+                                      .showLogoTab=${!this.#isProWhatsIncluded}
                                       .label=${this.whatsIncluded.label}
                                       .items=${this.whatsIncludedPopup.items}
                                       .focusIndex=${this.whatsIncludedPopup.focusIndex}
@@ -3073,10 +3088,57 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    get #featureRowsTemplate() {
-        const { bullets } = this.whatsIncluded;
+    #logoRowName(icon) {
+        const id = icon.match(/\/product-icons\/svg\/([^/]+)\.svg$/)?.[1];
+        return ADOBE_PRODUCTS.find((product) => product.id === id)?.name ?? this.#featureRowName(icon);
+    }
+
+    #renderLogoRow(logo, index) {
+        const icon = logo.icon ?? '';
+        const open = () => this.#openWhatsIncludedLogo(logo, index);
+        const handleKeydown = (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            open();
+        };
+        const stop = (event) => event.stopPropagation();
         return html`
-            <div class="feature-rows">${bullets.map((bullet, index) => this.#renderFeatureRow(bullet, index))}</div>
+            <div class="logo-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
+                <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
+                <div class="feature-row-text">
+                    <strong>${this.#logoRowName(icon)}</strong>
+                    <span>${this.#featureRowDescription(logo.alt ?? '')}</span>
+                </div>
+                <sp-action-menu
+                    class="action-menu"
+                    quiet
+                    size="s"
+                    placement="bottom-end"
+                    @click=${stop}
+                    @keydown=${stop}
+                    @change=${(event) => {
+                        if (event.target.value === 'delete') this.#deleteWhatsIncludedLogo(index);
+                    }}
+                >
+                    <sp-icon-more slot="icon"></sp-icon-more>
+                    <sp-menu>
+                        <sp-menu-item value="delete">
+                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                            Delete
+                        </sp-menu-item>
+                    </sp-menu>
+                </sp-action-menu>
+            </div>
+        `;
+    }
+
+    get #featureRowsTemplate() {
+        const { bullets, values } = this.whatsIncluded;
+        return html`
+            <div class="feature-rows">
+                ${bullets.map((bullet, index) => this.#renderFeatureRow(bullet, index))}
+                ${this.#isProWhatsIncluded ? nothing : values.map((logo, index) => this.#renderLogoRow(logo, index))}
+            </div>
             <sp-action-button
                 quiet
                 class="add-feature"
@@ -3089,15 +3151,45 @@ class MerchCardEditor extends LitElement {
     }
 
     #openWhatsIncludedPopup(items, focusIndex) {
-        this.whatsIncludedPopup = { open: true, items, focusIndex };
+        this.whatsIncludedPopup = {
+            open: true,
+            items,
+            focusIndex,
+            tab: 'icon',
+            logo: { icon: '', alt: '', link: '' },
+            logoIndex: -1,
+        };
+    }
+
+    #openWhatsIncludedLogo(logo, index) {
+        this.whatsIncludedPopup = {
+            open: true,
+            items: this.whatsIncluded.bullets,
+            focusIndex: 0,
+            tab: 'logo',
+            logo,
+            logoIndex: index,
+        };
     }
 
     #closeWhatsIncludedPopup = () => {
         this.whatsIncludedPopup = { ...this.whatsIncludedPopup, open: false };
     };
 
+    #deleteWhatsIncludedLogo(index) {
+        const value = this.whatsIncluded.values.filter((_, i) => i !== index);
+        this.#updateWhatsIncluded({ target: { value } }, false);
+    }
+
     #handleWhatsIncludedSave = (event) => {
-        const { label, items } = event.detail;
+        const { tab, label, items, index, logo } = event.detail;
+        if (tab === 'logo') {
+            const value = [...this.whatsIncluded.values];
+            if (index === -1) value.push(logo);
+            else value[index] = logo;
+            this.#updateWhatsIncluded({ target: { value } }, false);
+            return;
+        }
         this.#updateWhatsIncluded({ target: { value: items } }, true);
         this.#updateWhatsIncluded({ target: { value: label } });
     };

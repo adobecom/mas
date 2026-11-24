@@ -1,6 +1,8 @@
 import { expect, fixture, html, oneEvent, aTimeout } from '@open-wc/testing';
 import '../../src/swc.js';
 import '../../src/fields/whats-included-modal.js';
+import { ADOBE_PRODUCTS } from '../../src/constants/adobe-products.js';
+import { readRecent } from '../../src/utils/recent-products.js';
 
 const ITEMS = [
     { icon: 'sp-icon-star', alt: '<p>First</p>', link: '' },
@@ -26,23 +28,125 @@ const cards = (el) => [...el.shadowRoot.querySelectorAll('.item-card')];
 const confirmButton = (el) => el.shadowRoot.querySelector('sp-button[variant="accent"]');
 const cancelButton = (el) => el.shadowRoot.querySelector('sp-button[variant="secondary"]');
 
+const PRODUCT_URL = 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg';
+const CUSTOM_LOGO = { icon: 'https://example.com/custom-logo.svg', alt: 'Custom', link: 'https://example.com' };
+const PRODUCT_LOGO = { icon: PRODUCT_URL, alt: 'Photoshop', link: 'https://adobe.com' };
+const picker = (el) => el.shadowRoot.querySelector('mas-product-picker');
+
 describe('mas-whats-included-modal', () => {
-    it("heading reads Add what's included without items", async () => {
-        const el = await openModal([]);
-        expect(el.shadowRoot.querySelector('h2').textContent).to.equal("Add what's included");
+    beforeEach(() => {
+        localStorage.removeItem('mas-studio-recent-products');
     });
 
-    it("heading reads Edit what's included with items", async () => {
-        const el = await openModal();
-        expect(el.shadowRoot.querySelector('h2').textContent).to.equal("Edit what's included");
+    it("heading reads Add what's included on the Icon tab and on the Logo tab", async () => {
+        const iconEl = await openModal();
+        expect(iconEl.shadowRoot.querySelector('h2').textContent).to.equal("Add what's included");
+        const logoEl = await openModal([], 'Includes:', { tab: 'logo', logo: PRODUCT_LOGO });
+        expect(logoEl.shadowRoot.querySelector('h2').textContent).to.equal("Add what's included");
     });
 
-    it('shows a single Icon tab', async () => {
+    it('shows two tabs Icon and Logo', async () => {
         const el = await openModal();
+        const tabs = el.shadowRoot.querySelectorAll('sp-tab');
+        expect(tabs).to.have.lengthOf(2);
+        expect(tabs[0].getAttribute('value')).to.equal('icon');
+        expect(tabs[0].textContent.trim()).to.equal('Icon');
+        expect(tabs[1].getAttribute('value')).to.equal('logo');
+        expect(tabs[1].textContent.trim()).to.equal('Logo');
+        const fresh = await fixture(html`<mas-whats-included-modal></mas-whats-included-modal>`);
+        expect(fresh.tab).to.equal('icon');
+        expect(fresh.logo).to.deep.equal({ icon: '', alt: '', link: '' });
+        expect(fresh.logoIndex).to.equal(-1);
+        expect(fresh.showLogoTab).to.be.true;
+    });
+
+    it('showLogoTab=false renders only Icon', async () => {
+        const el = await openModal(ITEMS, 'Includes:', { showLogoTab: false, tab: 'logo' });
         const tabs = el.shadowRoot.querySelectorAll('sp-tab');
         expect(tabs).to.have.lengthOf(1);
         expect(tabs[0].getAttribute('value')).to.equal('icon');
-        expect(tabs[0].textContent.trim()).to.equal('Icon');
+        expect(el.activeTab).to.equal('icon');
+    });
+
+    it('Logo tab renders mas-product-picker plus Alt text and Destination URL', async () => {
+        localStorage.setItem('mas-studio-recent-products', JSON.stringify(['photoshop', 'illustrator']));
+        const el = await openModal([], 'Includes:', { tab: 'logo' });
+        expect(picker(el).items).to.equal(ADOBE_PRODUCTS);
+        expect(picker(el).recentIds).to.deep.equal(readRecent());
+        expect(picker(el).recentIds).to.deep.equal(['photoshop', 'illustrator']);
+        expect(el.shadowRoot.querySelector('#product-alt').getAttribute('placeholder')).to.equal(
+            'Descriptive text for accessibility',
+        );
+        expect(el.shadowRoot.querySelector('#product-link').getAttribute('placeholder')).to.equal('https://example.com');
+        const panel = el.shadowRoot.querySelector('sp-tab-panel[value="logo"]');
+        expect(panel.querySelector('sp-action-group')).to.be.null;
+        expect(panel.textContent).to.not.contain('Import via URL');
+        expect(panel.querySelector('sp-menu-item, [label="Delete item"]')).to.be.null;
+    });
+
+    it('picking a product sets the product icon URL', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo' });
+        picker(el).dispatchEvent(new CustomEvent('item-select', { detail: { id: 'photoshop' } }));
+        await el.updateComplete;
+        expect(el.draftLogo.icon).to.equal(PRODUCT_URL);
+        expect(picker(el).selectedId).to.equal('photoshop');
+    });
+
+    it('matching logo preselects its product', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo', logo: PRODUCT_LOGO, logoIndex: 0 });
+        expect(el.selectedProductId).to.equal('photoshop');
+        expect(picker(el).selectedId).to.equal('photoshop');
+    });
+
+    it('custom-URL logo opens with nothing selected and keeps its icon', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo', logo: CUSTOM_LOGO, logoIndex: 1 });
+        expect(picker(el).selectedId).to.equal('');
+        setTimeout(() => confirmButton(el).click());
+        const event = await oneEvent(el, 'save');
+        expect(event.detail.logo).to.deep.equal(CUSTOM_LOGO);
+        expect(readRecent()).to.deep.equal([]);
+    });
+
+    it('Logo Confirm emits {tab:"logo", index, logo} and records the recent only when a product was picked', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo', logo: PRODUCT_LOGO, logoIndex: 2 });
+        setTimeout(() => confirmButton(el).click());
+        const first = await oneEvent(el, 'save');
+        expect(first.detail).to.deep.equal({ tab: 'logo', index: 2, logo: PRODUCT_LOGO });
+        expect(readRecent()).to.deep.equal([]);
+
+        const picked = await openModal([], 'Includes:', { tab: 'logo' });
+        picker(picked).dispatchEvent(new CustomEvent('item-select', { detail: { id: 'photoshop' } }));
+        await picked.updateComplete;
+        setTimeout(() => confirmButton(picked).click());
+        const second = await oneEvent(picked, 'save');
+        expect(second.detail).to.deep.equal({ tab: 'logo', index: -1, logo: { icon: PRODUCT_URL, alt: '', link: '' } });
+        expect(readRecent()[0]).to.equal('photoshop');
+    });
+
+    it('Icon Confirm emits {tab:"icon", label, items}', async () => {
+        const el = await openModal();
+        setTimeout(() => confirmButton(el).click());
+        const event = await oneEvent(el, 'save');
+        expect(event.detail).to.deep.equal({ tab: 'icon', label: 'Includes:', items: ITEMS });
+    });
+
+    it('Cancel saves and records nothing', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo' });
+        picker(el).dispatchEvent(new CustomEvent('item-select', { detail: { id: 'photoshop' } }));
+        await el.updateComplete;
+        let saved = false;
+        el.addEventListener('save', () => (saved = true));
+        cancelButton(el).click();
+        expect(saved).to.be.false;
+        expect(readRecent()).to.deep.equal([]);
+    });
+
+    it('Confirm is disabled on a new logo with no product picked', async () => {
+        const el = await openModal([], 'Includes:', { tab: 'logo' });
+        expect(confirmButton(el).hasAttribute('disabled')).to.be.true;
+        picker(el).dispatchEvent(new CustomEvent('item-select', { detail: { id: 'photoshop' } }));
+        await el.updateComplete;
+        expect(confirmButton(el).hasAttribute('disabled')).to.be.false;
     });
 
     it('shows the item count', async () => {
@@ -132,7 +236,7 @@ describe('mas-whats-included-modal', () => {
         el.addEventListener('modal-close', () => (closed = true));
         setTimeout(() => confirmButton(el).click());
         const event = await oneEvent(el, 'save');
-        expect(event.detail).to.deep.equal({ label: 'Includes:', items: ITEMS });
+        expect(event.detail).to.deep.equal({ tab: 'icon', label: 'Includes:', items: ITEMS });
         expect(el.open).to.be.false;
         expect(closed).to.be.true;
     });

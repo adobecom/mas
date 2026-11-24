@@ -3,7 +3,7 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
-import { cachedInheritanceParent, mergeParentFields } from '../aem/variation-utils.js';
+import { buildInheritanceParent, cachedInheritanceParent, mergeParentFields } from '../aem/variation-utils.js';
 import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 export class SourceFragmentStore extends FragmentStore {
@@ -72,8 +72,9 @@ export class SourceFragmentStore extends FragmentStore {
     #previewFieldsData(names) {
         const pick = ({ fields }) => ({ fields: fields.filter((field) => names.includes(field.name)) });
         const previewData = structuredClone(pick(this.value));
-        if (this.parentFragment) mergeParentFields(previewData, pick(this.parentFragment));
-        if (this.baselineParent) mergeParentFields(previewData, pick(this.baselineParent), this.#arraysToMerge);
+        const iconParent = this.inheritanceParent;
+        if (this.parentFragment) mergeParentFields(previewData, pick(this.parentFragment), [], iconParent);
+        if (this.baselineParent) mergeParentFields(previewData, pick(this.baselineParent), this.#arraysToMerge, iconParent);
         return previewData;
     }
 
@@ -191,8 +192,9 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment, base
         previewData.fields.push(variationTags);
     }
 
-    mergeParentFields(previewData, parentFragment);
-    if (baselineParent) mergeParentFields(previewData, baselineParent, arraysToMerge);
+    const iconParent = buildInheritanceParent(parentFragment, baselineParent);
+    mergeParentFields(previewData, parentFragment, [], iconParent);
+    if (baselineParent) mergeParentFields(previewData, baselineParent, arraysToMerge, iconParent);
 
     const settingsRows = Store.settings.rows.get?.();
     if (parentFragment && Array.isArray(settingsRows) && settingsRows.length > 0) {

@@ -187,6 +187,29 @@ describe('SourceFragmentStore of a variation with baselines', () => {
         expect(previewValues('mnemonicIcon')).to.deep.equal(['baseline.svg']);
         expect(previewValues('mnemonicAlt')).to.deep.equal(['Own']);
     });
+
+    describe('when it stores the baseline icon its locale default card overrides the alt text of', () => {
+        const storedIcon = [{ name: 'mnemonicIcon', multiple: true, values: ['baseline.svg'] }];
+        const defaultAlt = [{ name: 'mnemonicAlt', multiple: true, values: ['Default'] }];
+        const formAlt = () => store.get().getEffectiveFieldValues('mnemonicAlt', store.inheritanceParent, true);
+
+        it('previews the alt text of its locale default card, as the form does', () => {
+            createStore(storedIcon, defaultAlt);
+
+            expect(previewValues('mnemonicAlt')).to.deep.equal(['Default']);
+            expect(formAlt()).to.deep.equal(['Default']);
+        });
+
+        it('previews the alt text of its locale default card once its own alt text is inherited again', () => {
+            createStore(storedIcon, defaultAlt);
+            store.updateField('mnemonicAlt', ['Own']);
+
+            store.updateField('mnemonicAlt', ['Default']);
+
+            expect(previewValues('mnemonicAlt')).to.deep.equal(['Default']);
+            expect(formAlt()).to.deep.equal(['Default']);
+        });
+    });
 });
 
 describe('SourceFragmentStore of a variation with settings baselines', () => {

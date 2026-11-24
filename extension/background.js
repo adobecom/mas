@@ -1,4 +1,4 @@
-importScripts('utils/validators.js', 'utils/studio-url.js', 'api/aem-client.js');
+importScripts('utils/validators.js', 'utils/studio-url.js', 'api/aem-client.js', 'api/promotion-lookup.js');
 
 function isExtensionSender(sender) {
     return sender && sender.id === chrome.runtime.id;
@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function handleFetchFragmentData(message, sendResponse) {
-    const { fragmentId, locale, country, masIOUrl, wcsApiKey } = message;
+    const { fragmentId, locale, country, raw, masIOUrl, wcsApiKey } = message;
     if (!MASValidators.isValidUUID(fragmentId)) {
         sendResponse({ success: false, error: 'invalid_fragment_id' });
         return;
@@ -38,15 +38,19 @@ async function handleFetchFragmentData(message, sendResponse) {
     }
     try {
         const client = new AEMClient({ masIOUrl, wcsApiKey });
-        const data = await client.fetchFragmentData(fragmentId, locale, country);
+        const data = raw
+            ? await client.fetchFragmentRecord(fragmentId)
+            : await client.fetchFragmentData(fragmentId, locale, country);
         sendResponse({ success: true, data });
     } catch (error) {
-        sendResponse({ success: false, error: 'fetch_failed' });
+        sendResponse({ success: false, error: 'fetch_failed', miss: error.miss ?? null });
     }
 }
 
-function handleOpenStudioLink(message, sendResponse) {
-    const url = MASStudioUrl.buildStudioUrl(message);
+async function handleOpenStudioLink(message, sendResponse) {
+    // The page names a promotion only by folder and title; its Studio link needs the project id.
+    const request = message.view === 'promotion' ? await MASPromotionLookup.linkRequest(message) : message;
+    const url = MASStudioUrl.buildStudioUrl(request);
     if (!url || !MASValidators.isAllowedOpenUrl(url)) {
         sendResponse({ success: false, error: 'invalid_request' });
         return;

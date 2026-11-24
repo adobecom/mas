@@ -1,7 +1,7 @@
 import { aTimeout, fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
 // Registers the real sp-* components: against unregistered stubs the underlay and scroll contracts
 // below silently pass no matter what the dialog binds.
-import { sendKeys } from '@web/test-runner-commands';
+import { sendKeys, setViewport } from '@web/test-runner-commands';
 import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts-dialog.js';
 
@@ -212,6 +212,88 @@ describe('mas-related-artifacts-dialog restyle', function () {
         expect(style.columnGap).to.equal('6px');
         expect(link.getAttribute('rel')).to.equal('noopener');
         expect(link.querySelector('sp-icon-open-in')).to.exist;
+    });
+
+    const longTitle = 'Very long artifact name '.repeat(9).trim();
+    const longRows = () => [{ key: 'collections', label: 'Collections', rows: [collRow(longTitle, 'c-long')] }];
+
+    it('table wrapper height equals header plus rows when rows fit', async () => {
+        // 8 rows of 68px plus the header only fit inside the 60vh dialog content on a tall viewport.
+        await setViewport({ width: 1280, height: 1400 });
+        const rows = Array.from({ length: 8 }, (unused, index) => collRow(`Row ${index}`, `c-${index}`));
+        const el = await openDialog([{ key: 'collections', label: 'Collections', rows }]);
+        const wrapperRect = el.shadowRoot.querySelector('.table-wrapper').getBoundingClientRect();
+        const headHeight = el.shadowRoot.querySelector('sp-table-head').getBoundingClientRect().height;
+        const rowsHeight = [...el.shadowRoot.querySelectorAll('sp-table-row')].reduce(
+            (sum, row) => sum + row.getBoundingClientRect().height,
+            0,
+        );
+        expect(Math.abs(wrapperRect.height - (headHeight + rowsHeight + 2))).to.be.at.most(1);
+        const contentRect = el.shadowRoot.querySelector('.dialog-content').getBoundingClientRect();
+        expect(wrapperRect.bottom).to.be.below(contentRect.bottom);
+    });
+
+    it('long artifact name renders on one line with ellipsis', async () => {
+        const el = await openDialog(longRows());
+        const label = el.shadowRoot.querySelector('.artifact-label');
+        const style = getComputedStyle(label);
+        expect(style.minWidth).to.equal('0px');
+        expect(style.overflow).to.equal('hidden');
+        expect(style.textOverflow).to.equal('ellipsis');
+        expect(style.whiteSpace).to.equal('nowrap');
+        expect(label.getBoundingClientRect().height).to.be.below(36);
+        expect(label.scrollWidth).to.be.greaterThan(label.clientWidth);
+    });
+
+    it('open-in icon is visible right after the label with a 6px gap', async () => {
+        const el = await openDialog(longRows());
+        const cell = el.shadowRoot.querySelector('sp-table-cell');
+        const link = cell.querySelector('.artifact-link');
+        const label = link.querySelector('.artifact-label').getBoundingClientRect();
+        const icon = link.querySelector('sp-icon-open-in').getBoundingClientRect();
+        const linkRect = link.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
+        const cellPaddingRight = parseFloat(getComputedStyle(cell).paddingRight);
+        expect(icon.width).to.be.greaterThan(0);
+        expect(icon.left).to.be.at.least(linkRect.left);
+        expect(icon.right).to.be.at.most(linkRect.right + 0.5);
+        expect(Math.abs(icon.left - label.right - 6)).to.be.at.most(1);
+        expect(icon.right).to.be.at.most(cellRect.right - cellPaddingRight + 0.5);
+    });
+
+    it('artifact link title equals the full artifact name', async () => {
+        const el = await openDialog(longRows());
+        expect(el.shadowRoot.querySelector('.artifact-link').getAttribute('title')).to.equal(longTitle);
+    });
+
+    it('rows stay at least 68px with a long name', async () => {
+        const el = await openDialog(longRows());
+        const cell = el.shadowRoot.querySelector('sp-table-cell');
+        const style = getComputedStyle(cell);
+        expect(el.shadowRoot.querySelector('sp-table-row').getBoundingClientRect().height).to.be.at.least(68);
+        expect(cell.getBoundingClientRect().height).to.be.at.least(68);
+        expect(style.paddingTop).to.equal('16px');
+        expect(style.paddingBottom).to.equal('16px');
+        expect(style.paddingLeft).to.equal('20px');
+        expect(style.paddingRight).to.equal('20px');
+    });
+
+    it('dialog is 500px wide with 20px padding, 16px radius and 22px title', async () => {
+        const el = await openDialog();
+        const dialog = wrapperOf(el).shadowRoot.querySelector('sp-dialog');
+        const frame = getComputedStyle(wrapperOf(el).shadowRoot.querySelector('.modal'));
+        expect(getComputedStyle(dialog).width).to.equal('500px');
+        expect(frame.borderTopLeftRadius).to.equal('16px');
+        // Spectrum draws the dialog padding as the first and last grid tracks, not as CSS padding.
+        const tracks = getComputedStyle(dialog.shadowRoot.querySelector('.grid'))
+            .gridTemplateColumns.replace(/\[[^\]]*\]/g, '')
+            .trim()
+            .split(/\s+/);
+        expect(tracks[0]).to.equal('20px');
+        const heading = getComputedStyle(dialog.querySelector('[slot=heading]'));
+        expect(heading.fontSize).to.equal('22px');
+        expect(heading.lineHeight).to.equal('26px');
+        expect(heading.fontWeight).to.equal('700');
     });
 });
 

@@ -1,8 +1,17 @@
 import { css } from 'lit';
 
 export const styles = css`
+    sp-dialog-wrapper {
+        --mod-dialog-confirm-large-width: 500px;
+        --mod-dialog-confirm-padding-grid: 20px;
+        --mod-modal-confirm-border-radius: 16px;
+        --mod-dialog-confirm-title-text-size: 22px;
+        --mod-dialog-confirm-title-text-line-height: 26px;
+        --mod-dialog-heading-font-weight: 700;
+    }
+
     .dialog-content {
-        width: min(560px, 85vw);
+        width: 100%;
         height: 60vh;
         min-height: 320px;
         max-height: 70vh;
@@ -13,6 +22,7 @@ export const styles = css`
     }
 
     .table-wrapper {
+        flex: 0 1 auto;
         margin-top: 20px;
         border: 1px solid var(--spectrum-gray-300, #dadada);
         border-radius: 12px;
@@ -42,6 +52,7 @@ export const styles = css`
     }
 
     sp-table-cell {
+        min-width: 0;
         display: flex;
         align-items: center;
         padding: 16px 20px;
@@ -58,6 +69,19 @@ export const styles = css`
         font-size: 14px;
         line-height: 18px;
         font-weight: 500;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .artifact-link sp-icon-open-in {
+        flex-shrink: 0;
+    }
+
+    .artifact-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .empty-tab-message {

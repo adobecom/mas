@@ -70,11 +70,11 @@ class MasRelatedArtifactsDialog extends LitElement {
             <sp-table-row>
                 <sp-table-cell>
                     ${link
-                        ? html`<a class="artifact-link" href=${link} target="_blank" rel="noopener">
-                              <span>${title}</span>
+                        ? html`<a class="artifact-link" href=${link} title=${title} target="_blank" rel="noopener">
+                              <span class="artifact-label">${title}</span>
                               <sp-icon-open-in size="s"></sp-icon-open-in>
                           </a>`
-                        : html`<span>${title}</span>`}
+                        : html`<span class="artifact-label" title=${title}>${title}</span>`}
                 </sp-table-cell>
             </sp-table-row>
         `;

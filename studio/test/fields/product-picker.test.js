@@ -63,6 +63,54 @@ describe('mas-product-picker', () => {
         expect(items[2].textContent).to.include('Product 0');
     });
 
+    it('moves a selected item past the first 12 to the front', async () => {
+        const el = await create();
+        el.selectedId = 'p15';
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('.grid .icon-item');
+        expect(items.length).to.equal(12);
+        expect(items[0].textContent).to.include('Product 15');
+        expect(items[0].getAttribute('aria-selected')).to.equal('true');
+        expect(items[1].textContent).to.include('Product 0');
+        expect(items[11].textContent).to.include('Product 10');
+        expect(el.shadowRoot.querySelector('.grid').textContent).to.not.include('Product 11');
+        expect(el.shadowRoot.querySelector('.label').textContent.trim()).to.equal('Products:');
+    });
+
+    it('puts a selected item past the first 12 ahead of recents', async () => {
+        const el = await create(['p7', 'p2']);
+        el.selectedId = 'p19';
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('.grid .icon-item');
+        expect(items.length).to.equal(12);
+        expect(items[0].textContent).to.include('Product 19');
+        expect(items[1].textContent).to.include('Product 7');
+        expect(items[2].textContent).to.include('Product 2');
+        expect(el.shadowRoot.querySelector('.label').textContent.trim()).to.equal('Recently used:');
+    });
+
+    it('keeps the order for a selected item inside the grid, empty or unknown', async () => {
+        const el = await create();
+        for (const selectedId of ['p5', '', 'unknown']) {
+            el.selectedId = selectedId;
+            await el.updateComplete;
+            const items = [...el.shadowRoot.querySelectorAll('.grid .icon-item')];
+            expect(items.map((item) => item.textContent.trim())).to.deep.equal(
+                Array.from({ length: 12 }, (_, index) => `Product ${index}`),
+            );
+        }
+    });
+
+    it('keeps recents first when the selected item is a recent', async () => {
+        const el = await create(['p7', 'p2']);
+        el.selectedId = 'p7';
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('.grid .icon-item');
+        expect(items[0].textContent).to.include('Product 7');
+        expect(items[1].textContent).to.include('Product 2');
+        expect(items[2].textContent).to.include('Product 0');
+    });
+
     it('sets tabindex, role and aria-selected on grid items', async () => {
         const el = await create();
         el.selectedId = 'p1';

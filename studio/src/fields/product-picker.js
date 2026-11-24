@@ -135,7 +135,10 @@ class MasProductPicker extends LitElement {
     get defaultItems() {
         const recents = this.recentItems;
         const recentSet = new Set(recents.map((item) => item.id));
-        return [...recents, ...this.items.filter((item) => !recentSet.has(item.id))].slice(0, GRID_SIZE);
+        const base = [...recents, ...this.items.filter((item) => !recentSet.has(item.id))].slice(0, GRID_SIZE);
+        const selected = this.items.find((item) => item.id === this.selectedId);
+        if (!selected || base.includes(selected)) return base;
+        return [selected, ...base.slice(0, GRID_SIZE - 1)];
     }
 
     get matches() {

@@ -107,6 +107,25 @@ describe('mas-whats-included-modal', () => {
         expect(card.querySelector('.icon-url').value).to.equal(ITEMS[1].icon);
     });
 
+    it('dialog has no padding of its own', async () => {
+        const el = await openModal();
+        const dialog = el.shadowRoot.querySelector('sp-dialog.whats-included');
+        expect(getComputedStyle(dialog).paddingLeft).to.equal('0px');
+    });
+
+    it('toggle shows the selected button as a white pill', async () => {
+        const el = await openModal();
+        const group = cards(el)[0].querySelector('sp-action-group');
+        await group.updateComplete;
+        const selected = group.querySelector('sp-action-button[value="select"]');
+        const unselected = group.querySelector('sp-action-button[value="url"]');
+        const style = getComputedStyle(selected);
+        expect(style.backgroundColor).to.equal('rgb(255, 255, 255)');
+        expect(style.borderTopWidth).to.equal('2px');
+        expect(style.borderTopColor).to.equal('rgb(41, 41, 41)');
+        expect(getComputedStyle(unselected).backgroundColor).to.equal('rgba(0, 0, 0, 0)');
+    });
+
     it('Confirm without edits emits the same label and items and closes', async () => {
         const el = await openModal();
         let closed = false;

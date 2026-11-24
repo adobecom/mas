@@ -40,6 +40,10 @@ class MasIconSelect extends LitElement {
             outline-offset: 2px;
         }
 
+        .trigger sp-icon-chevron-down {
+            margin-left: auto;
+        }
+
         .placeholder {
             color: var(--spectrum-gray-600, #6e6e6e);
         }
@@ -174,6 +178,7 @@ class MasIconSelect extends LitElement {
                 ${selected
                     ? html`${renderSpIcon(selected.id, this.variant)}<span>${selected.name}</span>`
                     : html`<span class="placeholder">Select icon</span>`}
+                <sp-icon-chevron-down></sp-icon-chevron-down>
             </button>
         `;
     }

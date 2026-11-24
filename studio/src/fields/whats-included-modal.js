@@ -42,9 +42,13 @@ class MasWhatsIncludedModal extends LitElement {
             width: 548px;
             max-width: 548px;
             max-height: 90vh;
-            padding: 20px;
             border-radius: 16px;
             --mod-dialog-confirm-padding-grid: 20px;
+            --mod-dialog-confirm-divider-block-spacing-start: 0px;
+            --mod-dialog-confirm-divider-block-spacing-end: 25px;
+            --mod-dialog-confirm-title-text-size: 22px;
+            --mod-dialog-confirm-title-text-line-height: 26px;
+            --mod-dialog-confirm-title-text-color: #292929;
             --spectrum-dialog-footer-display: flex;
             --spectrum-dialog-footer-justify-content: flex-end;
             --spectrum-dialog-footer-padding-top: 0;
@@ -55,7 +59,6 @@ class MasWhatsIncludedModal extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 32px;
-            margin-top: 32px;
             margin-bottom: 32px;
         }
 
@@ -111,6 +114,30 @@ class MasWhatsIncludedModal extends LitElement {
 
         .item-header sp-action-button[label='Delete item'] {
             margin-left: auto;
+        }
+
+        .item-header sp-action-group {
+            gap: 0;
+            background: var(--spectrum-gray-200, #e9e9e9);
+            border-radius: 8px;
+        }
+
+        .item-header sp-action-group sp-action-button {
+            --mod-actionbutton-background-color-default: transparent;
+            --mod-actionbutton-background-color-hover: transparent;
+            --mod-actionbutton-border-color-default: transparent;
+            --mod-actionbutton-border-color-hover: transparent;
+            --mod-actionbutton-content-color-default-selected: #292929;
+            --mod-actionbutton-content-color-hover-selected: #292929;
+            --mod-actionbutton-content-color-down-selected: #292929;
+            --mod-actionbutton-content-color-focus-selected: #292929;
+            --mod-actionbutton-border-radius: 8px;
+            --mod-actionbutton-border-width: 2px;
+        }
+
+        .item-header sp-action-group sp-action-button[selected] {
+            background-color: #fff;
+            border-color: #292929;
         }
 
         .preview {

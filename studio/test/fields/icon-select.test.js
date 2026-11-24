@@ -31,6 +31,11 @@ describe('mas-icon-select', () => {
         expect(el.shadowRoot.querySelector('.trigger').textContent).to.contain('Star');
     });
 
+    it('shows a chevron in the empty trigger', async () => {
+        const el = await fixture(html`<mas-icon-select></mas-icon-select>`);
+        expect(el.shadowRoot.querySelector('.trigger sp-icon-chevron-down')).to.exist;
+    });
+
     it('search filters by name case-insensitively', async () => {
         const el = await openSelect();
         await search(el, 'STAR');

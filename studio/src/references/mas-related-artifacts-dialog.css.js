@@ -8,6 +8,11 @@ export const styles = css`
         --mod-dialog-confirm-title-text-size: 22px;
         --mod-dialog-confirm-title-text-line-height: 26px;
         --mod-dialog-heading-font-weight: 700;
+        --mod-dialog-confirm-title-text-color: var(--spectrum-gray-800, #292929);
+        --mod-dialog-confirm-description-padding: 0px;
+        --mod-dialog-confirm-divider-block-spacing-start: 0px;
+        --mod-dialog-confirm-divider-block-spacing-end: 0px;
+        --mod-dialog-confirm-divider-height: 0px;
     }
 
     .dialog-content {
@@ -19,6 +24,11 @@ export const styles = css`
 
     .tabs-row {
         flex-shrink: 0;
+        /* Compact sets --mod-tabs-item-height on the inner list from this token, and Spectrum subtracts the divider from it. */
+        --mod-tabs-item-height-compact: calc(34px + var(--mod-tabs-divider-size, var(--spectrum-tabs-divider-size, 0px)));
+        --mod-tabs-item-horizontal-spacing: 24px;
+        /* Pins the row so the divider and focus space do not push the table below 20px. */
+        height: 34px;
     }
 
     .table-wrapper {
@@ -45,6 +55,11 @@ export const styles = css`
         font-size: 14px;
         line-height: 18px;
         font-weight: 700;
+    }
+
+    sp-table-row,
+    sp-table-cell {
+        border-radius: 0;
     }
 
     sp-table-row {

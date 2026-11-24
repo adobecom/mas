@@ -101,7 +101,7 @@ class MasRelatedArtifactsDialog extends LitElement {
             <sp-overlay type="modal" open @sp-closed=${this.#handleOverlayClosed}>
                 <sp-dialog-wrapper headline="Related studio artifacts" dismissable underlay no-divider size="l">
                     <div class="dialog-content">
-                        <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
+                        <sp-tabs class="tabs-row" quiet compact .selected=${this.selectedTab} @change=${this.#handleTabChange}>
                             ${ARTIFACT_TYPE_KEYS.map(
                                 (key) =>
                                     html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,

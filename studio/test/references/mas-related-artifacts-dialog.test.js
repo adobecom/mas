@@ -305,6 +305,77 @@ describe('mas-related-artifacts-dialog restyle', function () {
         expect(heading.lineHeight).to.equal('26px');
         expect(heading.fontWeight).to.equal('700');
     });
+
+    const openThemedDialog = async (bucketData = buckets()) => {
+        const theme = await fixture(html`
+            <sp-theme system="spectrum-two" color="light" scale="medium">
+                <mas-related-artifacts-dialog></mas-related-artifacts-dialog>
+            </sp-theme>
+        `);
+        const el = theme.querySelector('mas-related-artifacts-dialog');
+        el.buckets = bucketData;
+        el.open = true;
+        await el.updateComplete;
+        await waitUntil(() => wrapperOf(el)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
+        return el;
+    };
+
+    const dialogOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog');
+    const manyRows = () => [
+        {
+            key: 'collections',
+            label: 'Collections',
+            rows: [collRow('One', 'c-1'), collRow('Two', 'c-2'), collRow('Three', 'c-3')],
+        },
+    ];
+
+    it('tabs are compact, 34px tall', async () => {
+        const el = await openThemedDialog();
+        const tabs = [...el.shadowRoot.querySelectorAll('sp-tab')];
+        expect(tabs.length).to.be.greaterThan(1);
+        for (const tab of tabs) {
+            expect(Math.round(tab.getBoundingClientRect().height)).to.equal(34);
+        }
+        const labelRects = tabs.map((tab) => (tab.shadowRoot?.querySelector('#item-label') ?? tab).getBoundingClientRect());
+        for (let i = 1; i < labelRects.length; i++) {
+            expect(Math.round(labelRects[i].left - labelRects[i - 1].right)).to.equal(24);
+        }
+    });
+
+    it('title to tabs and tabs to table gaps are 20px', async () => {
+        const el = await openThemedDialog();
+        const dialog = dialogOf(el);
+        const headingTop = dialog.querySelector('[slot=heading]').getBoundingClientRect().top;
+        const tabsRect = el.shadowRoot.querySelector('sp-tabs').getBoundingClientRect();
+        const tableTop = el.shadowRoot.querySelector('.table-wrapper').getBoundingClientRect().top;
+        expect(Math.round(tabsRect.top - (headingTop + 32))).to.equal(20);
+        expect(Math.round(tableTop - tabsRect.bottom)).to.equal(20);
+        expect(Math.abs(tableTop - dialog.getBoundingClientRect().top - 126)).to.be.at.most(1);
+    });
+
+    it('dialog heading color is gray-800', async () => {
+        const el = await openThemedDialog();
+        const heading = dialogOf(el).querySelector('[slot=heading]');
+        expect(getComputedStyle(heading).color).to.equal(resolveColor(el, 'var(--spectrum-gray-800, #292929)'));
+    });
+
+    it('table rows and cells have square corners', async () => {
+        const el = await openThemedDialog(manyRows());
+        const rows = el.shadowRoot.querySelectorAll('sp-table-row');
+        expect(rows.length).to.be.greaterThan(2);
+        const first = getComputedStyle(rows[0]);
+        const firstCell = getComputedStyle(rows[0].querySelector('sp-table-cell'));
+        const last = getComputedStyle(rows[rows.length - 1]);
+        for (const style of [first, firstCell]) {
+            expect(style.borderTopLeftRadius).to.equal('0px');
+            expect(style.borderTopRightRadius).to.equal('0px');
+        }
+        expect(last.borderBottomLeftRadius).to.equal('0px');
+        expect(last.borderBottomRightRadius).to.equal('0px');
+        const wrapper = getComputedStyle(el.shadowRoot.querySelector('.table-wrapper'));
+        expect(wrapper.overflow).to.equal('hidden');
+        expect(wrapper.borderTopLeftRadius).to.equal('12px');
+    });
 });
 
 describe('related artifacts modal keyboard lifecycle', function () {

@@ -85,6 +85,8 @@ export const styles = css`
 
     sp-table-head-cell:last-child,
     sp-table-cell:last-child {
+        display: flex;
+        align-items: center;
         flex: 0 0 180px;
     }
 

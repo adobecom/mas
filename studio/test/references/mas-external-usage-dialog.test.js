@@ -240,6 +240,38 @@ describe('mas-external-usage-dialog', function () {
             expect(style.fontWeight).to.equal('400');
         });
 
+        it('vertically centers the Countries column against the Page column', async () => {
+            const element = await openDialog();
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.lengthOf(3);
+            const countriesCells = [
+                headerCell(element, 1),
+                ...rows.map((row) => row.querySelector('sp-table-cell:last-child')),
+            ];
+            for (const cell of countriesCells) {
+                const style = getComputedStyle(cell);
+                expect(style.display).to.equal('flex');
+                expect(style.alignItems).to.equal('center');
+                expect(Math.abs(cell.getBoundingClientRect().width - 180)).to.be.at.most(1);
+            }
+            const contentCenter = (cell) => {
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                const rect = range.getBoundingClientRect();
+                return rect.top + rect.height / 2;
+            };
+            expect(Math.abs(contentCenter(headerCell(element, 0)) - contentCenter(headerCell(element, 1)))).to.be.at.most(1);
+            const center = (node) => {
+                const rect = node.getBoundingClientRect();
+                return rect.top + rect.height / 2;
+            };
+            for (const row of rows) {
+                const countries = row.querySelector('.page-countries');
+                const url = row.querySelector('.page-url');
+                expect(Math.abs(center(countries) - center(url))).to.be.at.most(1);
+            }
+        });
+
         it('gives the table body no border of its own', async () => {
             const element = await openDialog();
             const style = getComputedStyle(element.shadowRoot.querySelector('sp-table-body'));

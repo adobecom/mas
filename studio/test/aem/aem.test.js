@@ -322,6 +322,28 @@ describe('aem.js', () => {
             expect(byName('features').values).to.deep.equal(['']);
             expect(byName('title').values).to.deep.equal(['']);
         });
+
+        it('saves the explicit_empty sentinel as "" on fields not allowed to persist it', async () => {
+            let putBody;
+            window.fetch = async (url, options) => {
+                if (options?.method === 'PUT') putBody = JSON.parse(options.body);
+                return { ok: true, headers: { get: () => 'etag1' }, json: async () => ({ id: 'f1', etag: 'etag2' }) };
+            };
+
+            await aem.saveFragment({
+                id: 'f1',
+                title: 't',
+                description: 'd',
+                fields: [
+                    { name: 'cardTitle', type: 'text', values: ['<explicit_empty/>'] },
+                    { name: 'subtitle', type: 'text', values: ['<explicit_empty/>'] },
+                ],
+            });
+
+            const byName = (name) => putBody.fields.find((field) => field.name === name);
+            expect(byName('cardTitle').values).to.deep.equal(['']);
+            expect(byName('subtitle').values).to.deep.equal(['<explicit_empty/>']);
+        });
     });
 
     describe('method: postFormWithCsrf', () => {
@@ -737,6 +759,52 @@ describe('aem.js', () => {
             };
             await aem.getReferencedByFragmentId(CARD_ID, { limit: 50, abortController: controller });
             expect(capturedSignal).to.equal(controller.signal);
+        });
+    });
+
+    describe('saveValidTags', () => {
+        const respond = (status, body = {}) => ({
+            ok: status < 300,
+            status,
+            headers: { get: () => 'etag-1' },
+            json: async () => body,
+        });
+
+        it('retries without the tag ids AEM rejects, so the valid ones are still saved', async () => {
+            const originalFetch = window.fetch;
+            const puts = [];
+            window.fetch = async (url, options = {}) => {
+                if (options.method !== 'PUT') return respond(200);
+                const { tags } = JSON.parse(options.body);
+                puts.push(tags);
+                return tags.includes('mas:pa/pa-1')
+                    ? respond(400, { detail: 'Tag id(s) not valid: [mas:pa/pa-1, mas:product_family/x].' })
+                    : respond(200);
+            };
+            try {
+                const saved = await aem.saveValidTags('frag-1', ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm']);
+
+                expect(puts).to.deep.equal([
+                    ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm'],
+                    ['mas:plan_type/abm'],
+                ]);
+                expect(saved).to.deep.equal(['mas:plan_type/abm']);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('throws when AEM refuses the tags for another reason', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async (url, options = {}) => (options.method === 'PUT' ? respond(412) : respond(200));
+            try {
+                const error = await aem.saveValidTags('frag-1', ['mas:plan_type/abm']).catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Failed to save tags: 412');
+            } finally {
+                window.fetch = originalFetch;
+            }
         });
     });
 });

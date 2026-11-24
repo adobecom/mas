@@ -6,8 +6,10 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     STAGED,
     COLLECTION_MODEL_PATH,
+    TEMPLATE_REQUIRED_FIELDS,
 } from '../constants.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
+import { normalizeVariantName } from '../editors/variant-picker.js';
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
@@ -20,12 +22,29 @@ import {
     toPersistedExplicitEmptyValues,
 } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
+/** An icon & its alt text: the alt text only comes from the layer setting the icon, or a higher one. */
+export const ICON_FIELDS = new Set(['mnemonicIcon', 'mnemonicAlt']);
+
 /**
  * Values of a field as shown in the editor: a stored explicit_empty sentinel reads as empty, whatever the field.
  * @param {{ values?: Array, multiple?: boolean } | undefined} field
  * @returns {Array}
  */
 const displayedValues = (field) => (field ? (normalizeExplicitEmptyInFields([field])[0].values ?? []) : []);
+
+/**
+ * Values a field holds as an override: the explicit_empty sentinel only keeps a field empty when it may hold it, any other
+ * field reads it as `''` (single value) or `[]` (multi value), which inherits.
+ * @param {Array} values
+ * @param {boolean} isMultiple
+ * @param {boolean} keepsEmpty - whether the field may hold the explicit_empty sentinel
+ * @returns {Array}
+ */
+export function storedValues(values, isMultiple, keepsEmpty) {
+    if (keepsEmpty) return values;
+    if (fieldValuesArePersistedExplicitEmpty(values)) return isMultiple ? [] : [''];
+    return values.map((value) => (isExplicitEmptySentinel(value) ? '' : value));
+}
 
 /**
  * Whether a variation field stores an intentional empty override (persisted `explicit_empty`).
@@ -41,20 +60,30 @@ function isExplicitEmptyVariationValue(ownValues, parentValues) {
 }
 
 /**
+ * Whether the card template requires the field.
+ * @param {string} variant
+ * @param {string} fieldName
+ * @returns {boolean}
+ */
+export function isTemplateRequiredField(variant, fieldName) {
+    return TEMPLATE_REQUIRED_FIELDS[normalizeVariantName(variant)]?.includes(fieldName) ?? false;
+}
+
+/**
  * Maps UI empty input (`['']`) to persisted sentinel when clearing inherited variation content.
  * @param {Array} encodedValues
  * @param {Fragment|null} parentFragment
  * @param {Array} parentValues
- * @param {string} fieldName
+ * @param {boolean} keepsEmpty - whether the field may hold the explicit_empty sentinel
  * @param {boolean} isMultiple
  * @returns {Array}
  */
-function resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple) {
+function resolveVariationStoredValues(encodedValues, parentFragment, parentValues, keepsEmpty, isMultiple) {
     const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
     if (!parentFragment || !isSingleEmptyString || !parentValuesHaveContent(parentValues)) {
         return encodedValues;
     }
-    if (!isExplicitEmptyField(fieldName) || isMultiple) {
+    if (!keepsEmpty || isMultiple) {
         return encodedValues;
     }
     return toPersistedExplicitEmptyValues();
@@ -236,6 +265,26 @@ export class Fragment {
     }
 
     /**
+     * Whether the field may hold the explicit_empty sentinel: allowlisted fields persist it; the fields the template requires
+     * on a card inheriting from baselines only hold it while edited, so the editor flags them as required. Saving drops it
+     * (see `AEM.saveFragment`).
+     */
+    #keepsEmpty(fieldName, parentFragment) {
+        if (isExplicitEmptyField(fieldName)) return true;
+        const variant = this.getFieldValue('variant') || parentFragment?.getFieldValue('variant');
+        return this.getFieldValue('enableBaselines') === true && isTemplateRequiredField(variant, fieldName);
+    }
+
+    #ownValues(fieldName, parentFragment) {
+        const field = this.getField(fieldName);
+        return storedValues(field?.values ?? [], field?.multiple === true, this.#keepsEmpty(fieldName, parentFragment));
+    }
+
+    #ownsAltText(fieldName, parentFragment) {
+        return fieldName === 'mnemonicAlt' && this.getFieldState('mnemonicIcon', parentFragment, true) === 'overridden';
+    }
+
+    /**
      * Updates a field's values.
      * For variations: if values match parent exactly, resets to inherited state.
      * @param {string} fieldName - The field name to update
@@ -251,27 +300,19 @@ export class Fragment {
         const parentValues = parentField?.values || [];
 
         let encodedValues = value.map((entry) => (typeof entry === 'string' ? entry.normalize('NFC') : entry));
-        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple);
-        if (!isExplicitEmptyField(fieldName)) {
-            if (fieldValuesArePersistedExplicitEmpty(encodedValues)) {
-                encodedValues = isMultiple ? [] : [''];
-            } else {
-                encodedValues = encodedValues.map((v) => (isExplicitEmptySentinel(v) ? '' : v));
-            }
-        }
+        const keepsEmpty = this.#keepsEmpty(fieldName, parentFragment);
+        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues, keepsEmpty, isMultiple);
+        encodedValues = storedValues(encodedValues, isMultiple, keepsEmpty);
 
         const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
         const allowVariationInheritEmptyWrite =
-            parentFragment &&
-            isExplicitEmptyField(fieldName) &&
-            isSingleEmptyString &&
-            !isMultiple &&
-            parentValuesHaveContent(parentValues);
+            parentFragment && keepsEmpty && isSingleEmptyString && !isMultiple && parentValuesHaveContent(parentValues);
 
         // For variations: if values match parent exactly, reset to inherited state
-        if (parentFragment) {
+        if (parentField && !this.#ownsAltText(fieldName, parentFragment)) {
             const valuesMatchParent =
-                encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
+                encodedValues.length === parentValues.length &&
+                encodedValues.every((v, i) => String(v) === String(parentValues[i]));
 
             if (valuesMatchParent) {
                 // Reset field if it exists, or just confirm it should stay inherited
@@ -332,7 +373,10 @@ export class Fragment {
     }
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
-        const ownValue = this.getFieldValue(fieldName, index);
+        if (isVariation && this.#ownsAltText(fieldName, parentFragment)) {
+            return this.getEffectiveFieldValue(fieldName, null, false, index);
+        }
+        const ownValue = this.#ownValues(fieldName, parentFragment)[index];
         if (isExplicitEmptySentinel(ownValue)) {
             return '';
         }
@@ -347,8 +391,11 @@ export class Fragment {
     }
 
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
+        if (isVariation && this.#ownsAltText(fieldName, parentFragment)) {
+            return this.getEffectiveFieldValues(fieldName, null, false);
+        }
         const ownField = this.getField(fieldName);
-        const ownValues = ownField?.values || [];
+        const ownValues = this.#ownValues(fieldName, parentFragment);
 
         // [] (empty array) = inherit from parent if variation
         if (ownValues.length === 0) {
@@ -390,7 +437,7 @@ export class Fragment {
             return 'no-parent';
         }
         const ownField = this.getField(fieldName);
-        const ownValues = ownField?.values || [];
+        const ownValues = this.#ownValues(fieldName, parentFragment);
         const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
         // [] (empty array) = inherited
@@ -398,7 +445,7 @@ export class Fragment {
             return 'inherited';
         }
 
-        if (isExplicitEmptyField(fieldName) && fieldValuesArePersistedExplicitEmpty(ownValues)) {
+        if (fieldValuesArePersistedExplicitEmpty(ownValues)) {
             const isMultipleField = ownField?.multiple === true;
             if (isMultipleField) {
                 return 'overridden';
@@ -458,6 +505,7 @@ export class Fragment {
                 continue;
             }
 
+            if (this.#ownsAltText(field.name, parentFragment)) continue;
             const fieldState = this.getFieldState(field.name, parentFragment, true);
 
             // If field is inherited or same-as-parent, reset to empty array

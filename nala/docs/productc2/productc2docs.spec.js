@@ -46,7 +46,7 @@ export const features = [
             cta1osiReplaced: 'ZkzpBUVUK3DEJRmBY1YmsxfKCMLUCLud3KybRG8QxY0',
         },
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
-    },    
+    },
     {
         tcid: '3',
         name: '@MAS-Product-C2-Free-Trial-Select-Swap',
@@ -58,7 +58,7 @@ export const features = [
             cta1osi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
         },
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
-    },    
+    },
     {
         tcid: '4',
         name: '@MAS-Product-C2-Free-Trial-BuyNow-Swap',
@@ -70,17 +70,17 @@ export const features = [
             cta1osi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
         },
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
-    },    
+    },
     {
         tcid: '5',
         name: '@MAS-Product-C2-Free-Trial-SaveNow-Swap',
         path: DOCS_GALLERY_PATH.PRODUCT_C2,
         data: {
             id: 'c4ff396b-e300-49fd-95f2-5ed86a0908ec',
-            variant: 'product-c2',          
+            variant: 'product-c2',
             cta: 'Save now',
             ctaOsi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
         },
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
-    },    
+    },
 ];

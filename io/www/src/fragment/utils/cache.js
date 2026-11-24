@@ -48,7 +48,7 @@ const MAX_STORED_RESPONSE_LENGTH = 900 * 1024;
 const FILES_TIMEOUT = 500;
 const TIMED_OUT = Symbol('timed out');
 
-const metadataCache = createSwrCache({ name: 'request-metadata', ttl: MEMORY_TTL, maxEntries: 20000 });
+const metadataCache = createSwrCache({ name: 'request-metadata', ttl: MEMORY_TTL, maxEntries: 30000 });
 const responseCache = createSwrCache({ name: 'response', ttl: MEMORY_TTL, maxEntries: 20000 });
 
 // `req-` metadata lives in State; `res-` responses, larger and written less often, live in Files: State throttled them.

@@ -1,9 +1,7 @@
 import { expect, fixture, fixtureSync, html, waitUntil } from '@open-wc/testing';
 import { sendKeys, setViewport } from '@web/test-runner-commands';
-import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/references/mas-external-usage-dialog.js';
-import Events from '../../src/events.js';
 
 const usage = {
     available: true,
@@ -76,23 +74,14 @@ function closeFixture() {
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());
 const pageHrefs = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.getAttribute('href'));
-const requestCounts = (element) =>
-    [...element.shadowRoot.querySelectorAll('.page-requests')].map((node) => node.textContent.trim());
 const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
 describe('mas-external-usage-dialog', function () {
     // Two transition waits fit in one test.
     this.timeout(20000);
 
-    let sandbox;
-
-    beforeEach(() => {
-        sandbox = sinon.createSandbox();
-    });
-
     afterEach(async () => {
         await closeFixture();
-        sandbox.restore();
     });
 
     it('renders nothing while closed', async () => {
@@ -124,8 +113,17 @@ describe('mas-external-usage-dialog', function () {
 
         it('fits every column inside the dialog on a desktop screen', async () => {
             const element = await openThemedDialog({ width: 1440, height: 900 });
-            const lastColumn = headerCell(element, 2).getBoundingClientRect();
+            const lastColumn = headerCell(element, 1).getBoundingClientRect();
             expect(lastColumn.right).to.be.at.most(visibleBoxOf(element).right);
+        });
+
+        it('sets the heading to 22px dark gray', async () => {
+            const element = await openThemedDialog({ width: 1440, height: 900 });
+            const heading = wrapperOf(element).shadowRoot.querySelector('h2[slot="heading"]');
+            const style = getComputedStyle(heading);
+            expect(style.fontSize).to.equal('22px');
+            expect(style.lineHeight).to.equal('26px');
+            expect(style.color).to.equal('rgb(41, 41, 41)');
         });
 
         it('wraps the bounded-sample note inside the dialog', async () => {
@@ -139,6 +137,161 @@ describe('mas-external-usage-dialog', function () {
             const wrapper = element.shadowRoot.querySelector('.table-wrapper');
             expect(getComputedStyle(wrapper).overflowX).to.equal('auto');
             expect(wrapper.scrollWidth).to.be.greaterThan(wrapper.clientWidth);
+        });
+    });
+
+    describe('restyle', () => {
+        const cellsOf = (element) => [
+            ...element.shadowRoot.querySelectorAll('sp-table-head-cell'),
+            ...element.shadowRoot.querySelectorAll('sp-table-cell'),
+        ];
+
+        it('paints the header cells light gray', async () => {
+            const element = await openDialog();
+            expect(getComputedStyle(headerCell(element, 0)).backgroundColor).to.equal('rgb(243, 243, 243)');
+        });
+
+        it('shows page links in blue and underlined', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('.page-url'));
+            expect(style.color).to.equal('rgb(59, 99, 251)');
+            expect(style.textDecorationLine).to.contain('underline');
+        });
+
+        it('adds the open-in icon after each label without changing the label text', async () => {
+            const element = await openDialog();
+            const links = [...element.shadowRoot.querySelectorAll('.page-url')];
+            for (const link of links) {
+                expect(link.querySelector('sp-icon-open-in')).to.not.equal(null);
+            }
+            expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
+        });
+
+        it('shows only the page link in each Page cell', async () => {
+            const element = await openDialog();
+            expect(element.shadowRoot.querySelector('.page-copy')).to.equal(null);
+            expect(element.shadowRoot.querySelector('sp-icon-copy')).to.equal(null);
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.lengthOf(3);
+            for (const row of rows) {
+                expect(row.querySelector('sp-table-cell:first-child').querySelectorAll('a.page-url')).to.have.lengthOf(1);
+            }
+        });
+
+        it('shows no locale chip in the Page cell', async () => {
+            const element = await openDialog();
+            expect(element.shadowRoot.querySelector('.page-locale')).to.equal(null);
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.length(3);
+            for (const row of rows) {
+                expect(row.textContent).to.not.contain('en_US');
+                expect(row.textContent).to.not.contain('en_CA');
+            }
+        });
+
+        it('keeps each body row at least 68px high', async () => {
+            const element = await openDialog();
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.lengthOf(3);
+            for (const row of rows) {
+                expect(row.getBoundingClientRect().height).to.be.at.least(68);
+            }
+        });
+
+        it('draws horizontal rules only', async () => {
+            const element = await openDialog();
+            for (const cell of cellsOf(element)) {
+                const style = getComputedStyle(cell);
+                expect(style.borderLeftWidth).to.equal('0px');
+                expect(style.borderRightWidth).to.equal('0px');
+            }
+            for (const cell of element.shadowRoot.querySelectorAll('sp-table-head-cell')) {
+                expect(getComputedStyle(cell).borderBottomWidth).to.equal('1px');
+            }
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            for (let index = 0; index < rows.length; index++) {
+                for (const cell of rows[index].querySelectorAll('sp-table-cell')) {
+                    expect(getComputedStyle(cell).borderTopWidth).to.equal(index === 0 ? '0px' : '1px');
+                }
+            }
+        });
+
+        it('has two headers, Page sortable and Countries not', async () => {
+            const element = await openDialog();
+            const headers = [...element.shadowRoot.querySelectorAll('sp-table-head-cell')];
+            expect(headers.map((header) => header.textContent.trim())).to.deep.equal(['Page', 'Countries']);
+            expect(headerCell(element, 0).hasAttribute('sortable')).to.equal(true);
+            expect(headerCell(element, 0).getAttribute('sort-key')).to.equal('page');
+            expect(headerCell(element, 1).getAttribute('sort-key')).to.equal(null);
+            expect(headerCell(element, 1).hasAttribute('sortable')).to.equal(false);
+        });
+
+        it('renders no requests cell', async () => {
+            const element = await openDialog();
+            expect(element.shadowRoot.querySelector('.page-requests')).to.equal(null);
+        });
+
+        it('opens with the busiest pages first', async () => {
+            const element = await openDialog();
+            expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
+        });
+
+        it('sorts the pages A to Z when the Page header is picked', async () => {
+            const element = await openDialog();
+            await opened(element);
+            headerCell(element, 0).click();
+            await element.updateComplete;
+            expect(pageLabels(element)).to.deep.equal(['/ca/creativecloud/business.html', '/express/', '/express/business']);
+        });
+
+        it('shows the countries in black', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('.page-countries'));
+            expect(style.color).to.equal('rgb(0, 0, 0)');
+            expect(style.fontSize).to.equal('14px');
+            expect(style.lineHeight).to.equal('18px');
+            expect(style.fontWeight).to.equal('400');
+        });
+
+        it('vertically centers the Countries column against the Page column', async () => {
+            const element = await openDialog();
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.lengthOf(3);
+            const countriesCells = [
+                headerCell(element, 1),
+                ...rows.map((row) => row.querySelector('sp-table-cell:last-child')),
+            ];
+            for (const cell of countriesCells) {
+                const style = getComputedStyle(cell);
+                expect(style.display).to.equal('flex');
+                expect(style.alignItems).to.equal('center');
+                expect(Math.abs(cell.getBoundingClientRect().width - 180)).to.be.at.most(1);
+            }
+            const contentCenter = (cell) => {
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                const rect = range.getBoundingClientRect();
+                return rect.top + rect.height / 2;
+            };
+            expect(Math.abs(contentCenter(headerCell(element, 0)) - contentCenter(headerCell(element, 1)))).to.be.at.most(1);
+            const center = (node) => {
+                const rect = node.getBoundingClientRect();
+                return rect.top + rect.height / 2;
+            };
+            for (const row of rows) {
+                const countries = row.querySelector('.page-countries');
+                const url = row.querySelector('.page-url');
+                expect(Math.abs(center(countries) - center(url))).to.be.at.most(1);
+            }
+        });
+
+        it('gives the table body no border of its own', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('sp-table-body'));
+            expect(style.borderTopWidth).to.equal('0px');
+            expect(style.borderRightWidth).to.equal('0px');
+            expect(style.borderBottomWidth).to.equal('0px');
+            expect(style.borderLeftWidth).to.equal('0px');
         });
     });
 
@@ -162,7 +315,7 @@ describe('mas-external-usage-dialog', function () {
     it('drops the host every row shares, which is the part that is never what tells them apart', async () => {
         const element = await openDialog();
         expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
-        expect(element.shadowRoot.querySelector('sp-table-head-cell').textContent).to.contain('www.adobe.com');
+        expect(headerCell(element, 0).textContent.trim()).to.equal('Page');
     });
 
     it('keeps whole urls when the rows span different hosts', async () => {
@@ -190,35 +343,6 @@ describe('mas-external-usage-dialog', function () {
         expect(element.shadowRoot.querySelector('.page-url').getAttribute('title')).to.equal('https://www.adobe.com/express/');
     });
 
-    it('keeps a copy action on every row', async () => {
-        const element = await openDialog();
-        expect(element.shadowRoot.querySelectorAll('.page-copy')).to.have.lengthOf(3);
-    });
-
-    it('confirms a copied page url with a toast', async () => {
-        sandbox.stub(navigator.clipboard, 'writeText').resolves();
-        const emit = sandbox.stub(Events.toast, 'emit');
-        const element = await openDialog();
-        await opened(element);
-
-        element.shadowRoot.querySelector('.page-copy').click();
-
-        await waitUntil(() => emit.called);
-        expect(emit.firstCall.args[0].variant).to.equal('positive');
-    });
-
-    it('reports a failed copy with a toast instead of an unhandled rejection', async () => {
-        sandbox.stub(navigator.clipboard, 'writeText').rejects(new DOMException('Write permission denied.', 'NotAllowedError'));
-        const emit = sandbox.stub(Events.toast, 'emit');
-        const element = await openDialog();
-        await opened(element);
-
-        element.shadowRoot.querySelector('.page-copy').click();
-
-        await waitUntil(() => emit.called);
-        expect(emit.firstCall.args[0].variant).to.equal('negative');
-    });
-
     it('does not leak the Studio referrer to the opened page', async () => {
         const element = await openDialog();
         expect(element.shadowRoot.querySelector('.page-url').getAttribute('rel')).to.contain('noreferrer');
@@ -230,12 +354,6 @@ describe('mas-external-usage-dialog', function () {
         expect(countries).to.deep.equal(['us, uk', 'ca', '']);
     });
 
-    it('labels a row with its locale, which is what tells two rows of one url apart', async () => {
-        const element = await openDialog();
-        const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_US', 'en_CA']);
-    });
-
     it('keeps the rows of one url adjacent and in a stable order', async () => {
         const element = await openDialog({
             ...usage,
@@ -244,23 +362,13 @@ describe('mas-external-usage-dialog', function () {
                 { url: 'https://www.adobe.com/', requests: 3, countries: ['uk'], region: 'EMEA', locale: 'en_GB' },
             ],
         });
-        const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_US', 'en_GB']);
+        const countries = [...element.shadowRoot.querySelectorAll('.page-countries')].map((node) => node.textContent.trim());
+        expect(countries).to.deep.equal(['us', 'uk']);
     });
 
     it('titles itself Related pages', async () => {
         const element = await openDialog();
         expect(wrapperOf(element).headline).to.equal('Related pages');
-    });
-
-    it('shows how many requests each page made', async () => {
-        const element = await openDialog();
-        expect(requestCounts(element)).to.deep.equal(['900', '120', '40']);
-    });
-
-    it('groups the thousands so large counts stay readable', async () => {
-        const element = await openDialog({ ...usage, pages: [{ ...usage.pages[0], requests: 1234567 }] });
-        expect(requestCounts(element)[0]).to.equal((1234567).toLocaleString());
     });
 
     it('opens on the busiest pages, which is the ranking the action already computed', async () => {
@@ -272,12 +380,14 @@ describe('mas-external-usage-dialog', function () {
         ]);
     });
 
-    it('reverses to the quietest pages when the Requests header is toggled', async () => {
+    it('reverses to the last page first when the Page header is toggled twice', async () => {
         const element = await openDialog();
         await opened(element);
-        headerCell(element, 1).click();
+        headerCell(element, 0).click();
         await element.updateComplete;
-        expect(requestCounts(element)).to.deep.equal(['40', '120', '900']);
+        headerCell(element, 0).click();
+        await element.updateComplete;
+        expect(pageLabels(element)).to.deep.equal(['/express/business', '/express/', '/ca/creativecloud/business.html']);
     });
 
     it('switches to an alphabetical page order when the Page header is picked', async () => {
@@ -305,7 +415,7 @@ describe('mas-external-usage-dialog', function () {
         const element = await openDialog();
         await opened(element);
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal(null);
-        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('desc');
+        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal(null);
         headerCell(element, 0).click();
         await element.updateComplete;
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal('asc');
@@ -315,12 +425,14 @@ describe('mas-external-usage-dialog', function () {
     it('announces the active sort to screen readers', async () => {
         const element = await openDialog();
         await opened(element);
-        await headerCell(element, 1).updateComplete;
-        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('descending');
-        headerCell(element, 1).click();
+        headerCell(element, 0).click();
         await element.updateComplete;
-        await headerCell(element, 1).updateComplete;
-        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('ascending');
+        await headerCell(element, 0).updateComplete;
+        expect(headerCell(element, 0).getAttribute('aria-sort')).to.equal('ascending');
+        headerCell(element, 0).click();
+        await element.updateComplete;
+        await headerCell(element, 0).updateComplete;
+        expect(headerCell(element, 0).getAttribute('aria-sort')).to.equal('descending');
     });
 
     it('still omits the aggregate traffic panel, which stayed out of scope', async () => {

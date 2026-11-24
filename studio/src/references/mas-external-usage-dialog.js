@@ -1,7 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { dialogTableStyles } from './dialog-table.css.js';
 import { styles } from './mas-external-usage-dialog.css.js';
-import { showToast } from '../utils.js';
 /**
  * Modal listing the external pages that requested the open fragment, derived from Akamai CDN
  * referer logs (MWPW-185891).
@@ -114,15 +113,6 @@ class MasExternalUsageDialog extends LitElement {
         this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
     }
 
-    async #copyUrl(url) {
-        try {
-            await navigator.clipboard.writeText(url);
-            showToast('Page URL copied to clipboard', 'positive');
-        } catch {
-            showToast('Failed to copy page URL to clipboard', 'negative');
-        }
-    }
-
     #renderRow(page, commonHost) {
         // The url is the link rather than carrying a separate "Open" action, so the row keeps the
         // countries column without losing the ability to visit the page.
@@ -130,21 +120,9 @@ class MasExternalUsageDialog extends LitElement {
             <sp-table-row>
                 <sp-table-cell>
                     <a class="page-url" href=${page.url} title=${page.url} target="_blank" rel="noopener noreferrer">
-                        ${this.#label(page.url, commonHost)}
+                        <span class="page-url-label">${this.#label(page.url, commonHost)}</span>
+                        <sp-icon-open-in size="s"></sp-icon-open-in>
                     </a>
-                    ${page.locale ? html`<span class="page-locale">${page.locale}</span>` : nothing}
-                    <sp-action-button
-                        quiet
-                        size="s"
-                        label="Copy page URL"
-                        class="page-copy"
-                        @click=${() => this.#copyUrl(page.url)}
-                    >
-                        <sp-icon-copy slot="icon"></sp-icon-copy>
-                    </sp-action-button>
-                </sp-table-cell>
-                <sp-table-cell class="requests-column">
-                    <span class="page-requests">${(Number(page.requests) || 0).toLocaleString()}</span>
                 </sp-table-cell>
                 <sp-table-cell>
                     <span class="page-countries">${page.countries.join(', ')}</span>
@@ -164,15 +142,7 @@ class MasExternalUsageDialog extends LitElement {
             <sp-table emphasized class="pages-table dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
                     <sp-table-head-cell sortable sort-key="page" sort-direction=${this.#sortDirectionFor('page')}>
-                        ${commonHost ? `Page on ${commonHost}` : 'Page'}
-                    </sp-table-head-cell>
-                    <sp-table-head-cell
-                        sortable
-                        sort-key="requests"
-                        class="requests-column"
-                        sort-direction=${this.#sortDirectionFor('requests')}
-                    >
-                        Requests (7d)
+                        Page
                     </sp-table-head-cell>
                     <sp-table-head-cell>Countries</sp-table-head-cell>
                 </sp-table-head>

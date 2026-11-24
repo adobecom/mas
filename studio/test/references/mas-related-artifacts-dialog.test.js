@@ -333,9 +333,8 @@ describe('mas-related-artifacts-dialog restyle', function () {
         const el = await openThemedDialog();
         const tabs = [...el.shadowRoot.querySelectorAll('sp-tab')];
         expect(tabs.length).to.be.greaterThan(1);
-        for (const tab of tabs) {
-            expect(Math.round(tab.getBoundingClientRect().height)).to.equal(34);
-        }
+        // Figma's 34px is the Tabs row (labels plus selection indicator), not each sp-tab.
+        expect(Math.round(el.shadowRoot.querySelector('sp-tabs').getBoundingClientRect().height)).to.equal(34);
         const labelRects = tabs.map((tab) => (tab.shadowRoot?.querySelector('#item-label') ?? tab).getBoundingClientRect());
         for (let i = 1; i < labelRects.length; i++) {
             expect(Math.round(labelRects[i].left - labelRects[i - 1].right)).to.equal(24);

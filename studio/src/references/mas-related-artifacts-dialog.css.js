@@ -29,6 +29,8 @@ export const styles = css`
         --mod-tabs-item-horizontal-spacing: 24px;
         /* Pins the row so the divider and focus space do not push the table below 20px. */
         height: 34px;
+        /* Figma's title row is 32px (the close button) and the 26px heading sets the grid row, so 6px makes it up before the 20px gap. */
+        margin-top: calc(32px - 26px + 20px);
     }
 
     .table-wrapper {

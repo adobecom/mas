@@ -85,6 +85,13 @@ class MnemonicField extends LitElement {
                 margin-left: auto;
             }
 
+            .action-menu sp-menu {
+                --mod-menu-item-selectable-edge-to-text-not-selected: var(
+                    --spectrum-menu-item-label-inline-edge-to-content,
+                    12px
+                );
+            }
+
             .icon-library.mnemonic-preview {
                 cursor: pointer;
                 min-height: unset;

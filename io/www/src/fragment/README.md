@@ -49,12 +49,12 @@ WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgro
 `merch-badge` attributes or the card's color fields, documented defaults otherwise), `mnemonics`, `description`,
 `shortDescription`, `promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,
 target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src` from the cached WCS offers),
-`features` (the in-card what's included list), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
+`features` (the offer baseline's `includedApps`, enriched from AOS fulfillable items, then the authored `whatsIncluded`
+items), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
 `perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
 (one entry per layer, in this order, with the layer's fragment `id` and the filled fields it provides, e.g.
-`[{ source: 'product', fields: ['includedApps', 'includedApps[3]'] }, { source: 'template', fields: ['title'] }]`, features
-being reported per column, `includedApps` & `whatsIncluded`, its header, e.g. `includedApps.header`, and per item, e.g.
-`includedApps[3]`: `product`
+`[{ source: 'product', fields: ['includedApps'] }, { source: 'template', fields: ['title'] }]`, features being reported
+per column, `includedApps` & `whatsIncluded`, and its header, e.g. `includedApps.header`: `product`
 offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`; a baseline's
 M@S elements priced with the fragment's offer count as `fragment`: alone for `price` & `ctas`, alongside the baseline
 elsewhere, e.g. a description embedding a price). Text-bearing

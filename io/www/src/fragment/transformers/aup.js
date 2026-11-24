@@ -218,22 +218,6 @@ async function fulfillableItemsOf(productArrangementCode, context) {
     return (await fulfillableItemsCache.get(context, url.toString(), load)) ?? [];
 }
 
-const normalized = (name) =>
-    name
-        ?.toLowerCase()
-        .replace(/^adobe\s+/, '')
-        .replace(/[^a-z0-9]/g, '');
-
-/**
- * fulfillable item of an authored app: the one of its `data-fi-code`, else (experimental, until authors pick codes)
- * the one with an icon named as its alt, description or icon file
- */
-function fulfillableItemFor(code, names, fulfillableItems) {
-    if (code) return fulfillableItems.find((item) => item.code === code);
-    const keys = names.map(normalized).filter(Boolean);
-    return fulfillableItems.find(({ name, icon }) => icon && keys.includes(normalized(name)));
-}
-
 /** pro section: `<h4>{icon}{title}</h4><ul><li>row</li>…</ul>`, as studio's pro-whats-included */
 function sectionOf(section, { value }) {
     const descendants = descendantsOf(section);
@@ -249,63 +233,38 @@ function sectionOf(section, { value }) {
     };
 }
 
-const isAppList = ({ tagName }) => tagName === 'merch-mnemonic-list';
-
 /**
- * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; mnemonic list
- * items matching a fulfillable item go to `includedApps`, enriched where not authored, followed by the offer baseline's
- * `includedApps` codes not authored; other items go to `whatsIncluded`. `origins` holds, per feature id, the raw field
- * each item comes from, to report its layer
+ * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; the offer
+ * baseline's `includedApps` codes, enriched from their fulfillable item, then the authored `whatsIncluded` items
  */
 function featuresOf(html, codes, fulfillableItems, { text, value }) {
     const elements = elementsOf(html);
     const heading = elements.find(
         (element) => classesOf(element).includes('whats-included-label') || attributesOf(element).slot === 'heading',
     );
-    const includedApps = [];
+    const includedApps = codes.map((code) => {
+        const item = fulfillableItems.find((fulfillableItem) => fulfillableItem.code === code);
+        return { icon: item?.icon, alt: item?.name, code, name: item?.name, tooltip: item?.tooltip };
+    });
     const whatsIncluded = [];
-    const origins = { includedApps: [], whatsIncluded: [] };
     for (const element of elements) {
         if (classesOf(element).includes('section')) {
             whatsIncluded.push(sectionOf(element, { value }));
-            origins.whatsIncluded.push('whatsIncluded');
             continue;
         }
-        if (!isAppList(element)) continue;
+        if (element.tagName !== 'merch-mnemonic-list') continue;
         const descendants = descendantsOf(element);
         const icon = descendants.find(({ tagName }) => tagName === 'merch-icon' || tagName === 'img');
         const description = descendants.find((descendant) => attributesOf(descendant).slot === 'description');
-        const { src, alt, href, 'data-fi-code': iconCode } = icon ? attributesOf(icon) : {};
-        const code = attributesOf(element)['data-fi-code'] ?? iconCode;
-        const name = description ? text(innerHtml(description)) : '';
-        const item = fulfillableItemFor(code, [alt, name, src && altOf(src)], fulfillableItems);
-        if (!code && !item) {
-            whatsIncluded.push({ icon: src, alt, description: value(innerHtml(description ?? element)), href });
-            origins.whatsIncluded.push('whatsIncluded');
-            continue;
-        }
-        includedApps.push({
-            icon: src || item?.icon,
-            alt: alt || item?.name,
-            code: code ?? item.code,
-            name: name || item?.name,
-            tooltip: item?.tooltip,
-            href,
-        });
-        origins.includedApps.push('whatsIncluded');
-    }
-    const authoredCodes = new Set(includedApps.map(({ code }) => code));
-    for (const code of codes.filter((code) => !authoredCodes.has(code))) {
-        const item = fulfillableItems.find((fulfillableItem) => fulfillableItem.code === code);
-        includedApps.push({ icon: item?.icon, alt: item?.name, code, name: item?.name, tooltip: item?.tooltip });
-        origins.includedApps.push('includedApps');
+        const { src, alt, href } = icon ? attributesOf(icon) : {};
+        whatsIncluded.push({ icon: src, alt, description: value(innerHtml(description ?? element)), href });
     }
     const features = [
         { id: 'includedApps', items: includedApps },
         { id: 'whatsIncluded', items: whatsIncluded },
     ].filter(({ items }) => items.length);
     if (features.length && heading && text(innerHtml(heading))) features[0].header = value(innerHtml(heading));
-    return { features, origins };
+    return features;
 }
 
 /** add-on offers: one per inline price, its plan type authored on the price or its paragraph, else the offer's */
@@ -405,19 +364,11 @@ const SOURCE_ORDER = ['product', 'template', 'segment', 'plan', 'fragment', 'mas
 
 const layersOf = (fieldSources, name) => [fieldSources[name] ?? 'fragment'].flat();
 
-/**
- * features are reported per column (`includedApps`), its header (`includedApps.header`, authored in `whatsIncluded`)
- * and per item (`includedApps[2]`)
- */
-const featureAreasOf = (features, origins, fieldSources) =>
+/** features are reported per column, `includedApps` & `whatsIncluded`, and header (`includedApps.header`) */
+const featureAreasOf = (features, fieldSources) =>
     features.flatMap(({ id, header }) => [
         ...(header ? layersOf(fieldSources, 'whatsIncluded').map((source) => [source, `${id}.header`]) : []),
-        ...origins[id].flatMap((name, index) =>
-            layersOf(fieldSources, name).flatMap((source) => [
-                [source, id],
-                [source, `${id}[${index}]`],
-            ]),
-        ),
+        ...layersOf(fieldSources, id).map((source) => [source, id]),
     ]);
 
 /** fragment property holding the Odin id of each layer */
@@ -430,7 +381,7 @@ const SOURCE_IDS = {
     mask: 'maskId',
 };
 
-const sourcesOf = (fragment, { features, origins }, fieldSources = {}) => {
+const sourcesOf = (fragment, features, fieldSources = {}) => {
     const { fields } = fragment;
     const areas = [
         ...Object.entries(SOURCE_FIELDS).flatMap(([area, names]) =>
@@ -438,7 +389,7 @@ const sourcesOf = (fragment, { features, origins }, fieldSources = {}) => {
                 .filter((name) => isFilled(fields, name))
                 .flatMap((name) => layersOf(fieldSources, name).map((source) => [source, area])),
         ),
-        ...featureAreasOf(features, origins, fieldSources),
+        ...featureAreasOf(features, fieldSources),
     ];
     return SOURCE_ORDER.map((source) => ({
         source,
@@ -462,11 +413,8 @@ async function mapCard(context) {
     const labels = raw('customFieldLabels') ?? [];
     const productArrangementCode = offer?.productArrangementCode;
     const includedAppCodes = [raw('includedApps') ?? []].flat();
-    const fulfillableItems =
-        includedAppCodes.length || elementsOf(raw('whatsIncluded')).some(isAppList)
-            ? await fulfillableItemsOf(productArrangementCode, context)
-            : [];
-    const featured = featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope);
+    const fulfillableItems = includedAppCodes.length ? await fulfillableItemsOf(productArrangementCode, context) : [];
+    const features = featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope);
     const secureLabel = settings.secureLabel ?? (raw('showSecureLabel') ? '' : undefined);
     return {
         fragment: fragment.id,
@@ -503,7 +451,7 @@ async function mapCard(context) {
         ctas: elementsOf(raw('ctas'))
             .filter(({ tagName }) => tagName === 'a' || tagName === 'button')
             .map((element) => ctaOf(element, scope)),
-        features: featured.features,
+        features,
         addon: addonOf(raw('addon') ?? settings.addon, raw('addonConfirmation'), raw('variant'), scope),
         quantitySelect: quantitySelectOf(raw('quantitySelect') ?? settings.quantitySelect),
         secureTransaction: secureLabel === undefined ? null : { enabled: true, ...(secureLabel && { label: secureLabel }) },
@@ -516,7 +464,7 @@ async function mapCard(context) {
         seeTerms: seeTermsOf([raw('description'), raw('shortDescription'), raw('callout'), raw('prices')], scope),
         tags: raw('tags') ?? [],
         pznTags: raw('pznTags') ?? [],
-        sources: sourcesOf(fragment, featured, context.fieldSourcesById?.[fragment.id]),
+        sources: sourcesOf(fragment, features, context.fieldSourcesById?.[fragment.id]),
     };
 }
 

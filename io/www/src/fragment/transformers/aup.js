@@ -254,7 +254,8 @@ const isAppList = ({ tagName }) => tagName === 'merch-mnemonic-list';
 /**
  * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; mnemonic list
  * items matching a fulfillable item go to `includedApps`, enriched where not authored, followed by the offer baseline's
- * `includedApps` codes not authored; other items go to `whatsIncluded`
+ * `includedApps` codes not authored; other items go to `whatsIncluded`. `origins` holds, per feature id, the raw field
+ * each item comes from, to report its layer
  */
 function featuresOf(html, codes, fulfillableItems, { text, value }) {
     const elements = elementsOf(html);
@@ -263,9 +264,11 @@ function featuresOf(html, codes, fulfillableItems, { text, value }) {
     );
     const includedApps = [];
     const whatsIncluded = [];
+    const origins = { includedApps: [], whatsIncluded: [] };
     for (const element of elements) {
         if (classesOf(element).includes('section')) {
             whatsIncluded.push(sectionOf(element, { value }));
+            origins.whatsIncluded.push('whatsIncluded');
             continue;
         }
         if (!isAppList(element)) continue;
@@ -278,6 +281,7 @@ function featuresOf(html, codes, fulfillableItems, { text, value }) {
         const item = fulfillableItemFor(code, [alt, name, src && altOf(src)], fulfillableItems);
         if (!code && !item) {
             whatsIncluded.push({ icon: src, alt, description: value(innerHtml(description ?? element)), href });
+            origins.whatsIncluded.push('whatsIncluded');
             continue;
         }
         includedApps.push({
@@ -288,18 +292,20 @@ function featuresOf(html, codes, fulfillableItems, { text, value }) {
             tooltip: item?.tooltip,
             href,
         });
+        origins.includedApps.push('whatsIncluded');
     }
     const authoredCodes = new Set(includedApps.map(({ code }) => code));
     for (const code of codes.filter((code) => !authoredCodes.has(code))) {
         const item = fulfillableItems.find((fulfillableItem) => fulfillableItem.code === code);
         includedApps.push({ icon: item?.icon, alt: item?.name, code, name: item?.name, tooltip: item?.tooltip });
+        origins.includedApps.push('includedApps');
     }
     const features = [
         { id: 'includedApps', items: includedApps },
         { id: 'whatsIncluded', items: whatsIncluded },
     ].filter(({ items }) => items.length);
     if (features.length && heading && text(innerHtml(heading))) features[0].header = value(innerHtml(heading));
-    return features;
+    return { features, origins };
 }
 
 /** add-on offers: one per inline price, its plan type authored on the price or its paragraph, else the offer's */
@@ -388,7 +394,6 @@ const SOURCE_FIELDS = {
     callout: ['callout'],
     price: ['prices'],
     ctas: ['ctas'],
-    features: ['includedApps', 'whatsIncluded'],
     addon: ['addon'],
     customFields: ['customFields'],
     perUnitLabel: ['perUnitLabel'],
@@ -398,14 +403,46 @@ const isFilled = (fields, name) => ![rawOf(fields, name)].flat().every((entry) =
 
 const SOURCE_ORDER = ['product', 'template', 'segment', 'plan', 'fragment', 'mask'];
 
-const sourcesOf = (fields, fieldSources = {}) => {
-    const areas = Object.entries(SOURCE_FIELDS).flatMap(([area, names]) =>
-        names
-            .filter((name) => isFilled(fields, name))
-            .flatMap((name) => [fieldSources[name] ?? 'fragment'].flat().map((source) => [source, area])),
-    );
+const layersOf = (fieldSources, name) => [fieldSources[name] ?? 'fragment'].flat();
+
+/**
+ * features are reported per column (`includedApps`), its header (`includedApps.header`, authored in `whatsIncluded`)
+ * and per item (`includedApps[2]`)
+ */
+const featureAreasOf = (features, origins, fieldSources) =>
+    features.flatMap(({ id, header }) => [
+        ...(header ? layersOf(fieldSources, 'whatsIncluded').map((source) => [source, `${id}.header`]) : []),
+        ...origins[id].flatMap((name, index) =>
+            layersOf(fieldSources, name).flatMap((source) => [
+                [source, id],
+                [source, `${id}[${index}]`],
+            ]),
+        ),
+    ]);
+
+/** fragment property holding the Odin id of each layer */
+const SOURCE_IDS = {
+    product: 'offerBaselineId',
+    template: 'fragmentBaselineId',
+    segment: 'fragmentSegmentBaselineId',
+    plan: 'fragmentPlanBaselineId',
+    fragment: 'id',
+    mask: 'maskId',
+};
+
+const sourcesOf = (fragment, { features, origins }, fieldSources = {}) => {
+    const { fields } = fragment;
+    const areas = [
+        ...Object.entries(SOURCE_FIELDS).flatMap(([area, names]) =>
+            names
+                .filter((name) => isFilled(fields, name))
+                .flatMap((name) => layersOf(fieldSources, name).map((source) => [source, area])),
+        ),
+        ...featureAreasOf(features, origins, fieldSources),
+    ];
     return SOURCE_ORDER.map((source) => ({
         source,
+        id: fragment[SOURCE_IDS[source]],
         fields: [...new Set(areas.filter(([layer]) => layer === source).map(([, area]) => area))],
     })).filter(({ fields: sourceFields }) => sourceFields.length);
 };
@@ -429,6 +466,7 @@ async function mapCard(context) {
         includedAppCodes.length || elementsOf(raw('whatsIncluded')).some(isAppList)
             ? await fulfillableItemsOf(productArrangementCode, context)
             : [];
+    const featured = featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope);
     const secureLabel = settings.secureLabel ?? (raw('showSecureLabel') ? '' : undefined);
     return {
         fragment: fragment.id,
@@ -465,7 +503,7 @@ async function mapCard(context) {
         ctas: elementsOf(raw('ctas'))
             .filter(({ tagName }) => tagName === 'a' || tagName === 'button')
             .map((element) => ctaOf(element, scope)),
-        features: featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope),
+        features: featured.features,
         addon: addonOf(raw('addon') ?? settings.addon, raw('addonConfirmation'), raw('variant'), scope),
         quantitySelect: quantitySelectOf(raw('quantitySelect') ?? settings.quantitySelect),
         secureTransaction: secureLabel === undefined ? null : { enabled: true, ...(secureLabel && { label: secureLabel }) },
@@ -478,7 +516,7 @@ async function mapCard(context) {
         seeTerms: seeTermsOf([raw('description'), raw('shortDescription'), raw('callout'), raw('prices')], scope),
         tags: raw('tags') ?? [],
         pznTags: raw('pznTags') ?? [],
-        sources: sourcesOf(fields, context.fieldSourcesById?.[fragment.id]),
+        sources: sourcesOf(fragment, featured, context.fieldSourcesById?.[fragment.id]),
     };
 }
 

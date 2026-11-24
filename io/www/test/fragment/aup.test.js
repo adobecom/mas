@@ -44,7 +44,7 @@ const PRO_FIELDS = {
     customFieldLabels: ['header-promo-banner'],
 };
 
-const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, ...overrides } = {}) => ({
+const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, body, ...overrides } = {}) => ({
     id: 'card',
     requestId: 'request',
     api_key: 'unified_checkout_server_v3',
@@ -57,6 +57,7 @@ const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, ...over
         model: { id: CARD_MODEL_ID },
         fields: structuredClone(fields),
         ...(settings && { settings }),
+        ...body,
         wcs: wcs ?? {
             prod: {
                 'OSI-PRO-us-mult': offersFor('OSI-PRO'),
@@ -445,6 +446,28 @@ describe('aup transformer', () => {
             ]);
         });
 
+        it('reports the layer of each feature column and item', async () => {
+            const fieldSourcesById = { card: { whatsIncluded: 'template', includedApps: 'product' } };
+            const fields = { osi: 'OSI-PRO', whatsIncluded: APPS, includedApps: ['photoshop_cc', 'unknown'] };
+            const { features, sources } = await map(fields, { ...AOS, fieldSourcesById });
+            expect(features[0].items.map(({ code }) => code)).to.deep.equal(['photoshop_cc', 'firefly_credits', 'unknown']);
+            expect(sources).to.deep.include.members([
+                { source: 'product', id: undefined, fields: ['includedApps', 'includedApps[2]'] },
+                {
+                    source: 'template',
+                    id: undefined,
+                    fields: [
+                        'includedApps.header',
+                        'includedApps',
+                        'includedApps[0]',
+                        'includedApps[1]',
+                        'whatsIncluded',
+                        'whatsIncluded[0]',
+                    ],
+                },
+            ]);
+        });
+
         it('falls back to authored items when AOS fails or has no merchandising', async () => {
             fetchStub.callsFake(() => createResponse(500));
             const items = [{ icon: 'fonts.svg', alt: 'Adobe Fonts', description: '<p>Fonts</p>', href: undefined }];
@@ -461,18 +484,24 @@ describe('aup transformer', () => {
         });
     });
 
-    it('reports the layer of each filled area, the fragment by default', async () => {
+    it('reports the layer, with its id, of each filled area, the fragment by default', async () => {
         const fieldSourcesById = { card: { cardTitle: 'template', prices: 'plan', badge: 'mask', includedApps: 'product' } };
-        const body = await map({ ...PRO_FIELDS, includedApps: ['photoshop_cc'] }, { fieldSourcesById });
-        expect(body.sources.map(({ source }) => source)).to.deep.equal(['product', 'template', 'plan', 'fragment', 'mask']);
+        const ids = { fragmentBaselineId: 'template-id', fragmentPlanBaselineId: 'plan-id', maskId: 'mask-id' };
+        const body = await map({ ...PRO_FIELDS, includedApps: ['photoshop_cc'] }, { fieldSourcesById, body: ids });
+        expect(body.sources.map(({ source, id }) => [source, id])).to.deep.equal([
+            ['product', undefined],
+            ['template', 'template-id'],
+            ['plan', 'plan-id'],
+            ['fragment', 'card'],
+            ['mask', 'mask-id'],
+        ]);
         expect(body.sources).to.deep.include.members([
-            { source: 'product', fields: ['features'] },
-            { source: 'template', fields: ['title'] },
-            { source: 'plan', fields: ['price'] },
-            { source: 'mask', fields: ['badge'] },
+            { source: 'template', id: 'template-id', fields: ['title'] },
+            { source: 'plan', id: 'plan-id', fields: ['price'] },
+            { source: 'mask', id: 'mask-id', fields: ['badge'] },
         ]);
         const fragmentFields = body.sources.find(({ source }) => source === 'fragment').fields;
-        expect(fragmentFields).to.include.members(['description', 'features']);
+        expect(fragmentFields).to.include.members(['description']);
         expect(fragmentFields).to.not.include.members(['title', 'promoText']);
     });
 

@@ -400,7 +400,7 @@ async function mapCard(context) {
         analyticsId: raw('tags')
             ?.find((tag) => tag.startsWith('mas:product_code/'))
             ?.split('/')[1],
-        offerId: context.offer,
+        offerId: context.offerId ?? offer?.offerId,
         osi,
         productArrangementCode,
         title: richValue('cardTitle'),

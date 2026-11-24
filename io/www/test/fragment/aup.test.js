@@ -70,13 +70,21 @@ const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, ...over
 const map = async (...args) => (await transformer.process(contextFor(...args))).body;
 
 describe('aup transformer', () => {
+    it("reports the resolved offer's id without a requested offer id", async () => {
+        const wcs = { prod: { 'OSI-PRO-us-mult': offersFor('OSI-PRO', { offerId: 'WCS-OFFER-ID' }) } };
+        expect((await map(PRO_FIELDS, { wcs })).offerId).to.equal('WCS-OFFER-ID');
+    });
+
     it('maps a card to the AUP shape', async () => {
-        const body = await map(PRO_FIELDS, { offer: 'offer-id' });
+        const body = await map(PRO_FIELDS, {
+            offer: '257E1D82082387D152029F93C1030624',
+            offerId: '257E1D82082387D152029F93C1030624',
+        });
         expect(body).to.include({
             fragment: 'card',
             template: 'pro',
             analyticsId: 'ccsn',
-            offerId: 'offer-id',
+            offerId: '257E1D82082387D152029F93C1030624',
             osi: 'OSI-PRO',
             productArrangementCode: 'pa-OSI-PRO',
             title: '<p>Creative Cloud Pro</p>',

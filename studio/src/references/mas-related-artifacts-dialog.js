@@ -70,11 +70,11 @@ class MasRelatedArtifactsDialog extends LitElement {
             <sp-table-row>
                 <sp-table-cell>
                     ${link
-                        ? html`<a class="artifact-link" href=${link} target="_blank" rel="noopener">
-                              <span>${title}</span>
+                        ? html`<a class="artifact-link" href=${link} title=${title} target="_blank" rel="noopener">
+                              <span class="artifact-label">${title}</span>
                               <sp-icon-open-in size="s"></sp-icon-open-in>
                           </a>`
-                        : html`<span>${title}</span>`}
+                        : html`<span class="artifact-label" title=${title}>${title}</span>`}
                 </sp-table-cell>
             </sp-table-row>
         `;
@@ -88,7 +88,27 @@ class MasRelatedArtifactsDialog extends LitElement {
         return html`
             <sp-table emphasized class="dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
-                    <sp-table-head-cell sortable sort-direction=${this.sortDirection}>Page</sp-table-head-cell>
+                    <sp-table-head-cell sortable sort-direction=${this.sortDirection}
+                        ><svg class="sort-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                            <!-- S2_Icon_SortDown, Figma node 24013:131438 -->
+                            <path
+                                fill="currentColor"
+                                d="M29.2487 21.1514C28.7799 20.6826 28.0205 20.6826 27.5518 21.1514L25.6002 23.1029V5.9998C25.6002 5.33731 25.0627 4.7998 24.4002 4.7998C23.7377 4.7998 23.2002 5.33731 23.2002 5.9998V23.1029L21.2486 21.1514C20.7799 20.6826 20.0205 20.6826 19.5518 21.1514C19.083 21.6201 19.083 22.3795 19.5518 22.8482L23.5518 26.8482C23.6623 26.9588 23.7947 27.0459 23.9412 27.1068C24.0877 27.1678 24.2436 27.1998 24.4002 27.1998C24.5569 27.1998 24.7127 27.1678 24.8592 27.1068C25.0057 27.0459 25.1381 26.9588 25.2487 26.8482L29.2487 22.8482C29.7174 22.3795 29.7174 21.6201 29.2487 21.1514Z"
+                            />
+                            <path
+                                fill="currentColor"
+                                d="M11.6002 23.1998H4.4002C3.7377 23.1998 3.2002 22.6623 3.2002 21.9998C3.2002 21.3373 3.7377 20.7998 4.4002 20.7998H11.6002C12.2627 20.7998 12.8002 21.3373 12.8002 21.9998C12.8002 22.6623 12.2627 23.1998 11.6002 23.1998Z"
+                            />
+                            <path
+                                fill="currentColor"
+                                d="M14.8002 16.8004H4.4002C3.7377 16.8004 3.2002 16.2629 3.2002 15.6004C3.2002 14.9379 3.7377 14.4004 4.4002 14.4004H14.8002C15.4627 14.4004 16.0002 14.9379 16.0002 15.6004C16.0002 16.2629 15.4627 16.8004 14.8002 16.8004Z"
+                            />
+                            <path
+                                fill="currentColor"
+                                d="M18.0002 10.4H4.4002C3.7377 10.4 3.2002 9.8625 3.2002 9.2C3.2002 8.5375 3.7377 8 4.4002 8H18.0002C18.6627 8 19.2002 8.5375 19.2002 9.2C19.2002 9.8625 18.6627 10.4 18.0002 10.4Z"
+                            /></svg
+                        >Page</sp-table-head-cell
+                    >
                 </sp-table-head>
                 <sp-table-body class="dialog-table-body">${rows.map((row) => this.#renderRow(row))}</sp-table-body>
             </sp-table>
@@ -101,13 +121,12 @@ class MasRelatedArtifactsDialog extends LitElement {
             <sp-overlay type="modal" open @sp-closed=${this.#handleOverlayClosed}>
                 <sp-dialog-wrapper headline="Related studio artifacts" dismissable underlay no-divider size="l">
                     <div class="dialog-content">
-                        <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
+                        <sp-tabs class="tabs-row" quiet compact .selected=${this.selectedTab} @change=${this.#handleTabChange}>
                             ${ARTIFACT_TYPE_KEYS.map(
                                 (key) =>
                                     html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
                             )}
                         </sp-tabs>
-                        <sp-divider size="s"></sp-divider>
                         <div class="table-wrapper">${this.#renderTable()}</div>
                     </div>
                 </sp-dialog-wrapper>

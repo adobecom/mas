@@ -235,7 +235,8 @@ function sectionOf(section, { value }) {
 
 /**
  * in-card what's included: `.whats-included-label` or `[slot=heading]` header on the first feature; the offer
- * baseline's `includedApps` codes, enriched from their fulfillable item, then the authored `whatsIncluded` items
+ * baseline's `includedApps` codes, enriched from their fulfillable item, then the authored items of `whatsIncluded`
+ * & `shortDescription` (studio shows it as rich text, e.g. for `{{extras}}`)
  */
 function featuresOf(html, codes, fulfillableItems, { text, value }) {
     const elements = elementsOf(html);
@@ -348,13 +349,11 @@ const SOURCE_FIELDS = {
     mnemonics: ['mnemonicIcon'],
     backgroundImage: ['backgroundImage'],
     description: ['description'],
-    shortDescription: ['shortDescription'],
     promoText: ['promoText'],
     callout: ['callout'],
     price: ['prices'],
     ctas: ['ctas'],
     addon: ['addon'],
-    customFields: ['customFields'],
     perUnitLabel: ['perUnitLabel'],
 };
 
@@ -364,11 +363,16 @@ const SOURCE_ORDER = ['product', 'template', 'segment', 'plan', 'fragment', 'mas
 
 const layersOf = (fieldSources, name) => [fieldSources[name] ?? 'fragment'].flat();
 
+/** fields each feature column is built from */
+const FEATURE_FIELDS = { includedApps: ['includedApps'], whatsIncluded: ['whatsIncluded', 'shortDescription'] };
+
 /** features are reported per column, `includedApps` & `whatsIncluded`, and header (`includedApps.header`) */
-const featureAreasOf = (features, fieldSources) =>
+const featureAreasOf = (features, fields, fieldSources) =>
     features.flatMap(({ id, header }) => [
         ...(header ? layersOf(fieldSources, 'whatsIncluded').map((source) => [source, `${id}.header`]) : []),
-        ...layersOf(fieldSources, id).map((source) => [source, id]),
+        ...FEATURE_FIELDS[id]
+            .filter((name) => isFilled(fields, name))
+            .flatMap((name) => layersOf(fieldSources, name).map((source) => [source, id])),
     ]);
 
 /** fragment property holding the Odin id of each layer */
@@ -389,7 +393,7 @@ const sourcesOf = (fragment, features, fieldSources = {}) => {
                 .filter((name) => isFilled(fields, name))
                 .flatMap((name) => layersOf(fieldSources, name).map((source) => [source, area])),
         ),
-        ...featureAreasOf(features, fieldSources),
+        ...featureAreasOf(features, fields, fieldSources),
     ];
     return SOURCE_ORDER.map((source) => ({
         source,
@@ -410,11 +414,11 @@ async function mapCard(context) {
     const richValue = (name) => (raw(name) ? value(raw(name)) : undefined);
     const osi = raw('osi');
     const [offer] = (osi && cachedOffers([osi], effectivePromotionCode(raw('promoCode') ?? ''), scope)) || [];
-    const labels = raw('customFieldLabels') ?? [];
     const productArrangementCode = offer?.productArrangementCode;
     const includedAppCodes = [raw('includedApps') ?? []].flat();
     const fulfillableItems = includedAppCodes.length ? await fulfillableItemsOf(productArrangementCode, context) : [];
-    const features = featuresOf(raw('whatsIncluded'), includedAppCodes, fulfillableItems, scope);
+    const whatsIncludedHtml = [raw('whatsIncluded'), raw('shortDescription')].filter(Boolean).join('');
+    const features = featuresOf(whatsIncludedHtml, includedAppCodes, fulfillableItems, scope);
     const secureLabel = settings.secureLabel ?? (raw('showSecureLabel') ? '' : undefined);
     return {
         fragment: fragment.id,
@@ -443,7 +447,6 @@ async function mapCard(context) {
         ),
         mnemonics: mnemonicsOf(fields),
         description: richValue('description'),
-        shortDescription: richValue('shortDescription'),
         promoText: richValue('promoText'),
         promoCode: raw('promoCode') || null,
         callout: richValue('callout') ?? null,
@@ -455,9 +458,6 @@ async function mapCard(context) {
         addon: addonOf(raw('addon') ?? settings.addon, raw('addonConfirmation'), raw('variant'), scope),
         quantitySelect: quantitySelectOf(raw('quantitySelect') ?? settings.quantitySelect),
         secureTransaction: secureLabel === undefined ? null : { enabled: true, ...(secureLabel && { label: secureLabel }) },
-        customFields: (raw('customFields') ?? [])
-            .map((html, index) => ({ label: labels[index] ?? '', value: value(html) }))
-            .filter((field) => field.label || field.value.length),
         perUnitLabel: raw('perUnitLabel'),
         backgroundImage: raw('backgroundImage') ? { src: raw('backgroundImage'), alt: raw('backgroundImageAltText') } : null,
         style: { backgroundColor: raw('backgroundColor'), borderColor: raw('borderColor'), size: raw('size') },

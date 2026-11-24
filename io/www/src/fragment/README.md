@@ -47,11 +47,11 @@ ignored), with a `type`, on cards (collections are left as delivered). It runs a
 `fragment`, `template`, `analyticsId` (`mas:product_code/` tag), `offerId`, `osi`, `productArrangementCode` (cached
 WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgroundColor, borderColor }`, from
 `merch-badge` attributes or the card's color fields, documented defaults otherwise), `mnemonics`, `description`,
-`shortDescription`, `promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,
+`promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,
 target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src` from the cached WCS offers),
-`features` (the offer baseline's `includedApps`, enriched from AOS fulfillable items, then the authored `whatsIncluded`
-items), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
-`perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
+`features` (the offer baseline's `includedApps`, enriched from AOS fulfillable items, then the authored items of
+`whatsIncluded` & `shortDescription`, the latter shown as rich text in studio, e.g. for `{{extras}}`), `addon`,
+`quantitySelect`, `secureTransaction`, `perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
 (one entry per layer, in this order, with the layer's fragment `id` and the filled fields it provides, e.g.
 `[{ source: 'product', fields: ['includedApps'] }, { source: 'template', fields: ['title'] }]`, features being reported
 per column, `includedApps` & `whatsIncluded`, and its header, e.g. `includedApps.header`: `product`

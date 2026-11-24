@@ -40,8 +40,6 @@ const PRO_FIELDS = {
     whatsIncluded:
         '<p class="whats-included-label">Students save 50%.</p><div class="section"><h4>Everything in <strong>Pro</strong></h4></div>',
     tags: ['mas:product_code/ccsn', 'mas:market_segments/edu'],
-    customFields: ['<p>Step up</p>', ''],
-    customFieldLabels: ['header-promo-banner'],
 };
 
 const contextFor = (fields = PRO_FIELDS, { type = 'html', settings, wcs, body, ...overrides } = {}) => ({
@@ -140,7 +138,6 @@ describe('aup transformer', () => {
             confirmation: '<p>Stock added</p>',
         });
         expect(body.secureTransaction).to.deep.equal({ enabled: true });
-        expect(body.customFields).to.deep.equal([{ label: 'header-promo-banner', value: '<p>Step up</p>' }]);
         expect(body.style).to.deep.equal({ backgroundColor: 'light', borderColor: 'black', size: 'edu' });
         expect(body.seeTerms).to.deep.equal({ label: 'See terms', url: 'https://www.adobe.com/offer-terms/ccm.html' });
         expect(body.tags).to.deep.equal(PRO_FIELDS.tags);
@@ -246,7 +243,6 @@ describe('aup transformer', () => {
                 quantitySelect: rich(
                     '<merch-quantity-select title="Qty" min="1" max="10" step="1" default-value="2"></merch-quantity-select>',
                 ),
-                customFields: ['<p>value only</p>'],
                 perUnitLabel: '{perUnit}',
                 backgroundImage: 'bg.png',
                 backgroundImageAltText: 'background',
@@ -277,12 +273,7 @@ describe('aup transformer', () => {
             offers: [{ planType: undefined, offerType: undefined, wcsOsi: 'OSI-AI', price: '' }],
             confirmation: undefined,
         });
-        expect(body.customFields).to.deep.equal([{ label: '', value: '<p>value only</p>' }]);
-        expect(body).to.include({
-            perUnitLabel: '{perUnit}',
-            promoText: '<p>Limited time</p>',
-            shortDescription: '<p><a href="https://www.adobe.com/legal.html">Legal</a></p>',
-        });
+        expect(body).to.include({ perUnitLabel: '{perUnit}', promoText: '<p>Limited time</p>' });
         expect(body.backgroundImage).to.deep.equal({ src: 'bg.png', alt: 'background' });
         expect(body.seeTerms).to.be.undefined;
     });
@@ -409,6 +400,28 @@ describe('aup transformer', () => {
             expect(sources).to.deep.include.members([
                 { source: 'product', id: undefined, fields: ['includedApps'] },
                 { source: 'template', id: undefined, fields: ['includedApps.header', 'whatsIncluded'] },
+            ]);
+        });
+
+        it('appends short description sections to whatsIncluded, reported with its own layer', async () => {
+            const fieldSourcesById = { card: { whatsIncluded: 'template', shortDescription: 'plan' } };
+            const fields = {
+                osi: 'OSI-PRO',
+                whatsIncluded: '<merch-whats-included><h3 slot="heading">Includes</h3></merch-whats-included>',
+                shortDescription: rich('<div class="section"><h4>Recommended for</h4><ul><li>Photo</li></ul></div>'),
+            };
+            const { features, sources, shortDescription } = await map(fields, { fieldSourcesById });
+            expect(features).to.deep.equal([
+                {
+                    id: 'whatsIncluded',
+                    header: '<p>Includes</p>',
+                    items: [{ icon: undefined, title: '<p>Recommended for</p>', items: ['<p>Photo</p>'] }],
+                },
+            ]);
+            expect(shortDescription).to.be.undefined;
+            expect(sources).to.deep.include.members([
+                { source: 'template', id: undefined, fields: ['whatsIncluded.header', 'whatsIncluded'] },
+                { source: 'plan', id: undefined, fields: ['whatsIncluded'] },
             ]);
         });
 

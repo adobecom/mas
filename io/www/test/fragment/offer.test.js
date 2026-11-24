@@ -173,7 +173,9 @@ describe('offer transformer', () => {
         });
 
         it('reports the layer each AUP area comes from', async () => {
-            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS });
+            const description = `<p>Pay <span is="inline-price" data-wcs-osi="${OSI}"></span></p>`;
+            const fragmentBaseline = { ...FRAGMENT_BASELINE, fields: { ...FRAGMENT_BASELINE.fields, description } };
+            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS, fragmentBaseline });
             const { statusCode, body } = await getFragment({
                 api_key: 'unified_checkout_server_v3',
                 offer: OSI,
@@ -184,7 +186,8 @@ describe('offer transformer', () => {
             expect(statusCode).to.equal(200);
             expect(body.sources).to.deep.include({
                 title: ['fragment'],
-                price: ['template', 'fragment'],
+                price: ['fragment'],
+                description: ['template', 'fragment'],
                 mnemonics: ['product'],
             });
         });

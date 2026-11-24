@@ -53,7 +53,8 @@ target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src
 `perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
 (each filled area's layers, e.g. `{ title: ['template'], features: ['product', 'template'], badge: ['mask'] }`: `product`
 offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`; a baseline's
-M@S elements priced with the fragment's offer, like prices or checkout CTAs, also count as `fragment`). Text-bearing
+M@S elements priced with the fragment's offer count as `fragment`: alone for `price` & `ctas`, alongside the baseline
+elsewhere, e.g. a description embedding a price). Text-bearing
 values are emitted per `type` with serialize (`json` nodes, `html` or `text` strings).
 
 Mock limitations: `price` is the rendered price markup, not a price object; badge colors are authored tokens, not hex;

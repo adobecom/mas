@@ -593,6 +593,8 @@ function withoutInheritedEmptyFields(fragment, baselines) {
     return { ...fragment, fields };
 }
 
+const OFFER_FIELDS = ['prices', 'ctas'];
+
 /**
  * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < `fragmentPlanBaseline` <
  * fragment, as resolved by the `offer` transformer for that fragment. Applied before variations, so they override
@@ -615,9 +617,11 @@ function applyBaselines(fragment, { baselines, fieldSourcesById }) {
     const sources = (fieldSourcesById[fragment.id] ??= {});
     preparedLayers.forEach(({ fields }, index) => {
         const [layer] = layers[index];
-        // M@S elements (prices, CTAs…) authored on a baseline are priced with the fragment's offer
+        // M@S elements (prices, CTAs…) authored on a baseline are priced with the fragment's offer;
+        // fields made only of them belong to the fragment
         for (const [name, value] of Object.entries(fields)) {
-            sources[name] = osi && JSON.stringify(value).includes(osi) ? [layer, 'fragment'] : layer;
+            if (!osi || !JSON.stringify(value).includes(osi)) sources[name] = layer;
+            else sources[name] = OFFER_FIELDS.includes(name) ? 'fragment' : [layer, 'fragment'];
         }
     });
     for (const [name, value] of Object.entries(card.fields)) {

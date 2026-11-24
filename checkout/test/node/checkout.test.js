@@ -3,6 +3,18 @@ import { describe, it } from 'node:test';
 import { buildCheckoutUrl, applyPageLocaleToCheckoutUrl } from '../../src/buildCheckoutUrl.js';
 import { resolveCheckoutData, resolveCheckoutIntent } from '../../src/checkout.js';
 import { urlCases, offerCases } from '../fixtures/cases.js';
+import { checkoutDecisions } from '../../src/decisions.js';
+import { decisionCases } from '../fixtures/decisions.js';
+
+describe('shared checkout decisions without browser globals', () => {
+    for (const { id, decision, input, expected } of decisionCases) {
+        it(id, () => {
+            const original = structuredClone(input);
+            assert.deepEqual(checkoutDecisions[decision](input), expected);
+            assert.deepEqual(input, original);
+        });
+    }
+});
 
 describe('checkout URLs without browser globals', () => {
     for (const { id, data, pageContext, expected } of urlCases) {

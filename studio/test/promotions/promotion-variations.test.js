@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
     assertPromoVariationGeoTagsValid,
+    clearPromoVariationProbeCache,
     createPromoVariation,
     findOverlappingGeoTags,
     getUsedGeoTags,
@@ -26,6 +27,7 @@ describe('promotion-variations', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        clearPromoVariationProbeCache();
     });
 
     afterEach(() => {
@@ -1353,6 +1355,21 @@ describe('promotion-variations', () => {
             ]);
             expect(refs).to.have.lengthOf(1);
             expect(refs[0].path).to.equal(promoPath);
+        });
+
+        it('reuses a recent promo folder crawl until the probe cache is cleared', async () => {
+            const search = makeSearchStub({ [promoRoot]: [{ id: 'promo-var-id', path: promoPath }] });
+            const aem = createAemMock({ fragments: { search } });
+            const projects = [attachedProject('mas:promotion/back-to-school')];
+
+            await probePromoVariationReferences(aem, defaultPath, projects);
+            const refs = await probePromoVariationReferences(aem, defaultPath, projects);
+            expect(refs.map((ref) => ref.path)).to.deep.equal([promoPath]);
+            expect(search.callCount).to.equal(1);
+
+            clearPromoVariationProbeCache();
+            await probePromoVariationReferences(aem, defaultPath, projects);
+            expect(search.callCount).to.equal(2);
         });
 
         it('returns every variation when the same project has more than one, geo-specific, promo variation', async () => {

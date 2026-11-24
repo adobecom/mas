@@ -79,7 +79,7 @@
             import '../../src/rte/rte-field.js';
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/mas-fragment-editor.js';
-            import '../../src/editors/merch-card-editor.js';
+            import { parseWhatsIncludedDivider } from '../../src/editors/merch-card-editor.js';
             import '../../src/mas-repository.js';
             import '../../src/mas-side-nav.js';
             // Import aem-fragment, mas-commerce-service, and merch-card from web-components
@@ -626,6 +626,7 @@
                             value: ['<p>Overridden Description</p>'],
                         },
                         { name: 'dropdown field (size)', field: 'size', selector: '#size', value: ['super-wide'] },
+                        { name: 'template picker (variant)', field: 'variant', selector: '#variant', value: ['catalog'] },
                         { name: 'multifield (mnemonics)', field: 'mnemonicIcon', selector: '#mnemonics', value: [''] },
                     ];
 
@@ -659,6 +660,26 @@
 
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(saveNavItem.disabled).to.be.false;
+                    });
+
+                    it('restores overridden footer rows from the section only, not from each row', async () => {
+                        await setupTestEnvironment({}, 'footer-rows');
+                        editor.fragmentStore.updateField('footerRows', [
+                            editor.createFooterRowsElement([{ icon: '/own.svg', alt: 'Own row' }]).outerHTML,
+                        ]);
+                        await editor.updateComplete;
+                        const multifield = editor.querySelector('#footerRows mas-multifield');
+                        await multifield.updateComplete;
+                        const rows = [...multifield.shadowRoot.querySelectorAll('mas-included-field')];
+                        await Promise.all(rows.map((row) => row.updateComplete));
+                        expect(editor.getFieldState('footerRows')).to.equal('overridden');
+                        expect(rows.length).to.equal(1);
+                        expect(rows[0].getAttribute('data-field-state')).to.equal('overridden');
+                        expect(rows[0].shadowRoot.querySelectorAll('.field-status-restore-link').length).to.equal(0);
+
+                        editor.querySelector('#footerRows > .field-status-indicator .field-status-restore-link').click();
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('footerRows')).to.equal('inherited');
                     });
 
                     it('renders grouped-variation-tags as readonly in non en_US locales', async () => {
@@ -1696,6 +1717,54 @@
                         });
                     });
 
+                    describe('parseWhatsIncludedDivider', () => {
+                        it('returns an empty divider when there is no What is included markup', () => {
+                            expect(parseWhatsIncludedDivider('')).to.deep.equal({ divider: '' });
+                            expect(parseWhatsIncludedDivider('<p>text</p>')).to.deep.equal({ divider: '' });
+                        });
+
+                        it('returns an empty divider when the attribute is missing', () => {
+                            expect(parseWhatsIncludedDivider('<merch-whats-included></merch-whats-included>')).to.deep.equal({
+                                divider: '',
+                            });
+                        });
+
+                        it('treats "default" as no divider color', () => {
+                            for (const value of ['default', ' Default ', 'DEFAULT']) {
+                                expect(
+                                    parseWhatsIncludedDivider(
+                                        `<merch-whats-included whats-included-divider-color="${value}"></merch-whats-included>`,
+                                    ),
+                                ).to.deep.equal({ divider: '' });
+                            }
+                        });
+
+                        it('returns the trimmed divider color token', () => {
+                            expect(
+                                parseWhatsIncludedDivider(
+                                    '<merch-whats-included whats-included-divider-color=" spectrum-gray-300 "></merch-whats-included>',
+                                ),
+                            ).to.deep.equal({ divider: 'spectrum-gray-300' });
+                        });
+                    });
+
+                    describe('whats included divider color picker', () => {
+                        it('is disabled with help text until the card has What is included markup', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['mini-compare-chart'] },
+                                'divider-picker',
+                            );
+                            const group = () => editor.querySelector('sp-field-group#whats-included-divider-color');
+                            expect(group().querySelector('sp-picker').disabled).to.be.true;
+                            expect(group().querySelector('sp-help-text').textContent).to.include("Add What's included content");
+
+                            store.updateField('whatsIncluded', ['<merch-whats-included></merch-whats-included>']);
+                            await editor.updateComplete;
+                            expect(group().querySelector('sp-picker').disabled).to.be.false;
+                            expect(group().querySelector('sp-help-text')).to.be.null;
+                        });
+                    });
+
                     describe('#updateWhatsIncluded pro routing', () => {
                         const PRO_SEED =
                             '<p class="whats-included-label">Voir :</p>' +
@@ -1807,13 +1876,20 @@
                     });
 
                     describe('explicit empty sentinel', () => {
-                        it('shows fields storing the explicit empty sentinel as empty', async () => {
+                        it('shows optional fields storing the explicit empty sentinel as empty', async () => {
                             const { editor } = await setupTestEnvironment(
-                                { subtitle: [EXPLICIT_EMPTY_SENTINEL], cardTitle: [EXPLICIT_EMPTY_SENTINEL] },
+                                { subtitle: [EXPLICIT_EMPTY_SENTINEL] },
                                 'explicit-empty',
                             );
                             expect(editor.querySelector('#card-subtitle').value).to.equal('');
-                            expect(editor.querySelector('#card-title').value).to.equal('');
+                        });
+
+                        it('shows required fields storing the explicit empty sentinel as inherited', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { cardTitle: [EXPLICIT_EMPTY_SENTINEL] },
+                                'explicit-empty-required',
+                            );
+                            expect(editor.querySelector('#card-title').value).to.equal('Parent Title');
                         });
                     });
 
@@ -1937,18 +2013,18 @@
                             });
                         }
 
-                        const expectedGridOrder = [
-                            'variant',
-                            'cardName',
-                            'fragment-title-group',
-                            'fragment-description-group',
-                            'fragment-enable-baselines-group',
-                        ];
+                        const expectedGridOrder = ['variant', 'cardName', 'fragment-title-group', 'fragment-description-group'];
+
+                        const expectBaselinesRowAfter = (grid) => {
+                            const heading = grid.closest('.editor-form-container').querySelector('.section-title-status');
+                            expect(heading.previousElementSibling.id).to.equal('fragment-enable-baselines-group');
+                        };
 
                         it('keeps the General info fields in order without a gap', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'no-locready-order');
                             const grid = editor.querySelector('.editor-form-container .two-column-grid');
                             expect([...grid.children].map((child) => child.id)).to.deep.equal(expectedGridOrder);
+                            expectBaselinesRowAfter(grid);
                         });
 
                         it('keeps the General info fields in order for a variation', async () => {
@@ -1958,7 +2034,10 @@
                         });
 
                         it('leaves an existing locReady value unchanged', async () => {
-                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'no-locready-existing');
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'no-locready-existing',
+                            );
                             fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [true] });
                             fragmentStore.notify();
                             await editor.updateComplete;
@@ -1971,16 +2050,25 @@
 
                     describe('enable baselines toggle', () => {
                         it('renders an unchecked Enable baselines switch in General info', async () => {
-                            const { editor } = await setupTestEnvironment({}, 'baselines-render');
-                            expect(editor.querySelector('sp-field-label[for="fragment-enable-baselines"]')).to.exist;
+                            const { editor } = await setupTestEnvironment({ isVariation: false }, 'baselines-render');
                             const sw = editor.querySelector('sp-switch#fragment-enable-baselines');
+                            expect(sw.textContent.trim()).to.equal('Enable baseline');
                             expect(sw.hasAttribute('checked')).to.be.false;
                         });
 
                         it('clicking the switch toggles enableBaselines', async () => {
-                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'baselines-click');
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false, osi: ['test-osi'] },
+                                'baselines-click',
+                            );
+                            editor.baselinesController.find = async () => ({
+                                fragmentBaseline: { id: 'baseline-id', title: 'Baseline', fields: [] },
+                            });
+                            editor.baselinesController.hostDisconnected();
                             fragmentStore.get().fields.push({ name: 'enableBaselines', type: 'boolean', values: [] });
                             fragmentStore.notify();
+                            await editor.updateComplete;
+                            await new Promise((resolve) => setTimeout(resolve));
                             await editor.updateComplete;
                             const sw = editor.querySelector('sp-switch#fragment-enable-baselines');
                             sw.click();
@@ -1992,32 +2080,1482 @@
                             expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([false]);
                         });
 
-                        it('renders the baseline status as help text', () => {
-                            const editor = document.createElement('merch-card-editor');
-                            Object.assign(editor.baselinesController, {
-                                status: 'found',
-                                baselines: { fragmentBaseline: { title: 'Photoshop catalog' } },
+                        it('hides the Enable baselines switch on a baseline', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { path: '/content/dam/mas/nala/en_US/baselines/plans/PA-1/baseline' },
+                                'baselines-hidden',
+                            );
+                            expect(editor.isBaseline).to.be.true;
+                            expect(editor.querySelector('#fragment-enable-baselines-group')).to.be.null;
+                        });
+
+                        it('shows the Enable baselines switch on a card', async () => {
+                            const { editor } = await setupTestEnvironment({ isVariation: false }, 'baselines-shown');
+                            expect(editor.isBaseline).to.be.false;
+                            expect(editor.querySelector('#fragment-enable-baselines-group')).to.exist;
+                        });
+
+                        it('hides the Enable baselines switch on a variation', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'baselines-variation');
+                            expect(editor.effectiveIsVariation).to.be.true;
+                            expect(editor.supportsBaselines).to.be.false;
+                            expect(editor.querySelector('#fragment-enable-baselines-group')).to.be.null;
+                        });
+
+                        describe('baseline row', () => {
+                            const templateBaseline = {
+                                id: 'baseline-id',
+                                title: 'Photoshop catalog',
+                                path: '/content/dam/mas/nala/en_US/baselines/catalog/PA-1/baseline',
+                                fields: [],
+                            };
+                            const makeCard = (enableBaselines, baselines) => {
+                                const editor = document.createElement('merch-card-editor');
+                                editor.isVariation = false;
+                                editor.fragmentStore = generateFragmentStore(
+                                    new Fragment({
+                                        id: 'card-id',
+                                        path: '/content/dam/mas/nala/en_US/card',
+                                        model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                                        tags: [],
+                                        fields: [{ name: 'enableBaselines', values: [enableBaselines] }],
+                                    }),
+                                    null,
+                                    { lazy: true },
+                                );
+                                Object.assign(editor.baselinesController, { status: 'found', baselines });
+                                return editor;
+                            };
+                            const renderRow = (editor) => {
+                                const container = document.createElement('div');
+                                render(editor.baselinesTemplate, container);
+                                editor.fragmentStore.previewStore.dispose();
+                                return container.querySelector('#fragment-enable-baselines-group');
+                            };
+
+                            it('is neutral, without status line, while baselines are off', () => {
+                                const row = renderRow(makeCard(false, { fragmentBaseline: templateBaseline }));
+                                expect(row.classList.contains('inheriting')).to.be.false;
+                                expect(row.querySelector('#fragment-baseline-inherits')).to.be.null;
+                                expect(row.querySelector('sp-help-text')).to.be.null;
+                                expect(row.querySelector('sp-switch').hasAttribute('disabled')).to.be.false;
                             });
-                            const container = document.createElement('div');
-                            render(editor.baselineStatusTemplate, container);
-                            const status = container.querySelector('sp-help-text#fragment-baseline-status');
-                            expect(status.textContent.trim()).to.equal('Baseline found: Photoshop catalog');
-                            expect(status.getAttribute('variant')).to.equal('neutral');
+
+                            it('disables the switch and explains why while no baseline was found', () => {
+                                const editor = makeCard(false, null);
+                                Object.assign(editor.baselinesController, {
+                                    status: 'missing',
+                                    lookup: { template: 'plans', productArrangementCode: 'PA-1', marketSegment: 'com' },
+                                });
+                                const row = renderRow(editor);
+                                expect(row.querySelector('sp-switch').hasAttribute('disabled')).to.be.true;
+                                expect(row.querySelector('.baselines-header').getAttribute('title')).to.equal(
+                                    'Baseline for Plans, PA-1, and COM not found',
+                                );
+                            });
+
+                            it('disables the switch while the baselines are looked up', () => {
+                                const editor = makeCard(false, null);
+                                editor.baselinesController.status = 'pending';
+                                const row = renderRow(editor);
+                                expect(row.querySelector('sp-switch').hasAttribute('disabled')).to.be.true;
+                                expect(row.querySelector('.baselines-header').getAttribute('title')).to.equal(
+                                    'Looking for a baseline…',
+                                );
+                            });
+
+                            it('keeps the switch enabled to turn baselines off when no baseline is found any more', () => {
+                                const editor = makeCard(true, null);
+                                Object.assign(editor.baselinesController, {
+                                    status: 'missing',
+                                    lookup: { template: 'plans', productArrangementCode: 'PA-1' },
+                                });
+                                const row = renderRow(editor);
+                                expect(row.classList.contains('inheriting')).to.be.false;
+                                expect(row.querySelector('sp-switch').hasAttribute('disabled')).to.be.false;
+                            });
+
+                            it('turns purple and links the baseline it inherits from in its corner when baselines are on', () => {
+                                const row = renderRow(makeCard(true, { fragmentBaseline: templateBaseline }));
+                                const label = row.querySelector('.baselines-header #fragment-baseline-inherits');
+                                expect(row.classList.contains('inheriting')).to.be.true;
+                                expect(row.querySelector('#fragment-baseline-status')).to.be.null;
+                                const link = label.querySelector('a');
+                                expect(label.tagName).to.equal('SPAN');
+                                expect(label.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+                                    'Inherits from Photoshop catalog',
+                                );
+                                expect(link.textContent.trim()).to.equal('Photoshop catalog');
+                                expect(link.getAttribute('target')).to.equal('_blank');
+                                expect(new URLSearchParams(link.getAttribute('href').slice(1)).get('fragmentId')).to.equal(
+                                    'baseline-id',
+                                );
+                            });
+
+                            it('names the offer baseline it inherits from without a link', () => {
+                                const row = renderRow(
+                                    makeCard(true, {
+                                        offerBaseline: { id: 'offer', fields: [{ name: 'cardTitle', values: ['Photoshop'] }] },
+                                        fragmentBaseline: null,
+                                        fragmentSegmentBaseline: null,
+                                    }),
+                                );
+                                const label = row.querySelector('#fragment-baseline-inherits');
+                                expect(label.tagName).to.equal('SPAN');
+                                expect(label.textContent.replace(/\s+/g, ' ').trim()).to.equal('Inherits from Photoshop');
+                            });
                         });
 
-                        it('renders a failed baseline lookup as negative help text', () => {
-                            const editor = document.createElement('merch-card-editor');
-                            editor.baselinesController.status = 'error';
-                            const container = document.createElement('div');
-                            render(editor.baselineStatusTemplate, container);
-                            expect(container.querySelector('sp-help-text').getAttribute('variant')).to.equal('negative');
-                        });
+                        describe('inheriting from baselines', () => {
+                            const ENABLE_BASELINES = { name: 'enableBaselines', values: [true] };
+                            const makeBaselineCard = (fields) => {
+                                const editor = document.createElement('merch-card-editor');
+                                editor.isVariation = false;
+                                editor.fragmentStore = generateFragmentStore(
+                                    new Fragment({
+                                        id: 'baseline-card',
+                                        path: '/content/dam/mas/nala/en_US/baseline-card',
+                                        model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                                        tags: [],
+                                        fields: [{ name: 'variant', values: ['catalog'] }, ...fields],
+                                    }),
+                                    null,
+                                    { lazy: true },
+                                );
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [
+                                        { name: 'subtitle', values: ['Baseline subtitle'] },
+                                        { name: 'promoText', values: ['Baseline promo'] },
+                                    ],
+                                });
+                                return editor;
+                            };
+                            const indicatorText = (editor, fieldName) => {
+                                const container = document.createElement('div');
+                                render(editor.renderFieldStatusIndicator(fieldName), container);
+                                return container.textContent.replace(/\s+/g, ' ').trim();
+                            };
 
-                        it('renders no baseline status without an offer and a template', () => {
-                            const editor = document.createElement('merch-card-editor');
-                            const container = document.createElement('div');
-                            render(editor.baselineStatusTemplate, container);
-                            expect(container.querySelector('sp-help-text')).to.be.null;
+                            it('shows the baseline value of an empty field as inherited from the baseline', () => {
+                                const editor = makeBaselineCard([{ name: 'subtitle', values: [''] }]);
+                                expect(editor.getFormWithInheritance().subtitle.values).to.deep.equal(['Baseline subtitle']);
+                                expect(editor.getFieldState('subtitle')).to.equal('inherited');
+                                expect(editor.isFieldOverridden('subtitle')).to.be.false;
+                                expect(indicatorText(editor, 'subtitle')).to.equal('From baseline');
+                            });
+
+                            it('offers to restore the baseline value of an overridden or cleared field', () => {
+                                const editor = makeBaselineCard([
+                                    { name: 'subtitle', values: ['Own subtitle'] },
+                                    { name: 'promoText', values: ['<explicit_empty/>'] },
+                                ]);
+                                expect(editor.getFieldState('subtitle')).to.equal('overridden');
+                                expect(editor.getFieldState('promoText')).to.equal('overridden');
+                                expect(editor.isFieldOverridden('subtitle')).to.be.true;
+                                expect(editor.isFieldOverridden('promoText')).to.be.true;
+                                expect(editor.getFormWithInheritance().promoText.values).to.deep.equal(['']);
+                                expect(indicatorText(editor, 'subtitle')).to.include('Click to restore');
+                            });
+
+                            it('has no parent for fields the baselines do not provide', () => {
+                                const editor = makeBaselineCard([{ name: 'callout', values: ['<p>Own callout</p>'] }]);
+                                expect(editor.getFieldState('callout')).to.equal('no-parent');
+                                expect(indicatorText(editor, 'callout')).to.equal('');
+                            });
+
+                            it('flags a cleared required field as overridden and required', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'cardTitle', values: ['Own title'] },
+                                ]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [{ name: 'cardTitle', values: ['Baseline title'] }],
+                                });
+                                editor.fragment.updateField('cardTitle', [''], editor.inheritanceParent);
+                                expect(editor.getFieldState('cardTitle')).to.equal('overridden');
+                                expect(indicatorText(editor, 'cardTitle')).to.include('Click to restore');
+                                expect(indicatorText(editor, 'cardTitle')).to.include('This field is required.');
+                            });
+
+                            it('flags a cleared required field inherited from the baseline as overridden and required', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                    { name: 'ctas', values: ['<a href="#">Own CTA</a>'] },
+                                ]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [{ name: 'cardTitle', values: ['Baseline title'] }],
+                                });
+                                expect(indicatorText(editor, 'cardTitle')).to.equal('From baseline');
+                                expect(editor.fragment.updateField('cardTitle', [''], editor.inheritanceParent)).to.be.true;
+                                expect(editor.fragment.hasChanges).to.be.true;
+                                expect(editor.emptyRequiredFields).to.deep.equal(['Title']);
+                                expect(indicatorText(editor, 'cardTitle')).to.include('Click to restore');
+                                expect(indicatorText(editor, 'cardTitle')).to.include('This field is required.');
+                            });
+
+                            it('does not flag a cleared optional field as required', () => {
+                                const editor = makeBaselineCard([{ name: 'promoText', values: ['<explicit_empty/>'] }]);
+                                expect(indicatorText(editor, 'promoText')).to.not.include('This field is required.');
+                            });
+
+                            it('lists the required fields neither set on the card nor inherited from a baseline', () => {
+                                const editor = makeBaselineCard([ENABLE_BASELINES]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [
+                                        { name: 'cardTitle', values: ['Baseline title'] },
+                                        { name: 'ctas', values: ['<a href="#">Baseline CTA</a>'] },
+                                    ],
+                                });
+                                expect(editor.emptyRequiredFields).to.deep.equal(['Description']);
+                                expect(indicatorText(editor, 'description')).to.equal('This field is required.');
+                            });
+
+                            it('lists cleared CTAs as a required field', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                    { name: 'ctas', values: ['<explicit_empty/>'] },
+                                ]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [
+                                        { name: 'cardTitle', values: ['Baseline title'] },
+                                        { name: 'ctas', values: ['<a href="#">Baseline CTA</a>'] },
+                                    ],
+                                });
+                                expect(editor.emptyRequiredFields).to.deep.equal(['CTAs']);
+                                expect(indicatorText(editor, 'ctas')).to.include('Click to restore');
+                                expect(indicatorText(editor, 'ctas')).to.include('This field is required.');
+                            });
+
+                            it('does not enforce required fields on a card without baselines', () => {
+                                const editor = makeBaselineCard([{ name: 'cardTitle', values: ['<explicit_empty/>'] }]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [{ name: 'cardTitle', values: ['Baseline title'] }],
+                                });
+                                expect(editor.emptyRequiredFields).to.deep.equal([]);
+                                expect(indicatorText(editor, 'cardTitle')).to.not.include('This field is required.');
+                            });
+
+                            it('holds the validation of an empty required field while baselines are looked up', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                    { name: 'ctas', values: ['<a href="#">Own CTA</a>'] },
+                                    { name: 'cardTitle', values: ['<explicit_empty/>'] },
+                                ]);
+                                editor.baselinesController.status = 'pending';
+                                expect(editor.emptyRequiredFields).to.deep.equal([]);
+                                expect(editor.unvalidatedRequiredFieldsMessage).to.equal(
+                                    'Looking for a baseline to validate the required fields. Try again in a moment.',
+                                );
+                                expect(indicatorText(editor, 'cardTitle')).to.not.include('This field is required.');
+                            });
+
+                            it('holds the validation of an empty required field when the baseline lookup fails', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                    { name: 'ctas', values: ['<a href="#">Own CTA</a>'] },
+                                ]);
+                                editor.baselinesController.status = 'error';
+                                expect(editor.emptyRequiredFields).to.deep.equal([]);
+                                expect(editor.unvalidatedRequiredFieldsMessage).to.equal(
+                                    'Baselines could not be looked up to validate the required fields. Reload the page and try again.',
+                                );
+                                expect(indicatorText(editor, 'cardTitle')).to.not.include('This field is required.');
+                            });
+
+                            it('has no unvalidated required fields while baselines are looked up once they are all set', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'cardTitle', values: ['Own title'] },
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                    { name: 'ctas', values: ['<a href="#">Own CTA</a>'] },
+                                ]);
+                                editor.baselinesController.status = 'pending';
+                                expect(editor.unvalidatedRequiredFieldsMessage).to.be.null;
+                            });
+
+                            it('has no empty required fields once they are set or inherited', () => {
+                                const editor = makeBaselineCard([
+                                    ENABLE_BASELINES,
+                                    { name: 'description', values: ['<p>Own</p>'] },
+                                ]);
+                                editor.baselinesController.parent = new Fragment({
+                                    fields: [
+                                        { name: 'cardTitle', values: ['Baseline title'] },
+                                        { name: 'ctas', values: ['<a href="#">Baseline CTA</a>'] },
+                                    ],
+                                });
+                                expect(editor.emptyRequiredFields).to.deep.equal([]);
+                            });
+
+                            describe('badge', () => {
+                                const baselineBadge =
+                                    '<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans">Baseline badge</merch-badge>';
+                                const withBaselineBadge = (editor) => {
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: [{ name: 'badge', values: [baselineBadge] }],
+                                    });
+                                    return editor;
+                                };
+
+                                it('marks a badge the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaselineBadge(makeBaselineCard([]));
+                                    expect(editor.getBadgeComponentState('badge', 'text')).to.equal('inherited');
+                                    expect(editor.getBadgeComponentState('badge', 'bgColor')).to.equal('inherited');
+                                    expect(editor.getBadgeComponentState('badge', 'borderColor')).to.equal('inherited');
+                                    expect(editor.getBadgeFromBaseline('badge')).to.deep.equal({
+                                        text: true,
+                                        icon: false,
+                                        bgColor: true,
+                                        borderColor: true,
+                                    });
+                                });
+
+                                it('marks a cleared baseline badge as overridden', () => {
+                                    const editor = withBaselineBadge(
+                                        makeBaselineCard([{ name: 'badge', values: ['<explicit_empty/>'] }]),
+                                    );
+                                    expect(editor.getBadgeComponentState('badge', 'text')).to.equal('overridden');
+                                    expect(editor.getBadgeFromBaseline('badge').text).to.be.false;
+                                });
+
+                                it('marks cleared baseline badge colors as overridden', () => {
+                                    const editor = withBaselineBadge(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'badge',
+                                                values: [
+                                                    '<merch-badge border-color="spectrum-gray-700-plans">Baseline badge</merch-badge>',
+                                                ],
+                                            },
+                                        ]),
+                                    );
+                                    expect(editor.getBadgeComponentState('badge', 'bgColor')).to.equal('overridden');
+                                    expect(editor.getBadgeComponentState('badge', 'borderColor')).to.equal('inherited');
+                                    expect(editor.getBadgeFromBaseline('badge')).to.deep.equal({
+                                        text: true,
+                                        icon: false,
+                                        bgColor: false,
+                                        borderColor: true,
+                                    });
+                                });
+
+                                it('marks a badge icon the card does not set as inherited from the baseline', () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: [
+                                            {
+                                                name: 'badge',
+                                                values: ['<merch-badge icon="sp-icon-star">Baseline badge</merch-badge>'],
+                                            },
+                                        ],
+                                    });
+                                    expect(editor.getBadgeComponentState('badge', 'icon')).to.equal('inherited');
+                                    expect(editor.getBadgeFromBaseline('badge').icon).to.be.true;
+                                });
+
+                                it('marks a cleared baseline trial badge as overridden', () => {
+                                    const editor = makeBaselineCard([{ name: 'trialBadge', values: ['<explicit_empty/>'] }]);
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: [{ name: 'trialBadge', values: ['Baseline trial'] }],
+                                    });
+                                    expect(editor.getBadgeComponentState('trialBadge', 'text')).to.equal('overridden');
+                                    expect(editor.getBadgeFromBaseline('trialBadge').text).to.be.false;
+                                });
+
+                                it('marks a trial badge the card does not set as inherited from the baseline', () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: [{ name: 'trialBadge', values: ['Baseline trial'] }],
+                                    });
+                                    expect(editor.getBadgeComponentState('trialBadge', 'text')).to.equal('inherited');
+                                    expect(editor.getBadgeFromBaseline('trialBadge').text).to.be.true;
+                                });
+
+                                it('has no badge state when the baselines do not provide a badge', () => {
+                                    const editor = makeBaselineCard([{ name: 'badge', values: ['Own badge'] }]);
+                                    expect(editor.getBadgeComponentState('badge', 'text')).to.equal('no-parent');
+                                    expect(editor.getBadgeFromBaseline('badge').text).to.be.false;
+                                });
+                            });
+
+                            describe('parts of HTML fields', () => {
+                                const withBaseline = (editor, fields) => {
+                                    editor.baselinesController.parent = new Fragment({ fields });
+                                    return editor;
+                                };
+                                const templateText = (template) => {
+                                    const container = document.createElement('div');
+                                    render(template, container);
+                                    return container;
+                                };
+                                const whatsIncluded = (divider) =>
+                                    `<merch-whats-included whats-included-divider-color="${divider}"><div slot="heading">Included</div></merch-whats-included>`;
+                                const dividerIndicator = (editor) =>
+                                    templateText(editor.renderWhatsIncludedDividerStatusIndicator())
+                                        .textContent.replace(/\s+/g, ' ')
+                                        .trim();
+                                const BASELINE_DESKTOP = 'https://main--mas-test--adobecom.aem.page/baseline_desktop.png';
+                                const OWN_DESKTOP = 'https://main--mas-test--adobecom.aem.page/own_desktop.png';
+                                const DIMENSIONS = { width: 100, height: 50 };
+                                const backgrounds = (desktop) => buildBackgroundsHtml({ desktop }, { desktop: DIMENSIONS });
+
+                                it('marks a divider color the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] },
+                                    ]);
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.equal('inherited');
+                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                });
+
+                                it('does not mark a "default" divider color as overridden when the baseline has none', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'whatsIncluded', values: [whatsIncluded('default')] }]),
+                                        [
+                                            {
+                                                name: 'whatsIncluded',
+                                                values: [
+                                                    '<merch-whats-included><div slot="heading">Included</div></merch-whats-included>',
+                                                ],
+                                            },
+                                        ],
+                                    );
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.not.equal('overridden');
+                                    expect(dividerIndicator(editor)).to.equal('');
+                                });
+
+                                it('marks a default divider color inherited from a default baseline as from baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('default')] },
+                                    ]);
+                                    expect(dividerIndicator(editor)).to.equal('From baseline');
+                                });
+
+                                it('marks a divider color that differs from the baseline as overridden', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(dividerIndicator(editor)).to.include('Click to restore');
+                                });
+
+                                it('hides the divider restore link when the card cleared its What is included markup', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(
+                                        editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                    ).to.equal('overridden');
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedDividerStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not mark What is included as from baseline once the card changes only the divider color', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            { name: 'whatsIncluded', values: [whatsIncluded('spectrum-red-300')] },
+                                        ]),
+                                        [{ name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] }],
+                                    );
+                                    expect(dividerIndicator(editor)).to.include('Click to restore');
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not mark What is included as overridden when the locale default explicitly emptied it', () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.isVariation = true;
+                                    editor.localeDefaultFragment = new Fragment({
+                                        fields: [{ name: 'whatsIncluded', values: ['<explicit_empty/>'] }],
+                                    });
+                                    expect(
+                                        templateText(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not style the disabled divider picker as overridden when the card cleared What is included', async () => {
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'cleared-whats-included-card',
+                                            path: '/content/dam/mas/nala/en_US/cleared-whats-included-card',
+                                            fields: [
+                                                ...baseMockData.fields
+                                                    .filter(({ name }) => name !== 'whatsIncluded')
+                                                    .map((field) => ({
+                                                        ...field,
+                                                        values: field.name === 'variant' ? ['mini-compare-chart'] : [],
+                                                    })),
+                                                { name: 'whatsIncluded', values: ['<explicit_empty/>'] },
+                                            ],
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaseline(editor, [
+                                        { name: 'whatsIncluded', values: [whatsIncluded('spectrum-gray-300')] },
+                                    ]);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    document.body.append(editor);
+                                    await waitFor(() => editor.querySelector('sp-picker#whats-included-divider-color'));
+                                    const picker = editor.querySelector('sp-picker#whats-included-divider-color');
+                                    expect(picker.disabled).to.be.true;
+                                    expect(picker.dataset.fieldState).to.not.equal('overridden');
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks an addon background the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] },
+                                    ]);
+                                    expect(editor.isAddonBgOverridden()).to.be.false;
+                                    expect(
+                                        templateText(editor.renderAddonBgFieldStatusIndicator()).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                });
+
+                                it('restores the baseline addon background of an overridden addon', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'addon', values: ['<merch-addon>addon1</merch-addon>'] }]),
+                                        [{ name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] }],
+                                    );
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.getEffectiveFieldValue('addon')).to.equal(
+                                        '<merch-addon background="#dadada">addon1</merch-addon>',
+                                    );
+                                    expect(editor.isAddonBgOverridden()).to.be.false;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the card addon text when restoring a backgroundless baseline addon', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'addon',
+                                                values: ['<merch-addon background="#dadada">{{addon1}}</merch-addon>'],
+                                            },
+                                        ]),
+                                        [{ name: 'addon', values: ['{{addon2}}'] }],
+                                    );
+                                    Object.defineProperty(editor, 'globalSettingsDefaults', { value: { addon: '{{addon1}}' } });
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal('{{addon1}}');
+                                    expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon1}}');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the card addon background when restoring Show Addon to the baseline', () => {
+                                    const gradient = 'linear-gradient(211deg, #ef9a37 1.11%, #e34850 58.25%, #c60066 100%)';
+                                    const editor = withBaseline(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'addon',
+                                                values: [`<merch-addon background="${gradient}">own</merch-addon>`],
+                                            },
+                                        ]),
+                                        [{ name: 'addon', values: ['<merch-addon background="#dadada">addon1</merch-addon>'] }],
+                                    );
+                                    expect(editor.resetSettingToDefault('addon', true)).to.be.true;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                        `<merch-addon background="${gradient}">addon1</merch-addon>`,
+                                    );
+                                    expect(editor.isSettingOverridden('addon')).to.be.false;
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the card Default addon background when restoring Show Addon to a Grey baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([{ name: 'addon', values: ['{{own}}'] }]), [
+                                        { name: 'addon', values: ['<merch-addon background="grey">{{addon1}}</merch-addon>'] },
+                                    ]);
+                                    expect(editor.resetSettingToDefault('addon', true)).to.be.true;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal('{{addon1}}');
+                                    expect(editor.isSettingOverridden('addon')).to.be.false;
+                                    expect(editor.isAddonBgOverridden()).to.be.true;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('shows Show Addon as from baseline only while the card stores no addon copy', () => {
+                                    const editor = withBaseline(makeBaselineCard([{ name: 'addon', values: ['{{own}}'] }]), [
+                                        { name: 'addon', values: ['<merch-addon background="grey">{{addon1}}</merch-addon>'] },
+                                    ]);
+                                    const addonLabel = () =>
+                                        templateText(editor.renderSettingOverrideIndicator('addon')).textContent.trim();
+                                    editor.resetSettingToDefault('addon', true);
+                                    expect(addonLabel()).to.equal('');
+                                    templateText(editor.renderAddonBgFieldStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    expect(editor.hasExplicitSettingOverride('addon')).to.be.false;
+                                    expect(addonLabel()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a background breakpoint the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaseline(makeBaselineCard([]), [
+                                        { name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] },
+                                    ]);
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('mobile')).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('does not mark a background the card sets to the baseline URL as from baseline', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent.trim(),
+                                    ).to.equal('');
+                                });
+
+                                it('restores the baseline background of an overridden breakpoint', async () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: [backgrounds(OWN_DESKTOP)] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    const link = templateText(editor.renderBackgroundStatusIndicator('desktop')).querySelector(
+                                        '.field-status-restore-link',
+                                    );
+                                    link.click();
+                                    await delay(0);
+                                    expect(
+                                        parseBackgroundsUrls(editor.fragment.getFieldValue('backgrounds', 0)).desktop,
+                                    ).to.equal(BASELINE_DESKTOP);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a cleared baseline background as overridden', () => {
+                                    const editor = withBaseline(
+                                        makeBaselineCard([{ name: 'backgrounds', values: ['<explicit_empty/>'] }]),
+                                        [{ name: 'backgrounds', values: [backgrounds(BASELINE_DESKTOP)] }],
+                                    );
+                                    expect(
+                                        templateText(editor.renderBackgroundStatusIndicator('desktop')).textContent,
+                                    ).to.include('Click to restore');
+                                });
+                            });
+
+                            describe('settings', () => {
+                                const withBaselineSettings = (editor, fields) => {
+                                    const baseline = new Fragment({ fields });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    return editor;
+                                };
+                                const indicator = (editor, fieldName) => {
+                                    const container = document.createElement('div');
+                                    render(editor.renderSettingOverrideIndicator(fieldName), container);
+                                    return container;
+                                };
+
+                                it('marks a setting the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                                    expect(indicator(editor, 'showPlanType').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a setting switched away from the baseline value as overridden', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showPlanType', ['false']);
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                                    const button = indicator(editor, 'showPlanType').querySelector(
+                                        '.setting-override-indicator',
+                                    );
+                                    expect(button.getAttribute('title')).to.equal(
+                                        'Overridden. Click to restore baseline value',
+                                    );
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('inherits from the baseline again when the setting is switched back to the baseline value', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showPlanType', ['false']);
+                                    editor.fragmentStore.updateField('showPlanType', ['true']);
+                                    expect(editor.hasExplicitSettingOverride('showPlanType')).to.be.false;
+                                    expect(indicator(editor, 'showPlanType').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('inherits from a boolean baseline value again when the toggle is switched back', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', type: 'boolean', values: [true] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showPlanType', ['false']);
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                                    editor.fragmentStore.updateField('showPlanType', ['true']);
+                                    expect(editor.hasExplicitSettingOverride('showPlanType')).to.be.false;
+                                    expect(indicator(editor, 'showPlanType').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a boolean setting the card stores with the baseline value as inherited from the baseline', () => {
+                                    const editor = withBaselineSettings(
+                                        makeBaselineCard([{ name: 'showSecureLabel', type: 'boolean', values: [true] }]),
+                                        [{ name: 'showSecureLabel', type: 'boolean', values: [true] }],
+                                    );
+                                    expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                                    expect(indicator(editor, 'showSecureLabel').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('restores the baseline value of an overridden setting', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showSecureLabel', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showSecureLabel', ['false']);
+                                    indicator(editor, 'showSecureLabel').querySelector('.setting-override-indicator').click();
+                                    expect(editor.hasExplicitSettingOverride('showSecureLabel')).to.be.false;
+                                    expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks an addon the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'addon', values: ['addon1'] },
+                                    ]);
+                                    expect(indicator(editor, 'addon').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps an addon picked to match the global setting overridden over a different baseline addon', async () => {
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-addon-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-addon-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : [],
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaselineSettings(editor, [{ name: 'addon', values: ['{{addon-stock-base}}'] }]);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    Object.defineProperty(editor, 'globalSettingsDefaults', {
+                                        value: { addon: '{{addon-acrobat-ai-assistant}}' },
+                                    });
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    editor
+                                        .querySelector('mas-addon-field#addon-field')
+                                        .dispatchEvent(
+                                            new CustomEvent('input', { detail: { value: '{{addon-acrobat-ai-assistant}}' } }),
+                                        );
+                                    await editor.updateComplete;
+                                    expect(editor.fragment.getFieldValue('addon', 0)).to.equal(
+                                        '{{addon-acrobat-ai-assistant}}',
+                                    );
+                                    expect(indicator(editor, 'addon').querySelector('.setting-override-indicator')).to.exist;
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('compares quantity selector subfields with the baseline', () => {
+                                    const baselineQuantity =
+                                        '<merch-quantity-select title="Seats" min="1" step="1"></merch-quantity-select>';
+                                    const editor = withBaselineSettings(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'quantitySelect',
+                                                values: [
+                                                    '<merch-quantity-select title="Seats" min="5" step="1"></merch-quantity-select>',
+                                                ],
+                                            },
+                                        ]),
+                                        [{ name: 'quantitySelect', values: [baselineQuantity] }],
+                                    );
+                                    const subfield = (field) => {
+                                        const container = document.createElement('div');
+                                        render(editor.renderQuantitySelectSettingOverrideIndicator(field), container);
+                                        return container.querySelector('.setting-override-indicator');
+                                    };
+                                    expect(subfield('title')).to.be.null;
+                                    expect(subfield('min')).to.exist;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                describe('quantity selector switch', () => {
+                                    const OFF = '<merch-quantity-select/>';
+                                    const ON =
+                                        '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>';
+                                    const mountWithBaselineQuantity = async (id, baselineQuantity) => {
+                                        const editor = document.createElement('merch-card-editor');
+                                        editor.isVariation = false;
+                                        editor.fragmentStore = generateFragmentStore(
+                                            new Fragment({
+                                                ...structuredClone(baseMockData),
+                                                id,
+                                                path: `/content/dam/mas/nala/en_US/${id}`,
+                                                fields: baseMockData.fields.map((field) => ({
+                                                    ...field,
+                                                    values: field.name === 'variant' ? ['plans'] : [],
+                                                })),
+                                            }),
+                                            null,
+                                            { lazy: true },
+                                        );
+                                        withBaselineSettings(editor, [{ name: 'quantitySelect', values: [baselineQuantity] }]);
+                                        editor.baselinesController.hostUpdate = () => {};
+                                        document.body.append(editor);
+                                        await editor.updateComplete;
+                                        return editor;
+                                    };
+                                    const switchQuantitySelect = async (editor, checked) => {
+                                        const field = editor.querySelector('quantity-select-settings-field');
+                                        await field.updateComplete;
+                                        const toggle = field.querySelector('#quantity-select-settings-field-toggle');
+                                        toggle.checked = checked;
+                                        toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                        await editor.updateComplete;
+                                        await field.updateComplete;
+                                        return toggle;
+                                    };
+                                    const unmount = (editor) => {
+                                        editor.remove();
+                                        editor.fragmentStore.previewStore.dispose();
+                                    };
+
+                                    it('keeps the selector switched off when the baseline shows it', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-off-card', ON);
+                                        const toggle = await switchQuantitySelect(editor, false);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(OFF);
+                                        expect(toggle.checked).to.be.false;
+                                        unmount(editor);
+                                    });
+
+                                    it('keeps the selector switched on when the baseline hides it', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-on-card', OFF);
+                                        const toggle = await switchQuantitySelect(editor, true);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
+                                        expect(toggle.checked).to.be.true;
+                                        unmount(editor);
+                                    });
+
+                                    it('inherits again when the selector is switched on and off over an empty baseline', async () => {
+                                        const editor = await mountWithBaselineQuantity('baseline-qty-empty-card', '');
+                                        await switchQuantitySelect(editor, true);
+                                        expect(editor.fragment.getFieldValue('quantitySelect', 0)).to.equal(ON);
+                                        const toggle = await switchQuantitySelect(editor, false);
+                                        expect(editor.isSettingFromBaseline('quantitySelect')).to.be.true;
+                                        expect(toggle.checked).to.be.false;
+                                        expect(indicator(editor, 'quantitySelect').textContent.trim()).to.equal(
+                                            'From baseline',
+                                        );
+                                        unmount(editor);
+                                    });
+                                });
+
+                                describe('the baselines do not set', () => {
+                                    const withGlobalSettings = (cardFields) => {
+                                        Store.settings.rows.set(createDefaultSettingsRows());
+                                        const editor = withBaselineSettings(makeBaselineCard(cardFields), [
+                                            { name: 'subtitle', values: ['Baseline subtitle'] },
+                                        ]);
+                                        editor.fragment.getField('variant').values = ['plans'];
+                                        return editor;
+                                    };
+                                    afterEach(() => Store.settings.rows.set([]));
+
+                                    it('takes the settings from the baselines, which inherit the global settings', () => {
+                                        const editor = withGlobalSettings([]);
+                                        for (const fieldName of [
+                                            'addon',
+                                            'showPlanType',
+                                            'showSecureLabel',
+                                            'quantitySelect',
+                                        ]) {
+                                            expect(indicator(editor, fieldName).textContent.trim()).to.equal('From baseline');
+                                        }
+                                        expect(editor.baselineSettingValue('showPlanType')).to.equal(true);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('inherits the global setting for the card locale', () => {
+                                        const editor = withGlobalSettings([]);
+                                        editor.fragment.path = '/content/dam/mas/nala/fr_FR/baseline-card';
+                                        expect(editor.baselineSettingValue('showPlanType')).to.equal(false);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('marks a setting that differs from the global setting as overridden with the baseline tooltip', () => {
+                                        const editor = withGlobalSettings([{ name: 'showPlanType', values: ['false'] }]);
+                                        expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                                        const button = indicator(editor, 'showPlanType').querySelector(
+                                            '.setting-override-indicator',
+                                        );
+                                        expect(button.getAttribute('title')).to.equal(
+                                            'Overridden. Click to restore baseline value',
+                                        );
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('compares with the global setting regardless of the value the card sets', () => {
+                                        const editor = withGlobalSettings([{ name: 'showSecureLabel', values: ['true'] }]);
+                                        expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                                        expect(indicator(editor, 'showSecureLabel').textContent.trim()).to.equal(
+                                            'From baseline',
+                                        );
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('clears the card value when the toggle is switched back to the inherited value', () => {
+                                        const editor = withGlobalSettings([]);
+                                        const toggle = (value) =>
+                                            editor.handleSettingToggle({
+                                                target: { dataset: { field: 'showPlanType' }, value },
+                                            });
+                                        editor.updateFragment = ({ target }) =>
+                                            editor.fragmentStore.updateField(target.dataset.field, [target.value]);
+                                        toggle('false');
+                                        expect(editor.hasExplicitSettingOverride('showPlanType')).to.be.true;
+                                        toggle('true');
+                                        expect(editor.hasExplicitSettingOverride('showPlanType')).to.be.false;
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+                                });
+                            });
+
+                            describe("what's included", () => {
+                                const BULLET = { icon: 'sp-icon-checkmark', alt: 'Baseline bullet', link: '' };
+                                const OWN_BULLET = { icon: 'sp-icon-checkmark', alt: 'Own bullet', link: '' };
+                                const withBaselineWhatsIncluded = (editor, label, bullets) => {
+                                    const html = editor.createIncludedElement(label, [], bullets, '').outerHTML;
+                                    const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    return editor;
+                                };
+                                const ownWhatsIncluded = (editor, label, bullets) =>
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement(label, [], bullets, '').outerHTML,
+                                    ]);
+                                const templateContainer = (template) => {
+                                    const container = document.createElement('div');
+                                    render(template, container);
+                                    return container;
+                                };
+                                const itemStates = (editor) =>
+                                    editor.whatsIncludedItems.bullets.map(({ fieldState }) => fieldState);
+
+                                it('marks each bullet inherited from the baseline, not the whole section', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator()).textContent.trim(),
+                                    ).to.equal('From baseline');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a bullet that differs from the baseline as overridden', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['overridden']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('inherited');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('restores the baseline label and inherits the field again', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    ownWhatsIncluded(editor, 'Own label', [BULLET]);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    templateContainer(editor.renderWhatsIncludedLabelStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps items and the section inherited when the card changes only the divider color', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement('Included', [], [BULLET], 'spectrum-red-700-plans')
+                                            .outerHTML,
+                                    ]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('inherited');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('offers a section restore when a baseline bullet was removed', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    ownWhatsIncluded(editor, 'Included', [BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent,
+                                    ).to.include('Click to restore');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the remaining bullets inherited and restores every bullet when one was removed', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.whatsIncluded.bullets.map(({ alt }) => alt)).to.deep.equal([
+                                        'Baseline bullet',
+                                        'Own bullet',
+                                    ]);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks an application added to a baseline without applications as overridden', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                    editor.fragmentStore.updateField('whatsIncluded', [
+                                        editor.createIncludedElement('Included', [APPLICATION], [BULLET], '').outerHTML,
+                                    ]);
+                                    expect(editor.whatsIncludedItems.values.map(({ fieldState }) => fieldState)).to.deep.equal([
+                                        'overridden',
+                                    ]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline']);
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks only the edited bullet overridden when another was removed', () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [
+                                        BULLET,
+                                        OWN_BULLET,
+                                    ]);
+                                    const EDITED = { ...BULLET, alt: 'Edited bullet' };
+                                    ownWhatsIncluded(editor, 'Included', [OWN_BULLET, EDITED]);
+                                    expect(itemStates(editor)).to.deep.equal(['baseline', 'overridden']);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('offers the section restore instead of the label restore when every pro section was removed', async () => {
+                                    const editor = makeBaselineCard([]);
+                                    editor.fragment.getField('variant').values = ['pro'];
+                                    const baseline = new Fragment({
+                                        fields: [
+                                            {
+                                                name: 'whatsIncluded',
+                                                values: [
+                                                    '<p class="whats-included-label">Included</p><div class="section"><h4>PDF</h4></div>',
+                                                ],
+                                            },
+                                        ],
+                                    });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    expect(
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator()).textContent.trim(),
+                                    ).to.equal('');
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    expect(editor.whatsIncluded.bullets).to.have.length(1);
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('offers the section restore for a label change on mini compare chart, which hides the label', async () => {
+                                    const editor = withBaselineWhatsIncluded(makeBaselineCard([]), 'Included', [BULLET]);
+                                    editor.fragment.getField('variant').values = ['mini-compare-chart'];
+                                    ownWhatsIncluded(editor, 'Own label', [BULLET]);
+                                    expect(editor.getWhatsIncludedLabelState()).to.equal('overridden');
+                                    templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                        .querySelector('.field-status-restore-link')
+                                        .click();
+                                    await delay(0);
+                                    expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                    expect(editor.whatsIncluded.label).to.equal('Included');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                describe('when the card cleared What is included and the baseline has a divider color', () => {
+                                    const DIVIDER = 'spectrum-gray-300';
+                                    const clearedCard = (label, bullets) => {
+                                        const editor = makeBaselineCard([]);
+                                        const html = editor.createIncludedElement(label, [], bullets, DIVIDER).outerHTML;
+                                        const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                        editor.baselinesController.parent = baseline;
+                                        editor.fragmentStore.setBaselineParent(baseline);
+                                        editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                        return editor;
+                                    };
+
+                                    it('offers the section restore and inherits the divider color again', async () => {
+                                        const editor = clearedCard('', [BULLET]);
+                                        templateContainer(editor.renderWhatsIncludedStatusIndicator())
+                                            .querySelector('.field-status-restore-link')
+                                            .click();
+                                        await delay(0);
+                                        expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('inherits the divider color again when the label restore makes it match the baseline', async () => {
+                                        const editor = clearedCard('Included', []);
+                                        templateContainer(editor.renderWhatsIncludedLabelStatusIndicator())
+                                            .querySelector('.field-status-restore-link')
+                                            .click();
+                                        await delay(0);
+                                        expect(editor.fragment.getField('whatsIncluded')).to.be.undefined;
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+
+                                    it('keeps the baseline divider color when an application is added on mini compare chart', async () => {
+                                        const APPLICATION = { icon: 'https://example.com/app.svg', alt: 'App', link: '' };
+                                        const editor = document.createElement('merch-card-editor');
+                                        editor.isVariation = false;
+                                        editor.fragmentStore = generateFragmentStore(
+                                            new Fragment({
+                                                ...structuredClone(baseMockData),
+                                                id: 'cleared-mcc-card',
+                                                path: '/content/dam/mas/nala/en_US/cleared-mcc-card',
+                                                fields: baseMockData.fields.map((field) => ({
+                                                    ...field,
+                                                    values: field.name === 'variant' ? ['mini-compare-chart'] : [],
+                                                })),
+                                            }),
+                                            null,
+                                            { lazy: true },
+                                        );
+                                        const html = editor.createIncludedElement('', [], [BULLET], DIVIDER).outerHTML;
+                                        const baseline = new Fragment({ fields: [{ name: 'whatsIncluded', values: [html] }] });
+                                        editor.baselinesController.parent = baseline;
+                                        editor.baselinesController.hostUpdate = () => {};
+                                        editor.fragmentStore.setBaselineParent(baseline);
+                                        editor.fragmentStore.updateField('whatsIncluded', ['']);
+                                        document.body.append(editor);
+                                        await editor.updateComplete;
+                                        const multifield = editor.querySelector(
+                                            '#whatsIncludedIconPicker mas-multifield[button-label="Add application"]',
+                                        );
+                                        multifield.value = [APPLICATION];
+                                        multifield.dispatchEvent(new Event('change', { bubbles: true }));
+                                        await editor.updateComplete;
+                                        expect(editor.whatsIncluded.values).to.have.length(1);
+                                        expect(editor.whatsIncludedDividerFromMarkup).to.equal(DIVIDER);
+                                        expect(
+                                            editor.getComponentState('whatsIncluded', parseWhatsIncludedDivider, 'divider'),
+                                        ).to.equal('inherited');
+                                        editor.remove();
+                                        editor.fragmentStore.previewStore.dispose();
+                                    });
+                                });
+                            });
+
+                            describe('visuals', () => {
+                                const baselineVisuals = () =>
+                                    new Fragment({
+                                        fields: [
+                                            { name: 'mnemonicIcon', multiple: true, values: ['baseline.svg'] },
+                                            { name: 'mnemonicAlt', multiple: true, values: ['Baseline'] },
+                                        ],
+                                    });
+                                const withBaselineIcon = (editor) => {
+                                    editor.baselinesController.parent = baselineVisuals();
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    return editor;
+                                };
+                                /** With own visuals, the baselines drop the offer icon the card replaces. */
+                                const withOfferIconReplaced = (editor) => {
+                                    editor.baselinesController.parent = new Fragment({ fields: [] });
+                                    editor.baselinesController.mnemonicsParent = baselineVisuals();
+                                    return editor;
+                                };
+                                const mnemonicsIndicatorText = (editor) => {
+                                    const container = document.createElement('div');
+                                    render(editor.renderMnemonicsStatusIndicator(), container);
+                                    return container.textContent.replace(/\s+/g, ' ').trim();
+                                };
+                                const itemStates = (editor) =>
+                                    editor.mnemonics.map(({ icon, fieldState }) => [icon, fieldState]);
+                                const ownVisuals = (icons, alts) => [
+                                    { name: 'mnemonicIcon', multiple: true, values: icons },
+                                    { name: 'mnemonicAlt', multiple: true, values: alts },
+                                ];
+
+                                it('marks each visual inherited from the baseline, not the whole section', () => {
+                                    const editor = withBaselineIcon(makeBaselineCard([]));
+                                    expect(editor.getMnemonicsFieldState()).to.equal('inherited');
+                                    expect(itemStates(editor)).to.deep.equal([['baseline.svg', 'baseline']]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('keeps marking the baseline visual when the card adds its own', () => {
+                                    const editor = withOfferIconReplaced(
+                                        makeBaselineCard(ownVisuals(['baseline.svg', 'own.svg'], ['Baseline', 'Own'])),
+                                    );
+                                    expect(itemStates(editor)).to.deep.equal([
+                                        ['baseline.svg', 'baseline'],
+                                        ['own.svg', 'overridden'],
+                                    ]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('marks a visual added to a baseline without visuals as overridden', () => {
+                                    const editor = makeBaselineCard(ownVisuals(['own.svg'], ['Own']));
+                                    editor.baselinesController.parent = new Fragment({ fields: ownVisuals([], []) });
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    expect(itemStates(editor)).to.deep.equal([['own.svg', 'overridden']]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('marks a baseline visual whose details changed as overridden', () => {
+                                    const editor = withOfferIconReplaced(
+                                        makeBaselineCard(ownVisuals(['baseline.svg'], ['Changed alt'])),
+                                    );
+                                    expect(itemStates(editor)).to.deep.equal([['baseline.svg', 'overridden']]);
+                                });
+
+                                it('offers to restore each visual overriding a baseline one, not the whole section', () => {
+                                    const editor = withBaselineIcon(makeBaselineCard(ownVisuals(['own.svg'], ['Own'])));
+                                    expect(editor.getMnemonicsFieldState()).to.equal('overridden');
+                                    expect(itemStates(editor)).to.deep.equal([['own.svg', 'overridden']]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+
+                                it('keeps the remaining visuals inherited and offers the section restore when one was removed', () => {
+                                    const editor = makeBaselineCard(ownVisuals(['second.svg'], ['Second']));
+                                    editor.baselinesController.parent = new Fragment({
+                                        fields: ownVisuals(['baseline.svg', 'second.svg'], ['Baseline', 'Second']),
+                                    });
+                                    editor.baselinesController.mnemonicsParent = editor.baselinesController.parent;
+                                    expect(itemStates(editor)).to.deep.equal([['second.svg', 'baseline']]);
+                                    expect(mnemonicsIndicatorText(editor)).to.include('Click to restore');
+                                });
+
+                                it('marks a visual added while the modal keeps focus as overridden', async () => {
+                                    const own = { mnemonicIcon: ['baseline.svg', 'own.svg'], mnemonicAlt: ['Baseline', 'Own'] };
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-visual-add-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-visual-add-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : (own[field.name] ?? []),
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withOfferIconReplaced(editor);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    editor.fieldsReady = true;
+                                    await editor.updateComplete;
+                                    const multifield = editor.querySelector('mas-multifield#mnemonics');
+                                    await multifield.addField();
+                                    const fields = () => [...multifield.shadowRoot.querySelectorAll('mas-mnemonic-field')];
+                                    const added = fields()[2];
+                                    await added.updateComplete;
+                                    const modal = added.shadowRoot.querySelector('mas-mnemonic-modal');
+                                    await modal.updateComplete;
+                                    const focusable = added.shadowRoot.querySelector('sp-action-menu');
+                                    await focusable.updateComplete;
+                                    focusable.focus();
+                                    expect(String(multifield.shadowRoot.activeElement?.localName)).to.equal(
+                                        'mas-mnemonic-field',
+                                    );
+                                    modal.dispatchEvent(
+                                        new CustomEvent('save', { detail: { icon: 'own.svg', alt: 'Own', link: '' } }),
+                                    );
+                                    await editor.updateComplete;
+                                    await multifield.updateComplete;
+                                    expect(fields().map((field) => field.getAttribute('data-field-state'))).to.deep.equal([
+                                        'baseline',
+                                        'overridden',
+                                        'overridden',
+                                    ]);
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('restores a single visual to its baseline value', async () => {
+                                    const own = Object.fromEntries(
+                                        ownVisuals(['baseline.svg', 'own.svg'], ['Baseline', 'Own']).map(({ name, values }) => [
+                                            name,
+                                            values,
+                                        ]),
+                                    );
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-visual-restore-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-visual-restore-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : (own[field.name] ?? []),
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withOfferIconReplaced(editor);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    expect(itemStates(editor)).to.deep.equal([
+                                        ['baseline.svg', 'baseline'],
+                                        ['own.svg', 'overridden'],
+                                    ]);
+                                    const multifield = editor.querySelector('mas-multifield#mnemonics');
+                                    await multifield.updateComplete;
+                                    const ownField = multifield.shadowRoot.querySelectorAll('mas-mnemonic-field')[1];
+                                    await ownField.updateComplete;
+                                    ownField.shadowRoot.querySelector('.field-status-restore-link').click();
+                                    await editor.updateComplete;
+                                    expect(editor.fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('previews the baseline alt again once a visual is set back to its baseline value', async () => {
+                                    const own = { mnemonicIcon: ['baseline.svg'], mnemonicAlt: ['Changed alt'] };
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-visual-alt-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-visual-alt-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : (own[field.name] ?? []),
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaselineIcon(editor);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    editor.fragmentStore.setBaselineParent(editor.baselinesController.parent);
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    const previewAlts = () =>
+                                        editor.fragmentStore.previewStore.get().getFieldValues('mnemonicAlt');
+                                    expect(previewAlts()).to.deep.equal(['Changed alt']);
+                                    const multifield = editor.querySelector('mas-multifield#mnemonics');
+                                    multifield.value = [{ icon: 'baseline.svg', alt: 'Baseline', link: '' }];
+                                    multifield.dispatchEvent(new Event('change', { bubbles: true }));
+                                    await editor.updateComplete;
+                                    expect(editor.fragment.getField('mnemonicAlt')).to.be.undefined;
+                                    expect(previewAlts()).to.deep.equal(['Baseline']);
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the visuals empty when the baseline visual is removed', async () => {
+                                    const editor = document.createElement('merch-card-editor');
+                                    editor.isVariation = false;
+                                    editor.fragmentStore = generateFragmentStore(
+                                        new Fragment({
+                                            ...structuredClone(baseMockData),
+                                            id: 'baseline-visuals-card',
+                                            path: '/content/dam/mas/nala/en_US/baseline-visuals-card',
+                                            fields: baseMockData.fields.map((field) => ({
+                                                ...field,
+                                                values: field.name === 'variant' ? ['plans'] : [],
+                                            })),
+                                        }),
+                                        null,
+                                        { lazy: true },
+                                    );
+                                    withBaselineIcon(editor);
+                                    editor.baselinesController.hostUpdate = () => {};
+                                    document.body.append(editor);
+                                    await editor.updateComplete;
+                                    const multifield = editor.querySelector('mas-multifield#mnemonics');
+                                    multifield.value = [];
+                                    multifield.dispatchEvent(new Event('change', { bubbles: true }));
+                                    await editor.updateComplete;
+                                    expect(editor.fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+                                    expect(editor.mnemonics).to.deep.equal([]);
+                                    expect(editor.getMnemonicsFieldState()).to.equal('overridden');
+                                    expect(mnemonicsIndicatorText(editor)).to.include('Click to restore');
+                                    editor.remove();
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('has no state for visuals the baselines do not provide', () => {
+                                    const editor = makeBaselineCard([
+                                        { name: 'mnemonicIcon', multiple: true, values: ['own.svg'] },
+                                    ]);
+                                    expect(editor.getMnemonicsFieldState()).to.equal('no-parent');
+                                    expect(itemStates(editor)).to.deep.equal([['own.svg', undefined]]);
+                                    expect(mnemonicsIndicatorText(editor)).to.equal('');
+                                });
+                            });
+
+                            it('restores the baseline value of an overridden field', async () => {
+                                const editor = makeBaselineCard([{ name: 'subtitle', values: ['Own subtitle'] }]);
+                                await editor.resetFieldToParent('subtitle');
+                                expect(editor.fragment.getField('subtitle')).to.be.undefined;
+                                expect(editor.getFormWithInheritance().subtitle.values).to.deep.equal(['Baseline subtitle']);
+                                editor.fragmentStore.previewStore.dispose();
+                            });
                         });
                     });
 

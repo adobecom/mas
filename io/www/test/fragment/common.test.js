@@ -199,6 +199,29 @@ describe('common utils', () => {
             global.fetch = originalFetch;
         });
 
+        it('returns the ETag of a 200 and a body-less 304 when If-None-Match matches it', async () => {
+            fetchStub.onFirstCall().callsFake(() => createResponse(200, { id: 'a' }, 'OK', { etag: '"e1"' }));
+            fetchStub.onSecondCall().callsFake(() => createResponse(304, null, 'Not Modified'));
+            const modified = await odinFetch(URL_A, publishedContext(), 'fragment');
+            expect(modified).to.deep.include({ status: 200, etag: '"e1"', body: { id: 'a' } });
+            expect(fetchStub.firstCall.args[1].headers).not.to.have.property('If-None-Match');
+            const notModified = await odinFetch(URL_A, publishedContext(), 'fragment', { etag: '"e1"' });
+            expect(notModified).to.deep.equal({ status: 304, message: 'not modified' });
+            expect(fetchStub.secondCall.args[1].headers['If-None-Match']).to.equal('"e1"');
+            expect(fetchStub.callCount).to.equal(2);
+        });
+
+        it('does not share preview requests whose ETag differs', async () => {
+            fetchStub.callsFake(() => createResponse(304, null, 'Not Modified'));
+            const responses = await Promise.all([
+                odinFetch(URL_A, previewContext(), 'fragment', { etag: '"e1"' }),
+                odinFetch(URL_A, previewContext(), 'fragment', { etag: '"e2"' }),
+                odinFetch(URL_A, previewContext(), 'fragment', { etag: '"e1"' }),
+            ]);
+            expect(fetchStub.callCount).to.equal(2);
+            responses.forEach((response) => expect(response).to.deep.equal({ status: 304, message: 'not modified' }));
+        });
+
         it('shares one request between concurrent preview reads of the same URL', async () => {
             fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
             const responses = await Promise.all([1, 2, 3].map(() => odinFetch(URL_A, previewContext(), 'fragment')));

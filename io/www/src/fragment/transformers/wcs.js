@@ -10,7 +10,7 @@ import {
     matchesGeo,
 } from '../utils/common.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 // Locale-independent: the offer-mapping index lives at `<surface>/offer-mapping/index` with no locale
@@ -19,8 +19,9 @@ const OFFER_MAPPING_ID_PATH = 'offer-mapping/index';
 
 // Offer-mapping entries are shared by every request on a surface regardless of country — geo filtering
 // happens per request in `resolveOfferSubstituteMap` — so one jittered/SWR entry per surface serves
-// the whole fleet and shields Odin from a herd on the shared index (see createSwrCache).
-const offerMappingCache = createSwrCache({ name: 'offer-mapping' });
+// the whole fleet and shields Odin from a herd on the shared index (see createSwrCache). Expired entries are
+// revalidated with their Odin ETag, so an unchanged index is a body-less 304.
+const offerMappingCache = createSwrCache({ name: 'offer-mapping', conditional: true });
 const wcsArtifactCache = createSwrCache({ name: 'wcs-artifacts', previewMemory: true });
 
 export const clearWcsCache = () => wcsArtifactCache.clear(true);
@@ -62,12 +63,14 @@ function collectMappings(fragment, references) {
 async function buildOfferMapping(context) {
     const { surface } = await getRequestInfos(context);
     if (!surface) return [];
-    const mappings = await offerMappingCache.get(context, surface, async () => {
+    const mappings = await offerMappingCache.get(context, surface, async ({ etagFor }) => {
         const { id, status } = await getOfferMappingId(context, surface);
-        if (!id) return status === 404 ? [] : null;
-        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, 'offer-mapping');
+        if (!id) return status === 404 ? { value: [] } : null;
+        const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
+        const response = await fetch(url, context, 'offer-mapping', { etag: etagFor(url) });
+        if (response.status === 304) return NOT_MODIFIED;
         if (response.status !== 200) return null;
-        return collectMappings(response.body, response.body.references || {});
+        return { value: collectMappings(response.body, response.body.references || {}), etag: response.etag, url };
     });
     if (!mappings) markDegraded(context, `offer mapping ${surface}`);
     logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);

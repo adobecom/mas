@@ -84,6 +84,14 @@ const rowsOf = (editor) => [...editor.querySelectorAll('#whatsIncluded .feature-
 const logoRowsOf = (editor) => [...editor.querySelectorAll('#whatsIncluded .logo-row')];
 const storedOf = (editor) => editor.fragmentStore.get().getFieldValue('whatsIncluded');
 
+const styleTextOf = (editor) => [...editor.querySelectorAll('style')].map((style) => style.textContent).join('');
+
+const deleteRow = (row) => {
+    const menu = row.querySelector('sp-action-menu');
+    menu.value = 'delete';
+    menu.dispatchEvent(new Event('change', { bubbles: true }));
+};
+
 const confirm = async (editor) => {
     const modal = modalOf(editor);
     await modal.updateComplete;
@@ -227,6 +235,105 @@ describe('merch-card-editor whats-included popup', () => {
         expect(editor.whatsIncluded.bullets).to.deep.equal(STANDARD_BULLETS);
         expect(editor.whatsIncluded.label).to.equal('Includes:');
         expect(modalOf(editor).open).to.be.false;
+    });
+
+    it('renders the same quiet Delete menu on every feature and logo row', async () => {
+        const standard = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        const pro = await setup(VARIANT_NAMES.PRO, '', serializeProWhatsIncluded(BULLETS, 'Voir :', false));
+        for (const editor of [standard, pro]) {
+            const rows = [...rowsOf(editor), ...logoRowsOf(editor)];
+            expect(rows.length).to.be.greaterThan(0);
+            for (const row of rows) {
+                const menu = row.querySelector('sp-action-menu.action-menu[quiet]');
+                expect(menu).to.exist;
+                const items = menu.querySelectorAll('sp-menu-item[value="delete"]');
+                expect(items).to.have.lengthOf(1);
+                expect(items[0].querySelector('sp-icon-delete')).to.exist;
+                expect(items[0].textContent.trim()).to.equal('Delete');
+            }
+        }
+        expect(styleTextOf(standard)).to.include('#whatsIncluded .feature-row .action-menu');
+        expect(styleTextOf(standard)).to.match(
+            /\.feature-row \.action-menu,\s*#whatsIncluded \.logo-row \.action-menu \{\s*margin-left: auto;/,
+        );
+    });
+
+    it('keeps the dialog closed when using a row menu', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        for (const row of [rowsOf(editor)[0], logoRowsOf(editor)[0]]) {
+            const menu = row.querySelector('sp-action-menu');
+            menu.click();
+            await editor.updateComplete;
+            expect(modalOf(editor).open).to.be.false;
+            for (const key of ['Enter', ' ']) {
+                menu.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+                await editor.updateComplete;
+                expect(modalOf(editor).open).to.be.false;
+            }
+        }
+        const menu = rowsOf(editor)[2].querySelector('sp-action-menu');
+        menu.value = 'delete';
+        menu.dispatchEvent(new Event('change', { bubbles: true }));
+        await editor.updateComplete;
+        expect(modalOf(editor).open).to.be.false;
+    });
+
+    it('Delete removes only that feature on a standard card', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        deleteRow(rowsOf(editor)[1]);
+        await editor.updateComplete;
+        expect(storedOf(editor)).to.equal(
+            editor.createIncludedElement('Includes:', LOGOS, [STANDARD_BULLETS[0], STANDARD_BULLETS[2]]).outerHTML,
+        );
+    });
+
+    it('Delete removes only that feature on a Pro card', async () => {
+        const editor = await setup(VARIANT_NAMES.PRO, '', serializeProWhatsIncluded(BULLETS, 'Voir :', false));
+        deleteRow(rowsOf(editor)[1]);
+        await editor.updateComplete;
+        expect(storedOf(editor)).to.equal(serializeProWhatsIncluded([BULLETS[0], BULLETS[2]], 'Voir :', false));
+    });
+
+    it('Delete on the only feature leaves an empty list and keeps label and logos', async () => {
+        const helper = createEditor(VARIANT_NAMES.PLANS);
+        const seed = helper.createIncludedElement('Includes:', LOGOS, [STANDARD_BULLETS[0]]).outerHTML;
+        helper.remove();
+        const editor = await setup(VARIANT_NAMES.PLANS, '', seed);
+        deleteRow(rowsOf(editor)[0]);
+        await editor.updateComplete;
+        expect(editor.whatsIncluded.bullets).to.deep.equal([]);
+        expect(editor.whatsIncluded.label).to.equal('Includes:');
+        expect(editor.whatsIncluded.values).to.deep.equal(LOGOS);
+    });
+
+    it('shows No description for empty feature descriptions only', async () => {
+        const bullets = [
+            { icon: 'sp-icon-star', alt: '', link: '' },
+            { icon: 'sp-icon-brush', alt: '<p></p>', link: '' },
+            { icon: 'sp-icon-star', alt: '<p>Filled</p>', link: '' },
+        ];
+        const editor = await setup(VARIANT_NAMES.PRO, '', serializeProWhatsIncluded(bullets, 'Voir :', false));
+        const rows = rowsOf(editor);
+        expect(rows).to.have.lengthOf(3);
+        for (const row of rows.slice(0, 2)) {
+            expect(row.querySelector('.feature-row-empty').textContent).to.equal('No description');
+        }
+        expect(rows[2].querySelector('.feature-row-empty')).to.be.null;
+        expect(rows[2].textContent).to.contain('Filled');
+        expect(styleTextOf(editor)).to.include('var(--spectrum-gray-700, #505050)');
+    });
+
+    it('logo rows show alt text or an empty span, never No description', async () => {
+        const helper = createEditor(VARIANT_NAMES.PLANS);
+        const logos = [LOGOS[0], { ...LOGOS[1], alt: '' }];
+        const seed = helper.createIncludedElement('Includes:', logos, STANDARD_BULLETS).outerHTML;
+        helper.remove();
+        const editor = await setup(VARIANT_NAMES.PLANS, '', seed);
+        const rows = logoRowsOf(editor);
+        expect(rows[0].querySelector('span').textContent).to.equal('Photoshop');
+        expect(rows[1].querySelector('.feature-row-text span').textContent).to.equal('');
+        expect(rows[1].querySelector('.feature-row-empty')).to.be.null;
+        expect(rows[1].textContent).to.not.contain('No description');
     });
 
     it('tab icon writes label and features as before', async () => {

@@ -2077,8 +2077,13 @@ class MerchCardEditor extends LitElement {
                     background: var(--spectrum-gray-200, #e9e9e9);
                 }
 
+                #whatsIncluded .feature-row .action-menu,
                 #whatsIncluded .logo-row .action-menu {
                     margin-left: auto;
+                }
+
+                #whatsIncluded .feature-row-empty {
+                    color: var(--spectrum-gray-700, #505050);
                 }
 
                 #whatsIncluded .action-menu sp-menu {
@@ -3077,13 +3082,17 @@ class MerchCardEditor extends LitElement {
             event.preventDefault();
             open();
         };
+        const description = this.#featureRowDescription(bullet.alt ?? '').trim();
         return html`
             <div class="feature-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
                 <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
                 <div class="feature-row-text">
                     <strong>${this.#featureRowName(icon)}</strong>
-                    <span>${this.#featureRowDescription(bullet.alt ?? '')}</span>
+                    ${description
+                        ? html`<span>${description}</span>`
+                        : html`<span class="feature-row-empty">No description</span>`}
                 </div>
+                ${this.#renderRowMenu(() => this.#deleteWhatsIncludedFeature(index))}
             </div>
         `;
     }
@@ -3101,7 +3110,6 @@ class MerchCardEditor extends LitElement {
             event.preventDefault();
             open();
         };
-        const stop = (event) => event.stopPropagation();
         return html`
             <div class="logo-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
                 <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
@@ -3109,26 +3117,33 @@ class MerchCardEditor extends LitElement {
                     <strong>${this.#logoRowName(icon)}</strong>
                     <span>${this.#featureRowDescription(logo.alt ?? '')}</span>
                 </div>
-                <sp-action-menu
-                    class="action-menu"
-                    quiet
-                    size="s"
-                    placement="bottom-end"
-                    @click=${stop}
-                    @keydown=${stop}
-                    @change=${(event) => {
-                        if (event.target.value === 'delete') this.#deleteWhatsIncludedLogo(index);
-                    }}
-                >
-                    <sp-icon-more slot="icon"></sp-icon-more>
-                    <sp-menu>
-                        <sp-menu-item value="delete">
-                            <sp-icon-delete slot="icon"></sp-icon-delete>
-                            Delete
-                        </sp-menu-item>
-                    </sp-menu>
-                </sp-action-menu>
+                ${this.#renderRowMenu(() => this.#deleteWhatsIncludedLogo(index))}
             </div>
+        `;
+    }
+
+    #renderRowMenu(onDelete) {
+        const stop = (event) => event.stopPropagation();
+        return html`
+            <sp-action-menu
+                class="action-menu"
+                quiet
+                size="s"
+                placement="bottom-end"
+                @click=${stop}
+                @keydown=${stop}
+                @change=${(event) => {
+                    if (event.target.value === 'delete') onDelete();
+                }}
+            >
+                <sp-icon-more slot="icon"></sp-icon-more>
+                <sp-menu>
+                    <sp-menu-item value="delete">
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                        Delete
+                    </sp-menu-item>
+                </sp-menu>
+            </sp-action-menu>
         `;
     }
 
@@ -3179,6 +3194,11 @@ class MerchCardEditor extends LitElement {
     #deleteWhatsIncludedLogo(index) {
         const value = this.whatsIncluded.values.filter((_, i) => i !== index);
         this.#updateWhatsIncluded({ target: { value } }, false);
+    }
+
+    #deleteWhatsIncludedFeature(index) {
+        const value = this.whatsIncluded.bullets.filter((_, i) => i !== index);
+        this.#updateWhatsIncluded({ target: { value } }, true);
     }
 
     #handleWhatsIncludedSave = (event) => {

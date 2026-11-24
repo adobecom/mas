@@ -279,18 +279,28 @@ describe('mas-related-artifacts-dialog restyle', function () {
     });
 
     it('dialog is 500px wide with 20px padding, 16px radius and 22px title', async () => {
-        const el = await openDialog();
+        // Spectrum's dialog grid only resolves its tracks under a theme, as in Studio.
+        const theme = await fixture(html`
+            <sp-theme system="spectrum-two" color="light" scale="medium">
+                <mas-related-artifacts-dialog></mas-related-artifacts-dialog>
+            </sp-theme>
+        `);
+        const el = theme.querySelector('mas-related-artifacts-dialog');
+        el.buckets = buckets();
+        el.open = true;
+        await el.updateComplete;
+        await waitUntil(() => wrapperOf(el)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
         const dialog = wrapperOf(el).shadowRoot.querySelector('sp-dialog');
         const frame = getComputedStyle(wrapperOf(el).shadowRoot.querySelector('.modal'));
         expect(getComputedStyle(dialog).width).to.equal('500px');
         expect(frame.borderTopLeftRadius).to.equal('16px');
-        // Spectrum draws the dialog padding as the first and last grid tracks, not as CSS padding.
-        const tracks = getComputedStyle(dialog.shadowRoot.querySelector('.grid'))
-            .gridTemplateColumns.replace(/\[[^\]]*\]/g, '')
-            .trim()
-            .split(/\s+/);
-        expect(tracks[0]).to.equal('20px');
-        const heading = getComputedStyle(dialog.querySelector('[slot=heading]'));
+        // Spectrum draws the padding as grid tracks, so measure the heading's inset from the dialog edge.
+        const headingEl = dialog.querySelector('[slot=heading]');
+        const dialogRect = dialog.getBoundingClientRect();
+        const headingRect = headingEl.getBoundingClientRect();
+        expect(Math.round(headingRect.left - dialogRect.left)).to.equal(20);
+        expect(Math.round(headingRect.top - dialogRect.top)).to.equal(20);
+        const heading = getComputedStyle(headingEl);
         expect(heading.fontSize).to.equal('22px');
         expect(heading.lineHeight).to.equal('26px');
         expect(heading.fontWeight).to.equal('700');

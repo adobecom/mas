@@ -27,8 +27,12 @@ function getValidators() {
     return null;
 }
 
+function studioPage(params) {
+    return `${STUDIO_BASE_URL}/studio.html#${params.toString()}`;
+}
+
 function buildStudioUrl(message) {
-    const { view, fragmentId, variant, locale, surface } = message;
+    const { view, fragmentId, variant, locale, surface, promotionId } = message;
     const validators = getValidators();
     if (!validators) return null;
 
@@ -42,7 +46,7 @@ function buildStudioUrl(message) {
             locale: locale || 'en_US',
             path: sur,
         });
-        return `${STUDIO_BASE_URL}/studio.html#${params.toString()}`;
+        return studioPage(params);
     }
 
     if (view === 'fragment-editor') {
@@ -53,7 +57,21 @@ function buildStudioUrl(message) {
         if (locale) params.set('locale', locale);
         if (surface) params.set('path', surface);
         if (fragmentId) params.set('fragmentId', fragmentId);
-        return `${STUDIO_BASE_URL}/studio.html#${params.toString()}`;
+        return studioPage(params);
+    }
+
+    if (view === 'version') {
+        if (!validators.isValidUUID(fragmentId)) return null;
+        return studioPage(new URLSearchParams({ page: 'version', fragmentId }));
+    }
+
+    if (view === 'promotions-editor') {
+        if (!validators.isValidUUID(promotionId)) return null;
+        return studioPage(new URLSearchParams({ page: 'promotions-editor', promotionId }));
+    }
+
+    if (view === 'promotions') {
+        return studioPage(new URLSearchParams({ page: 'promotions' }));
     }
 
     return null;

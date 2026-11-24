@@ -940,9 +940,9 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderPersonalizationTags', () => {
-        it('renders one tag per personalization tag leaf', async () => {
+        it('renders one tag per personalization tag leaf, including geo tags', async () => {
             const topLevelCard = createMockTopLevelCard({
-                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar', 'mas:locale/fr_FR'] }],
             });
             const el = await fixture(
                 html`<mas-collapsible-table-row
@@ -951,7 +951,7 @@ describe('MasCollapsibleTableRow', () => {
                 ></mas-collapsible-table-row>`,
             );
             const tags = [...el.shadowRoot.querySelectorAll('.pzn-tags sp-tag')].map((tag) => tag.textContent.trim());
-            expect(tags).to.deep.equal(['edu']);
+            expect(tags).to.deep.equal(['edu', 'ar', 'fr_FR']);
         });
 
         it('renders an empty cell when there are no personalization tags', async () => {

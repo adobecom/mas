@@ -19,11 +19,7 @@ import {
     findPromotionProjectIdByTag,
     isPromoVariationPath,
 } from '../promotions/promotion-model.js';
-import {
-    getGroupedVariationTagsValue,
-    getPromoVariationGeoTagsValue,
-    getPromoVariationPersonalizationTagLabels,
-} from '../editors/variation-utils.js';
+import { getGroupedVariationTagsValue, getPromoVariationGeoTagsValue, pznTagsValue } from '../editors/variation-utils.js';
 import Store from '../store.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
@@ -804,7 +800,10 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderPersonalizationTags(item) {
-        const labels = getPromoVariationPersonalizationTagLabels(item).split(', ').filter(Boolean);
+        const labels = pznTagsValue(item)
+            .split(',')
+            .filter(Boolean)
+            .map((tag) => tag.split('/').pop());
         return html`<sp-table-cell class="pzn-tags">
             ${labels.length ? html`<sp-tags>${labels.map((label) => html`<sp-tag>${label}</sp-tag>`)}</sp-tags>` : nothing}
         </sp-table-cell>`;

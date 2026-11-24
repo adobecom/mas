@@ -138,26 +138,24 @@ describe('promotions', () => {
             expect(1 - calls / 100).to.be.greaterThan(0.95);
         });
 
-        it('refills hydrated projects without conditional headers even when Odin returns an ETag', async () => {
+        it('revalidates expired hydrated projects with their ETag and keeps them on a 304', async () => {
             const clock = sinon.stub(Date, 'now').returns(new Date('2026-01-01').getTime());
             try {
                 fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
                 const response = fetchStub.withArgs(hydrateUrl('proj-1'));
-                response.callsFake(() =>
-                    Promise.resolve(
-                        new Response(JSON.stringify(makeHydratedProject()), {
-                            headers: { 'Content-Type': 'application/json', ETag: '"v1"' },
-                        }),
-                    ),
-                );
+                response.onFirstCall().returns(createResponse(200, makeHydratedProject(), 'OK', { etag: '"v1"' }));
+                response.onSecondCall().returns(createResponse(304, null, 'Not Modified'));
                 await promotionsTransformer.init(createContext());
 
                 clock.returns(new Date('2026-01-01').getTime() + 7 * 60 * 1000);
                 await promotionsTransformer.init(createContext());
                 await new Promise((resolve) => setImmediate(resolve));
+                const revalidated = await promotionsTransformer.init(createContext());
 
                 expect(response.callCount).to.equal(2);
-                expect(response.secondCall.args[1].headers).not.to.have.property('If-None-Match');
+                expect(response.firstCall.args[1].headers).not.to.have.property('If-None-Match');
+                expect(response.secondCall.args[1].headers['If-None-Match']).to.equal('"v1"');
+                expect(revalidated.activeProjects[0].promoCode).to.equal('PROMO10');
             } finally {
                 clock.restore();
             }

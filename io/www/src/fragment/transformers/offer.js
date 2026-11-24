@@ -21,10 +21,21 @@ const OFFERS_API_KEY = 'wcms-commerce-ims-ro-user-milo';
 // collection.
 const baselineCache = createSwrCache({ name: 'baselines', previewMemory: true });
 const offersCache = createSwrCache({ name: 'offers', maxEntries: 50 });
+// an AOS offer never changes its product arrangement, segment, commitment & term
+const aosOffersCache = createSwrCache({ name: 'aos-offers', ttl: 24 * 60 * 60 * 1000, maxEntries: 500 });
+
+// AOS offer ids, e.g. `257E1D82082387D152029F93C1030624`, as opposed to offer selector ids (OSIs)
+const OFFER_ID_REGEXP = /^[0-9A-F]{32}$/;
+export const isOfferId = (offer) => OFFER_ID_REGEXP.test(offer ?? '');
+
+// plan baselines folders, by commitment & term
+const PLANS = { 'YEAR/MONTHLY': 'abm', 'YEAR/ANNUAL': 'puf', 'MONTH/MONTHLY': 'm2m' };
+const planOf = ({ commitment, term }) => PLANS[`${commitment}/${term}`];
 
 export const clearBaselineCache = (preview = false) => {
     baselineCache.clear(preview);
     offersCache.clear();
+    aosOffersCache.clear();
 };
 
 export const offersUrl = (locale) => `${OFFERS_URL}?api_key=${OFFERS_API_KEY}&locale=${locale}&id`;
@@ -47,9 +58,47 @@ async function resolveProductArrangements(context, tokens, prefetched) {
         return {
             productArrangementCode: offer?.productArrangementCode,
             marketSegment: offer?.marketSegments?.[0]?.toLowerCase(),
+            plan: offer && planOf(offer),
         };
     };
     return { resolveOffer, wcsPrefetch };
+}
+
+/**
+ * Product arrangement code, market segment & plan of an AOS offer id, through an AOS offer lookup (api key only):
+ * `{ status: 200, … }`, `{ status: 404 }` for an unknown offer, or `{ status: 503 }` when AOS is not configured or fails.
+ * Successful lookups are cached.
+ */
+export async function resolveOfferId(context, offerId) {
+    const { AOS_URL, AOS_API_KEY } = context;
+    if (!AOS_URL || !AOS_API_KEY) return { status: 503, message: 'AOS is not configured to resolve offer ids' };
+    const url = new URL(`${AOS_URL.replace(/\/offers$/, '')}/offers/${offerId}`);
+    url.search = new URLSearchParams({
+        country: createWcsContext(context).country,
+        landscape: 'PUBLISHED',
+        api_key: AOS_API_KEY,
+    });
+    const load = async () => {
+        const response = await fetch(url.toString(), context, 'aos-offer');
+        if (response.status == 200) {
+            const [offer] = response.body;
+            return {
+                status: 200,
+                productArrangementCode: offer.product_arrangement_code,
+                marketSegment: offer.market_segments?.[0]?.toLowerCase(),
+                plan: planOf(offer),
+            };
+        }
+        if (response.status == 404) return { status: 404, message: `Offer '${offerId}' not found` };
+        logError(`failed to resolve offer '${offerId}': ${response.status} ${response.message}`, context);
+        return null;
+    };
+    return (
+        (await aosOffersCache.get({ ...context, preview: false }, url.toString(), load)) ?? {
+            status: 503,
+            message: `AOS failed to resolve offer '${offerId}'`,
+        }
+    );
 }
 
 /**
@@ -76,9 +125,10 @@ async function listFolder(context, folder) {
 const FRAGMENT_BASELINE_PATH = /^(?<key>[\w-]+(?:\/[\w-]+)?)\/baseline$/;
 
 /**
- * Fragment baselines of a template, keyed by `<pa>` or `<pa>/<segment>` (market segment override, e.g. `edu`):
- * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>[/<segment>]/baseline`, listed once (single-flight +
- * TTL), empty folders included; failures are retried next time.
+ * Fragment baselines of a template, keyed by `<pa>`, `<pa>/<segment>` (market segment override, e.g. `edu`) or
+ * `<pa>/<plan>` (plan override, e.g. `m2m`):
+ * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>[/<segment>|/<plan>]/baseline`, listed once
+ * (single-flight + TTL), empty folders included; failures are retried next time.
  */
 async function fetchFragmentBaselines(context, surface, locale, template) {
     const folder = `${MAS_ROOT}/${surface}/${locale}/baselines/${template}`;
@@ -93,11 +143,12 @@ async function fetchFragmentBaselines(context, surface, locale, template) {
 }
 
 /**
- * Fragment baseline of a product arrangement & its market segment override, if any.
+ * Fragment baseline of a product arrangement, its market segment & plan overrides, if any.
  */
-const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegment }) => ({
+const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegment, plan }) => ({
     fragmentBaseline: baselines[productArrangementCode],
     fragmentSegmentBaseline: marketSegment ? baselines[`${productArrangementCode}/${marketSegment}`] : undefined,
+    fragmentPlanBaseline: plan ? baselines[`${productArrangementCode}/${plan}`] : undefined,
 });
 
 /**
@@ -140,12 +191,13 @@ export async function getOfferBaseline(context, productArrangementCode) {
 
 /**
  * Request infos when no fragment `id` is requested (ADR CONT-0005): `offer`, `template` & `surface` select the main body,
- * the most specific baseline: the fragment baseline for that template & the offer market segment, the fragment baseline
- * for that template, or the offer baseline.
+ * the most specific baseline: the fragment baseline for that template & the offer plan, or its market segment, the
+ * fragment baseline for that template, or the offer baseline. An AOS offer id (`offerId`) is resolved through AOS: the
+ * main body's own osi then drives prices.
  * Same shape as fetchFragment's request infos, plus the `wcsPrefetch` used to resolve the offer.
  */
 export async function resolveOfferInfos(initContext) {
-    const { offer, template, surface, locale, country } = initContext;
+    const { offer, offerId, template, surface, locale, country } = initContext;
     const defaultLocale = getDefaultLocaleCode(surface, locale);
     if (!defaultLocale) {
         return { status: 400, message: `Default locale not found for requested locale '${locale}' on surface '${surface}'` };
@@ -155,17 +207,25 @@ export async function resolveOfferInfos(initContext) {
     const context = { ...initContext, ...countries, regionLocale, defaultLocale };
     // fragment baselines are listed while the offer is resolved
     const fragmentBaselines = fetchFragmentBaselines(context, surface, defaultLocale, template);
-    const { resolveOffer, wcsPrefetch } = await resolveProductArrangements(context, [{ osi: offer }]);
-    const resolved = resolveOffer({ osi: offer });
+    let resolved;
+    let wcsPrefetch;
+    if (offerId) {
+        resolved = await resolveOfferId(context, offerId);
+        if (resolved.status != 200) return resolved;
+    } else {
+        const productArrangements = await resolveProductArrangements(context, [{ osi: offer }]);
+        wcsPrefetch = productArrangements.wcsPrefetch;
+        resolved = productArrangements.resolveOffer({ osi: offer });
+    }
     const { productArrangementCode } = resolved;
     if (!productArrangementCode) {
         return { status: 404, message: `No product arrangement found for offer '${offer}'` };
     }
-    const [offerBaseline, { fragmentBaseline, fragmentSegmentBaseline }] = await Promise.all([
+    const [offerBaseline, { fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline }] = await Promise.all([
         getOfferBaseline(context, productArrangementCode),
         fragmentBaselines.then((baselines) => selectFragmentBaselines(baselines, resolved)),
     ]);
-    const baseline = fragmentSegmentBaseline ?? fragmentBaseline ?? offerBaseline;
+    const baseline = fragmentPlanBaseline ?? fragmentSegmentBaseline ?? fragmentBaseline ?? offerBaseline;
     if (!baseline) {
         return {
             status: 404,
@@ -187,12 +247,13 @@ export async function resolveOfferInfos(initContext) {
 }
 
 /**
- * Root fragment (whose osi & template can be overridden by the `offer` & `template` parameters) and every card /
+ * Root fragment (whose osi & template can be overridden by the `offer` & `template` parameters, an offer id only selecting
+ * its baselines) and every card /
  * collection of its active references tree, with the offer token & template their baselines are looked up with.
  * Each fragment is collected once.
  */
 function collectTargets(context) {
-    const { body, offer, template } = context;
+    const { body, offer, offerId, template } = context;
     const variationContext = {
         ...context,
         isRegionLocale: context.regionLocale !== context.defaultLocale,
@@ -204,7 +265,9 @@ function collectTargets(context) {
         return { fragment, referencesTree: adaptReferencesTree(tree, fragment, referencesTree) };
     };
     const { fragment: root, referencesTree: rootTree } = resolve(body, body.referencesTree);
-    const targets = [{ fragment: root, osi: offer ?? root.fields?.osi, template: template ?? root.fields?.variant }];
+    // an offer id selects the root baselines, without overriding its osi
+    const rootOsi = offerId ? root.fields?.osi : (offer ?? root.fields?.osi);
+    const targets = [{ fragment: root, osi: rootOsi, offerId, template: template ?? root.fields?.variant }];
     const visited = new Set([body.id]);
     const visit = (entries) => {
         for (const { fieldName, identifier, referencesTree } of entries) {
@@ -221,8 +284,8 @@ function collectTargets(context) {
     };
     visit(rootTree);
     return targets
-        .filter(({ osi, template }) => osi && template)
-        .map((target) => ({ ...target, token: offerToken(target.fragment, target.osi) }));
+        .filter(({ osi, offerId, template }) => (osi || offerId) && template)
+        .map((target) => ({ ...target, token: target.osi && offerToken(target.fragment, target.osi) }));
 }
 
 /**
@@ -231,7 +294,7 @@ function collectTargets(context) {
  * Each distinct offer, offer baseline & fragment baseline is requested once. Failures are not fatal.
  * Opt-in with a fragment `id`: only when the requested (card or collection) fragment has `enableBaselines` on, which
  * then applies to every card it references. Without `id`, the main body is a baseline, always layered.
- * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } }, wcsPrefetch }}
+ * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline } }, wcsPrefetch }}
  */
 async function init(initContext) {
     const { promises } = initContext;
@@ -250,7 +313,7 @@ async function init(initContext) {
         logDebug(() => 'no offer & template to look baselines up with', initContext);
         return null;
     }
-    const tokens = [...new Map(targets.map(({ token }) => [tokenKey(token), token])).values()];
+    const tokens = [...new Map(targets.filter(({ token }) => token).map(({ token }) => [tokenKey(token), token])).values()];
     // one listing per template, while offers are resolved
     const fragmentBaselines = Object.fromEntries(
         [...new Set(targets.map(({ template }) => template))].map((template) => [
@@ -259,11 +322,11 @@ async function init(initContext) {
         ]),
     );
     const { resolveOffer, wcsPrefetch } = await resolveProductArrangements(context, tokens, prefetched);
-    const entries = targets.map(async ({ fragment, token, template }) => {
-        const resolved = resolveOffer(token);
+    const entries = targets.map(async ({ fragment, token, offerId, template }) => {
+        const resolved = offerId ? await resolveOfferId(context, offerId) : resolveOffer(token);
         const { productArrangementCode } = resolved;
         if (!productArrangementCode) {
-            logError(`No product arrangement found for offer '${token.osi}' of ${fragment.id}`, initContext);
+            logError(`No product arrangement found for offer '${offerId ?? token.osi}' of ${fragment.id}`, initContext);
             return [fragment.id, {}];
         }
         const [offerBaseline, fragmentBaselinesOfOffer] = await Promise.all([

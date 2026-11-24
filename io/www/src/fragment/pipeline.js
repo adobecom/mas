@@ -24,7 +24,7 @@ import { getFilesClient, resetFilesClient } from './utils/files-client.js';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
 import { transformer as defaultLanguage } from './transformers/defaultLanguage.js';
-import { transformer as offer } from './transformers/offer.js';
+import { isOfferId, transformer as offer } from './transformers/offer.js';
 import { transformer as corrector } from './transformers/corrector.js';
 import { transformer as replace } from './transformers/replace.js';
 import { transformer as promotions } from './transformers/promotions.js';
@@ -220,6 +220,8 @@ async function mainProcess(context) {
     if (invalidParameter) {
         return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter '${invalidParameter[0]}'` }) };
     }
+    // an AOS offer id selects baselines only, an osi also drives prices
+    if (isOfferId(offer)) context.offerId = offer;
     if (!isKnownLocale(context.locale)) {
         return {
             statusCode: 400,

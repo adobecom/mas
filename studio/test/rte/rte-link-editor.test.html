@@ -134,6 +134,71 @@
                     });
                 });
 
+                describe('RTE required analytics ID', () => {
+                    const saveButtonOf = (linkEditor) => linkEditor.shadowRoot.getElementById('saveButton');
+
+                    it('prefills analytics ID from OST CTA type', async function () {
+                        for (const [template, expected] of [
+                            ['checkoutFilled', 'buy-now'],
+                            ['checkoutFreeTrial', 'free-trial'],
+                        ]) {
+                            const linkEditor = await createFromTemplate(template, this.test.title);
+                            expect(linkEditor.linkAnalyticsIdElement.value).to.equal(expected);
+                            expect(linkEditor.analyticsIdErrorElement).to.not.exist;
+                            expect(saveButtonOf(linkEditor).disabled).to.be.false;
+                        }
+                    });
+
+                    it('blocks confirm and shows required error when OST CTA analytics ID is empty', async function () {
+                        const linkEditor = await createFromTemplate('checkout', this.test.title);
+                        let saved = false;
+                        linkEditor.addEventListener('save', () => (saved = true));
+
+                        expect(linkEditor.analyticsIdErrorElement).to.exist;
+                        expect(linkEditor.analyticsIdErrorElement.textContent).to.contain('required');
+                        expect(linkEditor.linkAnalyticsIdElement.hasAttribute('invalid')).to.be.true;
+                        expect(
+                            linkEditor.shadowRoot.querySelector('sp-field-label[for="analyticsId"]').hasAttribute('required'),
+                        ).to.be.true;
+                        expect(saveButtonOf(linkEditor).disabled).to.be.true;
+
+                        saveButtonOf(linkEditor).click();
+                        await linkEditor.updateComplete;
+                        expect(saved).to.be.false;
+                    });
+
+                    it('clears the required error once an analytics ID is chosen', async function () {
+                        const linkEditor = await createFromTemplate('checkout', this.test.title);
+                        const picker = linkEditor.linkAnalyticsIdElement;
+                        picker.value = 'buy-now';
+                        picker.dispatchEvent(new Event('change'));
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.analyticsIdErrorElement).to.not.exist;
+                        expect(saveButtonOf(linkEditor).disabled).to.be.false;
+
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail);
+                        saveButtonOf(linkEditor).click();
+                        expect((await listener).analyticsId).to.equal('buy-now');
+                    });
+
+                    it('allows web link without analytics ID and shows no error', async function () {
+                        const linkEditor = await createFromTemplate('default', this.test.title);
+                        linkEditor.href = 'https://www.adobe.com';
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.analyticsIdErrorElement).to.not.exist;
+                        expect(
+                            linkEditor.shadowRoot.querySelector('sp-field-label[for="analyticsId"]').hasAttribute('required'),
+                        ).to.be.false;
+                        expect(saveButtonOf(linkEditor).disabled).to.be.false;
+
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail);
+                        saveButtonOf(linkEditor).click();
+                        expect((await listener).analyticsId).to.equal('');
+                    });
+                });
+
                 describe('RTE CTA reference field', () => {
                     it('is hidden unless show-cta-reference is set', async function () {
                         const linkEditor = await createFromTemplate('default', this.test.title);
@@ -306,6 +371,10 @@
 
         <template id="headless">
             <rte-link-editor is-headless-cta></rte-link-editor>
+        </template>
+
+        <template id="checkoutFreeTrial">
+            <rte-link-editor checkout-parameters="" text="Free trial" data-analytics-id="free-trial"></rte-link-editor>
         </template>
 
         <template id="checkoutFilled">

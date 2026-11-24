@@ -465,7 +465,8 @@
                         rte = await createFromTemplate('rte-link', this.test.title);
                         rte.isVariation = true;
                         rte.parentCtas = [{ text: 'Save today', key: 'save-today' }];
-                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm">Buy now</a>';
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a>';
                         await delay(100);
                         rte.selectLink(1);
                         await delay(100);
@@ -1240,10 +1241,12 @@
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>
         </template>
         <template id="rte-headless-cta">
-            <rte-field is-headless-cta link><a href="#" data-wcs-osi="abm">Buy now</a></rte-field>
+            <rte-field is-headless-cta link><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a></rte-field>
         </template>
         <template id="rte-headless-cta-legacy">
-            <rte-field is-headless-cta link><a class="accent" href="#" data-wcs-osi="abm">Buy now</a></rte-field>
+            <rte-field is-headless-cta link
+                ><a class="accent" href="#" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a></rte-field
+            >
         </template>
         <template id="rte-headless-cta-wrapped">
             <rte-field is-headless-cta link>
@@ -1251,6 +1254,7 @@
                     ><a
                         href="#"
                         data-wcs-osi="abm"
+                        data-analytics-id="buy-now"
                         data-key="buy"
                         data-checkout-workflow-step="segmentation"
                         data-modal="true"
@@ -1331,7 +1335,7 @@
         </template>
         <template id="rte-ost-extra">
             <rte-field link>
-                <a class="secondary-link" data-wcs-osi="abm">Buy now</a>
+                <a class="secondary-link" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a>
             </rte-field>
         </template>
         <template id="rte-maxlength">

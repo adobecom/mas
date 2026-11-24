@@ -110,7 +110,8 @@ export class RteLinkEditor extends LitElement {
             flex: 0 0 auto;
         }
 
-        .cta-reference-error {
+        .cta-reference-error,
+        .analytics-id-error {
             margin-top: 6px;
             font-size: 12px;
             line-height: 16px;
@@ -181,13 +182,31 @@ export class RteLinkEditor extends LitElement {
         return this.checkoutParameters !== undefined;
     }
 
+    get #isAnalyticsIdMissing() {
+        return this.#isCheckoutLink && !this.analyticsId;
+    }
+
     get #analyticsIdField() {
         const options = this.#isCheckoutLink ? Object.keys(CHECKOUT_CTA_TEXTS) : [...ANALYTICS_LINK_IDS];
         options.push('');
-        return html` <sp-field-label for="analyticsId">Analytics Id</sp-field-label>
-            <sp-picker id="analyticsId" .value=${this.analyticsId} @change=${(e) => (this.analyticsId = e.target.value)}>
+        return html` <sp-field-label for="analyticsId" ?required=${this.#isCheckoutLink}>Analytics Id</sp-field-label>
+            <sp-picker
+                id="analyticsId"
+                ?invalid=${this.#isAnalyticsIdMissing}
+                .value=${this.analyticsId}
+                @change=${(e) => (this.analyticsId = e.target.value)}
+            >
                 <sp-menu> ${options.map((option) => html`<sp-menu-item value="${option}">${option}</sp-menu-item>`)} </sp-menu>
-            </sp-picker>`;
+            </sp-picker>
+            ${this.#isAnalyticsIdMissing
+                ? html`<div id="analyticsIdError" class="analytics-id-error" role="alert">
+                      Analytics ID is required for checkout links.
+                  </div>`
+                : nothing}`;
+    }
+
+    get analyticsIdErrorElement() {
+        return this.shadowRoot.querySelector('#analyticsIdError');
     }
 
     get linkAnalyticsIdElement() {
@@ -457,7 +476,14 @@ export class RteLinkEditor extends LitElement {
                 type="button"
                 >Cancel</sp-button
             >
-            <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSave}>Save</sp-button>
+            <sp-button
+                id="saveButton"
+                slot="button"
+                variant="accent"
+                ?disabled=${this.#isAnalyticsIdMissing}
+                @click=${this.#handleSave}
+                >Save</sp-button
+            >
         </sp-dialog>`;
     }
 
@@ -480,6 +506,7 @@ export class RteLinkEditor extends LitElement {
 
     #handleSave(e) {
         e.preventDefault();
+        if (this.#isAnalyticsIdMissing) return;
 
         const href = this.isPhone ? `tel:${this.text.replace(/ /g, '')}` : this.href;
 

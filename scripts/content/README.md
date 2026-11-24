@@ -12,7 +12,7 @@ export MAS_API_KEY="your-api-key"
 
 # gen-locales.mjs
 
-Creates locale folder tree for a given surface in Odin. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.
+Creates locale folder tree for a given surface in Odin, plus its `translations` and `bulk-publish-projects` folders. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.
 
 ```sh
 node gen-locales.mjs author-*-* acom-cc --dry-run
@@ -147,4 +147,12 @@ node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
 # repair with 20 parallel writers
 node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
     --folder /content/dam/mas/ccd/de_DE --concurrency 20
+```
+
+# create-offer-baseline.mjs
+
+Creates the offer baseline fragment (offer model) of a product arrangement at `/content/dam/mas/offers/<locale>/baselines/<productArrangementCode>/baseline`, filled with its MCS merchandising data (name, descriptions, icons, background images, links, included apps) fetched from AOS. Skips creation when the fragment already exists. Used by the io/www `offer` transformer (ADR [CONT-0005](../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md)).
+
+```sh
+node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run
 ```

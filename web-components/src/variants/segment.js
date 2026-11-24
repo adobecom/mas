@@ -91,14 +91,13 @@ export class Segment extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
             legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,

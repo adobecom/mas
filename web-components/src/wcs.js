@@ -9,7 +9,8 @@ import {
     SUPPORTED_COUNTRIES,
 } from './constants.js';
 
-import { PlanType, applyPlanType } from '@dexter/tacocat-core';
+import { PlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
+import { applyPlanType } from '../../price/src/offers.js';
 import { Log } from './log.js';
 import { MasError } from './mas-error.js';
 import { masFetch } from './utils/mas-fetch.js';
@@ -76,11 +77,18 @@ const NAMESPACE = 'wcs';
  * Creates a new WCS client instance
  * @param {Object} params - The parameters for creating the WCS client
  * @param {Settings} params.settings - The settings for the WCS client
+ * @param {number} [params.fetchTimeout] - Optional fetch timeout in milliseconds
  * @returns {Client} A new WCS client instance
  */
-export function Wcs({ settings }) {
+export function Wcs({ settings, fetchTimeout }) {
     const log = Log.module(NAMESPACE);
     const { env, wcsApiKey: apiKey } = settings;
+    const serveLatest = env === Env.STAGE && settings.orion === true;
+    const envKey = serveLatest
+        ? 'stage-latest'
+        : env === Env.STAGE
+          ? 'stage'
+          : 'prod';
     /**
      * Cache of promises resolving to arrays of Wcs offers grouped by osi-based keys.
      * @type {Map<string, Promise<Offer[]>>}
@@ -138,6 +146,9 @@ export function Wcs({ settings }) {
                 env === Env.STAGE ? 'ALL' : settings.landscape,
             );
             url.searchParams.set('api_key', apiKey);
+            if (serveLatest) {
+                url.searchParams.set('serveLatest', 'true');
+            }
             // language can be undefined if its a UK offer
             if (options.language) {
                 url.searchParams.set('language', options.language);
@@ -151,6 +162,9 @@ export function Wcs({ settings }) {
             }
             response = await masFetch(url.toString(), {
                 credentials: 'omit',
+                ...(fetchTimeout
+                    ? { signal: AbortSignal.timeout(fetchTimeout) }
+                    : {}),
             });
             if (response.ok) {
                 let offers = [];
@@ -231,10 +245,9 @@ export function Wcs({ settings }) {
         if (!preloadedCache || typeof preloadedCache !== 'object') {
             throw new TypeError('Cache must be a Map or similar object');
         }
-        const envKey = env === Env.STAGE ? 'stage' : 'prod';
         const envCache = preloadedCache[envKey];
         if (!envCache || typeof envCache !== 'object') {
-            log.warn(`No cache found for environment: ${env}`);
+            log.warn(`No cache found for environment: ${envKey}`);
             return;
         }
         // Fill cache with provided entries
@@ -313,7 +326,13 @@ export function Wcs({ settings }) {
             // 2+ codes zip positionally, missing positions default to ''.
             const osiPromotionCode =
                 codes.length === 1 ? codes[0] : (codes[index] ?? '');
-            const groupKey = [validCountry, validLanguage, osiPromotionCode]
+            const groupKey = [
+                validCountry,
+                serveLatest && validCountry === 'GB'
+                    ? undefined
+                    : validLanguage,
+                osiPromotionCode,
+            ]
                 .filter((val) => val)
                 .join('-')
                 .toLowerCase();

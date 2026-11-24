@@ -1,6 +1,6 @@
 /* eslint-disable import/prefer-default-export */
 
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { AccessibilityError } from './customerrors.js';
 
 import AxeBuilder from '@axe-core/playwright';
@@ -32,17 +32,20 @@ async function runAccessibilityTest({
 
         let scopeDescription = 'entire page';
         let testElement = testScope;
+        let animationScope = page.locator('body');
 
         let violationsDetails = '';
 
         // Handle a case where testScope is a string or locator from POM
         if (typeof testScope === 'string') {
+            animationScope = page.locator(testScope);
             if (testScope === 'body') {
                 testElement = 'body';
             } else {
                 scopeDescription = `section: ${testScope}`;
             }
         } else if (typeof testScope === 'object' && testScope.constructor.name === 'Locator') {
+            animationScope = testScope;
             const eleHandle = await testScope.elementHandle();
             if (!eleHandle) {
                 throw new AccessibilityError('Element not found for the given locator');
@@ -54,6 +57,20 @@ async function runAccessibilityTest({
         }
 
         console.log('Scope description:', scopeDescription);
+        await expect
+            .poll(() =>
+                animationScope.evaluate(
+                    (element) =>
+                        element
+                            .getAnimations({ subtree: true })
+                            .filter(
+                                (animation) =>
+                                    (animation.pending || animation.playState === 'running') &&
+                                    Number.isFinite(animation.effect.getComputedTiming().endTime),
+                            ).length,
+                ),
+            )
+            .toBe(0);
         // Run the Axe accessibility test on the given scope and tags
         const axe = await new AxeBuilder({ page }).withTags(includeTags).include(testElement).analyze();
 

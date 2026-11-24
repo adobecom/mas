@@ -9,6 +9,8 @@ import {
     buildOfferMapping,
     resolveOfferSubstituteMap,
     clearOfferMappingCache,
+    computeWcsCaches,
+    clearWcsCache,
 } from '../../src/fragment/transformers/wcs.js';
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
@@ -19,6 +21,89 @@ const CONFIGURATION = () => [
         env: 'prod',
     },
 ];
+
+describe('Orion WCS prefill', () => {
+    let fetchStub;
+    const tokens = [{ osi: 'test-osi' }];
+    const configuration = [
+        ...CONFIGURATION(),
+        { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+    ];
+    const context = {
+        api_key: 'testing_wcs',
+        locale: 'en_GB',
+        wcsConfiguration: configuration,
+    };
+    const key = 'test-osi-gb';
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            const latest = new URL(url).searchParams.get('serveLatest') === 'true';
+            return createResponse(200, {
+                resolvedOffers: ['EN', 'MULT'].map((language) => ({
+                    offerId: `${latest ? 'orion' : 'legacy'}-${language}`,
+                    language,
+                })),
+            });
+        });
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+    });
+
+    for (const value of ['true', true]) {
+        it(`adds serveLatest only to stage WCS requests for ${JSON.stringify(value)}`, async () => {
+            await computeWcsCaches(tokens, { ...context, serveLatest: value });
+            const urls = fetchStub.getCalls().map(({ args: [url] }) => new URL(url));
+            expect(urls.find(({ hostname }) => hostname === 'www.stage.adobe.com').searchParams.get('serveLatest')).to.equal(
+                'true',
+            );
+            expect(urls.find(({ hostname }) => hostname === 'www.adobe.com').searchParams.has('serveLatest')).to.be.false;
+        });
+    }
+
+    for (const value of [undefined, 'false', 'on']) {
+        it(`does not add serveLatest for ${JSON.stringify(value)}`, async () => {
+            await computeWcsCaches(tokens, { ...context, serveLatest: value });
+            expect(fetchStub.getCalls().every(({ args: [url] }) => !new URL(url).searchParams.has('serveLatest'))).to.be.true;
+        });
+    }
+
+    it('separates latest prefill from normal stage offers while preserving EN and MULT', async () => {
+        const caches = await computeWcsCaches(tokens, { ...context, serveLatest: 'true' });
+        expect(caches).not.to.have.property('stage');
+        expect(caches['stage-latest'][key]).to.deep.equal([
+            { offerId: 'orion-EN', language: 'EN' },
+            { offerId: 'orion-MULT', language: 'MULT' },
+        ]);
+        expect(caches.prod[key].map(({ offerId }) => offerId)).to.deep.equal(['legacy-EN', 'legacy-MULT']);
+    });
+
+    it('does not reuse normal prefetched stage offers in latest mode', async () => {
+        const caches = await computeWcsCaches(
+            tokens,
+            { ...context, serveLatest: 'true' },
+            { stage: { [key]: [{ offerId: 'legacy' }] } },
+        );
+        expect(caches['stage-latest'][key][0].offerId).to.equal('orion-EN');
+    });
+
+    it('does not reuse latest prefetched offers in normal mode', async () => {
+        const caches = await computeWcsCaches(tokens, context, {
+            'stage-latest': { [key]: [{ offerId: 'orion' }] },
+        });
+        expect(caches.stage[key][0].offerId).to.equal('legacy-EN');
+    });
+
+    it('reuses latest offers fetched earlier in the fragment pipeline', async () => {
+        const latestContext = { ...context, serveLatest: 'true' };
+        const prefetched = await computeWcsCaches(tokens, latestContext);
+        fetchStub.resetHistory();
+        expect(await computeWcsCaches(tokens, latestContext, prefetched)).to.deep.equal(prefetched);
+        expect(fetchStub.callCount).to.equal(0);
+    });
+});
 
 describe('MAS_ELEMENT_REGEXP', function () {
     it('should match a span with osi', function () {
@@ -1138,6 +1223,135 @@ describe('wcs OSI helpers', function () {
         expect(updateOffers({ body: { id: 'f', fields: { osi: 'A' } } })).to.deep.equal([]);
         expect(updateOffers({ promoScopeById: {} })).to.deep.equal([]);
     });
+
+    it("applies the root fragment's promo project to settings OSIs, keeping inline promotion codes", function () {
+        const context = {
+            body: {
+                id: 'root',
+                fields: { osi: 'OWN' },
+                settings: {
+                    addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>',
+                    promoted: '<span is="inline-price" data-wcs-osi="PROMOTED"></span>',
+                    authored: '<span is="inline-price" data-wcs-osi="AUTHORED" data-promotion-code="INLINE"></span>',
+                },
+            },
+            promoScopeById: {
+                root: {
+                    substituteMap: { ADDON: 'ADDON-SUB' },
+                    promoMap: { PROMOTED: 'PROJECT_PROMO', AUTHORED: 'PROJECT_PROMO' },
+                },
+            },
+        };
+        expect(updateOffers(context)).to.deep.include.members([
+            { osi: 'ADDON-SUB', promotionCode: undefined, optional: true },
+            { osi: 'PROMOTED', promotionCode: 'PROJECT_PROMO', optional: true },
+            { osi: 'AUTHORED', promotionCode: 'INLINE', optional: true },
+        ]);
+        expect(context.body.settings.addon).to.include('data-wcs-osi="ADDON-SUB" data-replaced-osi="ADDON"');
+        expect(context.body.settings.promoted).to.include('data-promotion-code="PROJECT_PROMO"');
+        expect(context.body.settings.authored).to.include('data-promotion-code="INLINE"');
+    });
+
+    it('collects settings OSIs that are not authored as card fields, applying the offer-mapping fallback', function () {
+        const context = {
+            body: {
+                fields: {},
+                settings: { displayAnnual: true, addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
+            },
+        };
+        expect(updateOffers(context, { ADDON: { osi: 'MAPPED', promotionCode: 'MAP_PROMO' } })).to.deep.equal([
+            { osi: 'MAPPED', promotionCode: 'MAP_PROMO', optional: true },
+        ]);
+        expect(context.body.settings.addon).to.include('data-wcs-osi="MAPPED" data-promotion-code="MAP_PROMO"');
+    });
+
+    it('collects only field OSIs when the fragment has no settings', function () {
+        const elements = updateOffers({
+            body: { fields: { prices: '<span is="inline-price" data-wcs-osi="FIELD"></span>' } },
+        });
+        expect(elements).to.deep.equal([{ osi: 'FIELD', promotionCode: undefined }]);
+    });
+});
+
+describe('optional settings WCS lookups', function () {
+    let clock;
+    let fetchStub;
+    const offer = (name) => createResponse(200, { resolvedOffers: [{ name }] });
+    const isOsi = (osi) =>
+        sinon.match((url) => url.includes(`offer_selector_ids=${osi}&`) || url.endsWith(`offer_selector_ids=${osi}`));
+    const process = (fields, settings) => {
+        let done = false;
+        const pending = wcs
+            .process({
+                api_key: 'k',
+                locale: 'en_US',
+                wcsConfiguration: CONFIGURATION(),
+                promises: { wcs: Promise.resolve([]) },
+                body: { fields, settings },
+            })
+            .then((context) => {
+                done = true;
+                return context;
+            });
+        return { pending, isDone: () => done };
+    };
+
+    beforeEach(function () {
+        clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        clock.restore();
+        fetchStub.restore();
+    });
+
+    it('stops waiting for a slow settings-only lookup after one second and keeps the required offers', async function () {
+        fetchStub.withArgs(isOsi('MAIN')).returns(offer('main'));
+        fetchStub.withArgs(isOsi('ADDON')).returns(new Promise(() => {}));
+        const { pending, isDone } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="MAIN"></span>' },
+            { addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
+        );
+        await clock.tickAsync(999);
+        expect(isDone()).to.be.false;
+        await clock.tickAsync(1);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({ 'MAIN-us-mult': [{ name: 'main' }] });
+    });
+
+    it('caches a settings-only offer that resolves in time and skips one that fails', async function () {
+        fetchStub.withArgs(isOsi('MAIN')).returns(offer('main'));
+        fetchStub.withArgs(isOsi('ADDON')).returns(offer('addon'));
+        fetchStub.withArgs(isOsi('BROKEN')).returns(createResponse(404, {}, 'Not Found'));
+        const { pending } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="MAIN"></span>' },
+            {
+                addon: '<span is="inline-price" data-wcs-osi="ADDON"></span><span is="inline-price" data-wcs-osi="BROKEN"></span>',
+            },
+        );
+        await clock.tickAsync(0);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({
+            'MAIN-us-mult': [{ name: 'main' }],
+            'ADDON-us-mult': [{ name: 'addon' }],
+        });
+    });
+
+    it('keeps waiting for an OSI that a card field also uses', async function () {
+        fetchStub
+            .withArgs(isOsi('SHARED'))
+            .callsFake(() => new Promise((resolve) => setTimeout(() => resolve(offer('shared')), 1500)));
+        const { pending, isDone } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="SHARED"></span>' },
+            { addon: '<span is="inline-price" data-wcs-osi="SHARED"></span>' },
+        );
+        await clock.tickAsync(1000);
+        expect(isDone()).to.be.false;
+        await clock.tickAsync(500);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({ 'SHARED-us-mult': [{ name: 'shared' }] });
+    });
 });
 
 describe('offer-mapping fallback (MWPW-203764)', function () {
@@ -1222,6 +1436,27 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
         fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(200, { id: 'idx' }));
         fetchStub.withArgs(directUrl('idx')).returns(createResponse(500, null, 'err'));
         expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+    });
+
+    it('buildOfferMapping revalidates an expired index with its ETag and keeps it on a 304', async function () {
+        const now = sinon.stub(Date, 'now').returns(1_000_000);
+        try {
+            fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(200, { id: 'idx' }));
+            const index = fetchStub.withArgs(directUrl('idx'));
+            const fixture = indexFixture([{ sourceoffer: 'SRC', targetoffer: 'TGT' }]);
+            index.onFirstCall().returns(createResponse(200, fixture, 'OK', { etag: '"m1"' }));
+            index.onSecondCall().returns(createResponse(304, null, 'Not Modified'));
+            const mappings = [{ sourceOffer: 'SRC', targetOffer: 'TGT', geos: [] }];
+            expect(await buildOfferMapping(ctx())).to.deep.equal(mappings);
+            now.returns(1_000_000 + 10 * 60 * 1000);
+            await buildOfferMapping(ctx());
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(await buildOfferMapping(ctx())).to.deep.equal(mappings);
+            expect(index.callCount).to.equal(2);
+            expect(index.secondCall.args[1].headers['If-None-Match']).to.equal('"m1"');
+        } finally {
+            now.restore();
+        }
     });
 
     it('resolveOfferSubstituteMap keeps only geo-matching entries and splits an optional promo code', function () {
@@ -1412,6 +1647,190 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
             }),
         );
         expect(result.body.fields.osi).to.equal('MAPPED');
+    });
+});
+
+describe('wcs preview request reuse', function () {
+    let fetchStub;
+
+    const context = (osis = 'OSI-A', overrides = {}) => ({
+        api_key: 'testing_wcs',
+        locale: 'es_AR',
+        preview: { url: 'https://preview.example.com' },
+        wcsConfiguration: CONFIGURATION(),
+        body: { fields: { prices: `<span data-wcs-osi="${osis}"></span>` } },
+        ...overrides,
+    });
+
+    beforeEach(function () {
+        globalThis.localStorage = {
+            getItem: () => null,
+            setItem: () => {},
+        };
+        clearWcsCache();
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            const params = new URL(url).searchParams;
+            return createResponse(200, {
+                resolvedOffers: params
+                    .get('offer_selector_ids')
+                    .split(',')
+                    .map((osi) => ({ offerSelectorIds: [osi], promotionCode: params.get('promotion_code') })),
+            });
+        });
+    });
+
+    afterEach(function () {
+        clearWcsCache();
+        fetchStub.restore();
+        delete globalThis.localStorage;
+    });
+
+    it('reuses completed requests across preview fragments', async function () {
+        await wcs.process(context());
+        const second = await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(1);
+        expect(second.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+    });
+
+    it('reuses concurrent requests across preview fragments', async function () {
+        await Promise.all([wcs.process(context()), wcs.process(context())]);
+
+        expect(fetchStub.callCount).to.equal(1);
+    });
+
+    it('reuses an individual offer for comparison placeholders without losing the other offer', async function () {
+        await wcs.process(context());
+        const comparison = await wcs.process(context('OSI-B,OSI-A'));
+        await wcs.process(context('OSI-B,OSI-A'));
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(
+            fetchStub.getCalls().map(({ args: [url] }) => new URL(url).searchParams.get('offer_selector_ids')),
+        ).to.deep.equal(['OSI-A', 'OSI-B']);
+        expect(comparison.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+        expect(comparison.body.wcs.prod['OSI-B-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-B']);
+    });
+
+    it('keeps plain and promoted lookups separate', async function () {
+        await wcs.process(context());
+        const promoContext = () =>
+            context('OSI-A', {
+                body: {
+                    fields: {
+                        osi: 'OSI-A',
+                        promoCode: 'ACTIVE_PROMO',
+                        prices: '<span data-wcs-osi="OSI-A"></span>',
+                    },
+                },
+            });
+        const promoted = await wcs.process(promoContext());
+        await wcs.process(promoContext());
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(promoted.body.wcs.prod['OSI-A-ar-mult-active_promo'][0].promotionCode).to.equal('ACTIVE_PROMO');
+    });
+
+    it('does not let an optional comparison lookup shorten the timeout of a required offer', async function () {
+        const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        fetchStub
+            .withArgs(sinon.match((url) => new URL(url).searchParams.get('offer_selector_ids') === 'OSI-A'))
+            .callsFake(
+                () =>
+                    new Promise((resolve) =>
+                        setTimeout(
+                            () => resolve(createResponse(200, { resolvedOffers: [{ offerSelectorIds: ['OSI-A'] }] })),
+                            1100,
+                        ),
+                    ),
+            );
+        try {
+            const pending = wcs.process(
+                context('OSI-A', {
+                    body: {
+                        fields: { prices: '<span data-wcs-osi="OSI-A"></span>' },
+                        settings: { prices: '<span data-wcs-osi="OSI-A,OSI-B"></span>' },
+                    },
+                }),
+            );
+            await clock.tickAsync(1100);
+            const result = await pending;
+
+            expect(result.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+        } finally {
+            clock.restore();
+        }
+    });
+
+    for (const [name, overrides] of [
+        ['country', { locale: 'es_CL' }],
+        ['locale', { locale: 'en_AR' }],
+        ['API key', { api_key: 'another_client' }],
+        [
+            'endpoint',
+            { wcsConfiguration: [{ wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage' }] },
+        ],
+        ['landscape', { wcsConfiguration: [{ ...CONFIGURATION()[0], landscape: 'ALL' }] }],
+    ]) {
+        it(`does not reuse offers for a different ${name}`, async function () {
+            await wcs.process(context());
+            await wcs.process(context('OSI-A', overrides));
+
+            expect(fetchStub.callCount).to.equal(2);
+        });
+    }
+
+    it('does not share mutations between preview fragments', async function () {
+        const first = await wcs.process(context());
+        first.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds.push('changed');
+        const second = await wcs.process(context());
+
+        expect(second.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+    });
+
+    it('retries failed requests instead of caching failures', async function () {
+        fetchStub.onFirstCall().returns(createResponse(404, {}));
+        await wcs.process(context());
+        const retry = await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(retry.body.wcs.prod).to.have.property('OSI-A-ar-mult');
+    });
+
+    it('fetches fresh offers after clearing the preview cache', async function () {
+        await wcs.process(context());
+        clearWcsCache();
+        await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('fetches fresh offers after the preview cache expires', async function () {
+        await wcs.process(context());
+        const expired = Date.now() + 6 * 60 * 1000 + 1;
+        const now = sinon.stub(Date, 'now').returns(expired);
+        try {
+            await wcs.process(context());
+        } finally {
+            now.restore();
+        }
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('does not cache requests carrying custom headers', async function () {
+        const overrides = { DEFAULT_HEADERS: { 'X-Test': 'custom' } };
+        await wcs.process(context('OSI-A', overrides));
+        await wcs.process(context('OSI-A', overrides));
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('does not cache published requests', async function () {
+        await wcs.process(context('OSI-A', { preview: false }));
+        await wcs.process(context('OSI-A', { preview: false }));
+
+        expect(fetchStub.callCount).to.equal(2);
     });
 });
 

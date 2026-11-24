@@ -24,7 +24,7 @@ export default {
             name: '@translation-editor-search-filters',
             path: '/studio.html',
             data: {
-                searchTerm: 'grouped',
+                searchTerm: 'Photoshop',
                 filters: {
                     template: 'Plans',
                     marketSegment: 'com',

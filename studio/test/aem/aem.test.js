@@ -5,6 +5,53 @@ import { UserFriendlyError } from '../../src/utils.js';
 describe('aem.js', () => {
     const aem = new AEM('test');
 
+    describe('fragment path lookup cancellation', () => {
+        it('passes the optional AbortSignal to fetch', async () => {
+            const originalFetch = window.fetch;
+            const controller = new AbortController();
+            let capturedSignal;
+            window.fetch = async (url, options) => {
+                capturedSignal = options.signal;
+                return { ok: true, json: async () => ({ items: [{ id: 'fragment' }] }) };
+            };
+            try {
+                await aem.sites.cf.fragments.getByPath('/content/dam/mas/sample', { signal: controller.signal });
+
+                expect(capturedSignal).to.equal(controller.signal);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('rejects with status 404 when no fragment is found', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: true, json: async () => ({ items: [] }) });
+            try {
+                const error = await aem.sites.cf.fragments.getByPath('/content/dam/mas/missing').catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Fragment not found');
+                expect(error.status).to.equal(404);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('rejects with the response status when the request fails', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Internal Server Error' });
+            try {
+                const error = await aem.sites.cf.fragments.getByPath('/content/dam/mas/sample').catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Failed to get fragment: 500 Internal Server Error');
+                expect(error.status).to.equal(500);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
     describe('filterByTags', () => {
         it('should filter tags with AND/OR logic', () => {
             const items = [
@@ -169,6 +216,60 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: publishFragments', () => {
+        it('splits more than 50 fragments into batches of 50', async () => {
+            const bodies = [];
+            window.fetch = async (url, options) => {
+                bodies.push({ ifMatch: options.headers['If-Match'], ...JSON.parse(options.body) });
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(fragments);
+
+            expect(bodies.map(({ paths }) => paths.length)).to.deep.equal([50, 13]);
+            expect(bodies.map(({ ifMatch }) => ifMatch)).to.deep.equal(['e0', 'e50']);
+        });
+
+        it('sends exactly 50 fragments in one request and 51 in two', async () => {
+            const sizes = [];
+            window.fetch = async (url, options) => {
+                sizes.push(JSON.parse(options.body).paths.length);
+                return { ok: true, json: async () => ({}) };
+            };
+            const make = (n) => Array.from({ length: n }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(make(50));
+            expect(sizes).to.deep.equal([50]);
+            sizes.length = 0;
+            await aem.publishFragments(make(51));
+            expect(sizes).to.deep.equal([50, 1]);
+        });
+
+        it('exposes fragments from completed batches when a later batch fails', async () => {
+            let call = 0;
+            window.fetch = async () => {
+                call += 1;
+                if (call === 2) return { ok: false, status: 500, statusText: 'Server Error' };
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            const error = await aem.publishFragments(fragments).catch((e) => e);
+
+            expect(error.message).to.include('500');
+            expect(error.publishedFragments).to.deep.equal(fragments.slice(0, 50));
+        });
+
+        it('exposes no published fragments when the first batch fails', async () => {
+            window.fetch = async () => ({ ok: false, status: 412, statusText: 'Precondition Failed' });
+
+            const error = await aem.publishFragments([{ path: '/p/0', etag: 'e0' }]).catch((e) => e);
+
+            expect(error.publishedFragments).to.deep.equal([]);
+        });
+    });
+
     describe('method: saveFragment', () => {
         it('uses stored etag without fresh GET when refetchEtag is false', async () => {
             const fetchCalls = [];
@@ -220,6 +321,28 @@ describe('aem.js', () => {
             expect(byName('collections').values).to.deep.equal([]);
             expect(byName('features').values).to.deep.equal(['']);
             expect(byName('title').values).to.deep.equal(['']);
+        });
+
+        it('saves the explicit_empty sentinel as "" on fields not allowed to persist it', async () => {
+            let putBody;
+            window.fetch = async (url, options) => {
+                if (options?.method === 'PUT') putBody = JSON.parse(options.body);
+                return { ok: true, headers: { get: () => 'etag1' }, json: async () => ({ id: 'f1', etag: 'etag2' }) };
+            };
+
+            await aem.saveFragment({
+                id: 'f1',
+                title: 't',
+                description: 'd',
+                fields: [
+                    { name: 'cardTitle', type: 'text', values: ['<explicit_empty/>'] },
+                    { name: 'subtitle', type: 'text', values: ['<explicit_empty/>'] },
+                ],
+            });
+
+            const byName = (name) => putBody.fields.find((field) => field.name === name);
+            expect(byName('cardTitle').values).to.deep.equal(['']);
+            expect(byName('subtitle').values).to.deep.equal(['<explicit_empty/>']);
         });
     });
 
@@ -291,6 +414,106 @@ describe('aem.js', () => {
             } catch (error) {
                 expect(error.message).to.include('CSRF fetch failed');
             }
+        });
+    });
+
+    describe('method: replicateFragment', () => {
+        let originalFetch;
+        let originalGetCsrfToken;
+        const fragment = {
+            path: '/content/dam/mas/sandbox/de_DE/dictionary/index',
+            fields: [{ name: 'entries', values: ['/content/dam/mas/sandbox/de_DE/dictionary/missing'] }],
+        };
+
+        beforeEach(() => {
+            originalFetch = window.fetch;
+            originalGetCsrfToken = aem.getCsrfToken;
+            aem.getCsrfToken = async () => 'csrf-test';
+        });
+
+        afterEach(() => {
+            window.fetch = originalFetch;
+            aem.getCsrfToken = originalGetCsrfToken;
+        });
+
+        it('activates only the fragment path without submitting or modifying its references', async () => {
+            const calls = [];
+            const before = structuredClone(fragment);
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.replicateFragment(fragment);
+
+            expect(calls).to.have.lengthOf(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/bin/replicate`);
+            expect(calls[0].options.method).to.equal('POST');
+            expect(calls[0].options.headers['CSRF-Token']).to.equal('csrf-test');
+            expect(calls[0].options.headers.Authorization).to.equal(aem.headers.Authorization);
+            expect([...calls[0].options.body.entries()]).to.deep.equal([
+                ['cmd', 'Activate'],
+                ['path', fragment.path],
+            ]);
+            expect(fragment).to.deep.equal(before);
+        });
+
+        it('rejects failed activation responses instead of reporting success', async () => {
+            window.fetch = async () => ({ ok: false, status: 403, statusText: 'Forbidden' });
+
+            const error = await aem.replicateFragment(fragment).catch((err) => err);
+
+            expect(error).to.be.instanceOf(Error);
+            expect(error.message).to.equal('Failed to replicate fragment: 403 Forbidden');
+        });
+    });
+
+    describe('method: tagExists', () => {
+        afterEach(() => {
+            delete window.fetch;
+        });
+
+        it('returns true when the tag exists', async () => {
+            window.fetch = async () => ({ ok: true, status: 200 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.true;
+        });
+
+        it('requests the tag JSON with GET', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn');
+
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/product_code/ccsn.json`);
+            expect(calls[0].options.method).to.equal('GET');
+        });
+
+        it('throws a network error when the request fails', async () => {
+            window.fetch = async () => {
+                throw new Error('offline');
+            };
+
+            const error = await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Network error: offline');
+        });
+
+        it('returns false when the tag is not found', async () => {
+            window.fetch = async () => ({ ok: false, status: 404 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.false;
+        });
+
+        it('throws on an unexpected status', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+
+            const error = await aem.tagExists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Failed to check tag: 500 Server Error');
         });
     });
 
@@ -442,6 +665,145 @@ describe('aem.js', () => {
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect(error.message).to.include('CSRF fetch failed');
+            }
+        });
+    });
+
+    describe('method: getReferencedByFragmentId', () => {
+        const CARD_ID = '77fffd31-3a9d-4881-a5ed-455a28afc880';
+
+        it('GETs the by-id referencedBy endpoint with the limit and returns items + cursor', async () => {
+            let capturedUrl;
+            let capturedOptions;
+            window.fetch = async (url, options) => {
+                capturedUrl = url;
+                capturedOptions = options;
+                return {
+                    ok: true,
+                    json: async () => ({
+                        items: [
+                            {
+                                type: 'content-fragment',
+                                title: 'Coll',
+                                path: '/content/dam/mas/acom/en_US/coll',
+                                status: 'PUBLISHED',
+                                id: 'c1',
+                                model: { path: '/conf/mas/settings/dam/cfm/models/collection' },
+                            },
+                        ],
+                        cursor: 'next-cursor',
+                    }),
+                };
+            };
+            const page = await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+            expect(capturedUrl).to.include(`/cf/fragments/${CARD_ID}/referencedBy`);
+            expect(capturedUrl).to.include('limit=50');
+            expect(capturedOptions.method).to.equal('GET');
+            expect(page.items).to.have.lengthOf(1);
+            expect(page.items[0].id).to.equal('c1');
+            expect(page.cursor).to.equal('next-cursor');
+        });
+
+        it('passes the cursor query param when provided', async () => {
+            let capturedUrl;
+            window.fetch = async (url) => {
+                capturedUrl = url;
+                return { ok: true, json: async () => ({ items: [] }) };
+            };
+            await aem.getReferencedByFragmentId(CARD_ID, { limit: 50, cursor: 'abc123' });
+            expect(capturedUrl).to.include('cursor=abc123');
+        });
+
+        it('filters out page and experience-fragment parents (content-fragment only)', async () => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        { type: 'content-fragment', path: '/content/dam/mas/acom/en_US/a', id: 'a', model: { path: 'x' } },
+                        { type: 'experience-fragment', path: '/content/experience-fragments/x', id: 'xf' },
+                        { type: 'page', path: '/content/some/page' },
+                    ],
+                }),
+            });
+            const page = await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+            expect(page.items).to.have.lengthOf(1);
+            expect(page.items[0].type).to.equal('content-fragment');
+            expect(page.cursor).to.be.undefined;
+        });
+
+        it('throws a non-empty-id validation error', async () => {
+            try {
+                await aem.getReferencedByFragmentId('', { limit: 50 });
+                expect.fail('should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('required');
+            }
+        });
+
+        it('throws when the response is not ok', async () => {
+            window.fetch = async () => ({ ok: false, status: 403, statusText: 'Forbidden' });
+            try {
+                await aem.getReferencedByFragmentId(CARD_ID, { limit: 50 });
+                expect.fail('should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('403');
+            }
+        });
+
+        it('passes the abort signal to fetch', async () => {
+            let capturedSignal;
+            const controller = new AbortController();
+            window.fetch = async (url, options) => {
+                capturedSignal = options.signal;
+                return { ok: true, json: async () => ({ items: [] }) };
+            };
+            await aem.getReferencedByFragmentId(CARD_ID, { limit: 50, abortController: controller });
+            expect(capturedSignal).to.equal(controller.signal);
+        });
+    });
+
+    describe('saveValidTags', () => {
+        const respond = (status, body = {}) => ({
+            ok: status < 300,
+            status,
+            headers: { get: () => 'etag-1' },
+            json: async () => body,
+        });
+
+        it('retries without the tag ids AEM rejects, so the valid ones are still saved', async () => {
+            const originalFetch = window.fetch;
+            const puts = [];
+            window.fetch = async (url, options = {}) => {
+                if (options.method !== 'PUT') return respond(200);
+                const { tags } = JSON.parse(options.body);
+                puts.push(tags);
+                return tags.includes('mas:pa/pa-1')
+                    ? respond(400, { detail: 'Tag id(s) not valid: [mas:pa/pa-1, mas:product_family/x].' })
+                    : respond(200);
+            };
+            try {
+                const saved = await aem.saveValidTags('frag-1', ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm']);
+
+                expect(puts).to.deep.equal([
+                    ['mas:pa/pa-1', 'mas:product_family/x', 'mas:plan_type/abm'],
+                    ['mas:plan_type/abm'],
+                ]);
+                expect(saved).to.deep.equal(['mas:plan_type/abm']);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('throws when AEM refuses the tags for another reason', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async (url, options = {}) => (options.method === 'PUT' ? respond(412) : respond(200));
+            try {
+                const error = await aem.saveValidTags('frag-1', ['mas:plan_type/abm']).catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Failed to save tags: 412');
+            } finally {
+                window.fetch = originalFetch;
             }
         });
     });

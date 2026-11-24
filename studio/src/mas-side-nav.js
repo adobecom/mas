@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES, COLLECTION_MODEL_PATH } from './constants.js';
 import Events from './events.js';
 import {
     generateFieldLink,
@@ -14,6 +14,8 @@ import {
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
 import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
+import { masaIcon } from './img/masa-icon.js';
+import { getStudioFeatures } from './mas-chat/features.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -58,14 +60,6 @@ class MasSideNav extends LitElement {
             flex: 1;
             position: relative;
             padding-bottom: 116px;
-        }
-
-        .side-nav-new-window {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 14px;
-            height: 14px;
         }
 
         sp-menu-divider {
@@ -316,6 +310,7 @@ class MasSideNav extends LitElement {
         'shortDescription',
         'promoText',
         'callout',
+        'badge',
         'subtitle',
         'ctas',
         'image',
@@ -711,13 +706,7 @@ class MasSideNav extends LitElement {
                                             (cta, i) => html`
                                                 ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                                 <sp-menu-item
-                                                    @click=${() =>
-                                                        this.copyCtaItem(
-                                                            cta.text,
-                                                            cta.index,
-                                                            cta.sourceFragment,
-                                                            cta.formattedText,
-                                                        )}
+                                                    @click=${() => this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
                                                 >
                                                     <div class="field-entry field-entry-filled">
                                                         <span class="field-label"
@@ -841,10 +830,8 @@ class MasSideNav extends LitElement {
         return cta.getAttribute('data-key') || index;
     }
 
-    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format).
-     *  `formattedText` (from parseCtas) carries the CTA's variant-derived bold/italic markup
-     *  and is used only for the richText/clipboard label, never the plain-text one. */
-    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment, formattedText) {
+    /** Copies an indexed CTA reference that inherits Studio presentation unless the page overrides it. */
+    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;
         const ctaId = this.#getCtaKey(fragment, index);
@@ -853,7 +840,7 @@ class MasSideNav extends LitElement {
         const ctaInfo = this.getCtaInfo(ctaId);
         const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
         const fieldText = `ctas[${text}${dashCtaInfo}]`;
-        const fieldMarkup = formattedText && formattedText !== text ? `ctas[${formattedText}${dashCtaInfo}]` : undefined;
+        const fieldMarkup = fieldText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText, fieldMarkup);
         if (!link) return;
         try {
@@ -936,6 +923,7 @@ class MasSideNav extends LitElement {
     }
 
     get defaultNavigation() {
+        const features = getStudioFeatures();
         return html`
             <mas-side-nav-item
                 label="Home"
@@ -944,6 +932,15 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
+            ${features.offers
+                ? html`<mas-side-nav-item
+                      label="Offers"
+                      ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
+                      @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
+                  >
+                      <sp-icon-market slot="icon"></sp-icon-market>
+                  </mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
@@ -956,14 +953,18 @@ class MasSideNav extends LitElement {
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Promotions"
-                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR].includes(Store.page.get())}
+                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY].includes(
+                    Store.page.get(),
+                )}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
             >
                 <sp-icon-promote slot="icon"></sp-icon-promote>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Offers" disabled>
-                <sp-icon-market slot="icon"></sp-icon-market>
-            </mas-side-nav-item>
+            ${!features.offers
+                ? html`<mas-side-nav-item label="Offers" disabled
+                      ><sp-icon-market slot="icon"></sp-icon-market
+                  ></mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 label="Placeholders"
                 ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
@@ -978,14 +979,15 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
-            <mas-side-nav-item
-                class="side-nav-support"
-                label="Support"
-                @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
-            >
-                <sp-icon-help slot="icon"></sp-icon-help>
-                <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
-            </mas-side-nav-item>
+            ${features.assistant
+                ? html`<mas-side-nav-item
+                      label="MASA"
+                      ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
+                      @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
+                  >
+                      ${masaIcon}
+                  </mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 class="bottom"
                 label="Advanced tools"
@@ -998,6 +1000,12 @@ class MasSideNav extends LitElement {
     }
 
     get editNavigation() {
+        // Collections use the floating mas-quick-actions bar instead (see merch-card-collection-editor.js);
+        // fall back to the main nav so Home/Fragments/etc. remain visible.
+        if (this.fragmentEditor?.fragment?.model?.path === COLLECTION_MODEL_PATH && !this.fragmentEditor.isCompareChart) {
+            return this.defaultNavigation;
+        }
+
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
         const loading = Store.fragmentEditor.loading.get();
@@ -1010,7 +1018,11 @@ class MasSideNav extends LitElement {
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
-                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                      <mas-side-nav-item
+                          label="Duplicate"
+                          ?disabled=${loading || this.fragmentEditor?.canDuplicateFragment === false}
+                          @nav-click="${this.duplicateFragment}"
+                      >
                           <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       </mas-side-nav-item>
                   `
@@ -1018,7 +1030,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
                 <sp-icon-preview slot="icon"></sp-icon-preview>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item
+                label="Publish"
+                ?disabled=${loading || this.fragmentEditor?.canPublishFragment === false}
+                @nav-click="${this.publishFragment}"
+            >
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" disabled>
@@ -1034,7 +1050,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item
+                label="Delete"
+                ?disabled=${loading || this.fragmentEditor?.canDeleteFragment === false}
+                @nav-click="${this.deleteFragment}"
+            >
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

@@ -330,7 +330,7 @@ class MasPlaceholders extends LitElement {
 
     render() {
         return html`
-            <div class="placeholders-container">
+            <div class="page-container list-page">
                 <div class="placeholders-header">
                     <div class="header-left">
                         <h2>Placeholders</h2>
@@ -381,7 +381,6 @@ class MasPlaceholders extends LitElement {
             <mas-selection-panel
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
-                .onDelete=${this.onBulkDelete}
                 .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>

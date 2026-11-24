@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features, MINICOMPARE_MWEB_FRAGMENT_IDS } from './minicomparemwebdocs.spec.js';
 import MasMinicompareMweb from './minicomparemweb.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Mini Compare Chart Mweb gallery feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,16 +21,19 @@ test.describe('Mini Compare Chart Mweb gallery feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`[Test Id - ${features[0].tcid}] ${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Mini Compare Chart Mweb gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasMinicompareMweb(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.MINICOMPARE_MWEB, expect);
         });
@@ -61,7 +65,7 @@ test.describe('Mini Compare Chart Mweb gallery feature test suite', () => {
 
     test(`[Test Id - ${features[1].tcid}] ${features[1].name},${features[1].tags}`, async () => {
         await test.step('step-1: Go to Mini Compare Chart Mweb gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasMinicompareMweb(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.MINICOMPARE_MWEB, expect);
         });

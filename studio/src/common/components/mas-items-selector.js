@@ -16,7 +16,7 @@ import {
 } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
-import './mas-search-and-filters.js';
+import { DEFAULT_ENABLED_FILTERS } from './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
 import { debounce, isUUID, extractSurfaceFromPath, extractLocaleFromPath } from '../../utils.js';
 
@@ -33,6 +33,7 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, reflect: true, attribute: 'view-only' },
+        includeBaselines: { type: Boolean, attribute: 'include-baselines' },
         variant: { type: String, reflect: true },
         hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         searchQuery: { type: String, state: true },
@@ -44,8 +45,14 @@ class MasItemsSelector extends LitElement {
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
+        enabledFilters: { type: Array, attribute: false },
         selectableTabs: { type: Array, attribute: 'selectable-tabs' },
         variationTabs: { type: Array },
+        variationColumns: { type: Array, attribute: false },
+        variationCells: { type: Array, attribute: false },
+        groupedVariationColumns: { type: Array, attribute: false },
+        groupedVariationCells: { type: Array, attribute: false },
+        hideVariationExpand: { type: Boolean, attribute: false },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -69,6 +76,7 @@ class MasItemsSelector extends LitElement {
     constructor() {
         super();
         this.viewOnly = false;
+        this.includeBaselines = false;
         this.variant = '';
         this.hideSelectedToggle = false;
         this.searchQuery = '';
@@ -78,6 +86,7 @@ class MasItemsSelector extends LitElement {
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
+        this.enabledFilters = DEFAULT_ENABLED_FILTERS;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
@@ -93,6 +102,11 @@ class MasItemsSelector extends LitElement {
         this.onSearchChange = () => {};
         this.onTabChange = () => {};
         this.renderData = null;
+        this.variationColumns = null;
+        this.variationCells = null;
+        this.groupedVariationColumns = null;
+        this.groupedVariationCells = null;
+        this.hideVariationExpand = false;
     }
 
     connectedCallback() {
@@ -113,14 +127,22 @@ class MasItemsSelector extends LitElement {
     }
 
     get selectedCount() {
-        const s = this.itemsSelection.value;
-        return this.tabs.reduce((count, tab) => count + s[`selected${this.#typeUppercased(tab.value)}`].value.length, 0);
+        return this.tabs.reduce((count, tab) => count + this.#selectedPaths(tab.value).length, 0);
     }
 
     get tabs() {
         if (this.customTabs?.length) return this.customTabs;
         const allowedTypes = this.allowedTypes?.length ? this.allowedTypes : TABS.map((tab) => tab.value);
-        return TABS.filter((tab) => allowedTypes.includes(tab.value));
+        const tabs = TABS.filter((tab) => allowedTypes.includes(tab.value));
+        return this.includeBaselines ? [...tabs, { value: TABLE_TYPE.BASELINES, label: 'Baselines' }] : tabs;
+    }
+
+    #selectedPaths(type) {
+        const selectionType = type === TABLE_TYPE.BASELINES ? TABLE_TYPE.CARDS : type;
+        const paths = this.itemsSelection.value[`selected${this.#typeUppercased(selectionType)}`].value;
+        if (type === TABLE_TYPE.BASELINES) return paths.filter(Fragment.isBaselinePath);
+        if (type === TABLE_TYPE.CARDS && this.includeBaselines) return paths.filter((path) => !Fragment.isBaselinePath(path));
+        return paths;
     }
 
     resetFilters() {
@@ -471,7 +493,7 @@ class MasItemsSelector extends LitElement {
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
-            const count = this.itemsSelection.value[`selected${this.#typeUppercased(tab.value)}`].value.length;
+            const count = this.#selectedPaths(tab.value).length;
             return `${tab.label} (${count})`;
         }
         return tab.label;
@@ -498,6 +520,7 @@ class MasItemsSelector extends LitElement {
                 type=${type}
                 .viewOnly=${this.viewOnly}
                 .type=${type}
+                .separateBaselines=${this.includeBaselines}
                 .maxSelectedCards=${this.maxSelectedCards}
                 .selectableTabs=${this.selectableTabs}
                 .tabs=${this.variationTabs}
@@ -505,6 +528,11 @@ class MasItemsSelector extends LitElement {
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 .hidePromoVariations=${this.hidePromoVariations}
                 .hideGroupedVariations=${this.hideGroupedVariations}
+                .variationColumns=${this.variationColumns}
+                .variationCells=${this.variationCells}
+                .groupedVariationColumns=${this.groupedVariationColumns}
+                .groupedVariationCells=${this.groupedVariationCells}
+                .hideVariationExpand=${this.hideVariationExpand}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>
         `;
@@ -519,9 +547,10 @@ class MasItemsSelector extends LitElement {
             <mas-search-and-filters
                 .type=${tab.value}
                 .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
-                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
+                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS, TABLE_TYPE.BASELINES].includes(tab.value)}
                 .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.lockedTemplateFilter : ''}
                 .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS ? this.defaultTemplateFilter : ''}
+                .enabledFilters=${this.enabledFilters}
             ></mas-search-and-filters>
         `;
     }
@@ -561,7 +590,6 @@ class MasItemsSelector extends LitElement {
                                         ? nothing
                                         : html`<mas-selected-items
                                               .getDisplayName=${this.getDisplayName}
-                                              .hideGroupedVariations=${this.hideGroupedVariations}
                                           ></mas-selected-items>`}
                                 </div>
                                 <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>

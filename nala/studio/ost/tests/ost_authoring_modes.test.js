@@ -18,6 +18,8 @@ import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost_authoring_modes.spec.js';
 
 const { features } = OSTSpec;
 
+test.use({ reuseEditor: true });
+
 const editorUrl = (baseURL, feature, fragmentId) => {
     const libs = miloLibs ? `&${miloLibs.replace(/^[?&]/, '')}` : '';
     return `${baseURL}${feature.path}?ost=new${libs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
@@ -26,7 +28,7 @@ const editorUrl = (baseURL, feature, fragmentId) => {
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);
     setTestPage(testPage);
-    await page.goto(testPage);
+    await studio.openPage(testPage);
     await page.waitForLoadState('domcontentloaded');
     await expect(await editor.panel).toBeVisible();
     await expect(await studio.getCard(fragmentId)).toBeVisible();
@@ -77,7 +79,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-2: Selecting an offer reveals the placeholder type rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.priceRow).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.selectionList).toBeHidden();
@@ -98,7 +100,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-3: Filling a slot reveals the per-offer placeholder rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.buyPriceRow).toBeVisible();
             await expect(await ost.buyPriceRow.locator('[data-testid="ost-use-button"]')).toBeVisible();
         });
@@ -118,7 +120,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-3: Adding an offer reveals the joined-OSI placeholder rows', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(await ost.priceRow).toBeVisible();
         });
     });
@@ -136,7 +138,7 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
         });
 
         await test.step('step-2: Add the only listed offer, then search a second one', async () => {
-            await ost.offerCard.first().click();
+            await ost.selectFirstOffer();
             await expect(ost.bundleSlot).toHaveCount(1);
             await ost.addBundleOfferFromSearch(features[4].data.secondProduct);
             await expect(ost.bundleSlot).toHaveCount(2);

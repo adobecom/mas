@@ -1,0 +1,134 @@
+import zlib from 'zlib';
+import openwhisk from 'openwhisk';
+import { resolveFragmentId } from './product-fragment-map.js';
+import { flattenOffer } from './flatten.js';
+import { logError } from '../fragment/utils/log.js';
+
+function response(statusCode, body) {
+    return { statusCode, headers: { 'Content-Type': 'application/json' }, body };
+}
+
+// The runtime sets __OW_ACTION_NAME; request parameters never choose which action is invoked.
+function fragmentActionName() {
+    const current = process.env.__OW_ACTION_NAME;
+    return current ? current.replace(/[^/]+$/, 'fragment') : 'MerchAtScale/fragment';
+}
+
+function parseFragmentBody(result) {
+    const body =
+        result.headers?.['Content-Encoding'] === 'br'
+            ? zlib.brotliDecompressSync(Buffer.from(result.body, 'base64')).toString('utf-8')
+            : result.body;
+    return JSON.parse(body);
+}
+
+async function withTimeout(operation, ms, label) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const error = new Error(`${label} exceeded ${ms}ms`);
+            error.isTimeout = true;
+            reject(error);
+        }, ms);
+    });
+    try {
+        return await Promise.race([operation(), deadline]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function main(params, { openwhiskFactory = openwhisk } = {}) {
+    const { productName, locale, country: requestedCountry, api_key: apiKey } = params;
+    const path = params.__ow_path ?? '';
+    let fragmentId;
+    if (path !== '' && path !== '/') {
+        const match =
+            typeof path === 'string' && path.match(/^\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i);
+        if (!match || match[0] !== path) {
+            return response(400, { message: 'requested path must contain one fragment UUID' });
+        }
+        fragmentId = match[1].toLowerCase();
+    }
+    const pzn = fragmentId ? undefined : params.pzn;
+    if (!fragmentId && (!productName || typeof productName !== 'string')) {
+        return response(400, { message: 'requested parameter productName or fragment ID is not present' });
+    }
+    if (!locale) {
+        return response(400, { message: 'requested parameter locale is not present' });
+    }
+    if (!apiKey) {
+        return response(400, { message: 'requested parameter api_key is not present' });
+    }
+    if (pzn !== undefined && !['edu', 'team'].includes(pzn)) {
+        return response(400, { message: `unknown pzn '${pzn}', expected one of edu, team` });
+    }
+    fragmentId ??= resolveFragmentId(productName, pzn ?? 'individual');
+
+    const country = requestedCountry?.toUpperCase();
+    const fragmentParams = { id: fragmentId, locale, api_key: apiKey };
+    if (country) fragmentParams.country = country;
+    const logContext = {
+        api_key: apiKey,
+        requestId: params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`,
+        id: fragmentId,
+        locale,
+        loggedTransformer: 'agent',
+    };
+
+    let result;
+    try {
+        // Without options the client reads __OW_API_HOST, __OW_API_KEY, and __OW_NAMESPACE from the
+        // runtime environment, never from request parameters.
+        const client = openwhiskFactory();
+        result = await withTimeout(
+            () =>
+                client.actions.invoke({
+                    name: fragmentActionName(),
+                    params: fragmentParams,
+                    blocking: true,
+                    result: true,
+                }),
+            20000,
+            'fragment invoke',
+        );
+    } catch (error) {
+        logError(`Failed to invoke fragment action: ${error.message}`, logContext);
+        return error.isTimeout
+            ? response(504, { message: 'fragment action timed out' })
+            : response(502, { message: 'failed to invoke fragment action' });
+    }
+
+    if (result.statusCode !== 200) {
+        let message = result.message;
+        if (message == null && result.body) {
+            try {
+                message = parseFragmentBody(result)?.message;
+            } catch (error) {
+                logError(`Failed to decode fragment action error response: ${error.message}`, logContext);
+            }
+        }
+        return response(result.statusCode, { message: message ?? `fragment action returned ${result.statusCode}` });
+    }
+
+    try {
+        const flat = await withTimeout(
+            () =>
+                flattenOffer(parseFragmentBody(result), {
+                    locale,
+                    country,
+                    onPriceError: (error, osi) => logError(`Failed to resolve offer ${osi}: ${error.message}`, logContext),
+                }),
+            15000,
+            'price hydration',
+        );
+        return response(200, { ...flat, fragment: fragmentId, pzn: pzn ?? null });
+    } catch (error) {
+        logError(`Failed to hydrate fragment offer: ${error.message}`, logContext);
+        return error.isTimeout
+            ? response(504, { message: 'price hydration timed out' })
+            : response(502, { message: 'failed to hydrate fragment offer' });
+    }
+}
+
+export { main };

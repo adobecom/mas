@@ -1,6 +1,7 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
-import Store, { editFragment } from '../src/store.js';
+import Store from '../src/store.js';
+import { PAGE_NAMES } from '../src/constants.js';
 
 describe('store', () => {
     let sandbox;
@@ -16,79 +17,32 @@ describe('store', () => {
         sandbox.restore();
     });
 
-    const createMockStore = (id, references = []) => ({
-        get: () => ({ id, references }),
-    });
+    describe('productCatalog.search', () => {
+        let originalProductCatalogSearch;
 
-    const createMockEditorPanel = () => ({
-        editFragment: sandbox.stub(),
-    });
-
-    describe('editFragment', () => {
-        it('adds fragment to list when it is not in store', () => {
-            const store = createMockStore('fragment-1');
-            Store.fragments.list.data.value = [];
-            const setStub = sandbox.stub(Store.fragments.list.data, 'set').callsFake((fn) => {
-                const result = typeof fn === 'function' ? fn([]) : fn;
-                Store.fragments.list.data.value = result;
-            });
-            const editorPanel = createMockEditorPanel();
-            sandbox.stub(document, 'querySelector').returns(editorPanel);
-            editFragment(store);
-            expect(setStub.called).to.be.true;
-            const storeFragments = Store.fragments.list.data.get();
-            expect(storeFragments).to.have.lengthOf(1);
-            expect(storeFragments[0]).to.equal(store);
-            expect(editorPanel.editFragment.calledWith(store, 0)).to.be.true;
+        beforeEach(() => {
+            originalProductCatalogSearch = Store.productCatalog.search.value;
         });
 
-        it('does not add store when it already exists in list', () => {
-            const store = createMockStore('fragment-1');
-            Store.fragments.list.data.value = [store];
-            const editorPanel = createMockEditorPanel();
-            sandbox.stub(document, 'querySelector').returns(editorPanel);
-            editFragment(store);
-            const storeFragments = Store.fragments.list.data.get();
-            expect(storeFragments).to.have.lengthOf(1);
-            expect(editorPanel.editFragment.calledWith(store, 0)).to.be.true;
+        afterEach(() => {
+            Store.productCatalog.search.value = originalProductCatalogSearch;
         });
 
-        it('does not add store when fragment is a variation of existing fragment', () => {
-            const parentStore = createMockStore('parent-id', [{ id: 'variation-id' }]);
-            const variationStore = createMockStore('variation-id');
-            Store.fragments.list.data.value = [parentStore];
-            const editorPanel = createMockEditorPanel();
-            sandbox.stub(document, 'querySelector').returns(editorPanel);
-            editFragment(variationStore);
-            const storeFragments = Store.fragments.list.data.get();
-            expect(storeFragments).to.have.lengthOf(1);
-            expect(storeFragments[0]).to.equal(parentStore);
-            expect(editorPanel.editFragment.calledWith(variationStore, 0)).to.be.true;
+        it('has initial value of empty string', () => {
+            expect(Store.productCatalog.search.get()).to.equal('');
         });
 
-        it('handles editor panel not available', () => {
-            const store = createMockStore('fragment-1');
-            Store.fragments.list.data.value = [];
-            sandbox.stub(document, 'querySelector').returns(null);
-            expect(() => editFragment(store)).to.not.throw();
+        it('updates value with set()', () => {
+            Store.productCatalog.search.set('photoshop');
+            expect(Store.productCatalog.search.get()).to.equal('photoshop');
         });
 
-        it('adds new fragment when multiple fragments exist', () => {
-            const store1 = createMockStore('fragment-1');
-            const store2 = createMockStore('fragment-2');
-            const store3 = createMockStore('fragment-3');
-            Store.fragments.list.data.value = [store1, store2];
-            const setStub = sandbox.stub(Store.fragments.list.data, 'set').callsFake((fn) => {
-                const result = typeof fn === 'function' ? fn([store1, store2]) : fn;
-                Store.fragments.list.data.value = result;
-            });
-            const editorPanel = createMockEditorPanel();
-            sandbox.stub(document, 'querySelector').returns(editorPanel);
-            editFragment(store3);
-            expect(setStub.called).to.be.true;
-            const storeFragments = Store.fragments.list.data.get();
-            expect(storeFragments).to.have.lengthOf(3);
-            expect(storeFragments[0]).to.equal(store3);
+        it('notifies subscribers on change', () => {
+            const spy = sandbox.spy();
+            Store.productCatalog.search.subscribe(spy);
+            Store.productCatalog.search.set('acrobat');
+            expect(spy.calledWith('acrobat')).to.be.true;
+            Store.productCatalog.search.unsubscribe(spy);
         });
     });
 
@@ -108,6 +62,35 @@ describe('store', () => {
             Store.compareChart.filters.set({ locale: 'fr_FR', tags: ['a', 'b'] });
             expect(Store.compareChart.filters.get().tags).to.equal('a,b');
             Store.compareChart.filters.set({ locale: 'en_US' });
+        });
+    });
+
+    describe('filtersValidator variation normalization', () => {
+        afterEach(() => {
+            Store.filters.set({ locale: 'en_US' });
+        });
+
+        it('keeps single selections and canonicalizes combined selections', () => {
+            for (const variation of ['promo', 'grouped', 'none', 'promo,grouped']) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.equal(variation);
+            }
+            Store.filters.set({ variation: 'grouped,promo,promo' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+        });
+
+        it('makes No variation exclusive for URL input', () => {
+            Store.filters.set({ variation: 'grouped,none,promo' });
+            expect(Store.filters.get().variation).to.equal('none');
+        });
+
+        it('removes invalid entries and clears empty selections', () => {
+            Store.filters.set({ variation: 'promo,bogus,grouped' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+            for (const variation of ['bogus', '', undefined]) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.be.undefined;
+            }
         });
     });
 
@@ -139,6 +122,17 @@ describe('store', () => {
         it('normalizes an empty array to undefined', () => {
             Store.filters.set({ locale: 'en_US', status: [] });
             expect(Store.filters.value.status).to.equal(undefined);
+        });
+    });
+
+    describe('pageValidator', () => {
+        afterEach(() => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+        });
+
+        it('accepts the baselines page', () => {
+            Store.page.set(PAGE_NAMES.BASELINES);
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINES);
         });
     });
 });

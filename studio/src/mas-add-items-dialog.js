@@ -6,7 +6,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
 import './common/components/mas-select-items-table.js';
-import './common/components/mas-search-and-filters.js';
+import { SELECTION_ENABLED_FILTERS } from './common/components/mas-search-and-filters.js';
 
 const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragment' },
@@ -139,6 +139,8 @@ class MasAddItemsDialog extends LitElement {
                                   <mas-search-and-filters
                                       .type=${TABLE_TYPE.CARDS}
                                       .searchQuery=${this.searchQuery}
+                                      .enabledFilters=${SELECTION_ENABLED_FILTERS}
+                                      hide-count
                                   ></mas-search-and-filters>
                               </div>
                           `

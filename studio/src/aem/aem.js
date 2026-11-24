@@ -1,11 +1,14 @@
 import { UserFriendlyError } from '../utils.js';
 import { COLLECTION_MODEL_PATH } from '../constants.js';
+import { storedValues } from './fragment.js';
+import { isExplicitEmptyField } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
 const MAX_NAME_ATTEMPTS = 10;
 const COPY_WAIT_TIME = 1000;
+const PUBLISH_BATCH_SIZE = 50;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -225,15 +228,18 @@ class AEM {
         if (options.references) params.set('references', options.references);
         const response = await fetch(`${this.cfFragmentsUrl}?${params.toString()}`, {
             headers,
+            signal: options.signal,
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
+            throw Object.assign(new Error(`Failed to get fragment: ${response.status} ${response.statusText}`), {
+                status: response.status,
+            });
         }
         const { items } = await response.json();
         if (!items || items.length === 0) {
-            throw new Error('Fragment not found');
+            throw Object.assign(new Error('Fragment not found'), { status: 404 });
         }
         return items[0];
     }
@@ -267,10 +273,11 @@ class AEM {
             // Multi-value reference fields use [''] as an internal "explicitly cleared" sentinel,
             // but AEM rejects '' for references (it wants a path/UUID) — send an empty list instead.
             // Non-reference fields keep [''] so variation clear-overrides round-trip correctly.
+            // Only allowlisted fields persist the explicit_empty sentinel: on others it is an edit-time state, saved as `''`.
             const values =
                 field.multiple && isReferenceType(type)
                     ? (field.values || []).filter((value) => value != null && value !== '')
-                    : field.values;
+                    : storedValues(field.values || [], field.multiple === true, isExplicitEmptyField(field.name));
             return { ...field, type, values };
         });
 
@@ -337,6 +344,42 @@ class AEM {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
         }
+    }
+
+    async putTags(id, tags) {
+        const url = `${this.cfFragmentsUrl}/${id}/tags`;
+        const current = await fetch(url, { method: 'GET', headers: this.headers }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        return fetch(url, {
+            method: 'PUT',
+            headers: { ...this.headers, 'Content-Type': 'application/json', 'If-Match': current.headers.get('Etag') },
+            body: JSON.stringify({ tags }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+    }
+
+    /**
+     * Save tags on a fragment, skipping tag ids AEM does not know: it rejects the whole request
+     * when one id is unknown, which would drop the valid ones too. Mirrors applyValidTags in
+     * io/operations/src/lib/aem-client.js.
+     * @param {string} id - fragment id
+     * @param {string[]} tags - tag ids
+     * @returns {Promise<string[]>} the tag ids saved
+     */
+    async saveValidTags(id, tags) {
+        let response = await this.putTags(id, tags);
+        if (response.ok) return tags;
+        const { detail = '' } = await response.json().catch(() => ({}));
+        const listed = detail.match(/Tag id\(s\) not valid: \[([^\]]+)\]/)?.[1];
+        if (!listed) throw new Error(`Failed to save tags: ${response.status}`);
+        const invalid = listed.split(',').map((tag) => tag.trim());
+        const valid = tags.filter((tag) => !invalid.includes(tag));
+        if (!valid.length) return [];
+        response = await this.putTags(id, valid);
+        if (!response.ok) throw new Error(`Failed to save tags: ${response.status}`);
+        return valid;
     }
 
     async pollCreatedFragment(newFragment) {
@@ -474,6 +517,22 @@ class AEM {
     }
 
     /**
+     * Activate only this fragment through classic replication, without a reference workflow.
+     * Requires crx:replicate on the fragment path for the calling user.
+     * @param {Object} fragment
+     * @returns {Promise<void>}
+     */
+    async replicateFragment(fragment) {
+        const formData = new FormData();
+        formData.append('cmd', 'Activate');
+        formData.append('path', fragment.path);
+        const response = await this.postFormWithCsrf('/bin/replicate', formData);
+        if (!response.ok) {
+            throw new Error(`Failed to replicate fragment: ${response.status} ${response.statusText}`);
+        }
+    }
+
+    /**
      * Publish a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
@@ -527,16 +586,33 @@ class AEM {
     }
 
     /**
-     * Publish multiple fragments in a single request
+     * Publish multiple fragments, split into requests of at most PUBLISH_BATCH_SIZE paths
+     * because the AEM publish API rejects larger payloads with a 400.
      * @param {Array<Object>} fragments - Array of fragment objects
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
-     * @returns {Promise<void>}
+     * @returns {Promise<Array<Object>>} One publish response per batch
+     * @throws {Error} When a batch fails; `error.publishedFragments` lists fragments from batches that were already
+     * accepted, so callers can report partial success.
      */
     async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
             throw new Error('No fragments provided to publish');
         }
+        const results = [];
+        for (let i = 0; i < fragments.length; i += PUBLISH_BATCH_SIZE) {
+            try {
+                results.push(
+                    await this.#publishFragmentsBatch(fragments.slice(i, i + PUBLISH_BATCH_SIZE), publishReferencesWithStatus),
+                );
+            } catch (error) {
+                error.publishedFragments = fragments.slice(0, i);
+                throw error;
+            }
+        }
+        return results;
+    }
 
+    async #publishFragmentsBatch(fragments, publishReferencesWithStatus) {
         // Use the first fragment's etag for the If-Match header
         const etag = fragments[0].etag;
         const paths = fragments.map((fragment) => fragment.path);
@@ -1111,6 +1187,24 @@ class AEM {
     }
 
     /**
+     * Check whether an AEM tag exists
+     * @param {string} tagPath - Path of the tag, e.g. /content/cq:tags/mas/product_code/ccsn
+     * @returns {Promise<boolean>}
+     */
+    async tagExists(tagPath) {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.ok) return true;
+        if (response.status === 404) return false;
+        throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
+    }
+
+    /**
      * Create a new AEM tag, failing if one already exists at the given path
      * @param {string} tagPath - Path of the tag to create
      * @param {string} title - Title of the tag
@@ -1392,6 +1486,42 @@ class AEM {
         return { ...item, parentReferences: contentFragmentRefs };
     }
 
+    /**
+     * Get parent content fragment references for a fragment by id (single page).
+     * Unlike getReferencedBy (POST by path), the by-id GET endpoint returns each parent's `id`
+     * and `model`, so references are link-ready without a second fetch. Page and experience
+     * fragment parents are excluded. Follow `cursor` across calls to page through large lists.
+     * @param {string} id - Fragment id (UUID)
+     * @param {Object} [options]
+     * @param {string} [options.cursor] - Opaque pagination cursor from a previous page
+     * @param {number} [options.limit=50] - Page size (server caps at 50)
+     * @param {AbortController} [options.abortController] - Optional abort controller
+     * @returns {Promise<{ items: Array<Object>, cursor?: string }>} Content-fragment parents + next cursor
+     */
+    async getReferencedByFragmentId(id, { cursor, limit = 50, abortController } = {}) {
+        if (!id) throw new Error('Fragment id is required');
+
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (cursor) params.set('cursor', cursor);
+        const url = `${this.cfFragmentsUrl}/${id}/referencedBy?${params.toString()}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.headers,
+            signal: abortController?.signal,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get referenced by fragment id: ${response.status} ${response.statusText}`);
+        }
+
+        const { items, cursor: nextCursor } = await response.json();
+        const contentFragmentRefs = (items || []).filter((ref) => ref.type === 'content-fragment');
+        return { items: contentFragmentRefs, cursor: nextCursor };
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -1496,6 +1626,10 @@ class AEM {
                  * @see AEM#getReferencedBy
                  */
                 getReferencedBy: this.getReferencedBy.bind(this),
+                /**
+                 * @see AEM#getReferencedByFragmentId
+                 */
+                getReferencedByFragmentId: this.getReferencedByFragmentId.bind(this),
             },
         },
     };
@@ -1504,6 +1638,10 @@ class AEM {
          * @see AEM#listTags
          */
         list: this.listTags.bind(this),
+        /**
+         * @see AEM#tagExists
+         */
+        exists: this.tagExists.bind(this),
         /**
          * @see AEM#createTag
          */

@@ -3,22 +3,30 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('..
 const {
     fetchFragmentByPath,
     fetchOdin,
+    getFragmentWithEtag,
     getTargetPath,
     getValue,
     getValues,
     getVariationParent,
+    parseOdinHttpStatus,
     postToOdin,
     processBatchWithConcurrency,
     putToOdin,
     patchToOdin,
 } = require('../common.js');
+const { getBackoffDelay } = require('./worker-slots.js');
 
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 2;
 const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
+const DEFAULT_FIELD_PATCH_RETRIES = 3;
 const ROLLOUT_PROJECT_TYPE = 'rollout';
+// Terminal project statuses that completeProjectLocale must never overwrite:
+// a late/redelivered Hoolihan event shouldn't be able to flip a project that
+// already failed or was cancelled back to COMPLETED.
+const TERMINAL_PROJECT_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
 
 function getOdinLocTaskNameValidationError(value) {
     const title = (value ?? '').trim();
@@ -466,6 +474,258 @@ async function updateTranslationDate(projectCF, etag, authToken, params = {}) {
     }
 }
 
+function buildFieldPatchOps(projectCF, fieldPatches) {
+    const ops = [];
+    for (const [fieldName, values] of Object.entries(fieldPatches)) {
+        const { path } = getValues(projectCF, fieldName) ?? {};
+        if (!path) {
+            return { missingField: fieldName };
+        }
+        ops.push({ op: 'replace', path: `${path}/values`, value: values });
+    }
+    return { ops };
+}
+
+/**
+ * Shared retry wrapper for the CF-mirror helpers below: runs `attempt()` up to
+ * `options.maxRetries` times, retrying only on a 412 etag conflict (detected
+ * via parseOdinHttpStatus on the thrown error) and giving up with a uniform
+ * {success:false} result once exhausted. Any other error is rethrown as-is.
+ * `attempt()` is called fresh each try, so it's expected to (re)fetch its own
+ * etag internally rather than reuse one from a previous attempt.
+ *
+ * Retries back off (via getBackoffDelay, same helper acquireWorkerSlot uses)
+ * instead of retrying immediately: the scenario this exists for is a burst of
+ * Hoolihan events for the same project racing the same PATCH, and retrying in
+ * lockstep with no delay tends to make the same loser keep losing. `sleep` is
+ * injectable (defaults to a real timer) so tests can skip the wait.
+ *
+ * Contract note: once retries are exhausted, the {success:false,
+ * error:'etag-conflict-retries-exhausted'} result is NOT re-driven by
+ * anything here — for addCompletedLocale/completeProjectLocale that means a
+ * permanently lost locale-completion on the CF unless the caller redrives it.
+ * Since Hoolihan delivery is at-least-once, the intended recovery is for the
+ * webhook (MWPW-202035) to map a falsy `success` onto a non-2xx HTTP response
+ * so the event gets redelivered — that mapping doesn't exist yet, since these
+ * helpers have no caller in this PR.
+ */
+async function retryOnEtagConflict(projectId, label, attempt, options = {}) {
+    const maxRetries = options.maxRetries ?? DEFAULT_FIELD_PATCH_RETRIES;
+    const sleep = options.sleep || ((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)));
+
+    for (let i = 1; i <= maxRetries; i++) {
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            return await attempt();
+        } catch (error) {
+            if (parseOdinHttpStatus(error) !== 412) {
+                throw error;
+            }
+            if (i === maxRetries) {
+                logger.error(
+                    `Failed to ${label} for translation project ${projectId} after ${maxRetries} attempts due to etag conflicts`,
+                );
+                return { success: false, error: 'etag-conflict-retries-exhausted' };
+            }
+            const delayMs = getBackoffDelay(i, options);
+            logger.warn(
+                `Etag conflict ${label} for translation project ${projectId} (attempt ${i}/${maxRetries}), retrying in ${delayMs}ms`,
+            );
+            // eslint-disable-next-line no-await-in-loop
+            await sleep(delayMs);
+        }
+    }
+    return { success: false, error: 'etag-conflict-retries-exhausted' };
+}
+
+/**
+ * Fetch-modify-PATCH a set of fields on the translation-project CF, retrying on
+ * 412 etag conflicts by refetching the fragment and rebuilding the patch.
+ * @param {string} projectId
+ * @param {Object} fieldPatches - map of fieldName -> values
+ * @param {string} token
+ * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
+ * @returns {Promise<{success: boolean, etag?: string, error?: string}>}
+ */
+async function patchProjectFields(projectId, fieldPatches, token, params = {}, options = {}) {
+    return retryOnEtagConflict(
+        projectId,
+        'patch fields',
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { ops: patchOps, missingField } = buildFieldPatchOps(fragment, fieldPatches);
+            if (missingField) {
+                logger.warn(`Field ${missingField} not found on translation project ${projectId}, aborting patch`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify(patchOps),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        options,
+    );
+}
+
+/**
+ * Append a locale to the CF's completedLocales field, idempotently and
+ * concurrency-safely (refetch-and-retry on 412 etag conflict).
+ * @param {string} projectId
+ * @param {string} locale
+ * @param {string} token
+ * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
+ * @returns {Promise<{success: boolean, skipped?: boolean, etag?: string, error?: string}>}
+ */
+async function addCompletedLocale(projectId, locale, token, params = {}, options = {}) {
+    return retryOnEtagConflict(
+        projectId,
+        `add completed locale ${locale}`,
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { values: existing = [], path } = getValues(fragment, 'completedLocales') ?? {};
+            if (existing.includes(locale)) {
+                return { success: true, skipped: true };
+            }
+            if (!path) {
+                logger.warn(`completedLocales field not found on translation project ${projectId}, skipping`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify([{ op: 'replace', path: `${path}/values`, value: [...existing, locale] }]),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        options,
+    );
+}
+
+/**
+ * Append the final locale to completedLocales AND set the CF status in a
+ * single PATCH, retrying on 412 etag conflicts. Use this instead of a
+ * separate addCompletedLocale + setProjectStatus pair when a transition marks
+ * both the last locale and the whole project complete at once: two
+ * independent PATCH calls leave a window where the locale-append fails or is
+ * still retrying while the status write lands, leaving the CF COMPLETED with
+ * an incomplete completedLocales array (Hoolihan delivery is at-least-once
+ * and unordered, so that window is real, not theoretical).
+ *
+ * The caller passes `locale` as "the final one", but Hoolihan delivery is
+ * unordered as well as at-least-once, so a caller can't actually know that
+ * without racing other deliveries. Inside the etag-guarded attempt this
+ * re-derives it from the fragment's own `targetLocales`: the status is only
+ * written when the merged completedLocales covers every targetLocale:
+ * otherwise only the locale append is patched, leaving status untouched so a
+ * later call (for the true final locale) can still set it. If `targetLocales`
+ * itself is missing, there is nothing to guard against, so the status is
+ * written as requested.
+ *
+ * The status write is also skipped if the fragment's current status is
+ * already terminal (see `TERMINAL_PROJECT_STATUSES`): Hoolihan delivery is
+ * at-least-once, so a late/redelivered event for an already-FAILED or
+ * already-CANCELLED project must not flip it back to COMPLETED.
+ *
+ * When the locale is already recorded and nothing would actually change
+ * (targets aren't all covered yet, or the status is already terminal so it
+ * can't be written), this short-circuits with `{success: true, skipped:
+ * true}` instead of sending a no-op PATCH, mirroring `addCompletedLocale`.
+ * @param {string} projectId
+ * @param {string} locale - the locale being marked completed
+ * @param {string} status - the terminal project status (e.g. 'COMPLETED')
+ * @param {string} token
+ * @param {Object} params
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
+ * @returns {Promise<{success: boolean, skipped?: boolean, etag?: string, error?: string}>}
+ */
+async function completeProjectLocale(projectId, locale, status, token, params = {}, options = {}) {
+    return retryOnEtagConflict(
+        projectId,
+        `complete locale ${locale} and set status`,
+        async () => {
+            const { fragment, etag } = await getFragmentWithEtag(params.odinEndpoint, projectId, token);
+            const { values: existing = [], path: localesPath } = getValues(fragment, 'completedLocales') ?? {};
+            const { values: currentStatusValues, path: statusPath } = getValues(fragment, 'status') ?? {};
+            if (!localesPath || !statusPath) {
+                logger.warn(`completedLocales or status field not found on translation project ${projectId}, aborting`);
+                return { success: false, error: 'field-not-found' };
+            }
+
+            const localeAlreadyCompleted = existing.includes(locale);
+            const mergedLocales = localeAlreadyCompleted ? existing : [...existing, locale];
+            const { values: targetLocales } = getValues(fragment, 'targetLocales') ?? {};
+            const allLocalesCompleted =
+                !targetLocales || targetLocales.every((targetLocale) => mergedLocales.includes(targetLocale));
+            const currentStatus = currentStatusValues?.[0];
+            const statusAlreadyTerminal = TERMINAL_PROJECT_STATUSES.has(currentStatus);
+            const shouldWriteStatus = allLocalesCompleted && !statusAlreadyTerminal;
+
+            if (localeAlreadyCompleted && !shouldWriteStatus) {
+                if (statusAlreadyTerminal) {
+                    logger.warn(
+                        `Translation project ${projectId} status is already terminal (${currentStatus}), skipping redundant PATCH for locale ${locale}`,
+                    );
+                } else {
+                    logger.warn(
+                        `Locale ${locale} already recorded and not all target locales completed for translation project ${projectId}, skipping redundant PATCH`,
+                    );
+                }
+                return { success: true, skipped: true };
+            }
+
+            const ops = [{ op: 'replace', path: `${localesPath}/values`, value: mergedLocales }];
+            if (shouldWriteStatus) {
+                ops.push({ op: 'replace', path: `${statusPath}/values`, value: [status] });
+            } else if (statusAlreadyTerminal) {
+                logger.warn(
+                    `Translation project ${projectId} status is already terminal (${currentStatus}), skipping status update to ${status}`,
+                );
+            } else {
+                logger.warn(
+                    `Not all target locales completed for translation project ${projectId} (${mergedLocales.length}/${targetLocales.length}), skipping status update to ${status}`,
+                );
+            }
+
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, token, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify(ops),
+            });
+
+            return { success: true, etag: response.headers.get('etag') };
+        },
+        options,
+    );
+}
+
+/**
+ * Set the CF status field, retrying on 412 etag conflicts via the same shared
+ * primitive as patchProjectFields/addCompletedLocale. Unlike them,
+ * updateProjectStatus always fetches its own fresh etag internally, so a
+ * conflict is retried by simply calling it again.
+ *
+ * This performs no completedLocales/targetLocales guard: unlike
+ * completeProjectLocale, it will happily write a terminal status (e.g.
+ * 'COMPLETED') even when locales are still outstanding. Do not call this
+ * directly with a terminal status from locale-completion flows; use
+ * completeProjectLocale instead, which verifies coverage first.
+ * @param {{maxRetries?: number, sleep?: Function}} [options] - see retryOnEtagConflict
+ */
+async function setProjectStatus(projectId, status, token, params = {}, options = {}) {
+    return retryOnEtagConflict(projectId, 'set status', () => updateProjectStatus(projectId, status, token, params), options);
+}
+
 async function updateProjectStatus(projectId, status, authToken, params = {}, etag = null) {
     const { projectCF, etag: fetchedEtag } = await getTranslationProject(projectId, authToken, params);
     const statusField = getValues(projectCF, 'status');
@@ -491,5 +751,9 @@ module.exports = {
     createProjectStartError,
     isProjectStartError,
     updateProjectStatus,
+    patchProjectFields,
+    addCompletedLocale,
+    completeProjectLocale,
+    setProjectStatus,
     ROLLOUT_PROJECT_TYPE,
 };

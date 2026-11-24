@@ -9,8 +9,7 @@ import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
-// Synced across a collection so siblings share baselines; price and
-// short-description are one row so a "Free" price aligns with a priced amount.
+// Synced per collection row so siblings share baselines.
 const SYNCED_ROWS = [
     {
         name: 'heading-s',
@@ -22,27 +21,63 @@ const SYNCED_ROWS = [
     },
     {
         name: 'price',
-        getElement: (card) => card.shadowRoot?.querySelector('.price'),
+        getElement: (card) => card.querySelector('[slot="heading-xs"]'),
+    },
+    {
+        name: 'fine',
+        getElement: (card) => card.shadowRoot?.querySelector('.fine'),
+    },
+    {
+        name: 'addon',
+        getElement: (card) => card.querySelector('[slot="addon"]'),
+    },
+    {
+        name: 'footer',
+        getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
 ];
+
+const clearSynced = (card) => {
+    card.removeAttribute('stacked');
+    SYNCED_ROWS.forEach(({ name }) =>
+        card.style.removeProperty(
+            `--consonant-merch-card-product-pricing-${name}-height`,
+        ),
+    );
+};
+
+// Two CTAs wrap when the second sits below the first. A lone CTA never does,
+// so a long single label can't stack its row.
+const ctasWrap = (card) => {
+    const [first, second] = [
+        ...card.querySelectorAll('[slot="footer"] a'),
+    ].filter((a) => a.getClientRects().length);
+    return Boolean(
+        second &&
+            second.getBoundingClientRect().top >=
+                first.getBoundingClientRect().bottom,
+    );
+};
+
+const rowOf = (card) => Math.round(card.getBoundingClientRect().top);
 
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     mnemonics: { size: 's' },
     // Plain text badge; merch-badge pill styling is stripped in product-pricing.css.js.
     badge: { tag: 'div', slot: 'badge' },
-    title: { tag: 'h3', slot: 'heading-s' },
+    title: { tag: 'h2', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'div', slot: 'short-description' },
     ctas: { slot: 'footer', size: 'm' },
     planType: true,
+    addon: true,
     style: 'consonant',
 };
 
 export class ProductPricing extends VariantLayout {
-    #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => this.requestReflowCheck();
     lastSyncKey = null;
 
     getGlobalCSS() {
@@ -74,9 +109,7 @@ export class ProductPricing extends VariantLayout {
             const legal = price.cloneNode(true);
             await price.onceSettled();
             if (!price.options) return;
-            // Strip fine print off the bold price; the legal line renders it.
-            if (price.options.displayPerUnit)
-                price.dataset.displayPerUnit = 'false';
+            legal.dataset.displayPerUnit = 'false';
             if (price.options.displayTax) price.dataset.displayTax = 'false';
             if (price.options.displayPlanType)
                 price.dataset.displayPlanType = 'false';
@@ -100,8 +133,23 @@ export class ProductPricing extends VariantLayout {
         return host;
     }
 
+    async adjustAddon() {
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        addon.setAttribute('custom-checkbox', '');
+        const price = this.card.querySelector(
+            `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+        if (!price) return;
+        await price.onceSettled?.();
+        const planType = price.value?.[0]?.planType;
+        if (planType) addon.planType = planType;
+    }
+
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
+        await this.adjustAddon();
         if (!this.legalAdjusted) await this.adjustLegal();
         await super.postCardUpdateHook();
         this.flagPriceRow();
@@ -111,9 +159,23 @@ export class ProductPricing extends VariantLayout {
     }
 
     syncHeights() {
+        if (this.card.heightSync === false) return;
         if (this.card.getBoundingClientRect().width <= 2) return;
+        const cards = [
+            ...(this.getContainer()?.querySelectorAll(
+                'merch-card[variant="product-pricing"]',
+            ) ?? []),
+        ];
+        // Narrow cards are each their own row: drop what a wider layout set.
+        cards.forEach(clearSynced);
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
         this.syncRowHeights(SYNCED_ROWS);
+        // One card whose CTAs wrap stacks every card in its row.
+        const rows = cards.map(rowOf);
+        const stackedRows = new Set(rows.filter((_, i) => ctasWrap(cards[i])));
+        cards.forEach((card, i) =>
+            card.toggleAttribute('stacked', stackedRows.has(rows[i])),
+        );
     }
 
     // Cards with no authored price must not reserve the synced price row.
@@ -126,14 +188,12 @@ export class ProductPricing extends VariantLayout {
 
     // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
     resyncOnReflow() {
-        const width = this.card.getBoundingClientRect().width;
+        const width = this.boxOf(this.card).width;
         if (width <= 2) return;
         const key = [
             Math.round(width),
             ...SYNCED_ROWS.map(({ getElement }) =>
-                Math.round(
-                    getElement(this.card)?.getBoundingClientRect().height || 0,
-                ),
+                this.heightOf(getElement(this.card)),
             ),
         ].join(':');
         if (key === this.lastSyncKey) return;
@@ -143,13 +203,11 @@ export class ProductPricing extends VariantLayout {
 
     connectedCallbackHook() {
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
-        if (typeof ResizeObserver === 'undefined') return;
-        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-        this.#sizeObserver.observe(this.card);
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        if (desc) this.#sizeObserver.observe(desc);
-        const shortDesc = this.card.querySelector('[slot="short-description"]');
-        if (shortDesc) this.#sizeObserver.observe(shortDesc);
+        this.observeReflow(
+            this.card,
+            this.card.querySelector('[slot="body-xs"]'),
+            this.card.querySelector('[slot="short-description"]'),
+        );
     }
 
     disconnectedCallbackHook() {
@@ -157,8 +215,7 @@ export class ProductPricing extends VariantLayout {
             EVENT_TYPE_RESOLVED,
             this.#onPriceResolved,
         );
-        this.#sizeObserver?.disconnect();
-        this.#sizeObserver = null;
+        this.disconnectReflow();
     }
 
     renderLayout() {
@@ -173,12 +230,13 @@ export class ProductPricing extends VariantLayout {
                 </div>
                 <div class="spacer"></div>
                 <div class="price-buttons">
-                    <div class="price">
+                    <div>
                         <slot name="heading-xs"></slot>
                         <div class="fine">
                             <slot name="legal"></slot>
                             <slot name="short-description"></slot>
                         </div>
+                        <slot name="addon"></slot>
                     </div>
                     <footer><slot name="footer"></slot></footer>
                 </div>
@@ -203,12 +261,12 @@ export class ProductPricing extends VariantLayout {
         }
 
         /* Mnemonic + badge share one centered row on the header strip. Strip
-           background is white by default, black when framed (badge authored or a
-           CTA hovered); triggers live in product-pricing.css.js. */
+           background is white by default, black when framed (badge authored, see
+           product-pricing.css.js). */
         :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             padding: 24px 24px 32px;
         }
 
@@ -250,6 +308,12 @@ export class ProductPricing extends VariantLayout {
         :host([variant='product-pricing']) slot[name='heading-xs'] {
             display: flex;
             flex-direction: column;
+            /* Bottom-align so a plain price shares a baseline with a stacked
+               strikethrough price. */
+            justify-content: flex-end;
+            min-height: var(
+                --consonant-merch-card-product-pricing-price-height
+            );
         }
 
         /* No price authored: hide the price slot and drop the reserved row
@@ -259,7 +323,7 @@ export class ProductPricing extends VariantLayout {
             display: none;
         }
 
-        :host([variant='product-pricing'][no-price]) .price {
+        :host([variant='product-pricing'][no-price]) .fine {
             min-height: 0;
         }
 
@@ -279,21 +343,22 @@ export class ProductPricing extends VariantLayout {
             gap: 24px;
         }
 
-        /* Price + short-description: one bottom-aligned synced row (SYNCED_ROWS). */
-        :host([variant='product-pricing']) .price {
+        /* Cards without an add-on reserve its row (box + 16px margin) so prices
+           and buttons line up with their neighbors, as in Figma. Unset var =
+           invalid calc = no reserve, so a row with no add-on is unchanged. */
+        :host([variant='product-pricing']) slot[name='addon'] {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
-            gap: 8px;
-            min-height: var(
-                --consonant-merch-card-product-pricing-price-height
+            min-height: calc(
+                var(--consonant-merch-card-product-pricing-addon-height) + 16px
             );
         }
 
-        /* Legal + short-description share this sub-row; a card shows one. */
+        /* Legal + short-description share this row; a card shows one. */
         :host([variant='product-pricing']) .fine {
             display: flex;
             flex-direction: column;
+            min-height: var(--consonant-merch-card-product-pricing-fine-height);
         }
 
         :host([variant='product-pricing']) slot[name='short-description'] {
@@ -307,6 +372,10 @@ export class ProductPricing extends VariantLayout {
             justify-content: stretch;
             align-items: stretch;
             flex-wrap: nowrap;
+            /* Row-max height keeps a wrapped CTA from shifting siblings' rows. */
+            min-height: var(
+                --consonant-merch-card-product-pricing-footer-height
+            );
         }
     `;
 }

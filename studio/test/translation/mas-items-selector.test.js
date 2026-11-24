@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -15,15 +15,22 @@ import {
 } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
+import { SELECTION_ENABLED_FILTERS } from '../../src/common/components/mas-search-and-filters.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasItemsSelector', () => {
     let sandbox;
+    let originalCardsByPaths;
+    let originalGroupedVariationsData;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        originalCardsByPaths = Store.translationProjects.cardsByPaths.value;
+        originalGroupedVariationsData = Store.translationProjects.groupedVariationsData.value;
         stubAemTagQueryFetch(sandbox);
         setItemsSelectionStore(Store.translationProjects);
         resetTagCache(MAS_TAG_NAMESPACE);
@@ -35,11 +42,15 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.allPlaceholders.set([]);
         Store.translationProjects.displayPlaceholders.set([]);
         Store.translationProjects.placeholdersByPaths.set(new Map());
+        Store.translationProjects.baselinesList.data.set([]);
+        Store.translationProjects.baselinesList.loading.set(false);
     });
 
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
+        Store.translationProjects.cardsByPaths.set(originalCardsByPaths);
+        Store.translationProjects.groupedVariationsData.set(originalGroupedVariationsData);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
@@ -48,6 +59,7 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.allPlaceholders.set([]);
         Store.translationProjects.displayPlaceholders.set([]);
         Store.translationProjects.placeholdersByPaths.set(new Map());
+        Store.translationProjects.baselinesList.data.set([]);
         setItemsSelectionStore(null);
         resetTagCache(MAS_TAG_NAMESPACE);
     });
@@ -145,7 +157,125 @@ describe('MasItemsSelector', () => {
         });
     });
 
+    describe('enabledFilters', () => {
+        const filterTypes = (el) => el.shadowRoot.querySelector('mas-search-and-filters').enabledFilters;
+
+        it('passes the default filters to the cards search by default', async () => {
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            expect(filterTypes(el)).to.not.include('createdBy');
+        });
+
+        it('forwards enabledFilters to the cards search', async () => {
+            const el = await fixture(
+                html`<mas-items-selector .enabledFilters=${SELECTION_ENABLED_FILTERS}></mas-items-selector>`,
+            );
+            expect(filterTypes(el)).to.include('createdBy');
+        });
+    });
+
     describe('rendering', () => {
+        it('adds an opt-in Baselines tab after Placeholders and selects baselines as fragments', async () => {
+            const baseline = new Fragment({
+                id: 'surface-baseline',
+                path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                title: 'Photoshop baseline',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            Store.translationProjects.baselinesList.data.set([new FragmentStore(baseline)]);
+            const el = await fixture(html`<mas-items-selector .includeBaselines=${true}></mas-items-selector>`);
+
+            expect([...el.shadowRoot.querySelectorAll('sp-tab')].map((tab) => tab.label)).to.deep.equal([
+                'Fragments',
+                'Collections',
+                'Placeholders',
+                'Baselines',
+            ]);
+            const table = el.shadowRoot.querySelector('mas-select-items-table[type="baselines"]');
+            await waitUntil(() => table.shadowRoot.querySelector('sp-table-row'));
+            table.shadowRoot.querySelector('sp-table-row').click();
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([baseline.path]);
+            expect(el.selectedCount).to.equal(1);
+            const selectedItems = el.shadowRoot.querySelector('sp-tab-panel[value="baselines"] mas-selected-items');
+            expect(selectedItems.selectedItems.map(({ path }) => path)).to.deep.equal([baseline.path]);
+            selectedItems.removeItem(selectedItems.selectedItems[0]);
+            expect(el.selectedCount).to.equal(0);
+        });
+
+        it('keeps baseline search applied when its source list reloads', async () => {
+            const createBaseline = (product, title) =>
+                new FragmentStore(
+                    new Fragment({
+                        id: product,
+                        path: `/content/dam/mas/acom/en_US/baselines/catalog/${product}/baseline`,
+                        title,
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    }),
+                );
+            const baselines = [createBaseline('phsp', 'Photoshop baseline'), createBaseline('ilst', 'Illustrator baseline')];
+            Store.translationProjects.baselinesList.data.set(baselines);
+            const el = await fixture(html`<mas-items-selector .includeBaselines=${true}></mas-items-selector>`);
+            el.selectedTab = TABLE_TYPE.BASELINES;
+            el.searchQuery = 'Photoshop';
+            await el.updateComplete;
+            const filters = el.shadowRoot.querySelector('sp-tab-panel[value="baselines"] mas-search-and-filters');
+            await filters.updateComplete;
+
+            Store.translationProjects.baselinesList.data.set([...baselines]);
+
+            expect(Store.translationProjects.displayBaselines.get().map(({ title }) => title)).to.deep.equal([
+                'Photoshop baseline',
+            ]);
+        });
+
+        it('does not apply hidden card filters to the search-only Baselines tab', async () => {
+            const originalFilters = Store.translationProjects.filters.get();
+            Store.translationProjects.filters.set({ locale: 'en_US', tags: 'mas:variant/plans' });
+            try {
+                Store.translationProjects.baselinesList.data.set([
+                    new FragmentStore(
+                        new Fragment({
+                            path: '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+                            title: 'Photoshop baseline',
+                            model: { path: CARD_MODEL_PATH },
+                            fields: [{ name: 'variant', values: ['catalog'] }],
+                            tags: [],
+                        }),
+                    ),
+                ]);
+                const el = await fixture(html`<mas-items-selector .includeBaselines=${true}></mas-items-selector>`);
+                el.selectedTab = TABLE_TYPE.BASELINES;
+                await el.updateComplete;
+                const table = el.shadowRoot.querySelector('mas-select-items-table[type="baselines"]');
+
+                expect(table.itemsToDisplay.map(({ title }) => title)).to.deep.equal(['Photoshop baseline']);
+                expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/plans');
+            } finally {
+                fixtureCleanup();
+                Store.translationProjects.filters.set(originalFilters);
+            }
+        });
+
+        it('counts selected baselines separately from regular fragments in view-only tabs', async () => {
+            Store.translationProjects.selectedCards.set([
+                '/content/dam/mas/acom/en_US/cards/photoshop',
+                '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline',
+            ]);
+            const el = await fixture(
+                html`<mas-items-selector .includeBaselines=${true} .viewOnly=${true}></mas-items-selector>`,
+            );
+
+            expect(el.shadowRoot.querySelector('sp-tab[value="cards"]').label).to.equal('Fragments');
+            expect(el.shadowRoot.querySelector('sp-tab[value="cards"]').textContent).to.equal('Fragments (1)');
+            expect(el.shadowRoot.querySelector('sp-tab[value="baselines"]').textContent).to.equal('Baselines (1)');
+            expect(el.selectedCount).to.equal(2);
+        });
+
         it('should render sp-tabs component', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const tabs = el.shadowRoot.querySelector('sp-tabs');
@@ -347,6 +477,41 @@ describe('MasItemsSelector', () => {
     });
 
     describe('mas-selected-items integration', () => {
+        for (const tab of [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS]) {
+            it(`shows default cards and grouped variations in the ${tab} selection panel`, async () => {
+                const store = Store.translationProjects;
+                const cards = [1, 2].map((index) => ({
+                    path: `/content/dam/mas/sandbox/en_US/test-card-${index}`,
+                    title: `Test Card ${index}`,
+                    model: { path: CARD_MODEL_PATH },
+                }));
+                const variations = cards.map((card) => ({ ...card, path: `${card.path}/pzn/edu` }));
+                store.cardsByPaths.set(new Map([...cards, ...variations].map((card) => [card.path, card])));
+                store.groupedVariationsData.set(new Map(variations.map((card) => [card.path, card])));
+                store.selectedCards.set([...cards, ...variations].map((card) => card.path));
+                store.showSelected.set(true);
+                const el = await fixture(html`
+                    <mas-items-selector
+                        variant="promotions"
+                        .allowedTypes=${[TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS]}
+                        .selectedTab=${tab}
+                        .hideGroupedVariations=${true}
+                    ></mas-items-selector>
+                `);
+                const panel = el.shadowRoot.querySelector(`sp-tab-panel[value="${tab}"]`);
+                const selectedItems = panel.querySelector('mas-selected-items');
+                await selectedItems.updateComplete;
+
+                expect([...selectedItems.shadowRoot.querySelectorAll('.type')].map((item) => item.textContent)).to.deep.equal([
+                    'Default',
+                    'Default',
+                    'Grouped variation',
+                    'Grouped variation',
+                ]);
+                expect(panel.querySelector('mas-select-items-table').hideGroupedVariations).to.be.true;
+            });
+        }
+
         it('should render mas-selected-items when not viewOnly', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const selectedItems = el.shadowRoot.querySelector('mas-selected-items');

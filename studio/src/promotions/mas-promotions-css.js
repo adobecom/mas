@@ -1,23 +1,14 @@
 import { css } from 'lit';
 import { tableCellBaseStyles, loadingContainerFlexStyles } from '../common/styles/table-styles.css.js';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 
 export const styles = css`
     ${tableCellBaseStyles}
     ${loadingContainerFlexStyles}
+    ${pageContainerStyles}
 
     .status-cell .status-dot.yellow {
         background-color: var(--spectrum-yellow-600);
-    }
-
-    .promotions-container {
-        height: 100%;
-        min-height: 200px;
-        border-radius: 8px;
-        padding: 24px;
-        background-color: var(--spectrum-white);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        box-sizing: border-box;
-        position: relative;
     }
 
     .promotions-page-header {
@@ -100,15 +91,6 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
-    .environment-filter-picker {
-        display: flex;
-    }
-
-    sp-action-button.environment-filter {
-        display: flex;
-        flex-direction: row-reverse;
-    }
-
     .filter-popover {
         padding: 12px;
     }
@@ -178,12 +160,6 @@ export const styles = css`
         line-height: 18px;
     }
 
-    .filters-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
     .promotions-table {
         border-radius: 8px;
         border: 1px solid var(--spectrum-gray-200);
@@ -208,7 +184,7 @@ export const styles = css`
     }
 
     .promotions-table sp-table-head sp-table-head-cell:nth-child(3),
-    .promotions-table sp-table-row sp-table-cell:nth-child(3) {
+    .promotions-table sp-table-row sp-table-cell:nth-of-type(3) {
         max-width: 150px;
     }
 

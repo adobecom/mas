@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
-import Store from './store.js';
+import Store, { saveRenderMode } from './store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_CREATE_TYPE } from './constants.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
 import { buildCardsDeepLink, showToast } from './utils.js';
@@ -125,6 +125,9 @@ class MasToolbar extends LitElement {
         sp-search {
             flex-grow: 1;
             max-width: 400px;
+            --mod-search-border-radius: 100px;
+            --mod-search-border-color-default: var(--spectrum-gray-300);
+            --mod-search-background-color: var(--spectrum-gray-75);
         }
 
         #search-results-label {
@@ -172,10 +175,6 @@ class MasToolbar extends LitElement {
         }
     }
 
-    update() {
-        super.update();
-    }
-
     updateFilterCount() {
         const filters = Store.filters.get();
         if (!filters || !filters.tags) {
@@ -196,7 +195,7 @@ class MasToolbar extends LitElement {
     }
 
     handleRenderModeChange(ev) {
-        localStorage.setItem('mas-render-mode', ev.target.value);
+        saveRenderMode(ev.target.value);
         Store.renderMode.set(ev.target.value);
     }
 

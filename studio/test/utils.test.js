@@ -1,12 +1,17 @@
 import { expect } from '@open-wc/testing';
+import sinon from 'sinon';
 import {
     buildCardsDeepLink,
+    buildProjectDeepLink,
+    formatAuthorPath,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
     camelToTitle,
     stripHtml,
     previewValue,
+    scrubUrls,
+    logError,
     parseStudioDeepLinksFromText,
     hasNonEmptyCompareChart,
     matchesContentTypeFilter,
@@ -15,6 +20,9 @@ import {
     getCreateProjectErrorMessage,
     describeVariationsToDelete,
     extractImageUrl,
+    getFragmentEditorUrl,
+    resolvePromoVariationDefaultCard,
+    previewFragmentOnPage,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -25,7 +33,77 @@ import {
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
+    STATUS_PUBLISHED,
 } from '../src/constants.js';
+
+describe('previewFragmentOnPage', () => {
+    let open;
+    const fragment = {
+        id: '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
+        path: '/content/dam/mas/acom/en_US/card',
+        model: { path: CARD_MODEL_PATH },
+        status: STATUS_PUBLISHED,
+    };
+
+    beforeEach(() => {
+        open = sinon.stub(window, 'open');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('keeps published acom cards on Milo', () => {
+        previewFragmentOnPage(fragment);
+        expect(open.firstCall.args).to.deep.equal([
+            `https://milo.adobe.com/merch/mas/preview?fragment-id=${fragment.id}&content-type=merch-card&locale=en_US`,
+            '_blank',
+        ]);
+    });
+
+    it('keeps unpublished acom cards on the Milo preview host', () => {
+        previewFragmentOnPage({ ...fragment, status: 'DRAFT' });
+        expect(new URL(open.firstCall.args[0]).hostname).to.equal('main--milo--adobecom.aem.page');
+    });
+
+    for (const surface of ['ccd', 'adobe-home', 'commerce']) {
+        it(`opens published ${surface} cards in the same-origin preview with the light theme`, () => {
+            previewFragmentOnPage({ ...fragment, path: `/content/dam/mas/${surface}/fr_FR/card` });
+            const url = new URL(open.firstCall.args[0]);
+            expect(url.origin).to.equal(window.location.origin);
+            expect(url.pathname).to.equal('/web-components/docs/mas-preview.html');
+            expect(Object.fromEntries(url.searchParams)).to.deep.equal({
+                'fragment-id': fragment.id,
+                'content-type': 'merch-card',
+                locale: 'fr_FR',
+                theme: 'light',
+            });
+        });
+    }
+
+    it('enables unpublished content for non-Milo collections', () => {
+        previewFragmentOnPage({
+            ...fragment,
+            path: '/content/dam/mas/ccd/en_US/collection',
+            model: { path: COLLECTION_MODEL_PATH },
+            status: 'DRAFT',
+        });
+        const params = new URL(open.firstCall.args[0]).searchParams;
+        expect(params.get('content-type')).to.equal('merch-card-collection');
+        expect(params.get('mas.preview')).to.equal('on');
+        expect(params.get('theme')).to.equal('light');
+    });
+
+    it('does not change routing for surfaces outside this ticket', () => {
+        previewFragmentOnPage({ ...fragment, path: '/content/dam/mas/express/en_US/card' });
+        expect(new URL(open.firstCall.args[0]).hostname).to.equal('milo.adobe.com');
+    });
+
+    it('does not open a window without a fragment id', () => {
+        previewFragmentOnPage({});
+        expect(open.called).to.be.false;
+    });
+});
 
 function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch Card: CC Pro: Business') {
     return {
@@ -44,7 +122,62 @@ function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch
     };
 }
 
+describe('getFragmentEditorUrl', () => {
+    let originalHash;
+
+    beforeEach(() => {
+        originalHash = window.location.hash;
+        window.location.hash = '';
+    });
+
+    afterEach(() => {
+        window.location.hash = originalHash;
+    });
+
+    it('returns the fragment editor URL without a path', () => {
+        expect(getFragmentEditorUrl('test-id')).to.equal('#page=fragment-editor&fragmentId=test-id');
+    });
+
+    it('encodes fragment ids and preserves special characters in the current path', () => {
+        window.location.hash = '#page=content&path=acom%2Ffolder%20%26%20name';
+        expect(getFragmentEditorUrl('id&other=value')).to.equal(
+            '#page=fragment-editor&fragmentId=id%26other%3Dvalue&path=acom%2Ffolder%20%26%20name',
+        );
+    });
+});
+
+describe('formatAuthorPath', () => {
+    it('inserts the content type right after the surface', () => {
+        expect(formatAuthorPath('merch-card', 'ACOM / Catalog / Teams')).to.equal('ACOM / merch-card / Catalog / Teams');
+    });
+
+    it('returns the parts unchanged without a content type', () => {
+        expect(formatAuthorPath('', 'ACOM / Catalog')).to.equal('ACOM / Catalog');
+    });
+
+    it('returns an empty string for empty parts', () => {
+        expect(formatAuthorPath('merch-card', '')).to.equal('');
+    });
+
+    it('keeps separators inside a title', () => {
+        expect(formatAuthorPath('merch-card-collection', 'ACOM / A / B')).to.equal('ACOM / merch-card-collection / A / B');
+    });
+});
+
 describe('generateLinkToUse', () => {
+    it('builds the path as surface / content type / parts', () => {
+        const { authorPath } = generateLinkToUse(mockFragmentForCode(CARD_MODEL_PATH), 'acom', 'content');
+        expect(authorPath).to.match(/^ACOM \/ merch-card \//);
+        expect(authorPath).to.not.match(/^merch-card:/);
+    });
+
+    it('puts the content type right after the surface for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        expect(generateLinkToUse(fragment, 'acom', 'content').authorPath).to.equal(
+            'ACOM / merch-card-collection / My Collection Title',
+        );
+    });
+
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
         const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
@@ -240,6 +373,77 @@ describe('previewValue', () => {
     });
 });
 
+describe('scrubUrls', () => {
+    it('passes non-string inputs through unchanged', () => {
+        expect(scrubUrls(null)).to.be.null;
+        expect(scrubUrls(undefined)).to.be.undefined;
+        expect(scrubUrls(42)).to.equal(42);
+    });
+
+    it('leaves strings without URLs unchanged', () => {
+        expect(scrubUrls('plain message')).to.equal('plain message');
+    });
+
+    it('collapses a URL to its origin, dropping path + query', () => {
+        const out = scrubUrls('Failed to fetch https://api.example.com/v1/thing?token=SECRET now');
+        expect(out).to.equal('Failed to fetch https://api.example.com now');
+    });
+
+    it('collapses multiple URLs in one string', () => {
+        const out = scrubUrls('From https://a.com/x?t=1 to https://b.com/y?t=2 done');
+        expect(out).to.equal('From https://a.com to https://b.com done');
+    });
+
+    it('replaces an unparseable URL-like token with [url-scrubbed]', () => {
+        const out = scrubUrls('weird http://??? token');
+        // Depending on URL parsing leniency this may be '[url-scrubbed]' or the origin.
+        expect(out).to.not.include('???');
+    });
+});
+
+describe('logError', () => {
+    let errorStub;
+
+    beforeEach(() => {
+        errorStub = sinon.stub(console, 'error');
+    });
+
+    afterEach(() => {
+        errorStub.restore();
+    });
+
+    it('logs label + name + scrubbed message for a standard Error', () => {
+        const err = new Error('Request to https://api.example.com/v1/x?token=SECRET failed');
+        logError('Op failed', err);
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('Error');
+        expect(errorStub.firstCall.args[0]).to.include('https://api.example.com');
+        expect(errorStub.firstCall.args[0]).to.not.include('token=SECRET');
+    });
+
+    it('logs a scrubbed stack trace separately when stack is present and differs from message', () => {
+        const err = new Error('boom');
+        err.stack = 'Error: boom\n  at fn (https://internal.adobe.io/secret?k=1:12:34)';
+        logError('Op failed', err);
+        // Two calls: message + stack
+        expect(errorStub.callCount).to.be.at.least(2);
+        const stackCall = errorStub.secondCall.args[0];
+        expect(stackCall).to.include('https://internal.adobe.io');
+        expect(stackCall).to.not.include('k=1');
+    });
+
+    it('handles non-Error thrown values', () => {
+        logError('Op failed', 'string thrown');
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('string thrown');
+    });
+
+    it('handles null / undefined errors without throwing', () => {
+        expect(() => logError('Op failed', null)).to.not.throw();
+        expect(() => logError('Op failed', undefined)).to.not.throw();
+    });
+});
+
 describe('buildCardsDeepLink', () => {
     const uuid = '00000000-0000-4000-8000-000000000001';
 
@@ -274,6 +478,24 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildProjectDeepLink', () => {
+    it('builds a Studio editor URL from page, id param and surface', () => {
+        const href = buildProjectDeepLink('bulkPublishEditor', 'bulkPublishProjectId', 'proj-123', 'acom');
+        expect(href).to.equal(
+            'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=proj-123&path=acom',
+        );
+    });
+
+    it('omits the surface when it is unknown', () => {
+        const href = buildProjectDeepLink('promotions-editor', 'promotionId', 'promo-1');
+        expect(href).to.equal('https://mas.adobe.com/studio.html#page=promotions-editor&promotionId=promo-1');
+    });
+
+    it('returns null when id is missing', () => {
+        expect(buildProjectDeepLink('translation-editor', 'translationProjectId', null, 'acom')).to.be.null;
     });
 });
 
@@ -587,7 +809,13 @@ describe('createKeyedAsyncLoader', () => {
 });
 
 describe('getFragmentPartsToUse', () => {
-    function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
+    function makeCard({
+        variantCode = 'catalog',
+        cardTitle = 'My Card',
+        getTagTitle = () => null,
+        getCurrentTagTitle,
+        getCurrentTagTitles,
+    } = {}) {
         return {
             model: { path: CARD_MODEL_PATH },
             title: cardTitle,
@@ -601,8 +829,29 @@ describe('getFragmentPartsToUse', () => {
             },
             getTagTitle,
             getCurrentTagTitle: getCurrentTagTitle || (() => null),
+            getCurrentTagTitles: getCurrentTagTitles || (() => []),
         };
     }
+
+    it('joins all product_code titles of a soft bundle with " + "', () => {
+        const fragment = makeCard({ getCurrentTagTitles: () => ['Acrobat Pro', 'AI Assistant'] });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / Acrobat Pro + AI Assistant');
+    });
+
+    it('does not add " + " for a single product_code title', () => {
+        const fragment = makeCard({ getCurrentTagTitles: () => ['Acrobat Pro'] });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / Acrobat Pro');
+    });
+
+    it('names every mas:product/ title when no product_code tags exist', () => {
+        const fragment = makeCard({
+            getCurrentTagTitles: (prefix) => (prefix === 'mas:product/' ? ['AI Assistant for Acrobat', 'Acrobat Pro'] : []),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / AI Assistant for Acrobat + Acrobat Pro');
+    });
 
     it('returns surface + variant label for a catalog card', () => {
         const fragment = makeCard({ variantCode: 'catalog' });
@@ -768,6 +1017,41 @@ describe('describeVariationsToDelete', () => {
         expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
             '1 grouped, 1 promo variation(s)',
         );
+    });
+});
+
+describe('resolvePromoVariationDefaultCard', () => {
+    const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+    const defaultCard = {
+        id: 'default-id',
+        path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+        fields: [{ name: 'variations', values: [groupedPath] }],
+    };
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getReferencedBy: async () => ({ parentReferences: [{ path: defaultCard.path }] }),
+                    getByPath: async (path) => (path === defaultCard.path ? defaultCard : null),
+                    getById: async (id) => (id === defaultCard.id ? defaultCard : null),
+                },
+            },
+        },
+    };
+
+    it('resolves a grouped variation source to its default card', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, { id: 'edu-id', path: groupedPath });
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a default card source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, defaultCard);
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a null source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, null);
+        expect(result).to.be.null;
     });
 });
 

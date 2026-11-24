@@ -3,6 +3,8 @@ import DiscountSpec from '../specs/discount.spec.js';
 
 const { features } = DiscountSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Discount Badge test suite', () => {
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
@@ -11,7 +13,7 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         const card = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();
@@ -40,7 +42,7 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         const card = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await card).toBeVisible();
@@ -54,10 +56,12 @@ test.describe('M@S Studio Discount Badge test suite', () => {
         });
 
         await test.step('step-3: Clear badge field', async () => {
-            await editor.badge.click();
-            await expect(editor.badge).toBeFocused();
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
+            await editor.clearRteField(editor.badge);
+            await expect
+                .poll(() =>
+                    page.locator('mas-fragment-editor').evaluate((element) => element.fragment.getField('badge').values[0]),
+                )
+                .toBe('');
         });
 
         await test.step('step-4: Validate badge is removed from card', async () => {
@@ -72,6 +76,47 @@ test.describe('M@S Studio Discount Badge test suite', () => {
             const badge = card.locator('merch-badge');
             await expect(badge).toBeVisible();
             await expect(badge).toContainText(data.badge.original);
+        });
+    });
+
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+        const card = await studio.getCard(data.cardid);
+
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await editor.panel).toBeVisible();
+            await expect(await card).toBeVisible();
+            await expect(await card).toHaveAttribute('variant', 'plans');
+        });
+
+        await test.step('step-2: Validate discount inline-price in badge on card', async () => {
+            const badge = card.locator('merch-badge');
+            await expect(badge).toBeVisible();
+            await expect(badge).toContainText('Save');
+            const discountPrice = badge.locator('span[is="inline-price"][data-template="discount-amount"]');
+            await expect(discountPrice).toBeVisible();
+            const discountPriceText = await discountPrice.textContent();
+            expect(discountPriceText.trim()).toBe(data.discountAmountText);
+        });
+
+        await test.step('step-3: Validate badge field in editor contains discount', async () => {
+            await expect(await editor.badge).toBeVisible();
+            const discountInEditor = editor.badge.locator('span[is="inline-price"][data-template="discount-amount"]');
+            await expect(discountInEditor).toBeVisible();
+        });
+
+        await test.step('step-4: Validate discount inline-price in description on card', async () => {
+            const desc = card.locator('[slot="body-xs"] p');
+            await expect(desc).toBeVisible();
+            await expect(desc).toContainText('Save');
+            const discountPrice = desc.locator('span[is="inline-price"][data-template="discount-amount"]');
+            await expect(discountPrice).toBeVisible();
+            const discountPriceText = await discountPrice.textContent();
+            expect(discountPriceText.trim()).toBe(data.discountAmountText);
         });
     });
 });

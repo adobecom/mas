@@ -16,6 +16,7 @@ export const COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
     ],
     prices: { tag: 'p', slot: 'price' },
     description: { tag: 'div', slot: 'detail', maxCount: 1000 },
+    callout: { tag: 'div', slot: 'callout-content' },
     ctas: { slot: 'cta', size: 'M' },
     features: { tag: 'div', slot: 'features', unwrap: true },
 };
@@ -89,6 +90,7 @@ export class CompareChartColumn extends VariantLayout {
                 <div class="seg seg-detail">
                     <slot name="detail"></slot>
                 </div>
+                <slot name="callout-content"></slot>
             </div>
             <div class="seg seg-cta">
                 <slot name="cta"></slot>

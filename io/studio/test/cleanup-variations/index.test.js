@@ -129,6 +129,11 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.deep.equal(['ja_JP']);
         });
 
+        it('includes pt_PT for express pt_BR (MWPW-214992)', () => {
+            const result = action.getValidVariationsLocales('express', 'pt_BR');
+            expect(result).to.deep.equal(['pt_BR', 'pt_PT']);
+        });
+
         it('returns default locale + region locales for de_DE (acom)', () => {
             const result = action.getValidVariationsLocales('acom', 'de_DE');
             expect(result).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
@@ -142,9 +147,9 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.not.include('en_US');
         });
 
-        it('returns zh_TW + zh_HK for acom (HK is a region of TW)', () => {
+        it('returns zh_TW + zh_HK + zh_MO for acom', () => {
             const result = action.getValidVariationsLocales('acom', 'zh_TW');
-            expect(result).to.deep.equal(['zh_TW', 'zh_HK']);
+            expect(result).to.deep.equal(['zh_TW', 'zh_HK', 'zh_MO']);
         });
 
         it('returns just [localeCode] for an unknown surface', () => {
@@ -157,9 +162,10 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.deep.equal(['xx_XX']);
         });
 
-        it('acom-cc and acom-dc are mapped to ACOM locale set', () => {
-            expect(action.getValidVariationsLocales('acom-cc', 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
-            expect(action.getValidVariationsLocales('acom-dc', 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
+        it('ACOM sub-surfaces are mapped to the ACOM locale set', () => {
+            for (const surface of ['acom-cc', 'acom-dc', 'acom-edu']) {
+                expect(action.getValidVariationsLocales(surface, 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
+            }
         });
 
         it('ccd surface returns correct locales for fr_FR', () => {
@@ -278,6 +284,23 @@ describe('cleanup-variations/index.js', () => {
             const putFields = putArgs[3].fields;
             const variationsField = putFields.find((f) => f.name === 'variations');
             expect(variationsField.values).to.deep.equal(['/content/dam/mas/sandbox/de_AT/live-card']);
+        });
+
+        it('keeps a pt_PT variation of an Express pt_BR fragment (MWPW-214992)', async () => {
+            const fragment = makeFragment('frag-express-pt', '/content/dam/mas/express/pt_BR/pt-card', [
+                '/content/dam/mas/express/pt_PT/pt-card',
+            ]);
+
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/express/pt_BR/pt-card']));
+            fetchFragmentByPathStub.resolves({ fragment, status: 200, etag: fragment.etag });
+
+            const result = await action.main({ ...baseParams, surface: 'express', locale: 'pt_BR', dryRun: false });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.processed).to.equal(1);
+            expect(result.body.removed).to.equal(0);
+            expect(result.body.details).to.be.empty;
+            expect(putToOdinStub).to.not.have.been.called;
         });
 
         it('adds error to summary and continues when putToOdin fails', async () => {
@@ -510,9 +533,13 @@ describe('cleanup-variations/index.js', () => {
                     return match ? match[1] : null;
                 }),
             );
-            // all 9 surfaces in DEFAULT_LOCALES should appear at least once
-            expect(surfacesTouched.size).to.equal(9);
+            // all 13 surfaces in DEFAULT_LOCALES should appear at least once
+            expect(surfacesTouched.size).to.equal(13);
+            expect(surfacesTouched).to.include('genuine');
+            expect(surfacesTouched).to.include('dalp');
+            expect(surfacesTouched).to.include('elements');
             expect(surfacesTouched).to.include('acom');
+            expect(surfacesTouched).to.include('acom-edu');
             expect(surfacesTouched).to.include('ccd');
             expect(surfacesTouched).to.include('express');
             expect(surfacesTouched).to.include('adobe-home');

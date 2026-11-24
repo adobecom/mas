@@ -34,6 +34,53 @@ describe('AemTagPickerField', () => {
         resetTagCache(namespace);
     });
 
+    for (const { name, top, excludeCountryTags, expectedTags } of [
+        {
+            name: 'includes country tags in combined locale and personalization options by default',
+            top: 'locale,pzn',
+            excludeCountryTags: false,
+            expectedTags: ['locale/pl_PL', 'pzn/country/PL', 'pzn/smb'],
+        },
+        {
+            name: 'excludes country tags from combined options when explicitly requested',
+            top: 'locale,pzn',
+            excludeCountryTags: true,
+            expectedTags: ['locale/pl_PL', 'pzn/smb'],
+        },
+        {
+            name: 'excludes country tags from personalization-only options when explicitly requested',
+            top: 'pzn',
+            excludeCountryTags: true,
+            expectedTags: ['pzn/smb'],
+        },
+    ]) {
+        it(name, async () => {
+            const tagNames = ['locale/pl_PL', 'pzn/smb', 'pzn/country', 'pzn/country/PL'];
+            seedTagCache(
+                namespace,
+                tagNames.map((name) => {
+                    const path = `${namespace}/${name}`;
+                    return [path, { name: name.split('/').pop(), title: name, path }];
+                }),
+            );
+            const el = await fixture(html`
+                <aem-tag-picker-field
+                    namespace=${namespace}
+                    top=${top}
+                    ?exclude-country-tags=${excludeCountryTags}
+                    selection="checkbox-tags"
+                    display-value
+                    multiple
+                ></aem-tag-picker-field>
+            `);
+
+            await el.loadTags();
+            await el.updateComplete;
+
+            expect(el.flatTags).to.have.members(expectedTags.map((tag) => `${namespace}/${tag}`));
+        });
+    }
+
     it('adds Compare chart as a local content type option and resolves selected title', async () => {
         const el = await fixture(html`
             <aem-tag-picker-field

@@ -5,6 +5,10 @@ import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
 
 import { pushState } from '../src/deeplink.js';
+import {
+    EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+    EVENT_MERCH_SIDENAV_SELECT,
+} from '../src/constants.js';
 
 import {
     appendMiloStyles,
@@ -281,7 +285,24 @@ runTests(async () => {
             await collectionElement.checkReady();
             const merchCard = collectionElement.querySelector('merch-card');
             expect(merchCard).to.exist;
+            expect(merchCard.hasAttribute('consonant')).to.be.true;
         });
+
+        for (const spectrum of ['css', 'swc']) {
+            it(`uses the consumer's explicit Spectrum ${spectrum} setup for collection cards`, async () => {
+                collectionElement.setAttribute('spectrum', spectrum);
+                render();
+                await collectionElement.checkReady();
+                const cards = [
+                    ...collectionElement.querySelectorAll('merch-card'),
+                ];
+                expect(cards.length).to.be.greaterThan(0);
+                for (const card of cards) {
+                    expect(card.getAttribute('spectrum')).to.equal(spectrum);
+                    expect(card.hasAttribute('consonant')).to.be.false;
+                }
+            });
+        }
 
         it('sets variation-id on the host when the collection fragment payload includes variationId', async () => {
             render();
@@ -369,11 +390,168 @@ runTests(async () => {
         });
     });
 
+    describe('merch-card-collection localized price labels', () => {
+        const { cache } = customElements.get('aem-fragment');
+
+        beforeEach(() => {
+            cache.clear();
+            document.location.hash = '';
+        });
+
+        afterEach(() => {
+            document.getElementById('content').innerHTML = '';
+            cache.clear();
+        });
+
+        for (const attributes of [['mask'], ['pzn'], ['mask', 'pzn']]) {
+            it(`inherits collection context with ${attributes.join(' and ')} without changing unmasked cards`, async () => {
+                [merchCards, render] = prepareTemplate(
+                    'plansTwoCardsColl',
+                    false,
+                );
+                const fragment = merchCards.querySelector('aem-fragment');
+                for (const attribute of attributes) {
+                    fragment.setAttribute(attribute, 'localized');
+                }
+                const suffix = `${attributes.includes('pzn') ? '-p_localized' : ''}${attributes.includes('mask') ? '-m_localized' : ''}`;
+                const cacheKey = `${fragment.getAttribute('fragment')}${suffix}`;
+                const labels = [
+                    'Abonnement annuel, facturation mensuelle',
+                    'Facturation mensuelle, engagement annuel',
+                ];
+                const cards = labels.map((label, index) => ({
+                    id: `localized-card-${index}`,
+                    fields: {
+                        variant: 'pro',
+                        cardTitle: `Photoshop ${index + 1}`,
+                        prices: '<span is="inline-price" data-template="legal" data-wcs-osi="abm-mult"></span>',
+                    },
+                    ...(index === 1
+                        ? {
+                              settings: { secureLabel: 'Paiement sécurisé' },
+                              placeholders: {
+                                  whatsIncludedToggleLabel: 'Autres avantages',
+                              },
+                              dictionary: { product: 'Photoshop personnalisé' },
+                              priceLiterals: {
+                                  planTypeLabel: `{planType, select, ABM {${label}} other {}}`,
+                              },
+                          }
+                        : {}),
+                }));
+                cache.set(cacheKey, {
+                    id: 'localized-collection',
+                    fields: { cards: cards.map(({ id }) => id) },
+                    settings: {
+                        displayPlanType: true,
+                        secureLabel: 'Transaction sécurisée',
+                    },
+                    placeholders: {
+                        whatsIncludedToggleLabel: 'Découvrir les avantages',
+                    },
+                    dictionary: { product: 'Photoshop' },
+                    priceLiterals: {
+                        planTypeLabel: `{planType, select, ABM {${labels[0]}} other {}}`,
+                    },
+                    references: Object.fromEntries(
+                        cards.map((card) => [
+                            card.id,
+                            { type: 'content-fragment', value: card },
+                        ]),
+                    ),
+                    referencesTree: cards.map(({ id }) => ({
+                        fieldName: 'cards',
+                        identifier: id,
+                        referencesTree: [],
+                    })),
+                });
+
+                render();
+                await merchCards.hydrationReady;
+                for (const card of cards) {
+                    expect(cache.has(`${card.id}${suffix}`)).to.be.true;
+                    expect(cache.has(card.id)).to.be.false;
+                }
+                await merchCards.checkReady();
+                const renderedCards = [
+                    ...merchCards.querySelectorAll('merch-card'),
+                ];
+                for (const [index, card] of renderedCards.entries()) {
+                    expect(card.settings.displayPlanType).to.be.true;
+                    expect(card.settings.secureLabel).to.equal(
+                        index === 0
+                            ? 'Transaction sécurisée'
+                            : 'Paiement sécurisé',
+                    );
+                    expect(card.placeholders.whatsIncludedToggleLabel).to.equal(
+                        index === 0
+                            ? 'Découvrir les avantages'
+                            : 'Autres avantages',
+                    );
+                    expect(card.aemFragment.data.dictionary.product).to.equal(
+                        index === 0 ? 'Photoshop' : 'Photoshop personnalisé',
+                    );
+                }
+                const prices = merchCards.querySelectorAll(
+                    '[is="inline-price"]',
+                );
+                await Promise.all(
+                    [...prices].map((price) => price.onceSettled()),
+                );
+                expect(
+                    [...merchCards.querySelectorAll('.price-plan-type')].map(
+                        (label) => label.textContent,
+                    ),
+                ).to.deep.equal(labels);
+
+                const unmasked = {
+                    id: cards[0].id,
+                    fields: { cardTitle: 'Unmasked Photoshop' },
+                    settings: { displayPlanType: false },
+                    priceLiterals: { planTypeLabel: 'Unmasked label' },
+                };
+                cache.add(unmasked);
+                const standalone = document.createElement('aem-fragment');
+                standalone.setAttribute('fragment', unmasked.id);
+                document.getElementById('content').append(standalone);
+                await standalone.updateComplete;
+                expect(standalone.data.fields.cardTitle).to.equal(
+                    'Unmasked Photoshop',
+                );
+                expect(standalone.data.settings.displayPlanType).to.be.false;
+                expect(standalone.data.priceLiterals.planTypeLabel).to.equal(
+                    'Unmasked label',
+                );
+                expect(
+                    cache.get(`${cards[0].id}${suffix}`).settings
+                        .displayPlanType,
+                ).to.be.true;
+            });
+        }
+    });
+
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 
         beforeEach(async () => {
             document.location.hash = '';
+        });
+
+        it('preserves card overrides in masked collections', async () => {
+            [collectionElement, render] = prepareTemplate('override', false);
+            collectionElement
+                .querySelector('aem-fragment')
+                .setAttribute('mask', 'localized');
+            render();
+
+            await collectionElement.checkReady();
+            expect(
+                collectionElement.querySelector('merch-card[id="cafe-bebebe"]'),
+            ).to.exist;
+            expect(
+                collectionElement.querySelector('merch-card[id="bebe-cafe"]'),
+            ).to.exist;
+            customElements.get('aem-fragment').cache.clear();
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {
@@ -472,6 +650,21 @@ runTests(async () => {
             ).to.not.exist;
             aemFragment.cache.clear();
         });
+
+        it('marks the default child card for variants that support it', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'collection-default-child',
+                false,
+            );
+            render();
+            await collectionElement.checkReady();
+            const card = (id) =>
+                collectionElement.querySelector(`merch-card[id="${id}"]`);
+            expect(card('express-card-b').dataset.defaultCard).to.equal('true');
+            expect(card('express-card-a').hasAttribute('data-default-card')).to
+                .be.false;
+            customElements.get('aem-fragment').cache.clear();
+        });
     });
 
     describe('merch-card checkReady with failing aem-fragment', () => {
@@ -515,6 +708,411 @@ runTests(async () => {
             expect(card.style.display).to.equal('none');
 
             card.remove();
+        });
+    });
+
+    describe('merch-card-collection update work', () => {
+        let collection;
+        let spacer;
+        let cards;
+        let log;
+        const scrollYDescriptor = Object.getOwnPropertyDescriptor(
+            window,
+            'scrollY',
+        );
+        const originalScrollTo = window.scrollTo;
+
+        const makeCard = (title, filters) => {
+            const card = document.createElement('merch-card');
+            card.filters = filters;
+            const heading = document.createElement('h3');
+            heading.className = 'card-heading';
+            heading.textContent = title;
+            card.append(heading);
+            return card;
+        };
+
+        const childOrder = () =>
+            [...collection.children].map((child) => child.title);
+
+        const startLogging = () => {
+            log = [];
+            Object.defineProperty(window, 'scrollY', {
+                configurable: true,
+                get() {
+                    log.push('scrollY');
+                    return scrollYDescriptor.get.call(window);
+                },
+            });
+            window.scrollTo = (...args) => {
+                log.push('scrollTo');
+                originalScrollTo.apply(window, args);
+            };
+            const { prepend } = collection;
+            collection.prepend = (...nodes) => {
+                log.push('prepend');
+                prepend.apply(collection, nodes);
+            };
+        };
+
+        const stopLogging = () => {
+            Object.defineProperty(window, 'scrollY', scrollYDescriptor);
+            window.scrollTo = originalScrollTo;
+            delete collection.prepend;
+        };
+
+        beforeEach(async () => {
+            document.location.hash = '';
+            spacer = document.createElement('div');
+            spacer.style.height = '5000px';
+            collection = document.createElement('merch-card-collection');
+            cards = [
+                makeCard('Delta', { all: { order: 1 } }),
+                makeCard('Bravo', { all: { order: 2 }, sub: { order: 2 } }),
+                makeCard('Charlie', { all: { order: 3 }, sub: { order: 1 } }),
+                makeCard('Alpha', { all: { order: 4 } }),
+            ];
+            collection.append(...cards);
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            content.append(spacer, collection);
+            await collection.updateComplete;
+            await delay(20);
+            window.scrollTo(0, 1200);
+        });
+
+        afterEach(() => {
+            if (log) stopLogging();
+            log = null;
+            collection.remove();
+            spacer.remove();
+            window.scrollTo(0, 0);
+        });
+
+        it('arranges cards on the first update', () => {
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+            expect(collection.resultCount).to.equal(4);
+        });
+
+        it('keeps the scroll position when a filter reorders and hides cards', async () => {
+            expect(window.scrollY).to.equal(1200);
+            startLogging();
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+            const entries = [...log];
+            stopLogging();
+
+            expect(collection.resultCount).to.equal(2);
+            expect(childOrder().slice(0, 2)).to.deep.equal([
+                'Charlie',
+                'Bravo',
+            ]);
+            expect(cards[0].style.display).to.equal('none');
+            expect(cards[3].style.display).to.equal('none');
+            expect(window.scrollY).to.equal(1200);
+            // One layout read before any DOM write, then one scroll restore:
+            // the resultCount update that follows must not repeat the work.
+            expect(
+                entries.filter((entry) => entry === 'scrollY'),
+            ).to.have.length(1);
+            expect(entries[0]).to.equal('scrollY');
+            expect(entries.indexOf('scrollY')).to.be.below(
+                entries.indexOf('prepend'),
+            );
+            expect(
+                entries.filter((entry) => entry === 'scrollTo'),
+            ).to.have.length(1);
+            expect(entries.at(-1)).to.equal('scrollTo');
+        });
+
+        it('keeps the scroll position when a sort reorders the cards', async () => {
+            startLogging();
+            collection.sort = 'alphabetical';
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(childOrder()).to.deep.equal([
+                'Alpha',
+                'Bravo',
+                'Charlie',
+                'Delta',
+            ]);
+            expect(window.scrollY).to.equal(1200);
+            expect(
+                entries.filter((entry) => entry === 'scrollY'),
+            ).to.have.length(1);
+        });
+
+        it('restores hidden cards when the filter goes back', async () => {
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+            collection.filter = 'all';
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(collection.resultCount).to.equal(4);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+            for (const card of cards) {
+                expect(card.style.display).to.equal('');
+            }
+            expect(window.scrollY).to.equal(1200);
+        });
+
+        it('keeps cards in place and skips the scroll read when only resultCount and hasMore change', async () => {
+            startLogging();
+            collection.resultCount = 99;
+            collection.hasMore = true;
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('does not move or toggle arranged cards when a filtering property is re-applied', async () => {
+            startLogging();
+            collection.search = 'a';
+            await collection.updateComplete;
+            collection.search = '';
+            await collection.updateComplete;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            expect(collection.resultCount).to.equal(4);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('does not read the scroll position when nothing needs to move', async () => {
+            startLogging();
+            collection.requestUpdate();
+            await collection.updateComplete;
+            collection.page = 1;
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+        });
+
+        it('syncs card sizes for a filter change that keeps the same cards in place', async () => {
+            cards.forEach((card, index) => {
+                card.filters.wide = { order: index + 1, size: 'wide' };
+            });
+            startLogging();
+            collection.filter = 'wide';
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            for (const card of cards) {
+                expect(card.size).to.equal('wide');
+            }
+        });
+
+        it('re-arranges cards on requestUpdate() batched with a resultCount write', async () => {
+            cards[0].filters.all.order = 9;
+            collection.resultCount = 99;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(childOrder()).to.deep.equal([
+                'Bravo',
+                'Charlie',
+                'Alpha',
+                'Delta',
+            ]);
+            expect(collection.resultCount).to.equal(4);
+        });
+
+        it('re-arranges cards on requestUpdate() without a changed property', async () => {
+            cards[0].filters.all.order = 9;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(childOrder()).to.deep.equal([
+                'Bravo',
+                'Charlie',
+                'Alpha',
+                'Delta',
+            ]);
+            expect(window.scrollY).to.equal(1200);
+        });
+
+        it('pages cards by page and limit', async () => {
+            collection.limit = 3;
+            collection.page = 1;
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.hasMore).to.be.true;
+            expect(cards[3].style.display).to.equal('none');
+
+            collection.page = 2;
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.hasMore).to.be.false;
+            for (const card of cards) {
+                expect(card.style.display).to.equal('');
+            }
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('dispatches literals when the sidenav is attached and when it selects', async () => {
+            const sidenav = new EventTarget();
+            sidenav.filters = { selectedText: 'Photo' };
+            const details = [];
+            collection.addEventListener(
+                EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                (event) => details.push(event.detail),
+            );
+
+            collection.sidenav = sidenav;
+            await collection.updateComplete;
+            await delay(20);
+            expect(details).to.have.length(1);
+            expect(details[0].filter).to.equal('Photo');
+
+            sidenav.dispatchEvent(new CustomEvent(EVENT_MERCH_SIDENAV_SELECT));
+            expect(details).to.have.length(2);
+        });
+
+        it('dispatches literals once for a filter change that rewrites resultCount', async () => {
+            const details = [];
+            collection.addEventListener(
+                EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                (event) => details.push(event.detail),
+            );
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(details).to.have.length(1);
+            expect(details[0].resultCount).to.equal(2);
+        });
+    });
+
+    describe('merch-card-collection first load with title based arrangement', () => {
+        let collection;
+
+        const allCards = () => [...collection.querySelectorAll('merch-card')];
+        const cardTitle = (card) => card.title ?? '';
+        // Titles are written by each card's own hydration, after the cards are appended.
+        const titledCards = () => allCards().filter(cardTitle);
+        const shownTitles = () =>
+            [...collection.children]
+                .filter(
+                    (child) =>
+                        child.tagName === 'MERCH-CARD' &&
+                        child.style.display !== 'none',
+                )
+                .map(cardTitle);
+        const compareTitles = (a, b) =>
+            a.localeCompare(b, 'en', { sensitivity: 'base' });
+
+        const load = async (hash) => {
+            document.location.hash = hash;
+            let render;
+            [collection, render] = prepareTemplate(
+                'collectionAutoblock',
+                false,
+            );
+            render();
+            await collection.checkReady();
+            for (let i = 0; i < 50 && titledCards().length === 0; i++) {
+                await delay(20);
+            }
+            await delay(100);
+        };
+
+        afterEach(() => {
+            collection?.remove();
+            document.location.hash = '';
+        });
+
+        it('orders cards alphabetically by their hydrated titles when sort is in the URL', async () => {
+            await load('#sort=alphabetical');
+
+            expect(titledCards().length).to.be.greaterThan(0);
+            const expected = allCards()
+                .map(cardTitle)
+                .sort(compareTitles)
+                .slice(0, collection.limit);
+            expect(shownTitles()).to.deep.equal(expected);
+        });
+
+        it('keeps only cards whose hydrated title matches the search in the URL', async () => {
+            await load('#search=photo');
+
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('photo'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+        });
+
+        it('applies a search and an alphabetical sort changed after the cards hydrated', async () => {
+            await load('');
+            expect(titledCards().length).to.be.greaterThan(0);
+
+            collection.sort = 'alphabetical';
+            await collection.updateComplete;
+            await delay(20);
+            expect(shownTitles()).to.deep.equal(
+                allCards()
+                    .map(cardTitle)
+                    .sort(compareTitles)
+                    .slice(0, collection.limit),
+            );
+
+            collection.search = 'heading';
+            await collection.updateComplete;
+            await delay(20);
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('heading'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+
+            collection.search = '';
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.resultCount).to.equal(allCards().length);
         });
     });
 

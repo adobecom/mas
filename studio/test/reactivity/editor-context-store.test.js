@@ -322,6 +322,70 @@ describe('Reactivity Stores', () => {
                 expect(result).to.deep.equal(parentData);
                 expect(store.defaultLocaleId).to.equal('default-id');
             });
+
+            it('resolves a promo variation of a grouped variation to the default card', async () => {
+                store = new EditorContextStore(null);
+                const groupedPath = '/content/dam/mas/sandbox/en_US/cards/pzn/edu';
+                const promoFragmentPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/cards/pzn/edu';
+                const defaultCard = {
+                    id: 'default-id',
+                    path: '/content/dam/mas/sandbox/en_US/cards/my-card',
+                    fields: [{ name: 'variations', values: [groupedPath] }],
+                };
+                const fragmentsByPath = {
+                    [groupedPath]: { id: 'grouped-id', path: groupedPath },
+                    [defaultCard.path]: defaultCard,
+                };
+                const promoAem = {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getByPath: sandbox.stub().callsFake(async (path) => fragmentsByPath[path] ?? null),
+                                getById: sandbox.stub().resolves(defaultCard),
+                                getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: defaultCard.path }] }),
+                            },
+                        },
+                    },
+                };
+
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository') return { aem: promoAem };
+                    return originalQuerySelector.call(document, selector);
+                };
+
+                store.fetchParentForPromoVariation(promoFragmentPath);
+                const result = await store.getLocaleDefaultFragmentAsync();
+
+                expect(result).to.equal(defaultCard);
+                expect(store.defaultLocaleId).to.equal('default-id');
+            });
+
+            it('leaves a promo variation of a grouped variation without a parent when its default card lookup fails', async () => {
+                store = new EditorContextStore(null);
+                const groupedPath = '/content/dam/mas/sandbox/en_US/cards/pzn/edu';
+                const promoFragmentPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/cards/pzn/edu';
+                const promoAem = {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getByPath: sandbox.stub().resolves({ id: 'grouped-id', path: groupedPath }),
+                                getReferencedBy: sandbox.stub().rejects(new Error('referencedBy failed')),
+                            },
+                        },
+                    },
+                };
+
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository') return { aem: promoAem };
+                    return originalQuerySelector.call(document, selector);
+                };
+
+                store.fetchParentForPromoVariation(promoFragmentPath);
+                const result = await store.getLocaleDefaultFragmentAsync();
+
+                expect(result).to.be.null;
+                expect(store.defaultLocaleId).to.be.null;
+            });
         });
 
         describe('reset', () => {

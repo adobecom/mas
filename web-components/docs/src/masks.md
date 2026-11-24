@@ -1,3 +1,5 @@
+<script type="module" src="../dist/merch-card-collection.js"></script>
+
 # Masks
 
 A **mask** is a card content fragment that is overlaid on top of another card fragment at pipeline time. Only the fields present in the mask override the base fragment; all other fields are left untouched.
@@ -61,6 +63,7 @@ Masks are authored in M@S Studio under **Advanced Tools → Masks**. The editor 
 See the [studio masks README](../../studio/src/masks/README.md) for the full authoring and AEM folder reference.
 
 ## Example
+<div id="standalone">
 <div class="mask-parent">
     <style>
         .mask-parent {
@@ -89,17 +92,34 @@ See the [studio masks README](../../studio/src/masks/README.md) for the full aut
         </p>
     </div>
 </div>
+</div>
+
+## Collections
+
+A `mask` attribute on a collection's `<aem-fragment>` applies to every card it contains, at any depth, by design. There is one mask per collection; individual cards inside it cannot choose a different one. This collection is masked in the markup, so its three cards render masked on load.
+
+<div id="collection">
+    <merch-card-collection>
+        <aem-fragment fragment="74295c36-f9a8-4b0b-8b9e-ac84fdaf0a02" mask="nala-mask"></aem-fragment>
+    </merch-card-collection>
+</div>
 <script type="module">
-    document.getElementById('btnMask').addEventListener('click', () => {
-        document.querySelectorAll('aem-fragment').forEach(el => {
-            el.setAttribute('mask', 'nala-mask');
-            document.querySelector('mas-commerce-service').refreshFragments();
+    const buttons = [...document.querySelectorAll('#btnMask, #btnUnMask')];
+    async function setMask(mask) {
+        buttons.forEach((button) => {
+            button.disabled = true;
         });
-    });
-    document.getElementById('btnUnMask').addEventListener('click', () => {
-        document.querySelectorAll('aem-fragment').forEach(el => {
-            el.removeAttribute('mask');
-            document.querySelector('mas-commerce-service').refreshFragments();
+        const fragments = [...document.querySelectorAll('aem-fragment')];
+        fragments.forEach((fragment) => {
+            if (mask) fragment.setAttribute('mask', mask);
+            else fragment.removeAttribute('mask');
         });
-    });
+        await Promise.allSettled(fragments.map((fragment) => fragment.refresh()));
+        await Promise.allSettled([...document.querySelectorAll('merch-card')].map((card) => card.checkReady()));
+        buttons.forEach((button) => {
+            button.disabled = false;
+        });
+    }
+    document.getElementById('btnMask').addEventListener('click', () => setMask('nala-mask'));
+    document.getElementById('btnUnMask').addEventListener('click', () => setMask(null));
 </script>

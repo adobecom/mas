@@ -19,10 +19,17 @@ export const tableHeaderBaseStyles = css`
     .item-table {
         --mod-table-header-background-color: var(--spectrum-gray-50);
         --mod-table-border-radius: 0;
+        --items-table-head-height: 44px;
+    }
+
+    .item-table sp-table-head {
+        height: var(--items-table-head-height);
     }
 
     .item-table sp-table-head-cell {
         align-content: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .item-table sp-table-head-cell:first-of-type {
@@ -44,23 +51,79 @@ export const tableColumnIconStyles = css`
     .table-icon-cell {
         display: flex;
         align-items: center;
-        flex: 0;
+        flex: 0 0 auto;
     }
 
     .table-icon-cell--chevron {
-        padding: 29px;
+        padding: 0 35px;
     }
 
     .table-icon-cell--checkbox {
-        padding: 22px;
+        padding: 15px;
+    }
+`;
+
+export const tableRowLinkStyles = css`
+    sp-table-row {
+        position: relative;
+        isolation: isolate;
+    }
+
+    a.fragment-editor-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    a.row-link-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    sp-table-row sp-table-checkbox-cell,
+    sp-table-row sp-checkbox,
+    sp-table-row sp-action-menu,
+    sp-table-row sp-action-button,
+    sp-table-row sp-button,
+    sp-table-row sp-icon-button,
+    sp-table-row button,
+    sp-table-row .validation-error-indicator,
+    sp-table-row .offer-id-text,
+    sp-table-row sp-table-cell.preview,
+    sp-table-row .title overlay-trigger,
+    sp-table-row .path overlay-trigger,
+    sp-table-row .offer-id overlay-trigger,
+    sp-table-row .osi overlay-trigger {
+        position: relative;
+        z-index: 2;
     }
 `;
 
 export const tableCellBaseStyles = css`
+    ${tableRowLinkStyles}
     .item-table sp-table-cell,
     sp-table-cell {
         display: flex;
         align-items: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    sp-table-cell.title overlay-trigger {
+        min-width: 0;
+    }
+
+    .title-clamp {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .action-cell {
+        display: flex;
+        justify-content: center;
+        --system-action-button-background-color-default: transparent;
     }
 
     .status-cell {
@@ -115,6 +178,7 @@ export const tableCellBaseStyles = css`
 
         sp-action-button {
             flex: 0 0 auto;
+            margin: 4px;
             --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
 
             &:hover {
@@ -137,6 +201,11 @@ export const tableCellBaseStyles = css`
         sp-tooltip {
             word-break: break-all;
         }
+    }
+
+    .table-cell--invisible {
+        background: transparent;
+        border: none;
     }
 `;
 

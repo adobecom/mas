@@ -1,4 +1,4 @@
-import { COLLECTION_MODEL_PATH, PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 
 /**
@@ -14,13 +14,12 @@ export function isPromoVariationPath(path) {
 }
 
 /**
- * True when a default fragment path can have probed promo variation copies (MAS DAM card paths only).
+ * True when a default fragment path can have probed promo variation copies (MAS DAM card and collection paths).
  * @param {{ path?: string, model?: { path?: string } }} fragmentData
  * @returns {boolean}
  */
 export function canProbePromoVariationsForFragment(fragmentData) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return false;
-    if (fragmentData.model?.path === COLLECTION_MODEL_PATH) return false;
     return !!PATH_TOKENS.exec(fragmentData.path);
 }
 
@@ -233,30 +232,4 @@ export function fragmentIsPromoVariation(fragment) {
     if (!fragment) return false;
     if (isPromoVariationPath(fragment.path)) return true;
     return Boolean(getPromotionTagFromFragment(fragment));
-}
-
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isFragmentNotFoundError(error) {
-    const status = error?.status ?? error?.response?.status;
-    if (status === 404) return true;
-    const message = error?.message?.toLowerCase() ?? '';
-    return message.includes('404') || message.includes('not found');
-}
-
-/**
- * @param {{ getByPath: (path: string, options?: object) => Promise<unknown> }} fragmentsApi
- * @param {string} path
- * @param {object} [options]
- * @returns {Promise<object|null>}
- */
-export async function getFragmentByPathOrNull(fragmentsApi, path, options) {
-    try {
-        return (await fragmentsApi.getByPath(path, options)) ?? null;
-    } catch (error) {
-        if (isFragmentNotFoundError(error)) return null;
-        throw error;
-    }
 }

@@ -181,11 +181,23 @@ export class RteLinkEditor extends LitElement {
         return this.checkoutParameters !== undefined;
     }
 
+    get #analyticsIdMissingAndRequired() {
+        if (!this.linkAttrs) return false;
+        const template = this.linkAttrs['data-template'];
+        const osi = this.linkAttrs['data-wcs-osi'];
+        return osi && template === 'checkoutUrl' && !this.analyticsId;
+    }
+
     get #analyticsIdField() {
         const options = this.#isCheckoutLink ? Object.keys(CHECKOUT_CTA_TEXTS) : [...ANALYTICS_LINK_IDS];
         options.push('');
         return html` <sp-field-label for="analyticsId">Analytics Id</sp-field-label>
-            <sp-picker id="analyticsId" .value=${this.analyticsId} @change=${(e) => (this.analyticsId = e.target.value)}>
+            <sp-picker
+                id="analyticsId"
+                invalid=${this.#analyticsIdMissingAndRequired || nothing}
+                .value=${this.analyticsId}
+                @change=${(e) => (this.analyticsId = e.target.value)}
+            >
                 <sp-menu> ${options.map((option) => html`<sp-menu-item value="${option}">${option}</sp-menu-item>`)} </sp-menu>
             </sp-picker>`;
     }
@@ -256,8 +268,6 @@ export class RteLinkEditor extends LitElement {
             <sp-field-label for="linkVariant">Variant</sp-field-label>
             <sp-button-group id="linkVariant">
                 ${HEADLESS_LINK_VARIANTS.map(({ value, label }) => {
-                    const emphasisStyle =
-                        value === 'primary' ? 'font-weight:700' : value === 'secondary' ? 'font-style:italic' : '';
                     return value === 'secondary-link'
                         ? html`<sp-link
                               class=${classMap({ selected: displayVariant === value })}
@@ -270,7 +280,6 @@ export class RteLinkEditor extends LitElement {
                           >`
                         : html`<sp-button
                               class=${classMap({ selected: displayVariant === value })}
-                              style=${emphasisStyle}
                               @click=${() => (this.variant = value)}
                               variant=${value}
                               >${label}</sp-button
@@ -460,7 +469,14 @@ export class RteLinkEditor extends LitElement {
                 type="button"
                 >Cancel</sp-button
             >
-            <sp-button id="saveButton" slot="button" variant="accent" @click=${this.#handleSave}>Save</sp-button>
+            <sp-button
+                ?disabled=${this.#analyticsIdMissingAndRequired || nothing}
+                id="saveButton"
+                slot="button"
+                variant="accent"
+                @click=${this.#handleSave}
+                >Save</sp-button
+            >
         </sp-dialog>`;
     }
 

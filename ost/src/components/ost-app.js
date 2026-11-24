@@ -471,9 +471,36 @@ export class OstApp extends LitElement {
         return !!(this.config?.searchOfferSelectorId || store.deepLink?.offerId);
     }
 
+    selectMulti() {
+        if (!store.selectedBaseOsi) return;
+        const detail = {
+            base: store.selectedBaseOsi ? { osi: store.selectedBaseOsi, offer: store.selectedBaseOffer } : null,
+            trial: store.selectedTrialOsi ? { osi: store.selectedTrialOsi, offer: store.selectedTrialOffer } : null,
+            country: store.country,
+        };
+        this.dispatchEvent(
+            new CustomEvent('ost-multi-select', {
+                bubbles: true,
+                composed: true,
+                detail,
+            }),
+        );
+        if (typeof store.onMultiSelect === 'function') {
+            store.onMultiSelect(detail);
+        }
+    }
+
     handleFooterUse() {
         if (store.authoringFlow === 'consult') {
             this.cancel();
+            return;
+        }
+        // A caller that supplied onMultiSelect (MASA release flow) wants the
+        // base+trial pair handed back as one selection rather than the per-row
+        // placeholder emission used for RTE authoring. Keep the placeholder path
+        // for every other caller (no onMultiSelect).
+        if (store.authoringFlow === 'tryBuy' && typeof store.onMultiSelect === 'function') {
+            this.selectMulti();
             return;
         }
         // The footer Use emits the tab's PRIMARY placeholder type, once per offer

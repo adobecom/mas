@@ -8,8 +8,8 @@ export default {
             data: {
                 // TODO(MWPW-200587): re-save QA fragment as pro (QA author write access pending)
                 cardid: '6edac1ee-89f9-4432-aa42-008a360fa537',
-                title: 'Saved Pro Title',
-                whatsIncludedLabel: 'Saved toggle label:',
+                title: 'Acrobat Pro',
+                whatsIncludedLabel: 'What’s Included',
                 theme: 'Dark',
                 size: 'Edu',
             },

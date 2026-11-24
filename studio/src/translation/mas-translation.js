@@ -1,12 +1,23 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles } from '../common/column-resize-controller.js';
 import { styles } from './mas-translation.css.js';
 import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES } from '../constants.js';
-import { showToast } from '../utils.js';
+import { showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
 import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
+import {
+    canDuplicateTranslationProject,
+    duplicateTranslationProject,
+    getTranslationProjectTitles,
+} from './translation-utils.js';
+import './mas-translation-duplicate-dialog.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
+import { untrackPendingProject } from '../common/utils/project-list-utils.js';
 
 const translationSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -16,15 +27,31 @@ const translationSkeletonRow = () =>
         <sp-table-cell class="actions"></sp-table-cell>
     </sp-table-row>`;
 
+const TRANSLATION_COLUMNS = [
+    { key: 'title', label: 'Translation Project' },
+    { key: 'status', label: 'Status' },
+    { key: 'lastUpdatedBy', label: 'Last updated by' },
+    { key: 'sentOn', label: 'Sent on' },
+    { key: 'actions', label: 'Actions', align: 'right' },
+];
+
 class MasTranslation extends LitElement {
-    static styles = styles;
+    static styles = [...styles, columnResizeStyles(TRANSLATION_COLUMNS, { match: 'index' })];
+
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         columns: { type: Set, state: true },
         searchQuery: { type: String, state: true },
+        duplicateDialogOpen: { type: Boolean, state: true },
+        duplicating: { type: Boolean, state: true },
     };
+
+    #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
+    #duplicateProject = null;
 
     constructor() {
         super();
@@ -35,16 +62,9 @@ class MasTranslation extends LitElement {
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.searchQuery = '';
-        this.columns = new Set([
-            { key: 'title', label: 'Translation Project' },
-            { key: 'status', label: 'Status' },
-            {
-                key: 'lastUpdatedBy',
-                label: 'Last updated by',
-            },
-            { key: 'sentOn', label: 'Sent on' },
-            { key: 'actions', label: 'Actions', align: 'right' },
-        ]);
+        this.duplicateDialogOpen = false;
+        this.duplicating = false;
+        this.columns = new Set(TRANSLATION_COLUMNS);
     }
 
     /** @type {MasRepository} */
@@ -109,7 +129,7 @@ class MasTranslation extends LitElement {
                         sort-key="sentOn"
                         @sorted=${this.#sortBySentOn}
                     >
-                        ${label}
+                        ${label} ${this.columnResize.handle(key, label)}
                     </sp-table-head-cell>
                 `,
             )}
@@ -119,13 +139,25 @@ class MasTranslation extends LitElement {
     get translationsProjectsContent() {
         const isLoading = Store.translationProjects?.list?.loading?.get();
         if (isLoading && !this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="item-table">
+            return html` <sp-table
+                emphasized
+                .scroller=${true}
+                class="item-table"
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+            >
                 ${this.translationProjectsTableHead}
                 <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
         if (this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="item-table">
+            return html` <sp-table
+                emphasized
+                .scroller=${true}
+                class="item-table"
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+            >
                 ${this.translationProjectsTableHead}
                 <sp-table-body>
                     ${repeat(
@@ -137,7 +169,19 @@ class MasTranslation extends LitElement {
                                 value=${translationProject.get().path}
                                 data-id=${translationProject.get().id}
                             >
-                                <sp-table-cell>${translationProject.get().title}</sp-table-cell>
+                                ${renderRowLinkOverlay(translationProject.get(), { page: PAGE_NAMES.TRANSLATION_EDITOR })}
+                                <sp-table-cell class="title">
+                                    <overlay-trigger triggered-by="hover">
+                                        <div slot="trigger" class="title-clamp">
+                                            ${renderEditorLink(translationProject.get(), translationProject.get().title, {
+                                                page: PAGE_NAMES.TRANSLATION_EDITOR,
+                                            })}
+                                        </div>
+                                        <sp-tooltip slot="hover-content" placement="bottom"
+                                            >${translationProject.get().title}</sp-tooltip
+                                        >
+                                    </overlay-trigger>
+                                </sp-table-cell>
                                 <sp-table-cell>${this.#formatProjectStatus(translationProject)}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>
@@ -148,7 +192,14 @@ class MasTranslation extends LitElement {
                                                 <sp-icon-edit slot="icon"></sp-icon-edit>
                                                 Edit
                                             </sp-menu-item>
-                                            <sp-menu-item disabled>
+                                            <sp-menu-item
+                                                ?disabled=${this.duplicating ||
+                                                !canDuplicateTranslationProject(
+                                                    translationProject.get().getFieldValue('status'),
+                                                )}
+                                                @click=${() =>
+                                                    this.#handleDuplicateTranslationProjectFromList(translationProject)}
+                                            >
                                                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                                                 Duplicate
                                             </sp-menu-item>
@@ -252,6 +303,7 @@ class MasTranslation extends LitElement {
             Store.translationProjects.list.loading.set(true);
             showToast('Deleting translation project...');
             await this.repository.deleteFragment(translationProject, { startToast: false, endToast: false });
+            untrackPendingProject(Store.translationProjects.list.data, translationProject.id);
             const updatedTranslationProjects = this.#allTranslationProjectsData.filter(
                 (project) => project.get().id !== translationProject.get().id,
             );
@@ -275,6 +327,35 @@ class MasTranslation extends LitElement {
             timeZone: 'UTC',
         });
     }
+
+    #handleDuplicateTranslationProjectFromList(translationProject) {
+        if (this.duplicating) return;
+        const fragment = translationProject.get();
+        this.#duplicateProposedTitle = `${fragment.title}-copy`;
+        this.#duplicateProject = fragment;
+        this.#duplicateExistingTitles = getTranslationProjectTitles(
+            this.#allTranslationProjectsData.map((project) => project.get()),
+        );
+        this.duplicateDialogOpen = true;
+    }
+
+    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+        const sourceProject = this.#duplicateProject;
+        if (!sourceProject) return;
+        this.duplicateDialogOpen = false;
+        this.duplicating = true;
+        try {
+            await duplicateTranslationProject(this.repository, sourceProject, title);
+            showToast('Project successfully duplicated.', 'positive');
+        } catch (error) {
+            console.error('Error duplicating translation project:', error);
+            if (!error.alreadyToasted) {
+                showToast(error instanceof UserFriendlyError ? error.message : getCreateProjectErrorMessage(error), 'negative');
+            }
+        } finally {
+            this.duplicating = false;
+        }
+    };
 
     #formatProjectStatus(translationProject) {
         const status = translationProject.get().getFieldValue('status');
@@ -328,6 +409,20 @@ class MasTranslation extends LitElement {
                     <div>${this.translationProjectsData.length} result(s)</div>
                 </div>
                 ${this.confirmDialog}
+                ${this.duplicating
+                    ? html`<div class="duplicating-overlay">
+                          <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                      </div>`
+                    : nothing}
+                <mas-translation-duplicate-dialog
+                    .open=${this.duplicateDialogOpen}
+                    .proposedTitle=${this.#duplicateProposedTitle}
+                    .existingTitles=${this.#duplicateExistingTitles}
+                    @duplicate-confirmed=${this.#onDuplicateConfirmed}
+                    @duplicate-cancelled=${() => {
+                        this.duplicateDialogOpen = false;
+                    }}
+                ></mas-translation-duplicate-dialog>
                 <div class="translation-content">${this.translationsProjectsContent}</div>
             </div>
         `;

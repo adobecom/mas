@@ -31,6 +31,31 @@ describe('commerce service', () => {
     });
 
     describe(`component "${TAG_NAME_SERVICE}"`, () => {
+        it('exposes shared checkout decisions before connection and after activation', () => {
+            const disconnected = document.createElement(TAG_NAME_SERVICE);
+            const context = {
+                modal: 'crm',
+                fallbackStep: 'payment',
+                checkoutWorkflowStep: 'segmentation',
+                threeInOneEnabled: false,
+            };
+            const expected = {
+                checkoutWorkflowStep: 'payment',
+                modal: undefined,
+                fallbackUsed: true,
+            };
+            expect(
+                disconnected.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+            const service = initMasCommerceService();
+            expect(service.checkoutDecisions).to.equal(
+                disconnected.checkoutDecisions,
+            );
+            expect(
+                service.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+        });
+
         describe('feature flags', () => {
             it('considers feature flags', async () => {
                 let el = await initMasCommerceService();
@@ -84,9 +109,39 @@ describe('commerce service', () => {
                 expect(service.settings.aupSelect).to.be.true;
             });
 
-            for (const value of ['on', 'off', 'true', 'ON', '']) {
+            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
+                meta.content = 'off';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'on' });
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('is disabled when the attribute is not set', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            for (const value of ['on', 'true', 'ON', '']) {
+                it(`enables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.true;
+                });
+            }
+
+            for (const value of ['off', 'false']) {
+                it(`disables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.false;
+                });
+            }
+
+            for (const value of ['on', 'off', 'true', 'false', 'ON', '']) {
                 it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
-                    const enabled = value === 'on';
+                    const enabled = value !== 'off' && value !== 'false';
                     const fallback = enabled ? 'off' : 'on';
                     meta.content = fallback;
                     document.head.append(meta);
@@ -99,6 +154,22 @@ describe('commerce service', () => {
                     expect(service.settings.aupSelect).to.equal(enabled);
                 });
             }
+
+            it('updates settings when the attribute is set after initialization', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+                service.setAttribute('aup-select', 'on');
+                expect(service.settings.aupSelect).to.be.true;
+                service.setAttribute('aup-select', 'off');
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('ignores aup-select changes that do not alter the setting', () => {
+                const service = initMasCommerceService();
+                service.setAttribute('aup-select', 'on');
+                service.setAttribute('aup-select', 'true');
+                expect(service.settings.aupSelect).to.be.true;
+            });
         });
 
         it('returns "Defaults" object', async () => {
@@ -242,7 +313,20 @@ describe('commerce service', () => {
                     severity: 'e',
                     tags: 'ccd',
                     isProdDomain: false,
+                    country: 'US',
                 });
+            });
+
+            it('logs the resolved country in lana facts', async () => {
+                const el = await initMasCommerceService({
+                    'lana-sample-rate': '100',
+                    locale: 'fr_LU',
+                });
+                el.log.error('MERCH-CARD failed to initialize');
+                const [msg] = window.lana.log.lastCall.args;
+                expect(msg).to.match(
+                    /¶facts=\[\{"mas-commerce-service:country":"LU"\}\]$/,
+                );
             });
         });
 

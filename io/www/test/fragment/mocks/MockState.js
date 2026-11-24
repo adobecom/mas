@@ -17,4 +17,8 @@ export class MockState {
             resolve();
         });
     }
+
+    async delete(key) {
+        delete this.store[key];
+    }
 }

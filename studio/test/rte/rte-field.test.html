@@ -41,6 +41,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
 
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
@@ -50,6 +51,7 @@
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
             import { EVENT_OST_SELECT } from '../../src/constants.js';
+            import { NodeSelection } from '../../libs/prosemirror.js';
 
             import {
                 createFromTemplate,
@@ -129,6 +131,91 @@
                     it('should render with default attributes', async function () {
                         const rte = await createFromTemplate('rte', this.test.title);
                         expect(rte.shadowRoot).exist;
+                    });
+
+                    it('inserts a non-translatable countdown link without changing surrounding copy', async function () {
+                        const rte = await createFromTemplate('rte-countdown', this.test.title);
+                        rte.shadowRoot.querySelector('#addCountdownButton').click();
+                        const anchor = rte.shadowRoot.querySelector('#editor a');
+                        expect(anchor.textContent).to.equal('countdown-timer');
+                        expect(anchor.getAttribute('href')).to.equal('#');
+                        expect(anchor.getAttribute('translate')).to.equal('no');
+                        expect(anchor.parentElement.tagName).to.equal('STRONG');
+                        expect(rte.value).to.include('Existing description');
+                        rte.updateContent(rte.value);
+                        expect(rte.shadowRoot.querySelector('#editor a').getAttribute('translate')).to.equal('no');
+                    });
+
+                    describe('countdown color picker', () => {
+                        const selectCountdownLink = async (rte) => {
+                            const { state } = rte.editorView;
+                            let pos;
+                            state.doc.descendants((node, nodePos) => {
+                                if (node.type.name === 'link') pos = nodePos;
+                            });
+                            rte.editorView.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+                            await rte.updateComplete;
+                        };
+                        const picker = (rte) => rte.shadowRoot.querySelector('#countdownColor');
+
+                        it('shows only while the countdown link is selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link', this.test.title);
+                            expect(picker(rte)).to.not.exist;
+                            await selectCountdownLink(rte);
+                            expect(picker(rte)).to.exist;
+                            expect(picker(rte).value).to.equal('default');
+                            expect([...picker(rte).querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
+                                'default',
+                                'spectrum-green-900',
+                                'spectrum-red-700',
+                            ]);
+                        });
+
+                        it('stays hidden for other links and without the countdown flag', async function () {
+                            const other = await createFromTemplate('rte-countdown-other-link', this.test.title);
+                            await selectCountdownLink(other);
+                            expect(picker(other)).to.not.exist;
+                            const plain = await createFromTemplate('rte-countdown-link-plain', this.test.title);
+                            await selectCountdownLink(plain);
+                            expect(picker(plain)).to.not.exist;
+                        });
+
+                        it('sets and clears the link class and keeps the link selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link', this.test.title);
+                            await selectCountdownLink(rte);
+                            picker(rte).value = 'spectrum-green-900';
+                            picker(rte).dispatchEvent(new Event('change'));
+                            await rte.updateComplete;
+                            expect(rte.value).to.include('class="spectrum-green-900"');
+                            expect(rte.value).to.include('translate="no"');
+                            expect(picker(rte).value).to.equal('spectrum-green-900');
+                            picker(rte).value = 'default';
+                            picker(rte).dispatchEvent(new Event('change'));
+                            await rte.updateComplete;
+                            expect(rte.value).to.not.include('class=');
+                            expect(picker(rte).value).to.equal('default');
+                        });
+
+                        it('shows for any spelling the pipeline accepts', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link-spelling', this.test.title);
+                            await selectCountdownLink(rte);
+                            expect(picker(rte)).to.exist;
+                        });
+
+                        it('shows the stored class when the link is selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link-red', this.test.title);
+                            await selectCountdownLink(rte);
+                            expect(picker(rte).value).to.equal('spectrum-red-700');
+                        });
+                    });
+
+                    it('pastes a plain URL without inserting HTML markup as text', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        const url = 'https://www.adobe.com/products/photoshop.html';
+
+                        rte.editorView.pasteText(url);
+
+                        expect(rte.editorView.state.doc.textContent).to.equal(url);
                     });
 
                     it('should not emit change when syncing an external value update', async function () {
@@ -563,40 +650,130 @@
                     });
                 });
 
-                describe('RTE Field: headless CTA variant toggling', () => {
+                describe('RTE Field: persisted headless CTA variants', () => {
                     let rte;
+                    let openOst;
+
+                    beforeEach(() => {
+                        openOst = sinon.stub(window.ost, 'openOfferSelectorTool').returns(() => {});
+                    });
+
+                    afterEach(() => {
+                        openOst.restore();
+                    });
 
                     const firstLink = () => rte.shadowRoot.querySelector('.ProseMirror a');
 
                     const boldButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Bold"]');
                     const italicButton = () => rte.shadowRoot.querySelector('sp-action-button[title^="Italic"]');
 
-                    it('toggles a headless CTA to primary (strong) on Bold, and off again', async function () {
+                    it('defaults a newly authored web link to Link and persists it when saved', async function () {
                         rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent('');
+                        await delay(50);
+                        await rte.openLinkEditor();
+                        const editor = rte.linkEditorElement;
+                        await editor.updateComplete;
+                        expect(editor.variant).to.equal('secondary-link');
+                        expect(editor.shadowRoot.querySelector('sp-link.selected').textContent.trim()).to.equal('Link');
+                        editor.href = '/details';
+                        editor.text = 'Details';
+                        await editor.updateComplete;
+                        clickSave(rte);
+                        await delay(50);
+                        expect(firstLink().className).to.equal('secondary-link');
+                        expect(firstLink().getAttribute('href')).to.equal('/details');
+                    });
+
+                    it('defaults a new commerce CTA to Primary, independently of the web link default', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.defaultLinkStyle = 'secondary-link';
+                        rte.updateContent('');
+                        await delay(50);
+                        rte.handleOpenOfferSelector(new Event('click'));
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_SELECT, {
+                                detail: { is: 'checkout-link', 'data-wcs-osi': 'osi-new', text: 'Buy now' },
+                                bubbles: true,
+                            }),
+                        );
+                        await delay(50);
+                        expect(firstLink().className).to.equal('primary');
+                        rte.selectLink(1);
+                        await rte.openLinkEditor();
+                        const editor = rte.linkEditorElement;
+                        await editor.updateComplete;
+                        expect(editor.variant).to.equal('primary');
+                        expect(editor.shadowRoot.querySelector('sp-button.selected').textContent.trim()).to.equal(
+                            'Primary button',
+                        );
+                    });
+
+                    for (const variant of ['primary', 'secondary', 'secondary-link']) {
+                        it(`preserves ${variant} when an existing commerce CTA is edited through OST`, async function () {
+                            rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                            rte.updateContent(`<a class="${variant}" data-wcs-osi="osi-old">Buy now</a>`);
+                            await delay(50);
+                            rte.selectLink(1);
+                            rte.handleOpenOfferSelector(null, firstLink());
+                            document.dispatchEvent(
+                                new CustomEvent(EVENT_OST_SELECT, {
+                                    detail: { is: 'checkout-link', 'data-wcs-osi': 'osi-updated', text: 'Buy now' },
+                                    bubbles: true,
+                                }),
+                            );
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                            expect(firstLink().dataset.wcsOsi).to.equal('osi-updated');
+                        });
+                    }
+
+                    it('does not assign a CTA variant to a newly inserted inline price', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent('');
+                        await delay(50);
+                        rte.handleOpenOfferSelector(new Event('click'));
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_SELECT, {
+                                detail: { is: 'inline-price', 'data-wcs-osi': 'osi-price' },
+                                bubbles: true,
+                            }),
+                        );
+                        await delay(50);
+                        const price = rte.shadowRoot.querySelector('.ProseMirror [is="inline-price"]');
+                        expect(price).to.exist;
+                        expect(price.classList.contains('primary')).to.be.false;
+                    });
+
+                    it('toggles Bold formatting without changing the selected CTA variant', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.equal('STRONG');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
 
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('toggles a headless CTA to secondary (em) on Italic', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                    it('toggles Italic formatting without changing the selected CTA variant', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         italicButton().click();
                         await delay(50);
                         expect(firstLink().parentElement.tagName).to.equal('EM');
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('switches directly from primary to secondary without toggling off', async function () {
-                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                    it('saves the dialog variant as a class and preserves normal text formatting', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
                         boldButton().click();
@@ -604,26 +781,98 @@
                         expect(firstLink().parentElement.tagName).to.equal('STRONG');
 
                         rte.selectLink(1);
+                        rte.openLinkEditor();
+                        await rte.updateComplete;
+                        const editor = rte.linkEditorElement;
+                        expect(editor.variant).to.equal('accent');
+                        editor.variant = 'secondary';
+                        await editor.updateComplete;
+                        editor.shadowRoot.querySelector('#saveButton').click();
                         await delay(50);
-                        italicButton().click();
+                        expect(firstLink().className).to.equal('secondary');
+                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
+                        rte.updateContent(rte.value);
                         await delay(50);
-                        expect(firstLink().parentElement.tagName).to.equal('EM');
+                        expect(firstLink().className).to.equal('secondary');
+                        expect(firstLink().parentElement.tagName).to.equal('STRONG');
                     });
 
-                    it('derives the current variant from a legacy class when no mark is present', async function () {
+                    it('persists all three headless dialog variants without introducing formatting wrappers', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        for (const variant of ['primary', 'secondary', 'secondary-link']) {
+                            rte.selectLink(1);
+                            rte.openLinkEditor();
+                            await rte.updateComplete;
+                            const editor = rte.linkEditorElement;
+                            editor.variant = variant;
+                            await editor.updateComplete;
+                            editor.shadowRoot.querySelector('#saveButton').click();
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                            expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                            expect(firstLink().parentElement.tagName).to.not.equal('EM');
+                            rte.updateContent(rte.value);
+                            await delay(50);
+                            expect(firstLink().className).to.equal(variant);
+                        }
+                    });
+
+                    it('normalizes legacy wrapper-only CTAs without overriding explicit variants', async function () {
+                        rte = await createFromTemplate('rte-headless-cta', this.test.title);
+                        rte.updateContent(
+                            '<p><strong><a href="#">Primary</a></strong><em><a href="#">Secondary</a></em>' +
+                                '<a href="#">Link</a><strong><a href="#" class="secondary-link">Explicit link</a></strong></p>',
+                        );
+                        await delay(50);
+                        const links = [...rte.shadowRoot.querySelectorAll('.ProseMirror a')];
+                        expect(links.map((a) => a.className)).to.deep.equal([
+                            'primary',
+                            'secondary',
+                            'secondary-link',
+                            'secondary-link',
+                        ]);
+                        expect(links[0].parentElement.tagName).to.not.equal('STRONG');
+                        expect(links[1].parentElement.tagName).to.not.equal('EM');
+                        expect(links[3].parentElement.tagName).to.equal('STRONG');
+                    });
+
+                    it('normalizes legacy variants on initial load and retains checkout attributes when edited', async function () {
+                        rte = await createFromTemplate('rte-headless-cta-wrapped', this.test.title);
+                        expect(firstLink().className).to.equal('primary');
+                        expect(firstLink().parentElement.tagName).to.not.equal('STRONG');
+                        rte.selectLink(1);
+                        rte.openLinkEditor();
+                        await rte.updateComplete;
+                        const editor = rte.linkEditorElement;
+                        expect(editor.variant).to.equal('primary');
+                        editor.variant = 'secondary';
+                        await editor.updateComplete;
+                        editor.shadowRoot.querySelector('#saveButton').click();
+                        await delay(50);
+                        const link = firstLink();
+                        expect(link.className).to.equal('secondary');
+                        expect(link.dataset.key).to.equal('buy');
+                        expect(link.dataset.wcsOsi).to.equal('abm');
+                        expect(link.dataset.checkoutWorkflowStep).to.equal('segmentation');
+                        expect(link.dataset.modal).to.equal('true');
+                        expect(link.dataset.extraOptions).to.equal('{"promoid":"test"}');
+                    });
+
+                    it('keeps Bold and Italic independent text-formatting controls', async function () {
                         rte = await createFromTemplate('rte-headless-cta-legacy', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
-                        // 'accent' resolves to the 'primary' display variant, matching Bold's
-                        // target variant, so this toggles it OFF to secondary-link/plain.
                         boldButton().click();
                         await delay(50);
-                        const a = firstLink();
-                        expect(a.parentElement.tagName).to.not.equal('STRONG');
-                        expect(a.className).to.equal('');
+                        rte.selectLink(1);
+                        italicButton().click();
+                        await delay(50);
+                        expect(firstLink().closest('strong')).to.exist;
+                        expect(firstLink().closest('em')).to.exist;
+                        expect(firstLink().classList.contains('accent')).to.be.true;
                     });
 
-                    it('only intercepts Bold/Italic on a headless CTA, leaving other marks to toggle normally', async function () {
+                    it('keeps other text-formatting controls working', async function () {
                         rte = await createFromTemplate('rte-headless-cta', this.test.title);
                         rte.selectLink(1);
                         await delay(50);
@@ -996,6 +1245,21 @@
         <template id="rte-headless-cta-legacy">
             <rte-field is-headless-cta link><a class="accent" href="#" data-wcs-osi="abm">Buy now</a></rte-field>
         </template>
+        <template id="rte-headless-cta-wrapped">
+            <rte-field is-headless-cta link>
+                <strong
+                    ><a
+                        href="#"
+                        data-wcs-osi="abm"
+                        data-key="buy"
+                        data-checkout-workflow-step="segmentation"
+                        data-modal="true"
+                        data-extra-options='{"promoid":"test"}'
+                        >Buy now</a
+                    ></strong
+                >
+            </rte-field>
+        </template>
         <template id="rte-strong-link">
             <rte-field link
                 ><strong><a href="#">Buy now</a></strong></rte-field
@@ -1099,6 +1363,35 @@
         </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
+        </template>
+        <template id="rte-countdown">
+            <rte-field link countdown><p>Existing description</p></rte-field>
+        </template>
+        <template id="rte-countdown-link">
+            <rte-field link countdown
+                ><p>Copy</p>
+                <p><a href="#" translate="no">countdown-timer</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-red">
+            <rte-field link countdown
+                ><p><a href="#" translate="no" class="spectrum-red-700">countdown-timer</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-spelling">
+            <rte-field link countdown
+                ><p><a href="#" translate="no"> Countdown-Timer </a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-other-link">
+            <rte-field link countdown
+                ><p><a href="/terms">See terms</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-plain">
+            <rte-field link
+                ><p><a href="#" translate="no">countdown-timer</a></p></rte-field
+            >
         </template>
         <template id="rte-mnemonic">
             <rte-field mnemonic><p></p></rte-field>

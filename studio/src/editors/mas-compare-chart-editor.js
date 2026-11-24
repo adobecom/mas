@@ -2429,9 +2429,9 @@ class MasCompareChartEditor extends LitElement {
                                   <div class="compchart-cards-table-head" aria-hidden="true">
                                       <span aria-hidden="true"></span>
                                       <span>Offer</span>
+                                      <span>Path</span>
                                       <span>Fragment title</span>
                                       <span>Offer ID</span>
-                                      <span>Path</span>
                                       <span>Status</span>
                                   </div>
                                   ${repeat(
@@ -2476,14 +2476,14 @@ class MasCompareChartEditor extends LitElement {
                                                       </sp-action-button>
                                                   </div>
                                                   <div class="compchart-card-cell">${this.#renderCardOffer(fragment)}</div>
-                                                  <div class="compchart-card-cell compchart-card-title compchart-truncate">
+                                                  <div class="compchart-card-cell compchart-card-path">
+                                                      ${this.#authorPath(fragment)}
+                                                  </div>
+                                                  <div class="compchart-card-cell compchart-card-title">
                                                       ${this.#fragmentTitle(fragment)}
                                                   </div>
                                                   <div class="compchart-card-cell compchart-card-offer-id">
                                                       ${this.#renderCardOfferId(fragment)}
-                                                  </div>
-                                                  <div class="compchart-card-cell compchart-card-path compchart-truncate">
-                                                      ${this.#authorPath(fragment)}
                                                   </div>
                                                   <div class="compchart-card-cell">${this.#renderCardStatus(fragment)}</div>
                                               </div>

@@ -1,6 +1,7 @@
 // Playwright will include ANSI color characters and regex from below
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3
+import { drainReporterOutput } from './request-counting-reporter.js';
 
 const pattern = [
     '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
@@ -21,6 +22,7 @@ export default class BaseReporter {
     constructor(options) {
         this.options = options;
         this.results = [];
+        this.resultIndices = new Map();
         this.passedTests = 0;
         this.failedTests = 0;
         this.skippedTests = 0;
@@ -32,16 +34,12 @@ export default class BaseReporter {
     }
 
     async onTestEnd(test, result) {
-        const { title, retries, _projectId, annotations } = test;
+        const { title, _projectId, annotations } = test;
         const { name, tags, url, browser, env, branch, repo } = this.parseTestTitle(title, _projectId);
         const { status, duration, error, retry } = result;
         const errorMessage = error?.message;
         const errorValue = error?.value;
         const errorStack = error?.stack;
-
-        if (retry < retries && status === 'failed') {
-            return;
-        }
 
         // Extract test page URL from test annotations
         const testPageAnnotation = annotations?.find((a) => a.type === 'test-page-url');
@@ -50,7 +48,7 @@ export default class BaseReporter {
         // Extract line number and content from Playwright's error.snippet
         let failedLineNumber = null;
         let failedLineContent = null;
-        if (error && status === 'failed' && error.snippet) {
+        if (error && failedStatus.includes(status) && error.snippet) {
             // Extract line number from error.location
             failedLineNumber = error.location?.line?.toString();
 
@@ -69,7 +67,7 @@ export default class BaseReporter {
             }
         }
 
-        this.results.push({
+        const record = {
             title,
             name,
             tags,
@@ -89,7 +87,19 @@ export default class BaseReporter {
             testPageUrl,
             failedLineNumber,
             failedLineContent,
-        });
+        };
+        const key = test.id ?? test;
+        const index = this.resultIndices.get(key);
+        if (index === undefined) {
+            this.resultIndices.set(key, this.results.length);
+            this.results.push(record);
+        } else {
+            const previous = this.results[index].status;
+            if (previous === 'passed') this.passedTests--;
+            else if (previous === 'failed') this.failedTests--;
+            else if (previous === 'skipped') this.skippedTests--;
+            this.results[index] = record;
+        }
         if (status === 'passed') {
             this.passedTests++;
         } else if (failedStatus.includes(status)) {
@@ -110,13 +120,14 @@ export default class BaseReporter {
             } catch (error) {
                 console.log('----Failed to publish result to slack channel----');
             }
+            await drainReporterOutput();
         }
     }
 
     async printResultSummary() {
         const totalTests = this.results.length;
-        const passPercentage = ((this.passedTests / totalTests) * 100).toFixed(2);
-        const failPercentage = ((this.failedTests / totalTests) * 100).toFixed(2);
+        const passPercentage = (totalTests ? (this.passedTests / totalTests) * 100 : 0).toFixed(2);
+        const failPercentage = (totalTests ? (this.failedTests / totalTests) * 100 : 0).toFixed(2);
         const miloLibs = process.env.MILO_LIBS || '';
         const masIOUrl = process.env.MAS_IO_URL || '';
         const prBranchUrl = process.env.PR_BRANCH_LIVE_URL ? process.env.PR_BRANCH_LIVE_URL + miloLibs : undefined;
@@ -154,41 +165,35 @@ export default class BaseReporter {
     \x1b[1m\x1b[33m** Execution details :\x1b[0m \x1b[32m${runUrl}\x1b[0m
     \x1b[1m\x1b[33m** Workflow name     :\x1b[0m \x1b[32m${runName}\x1b[0m`;
 
-        console.log(summary);
+        const failures = [];
+        if (this.failedTests > 0) {
+            failures.push('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
+            for (const [index, failedTest] of this.results.filter((result) => result.status === 'failed').entries()) {
+                // Get first tag (main test identifier) and keep the @ symbol
+                const titleParts = failedTest.title.split('@');
+                const testName = titleParts[1]?.split(',')[0]?.trim() || titleParts[1]?.trim();
 
-        // Print cleanup summary
+                // Get pre-extracted data from results
+                const testPageUrl = failedTest.testPageUrl;
+                const lineNumber = failedTest.failedLineNumber;
+                const lineContent = failedTest.failedLineContent;
+
+                failures.push(`    ${index + 1}. \x1b[31m\x1b[1m@${testName}\x1b[0m`);
+                if (testPageUrl) {
+                    failures.push(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
+                }
+                if (lineNumber) {
+                    failures.push(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
+                }
+            }
+            failures.push('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
+        }
+        const failedSummary = failures.join('\n');
+        console.log(summary);
         const { printCleanupSummary } = await import('./global.teardown.js');
         printCleanupSummary();
-
-        // Print request summary
         await this.printRequestSummary();
-
-        // Print failed tests summary (last)
-        if (this.failedTests > 0) {
-            console.log('\n    \x1b[1m\x1b[34m---------Failed Tests Summary-------------\x1b[0m');
-            this.results
-                .filter((result) => result.status === 'failed')
-                .forEach((failedTest, index) => {
-                    // Get first tag (main test identifier) and keep the @ symbol
-                    const titleParts = failedTest.title.split('@');
-                    const testName = titleParts[1]?.split(',')[0]?.trim() || titleParts[1]?.trim();
-
-                    // Get pre-extracted data from results
-                    const testPageUrl = failedTest.testPageUrl;
-                    const lineNumber = failedTest.failedLineNumber;
-                    const lineContent = failedTest.failedLineContent;
-
-                    console.log(`    ${index + 1}. \x1b[31m\x1b[1m@${testName}\x1b[0m`);
-                    if (testPageUrl) {
-                        console.log(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
-                    }
-                    if (lineNumber) {
-                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
-                    }
-                });
-            console.log('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
-        }
-
+        if (failedSummary) console.log(failedSummary);
         return summary;
     }
 

@@ -26,6 +26,33 @@ describe('mas-product-picker', () => {
         expect(el.shadowRoot.querySelectorAll('.grid .test-icon').length).to.equal(12);
     });
 
+    it('uses fluid six column grid styles', async () => {
+        const el = await create();
+        const { cssText } = customElements.get('mas-product-picker').styles;
+        expect(cssText).to.include('repeat(6, minmax(0, 1fr))');
+        expect(cssText).to.not.include('repeat(6, 74px)');
+        const style = getComputedStyle(el.shadowRoot.querySelector('.grid .icon-item'));
+        expect(style.maxWidth).to.equal('74px');
+        expect(style.justifySelf).to.equal('center');
+        const rule = [...customElements.get('mas-product-picker').styles.styleSheet.cssRules].find(
+            (r) => r.selectorText === '.grid .icon-item',
+        );
+        expect(rule.cssText).to.include('width: 100%');
+    });
+
+    it('fits six items per row at 440px', async () => {
+        const el = await create();
+        el.style.width = '440px';
+        await el.updateComplete;
+        const grid = el.shadowRoot.querySelector('.grid');
+        expect(grid.scrollWidth).to.be.at.most(grid.clientWidth);
+        const items = [...el.shadowRoot.querySelectorAll('.grid .icon-item')];
+        expect(items.length).to.equal(12);
+        for (const item of items.slice(0, 6)) {
+            expect(item.offsetTop).to.equal(items[0].offsetTop);
+        }
+    });
+
     it('puts recents first and skips unknown ids', async () => {
         const el = await create(['p7', 'missing', 'p2']);
         const items = el.shadowRoot.querySelectorAll('.grid .icon-item');

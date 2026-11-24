@@ -35,13 +35,15 @@ class MasProductPicker extends LitElement {
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(6, 74px);
+            grid-template-columns: repeat(6, minmax(0, 1fr));
             row-gap: 8px;
         }
 
         .grid .icon-item {
             box-sizing: border-box;
-            width: 74px;
+            width: 100%;
+            max-width: 74px;
+            justify-self: center;
             display: flex;
             flex-direction: column;
             align-items: center;

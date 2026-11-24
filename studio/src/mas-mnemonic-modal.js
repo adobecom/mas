@@ -175,8 +175,8 @@ class MasMnemonicModal extends LitElement {
             box-sizing: border-box;
             width: 484px;
             max-width: 484px;
-            padding: 20px;
             border-radius: 16px;
+            --mod-dialog-confirm-padding-grid: 20px;
             --spectrum-dialog-footer-justify-content: flex-end;
             --spectrum-dialog-footer-padding-top: 0;
             --spectrum-dialog-footer-border-top: none;
@@ -522,7 +522,7 @@ class MasMnemonicModal extends LitElement {
         return html`
             <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>
                 <sp-underlay ?open=${this.open}></sp-underlay>
-                <sp-dialog class="${this.iconLibrary ? 'icon-library' : 'add-visual'}">
+                <sp-dialog class="${this.iconLibrary ? 'icon-library' : 'add-visual'}" ?no-divider=${!this.iconLibrary}>
                     <h2 slot="heading">
                         ${this.iconLibrary ? `${isEditing ? 'Edit' : 'Add'} Icon` : isEditing ? 'Edit visual' : 'Add visual'}
                     </h2>

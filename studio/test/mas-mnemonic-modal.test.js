@@ -120,6 +120,15 @@ describe('MAS Mnemonic Modal', () => {
         expect(el.shadowRoot.querySelector('sp-dialog').classList.contains('icon-library')).to.be.true;
     });
 
+    it('should set no-divider only on the add visual dialog', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
+        expect(el.shadowRoot.querySelector('sp-dialog').hasAttribute('no-divider')).to.be.true;
+        const iconEl = await fixture(html`<mas-mnemonic-modal open iconlibrary></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+        expect(iconEl.shadowRoot.querySelector('sp-dialog').hasAttribute('no-divider')).to.be.false;
+    });
+
     it('should pass ADOBE_PRODUCTS to the picker and show 12 products by default', async () => {
         localStorage.removeItem('mas-studio-recent-products');
         const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });

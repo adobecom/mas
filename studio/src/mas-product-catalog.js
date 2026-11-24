@@ -368,10 +368,10 @@ class MasProductCatalog extends LitElement {
 
     handleMultiOfferSelect({ detail: { base, trial } }) {
         if (!this.pendingCreate || !base?.osi) return;
-        this.executeCreate(base.osi, trial?.osi);
+        this.executeCreate(base.osi, trial?.osi, base.offer);
     }
 
-    async executeCreate(osi, trialOsi) {
+    async executeCreate(osi, trialOsi, baseOffer) {
         const { product, surface, locale, variants } = this.pendingCreate;
         this.pendingCreate = null;
         this.creating = true;
@@ -386,6 +386,7 @@ class MasProductCatalog extends LitElement {
                         variant,
                         baseOsi: osi,
                         trialOsi,
+                        baseOffer,
                         parentPath,
                         repository,
                     });

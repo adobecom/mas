@@ -184,12 +184,10 @@ describe('offer transformer', () => {
                 locale: 'en_US',
             });
             expect(statusCode).to.equal(200);
-            expect(body.sources).to.deep.include({
-                title: ['fragment'],
-                price: ['fragment'],
-                description: ['template', 'fragment'],
-                mnemonics: ['product'],
-            });
+            const fieldsOf = (layer) => body.sources.find(({ source }) => source === layer).fields;
+            expect(fieldsOf('product')).to.include('mnemonics');
+            expect(fieldsOf('template')).to.include('description').and.not.include.members(['title', 'price']);
+            expect(fieldsOf('fragment')).to.include.members(['title', 'price', 'description']);
         });
 
         it('uses the market segment override of the fragment baseline as main body (EDU offer)', async () => {

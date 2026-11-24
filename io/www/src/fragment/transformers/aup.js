@@ -396,19 +396,19 @@ const SOURCE_FIELDS = {
 
 const isFilled = (fields, name) => ![rawOf(fields, name)].flat().every((entry) => [undefined, null, ''].includes(entry));
 
-const sourcesOf = (fields, fieldSources = {}) =>
-    Object.fromEntries(
-        Object.entries(SOURCE_FIELDS)
-            .map(([area, names]) => [
-                area,
-                [
-                    ...new Set(
-                        names.filter((name) => isFilled(fields, name)).flatMap((name) => fieldSources[name] ?? 'fragment'),
-                    ),
-                ],
-            ])
-            .filter(([, sources]) => sources.length),
+const SOURCE_ORDER = ['product', 'template', 'segment', 'plan', 'fragment', 'mask'];
+
+const sourcesOf = (fields, fieldSources = {}) => {
+    const areas = Object.entries(SOURCE_FIELDS).flatMap(([area, names]) =>
+        names
+            .filter((name) => isFilled(fields, name))
+            .flatMap((name) => [fieldSources[name] ?? 'fragment'].flat().map((source) => [source, area])),
     );
+    return SOURCE_ORDER.map((source) => ({
+        source,
+        fields: [...new Set(areas.filter(([layer]) => layer === source).map(([, area]) => area))],
+    })).filter(({ fields: sourceFields }) => sourceFields.length);
+};
 
 async function mapCard(context) {
     const { body: fragment, type } = context;

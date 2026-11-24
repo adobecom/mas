@@ -51,7 +51,8 @@ WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgro
 target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src` from the cached WCS offers),
 `features` (the in-card what's included list), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
 `perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
-(each filled area's layers, e.g. `{ title: ['template'], features: ['product', 'template'], badge: ['mask'] }`: `product`
+(one entry per layer, in this order, listing the filled fields it provides, e.g.
+`[{ source: 'product', fields: ['features'] }, { source: 'template', fields: ['title', 'features'] }]`: `product`
 offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`; a baseline's
 M@S elements priced with the fragment's offer count as `fragment`: alone for `price` & `ctas`, alongside the baseline
 elsewhere, e.g. a description embedding a price). Text-bearing

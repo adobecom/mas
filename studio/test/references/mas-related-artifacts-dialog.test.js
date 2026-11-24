@@ -147,6 +147,74 @@ describe('mas-related-artifacts-dialog', function () {
     });
 });
 
+describe('mas-related-artifacts-dialog restyle', function () {
+    this.timeout(20000);
+    afterEach(closeFixture);
+
+    // Resolves a color expression through a probe in the same shadow root so tokens and fallbacks behave alike.
+    const resolveColor = (el, expression) => {
+        const probe = document.createElement('div');
+        probe.style.color = expression;
+        el.shadowRoot.append(probe);
+        const { color } = getComputedStyle(probe);
+        probe.remove();
+        return color;
+    };
+
+    const centerY = (rect) => rect.top + rect.height / 2;
+
+    it('frames the table in a 1px rounded border with no divider under the tabs', async () => {
+        const el = await openDialog();
+        const wrapper = getComputedStyle(el.shadowRoot.querySelector('.table-wrapper'));
+        expect(wrapper.marginTop).to.equal('20px');
+        expect(wrapper.borderTopWidth).to.equal('1px');
+        expect(wrapper.borderTopStyle).to.equal('solid');
+        expect(wrapper.borderTopColor).to.equal(resolveColor(el, 'var(--spectrum-gray-300, #dadada)'));
+        expect(wrapper.borderTopLeftRadius).to.equal('12px');
+        expect(wrapper.overflow).to.equal('hidden');
+        expect(el.shadowRoot.querySelector('sp-divider')).to.equal(null);
+    });
+
+    it('centers the header label in a 44px gray band', async () => {
+        const el = await openDialog();
+        const cell = headCellOf(el);
+        const style = getComputedStyle(cell);
+        expect(style.display).to.equal('flex');
+        expect(style.alignItems).to.equal('center');
+        expect(style.height).to.equal('44px');
+        expect(style.paddingLeft).to.equal('20px');
+        expect(style.backgroundColor).to.equal(resolveColor(el, 'var(--spectrum-gray-75, #f3f3f3)'));
+        expect(style.color).to.equal(resolveColor(el, 'var(--spectrum-gray-900, #222)'));
+        expect(style.fontWeight).to.equal('700');
+    });
+
+    it('centers the link in a white body cell at least 68px tall', async () => {
+        const el = await openDialog();
+        const cell = el.shadowRoot.querySelector('sp-table-cell');
+        const style = getComputedStyle(cell);
+        expect(style.display).to.equal('flex');
+        expect(style.alignItems).to.equal('center');
+        expect(style.backgroundColor).to.equal(resolveColor(el, 'var(--spectrum-white, #fff)'));
+        expect(style.borderTopWidth).to.equal('1px');
+        expect(cell.getBoundingClientRect().height).to.be.at.least(68);
+        const link = cell.querySelector('.artifact-link');
+        expect(Math.abs(centerY(link.getBoundingClientRect()) - centerY(cell.getBoundingClientRect()))).to.be.below(1.5);
+    });
+
+    it('styles links blue, underlined and medium weight', async () => {
+        const el = await openDialog();
+        const link = el.shadowRoot.querySelector('.artifact-link');
+        const style = getComputedStyle(link);
+        expect(style.color).to.equal(resolveColor(el, 'var(--spectrum-blue-900, #3b63fb)'));
+        expect(style.textDecorationLine).to.include('underline');
+        expect(style.fontWeight).to.equal('500');
+        expect(style.fontSize).to.equal('14px');
+        expect(style.columnGap).to.equal('6px');
+        expect(link.getAttribute('rel')).to.equal('noopener');
+        expect(link.querySelector('sp-icon-open-in')).to.exist;
+    });
+});
+
 describe('related artifacts modal keyboard lifecycle', function () {
     this.timeout(20000);
     afterEach(closeFixture);

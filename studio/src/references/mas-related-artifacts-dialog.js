@@ -107,7 +107,6 @@ class MasRelatedArtifactsDialog extends LitElement {
                                     html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
                             )}
                         </sp-tabs>
-                        <sp-divider size="s"></sp-divider>
                         <div class="table-wrapper">${this.#renderTable()}</div>
                     </div>
                 </sp-dialog-wrapper>

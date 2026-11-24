@@ -13,19 +13,51 @@ export const styles = css`
     }
 
     .table-wrapper {
-        padding-top: 12px;
+        margin-top: 20px;
+        border: 1px solid var(--spectrum-gray-300, #dadada);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .dialog-table-body {
+        border: none;
+        border-radius: 0;
+    }
+
+    sp-table-head-cell {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        height: 44px;
+        padding: 0 20px;
+        background: var(--spectrum-gray-75, #f3f3f3);
+        color: var(--spectrum-gray-900, #222);
+        font-size: 14px;
+        line-height: 18px;
+        font-weight: 700;
+    }
+
+    sp-table-row {
+        min-height: 68px;
+    }
+
+    sp-table-cell {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-top: 1px solid var(--spectrum-gray-300, #dadada);
+        background: var(--spectrum-white, #fff);
     }
 
     .artifact-link {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        color: var(--spectrum-gray-900);
+        color: var(--spectrum-blue-900, #3b63fb);
         text-decoration: underline;
-    }
-
-    .artifact-link:hover {
-        color: var(--spectrum-blue-900);
+        font-size: 14px;
+        line-height: 18px;
+        font-weight: 500;
     }
 
     .empty-tab-message {

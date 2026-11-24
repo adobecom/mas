@@ -390,15 +390,11 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
 }
 
 /**
- * Loader of `hydratedProjectsCache`: the `all-hydrated` project, revalidated with the `etag` of the cached one.
+ * Loader of `hydratedProjectsCache`: the `all-hydrated` project, revalidated with the ETag of the cached one.
  */
-async function fetchHydratedProject(projectId, context, etag) {
-    const response = await fetch(
-        odinReferences(projectId, context.preview, REFERENCES.ALL),
-        context,
-        `promotions-hydrate-${projectId}`,
-        { etag },
-    );
+async function fetchHydratedProject(projectId, context, etagFor) {
+    const url = odinReferences(projectId, context.preview, REFERENCES.ALL);
+    const response = await fetch(url, context, `promotions-hydrate-${projectId}`, { etag: etagFor(url) });
     if (response.status === 304) return NOT_MODIFIED;
     if (response.status !== 200) {
         logError(`Failed to hydrate promotion project ${projectId}: ${response.message}`, context);
@@ -417,7 +413,7 @@ async function fetchHydratedProject(projectId, context, etag) {
         promoCode: hydratedProject.fields?.promoCode ?? null,
         title: hydratedProject.fields?.title ?? null,
     };
-    return { value, etag: response.etag };
+    return { value, etag: response.etag, url };
 }
 
 /**
@@ -430,7 +426,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydratedProject, defaultVariations, regionVariations] = await Promise.all([
-        hydratedProjectsCache.get(context, project.id, ({ etag }) => fetchHydratedProject(project.id, context, etag)),
+        hydratedProjectsCache.get(context, project.id, ({ etagFor }) => fetchHydratedProject(project.id, context, etagFor)),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)

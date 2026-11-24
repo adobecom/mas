@@ -75,16 +75,16 @@ function collectEntries(fragment, references, dictionary) {
 // 404 there means a mid-publish/softpurge race — caching `{}` would render raw `{{tokens}}` fleet-wide
 // until TTL. Transient results resolve `null`, which is NOT cached (see createSwrCache) so they retry.
 async function buildDictionaryLayer(context, surface, locale, prefix) {
-    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async ({ etag }) => {
+    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async ({ etagFor }) => {
         const { id, status } = await getDictionaryId(context, surface, locale);
         if (!id) return status === 404 && prefix === 'region' ? { value: {} } : null;
         const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
-        const response = await fetch(url, context, `dictionary-${prefix}`, { etag });
+        const response = await fetch(url, context, `dictionary-${prefix}`, { etag: etagFor(url) });
         if (response.status === 304) return NOT_MODIFIED;
         if (response.status != 200) return null;
         const dictionary = {};
         collectEntries(response.body, response.body.references || {}, dictionary);
-        return { value: dictionary, etag: response.etag };
+        return { value: dictionary, etag: response.etag, url };
     });
     if (!layer) markDegraded(context, `dictionary ${surface}/${locale}`);
     return layer ?? {};

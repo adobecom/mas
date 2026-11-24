@@ -61,14 +61,14 @@ function collectMappings(fragment, references) {
 async function buildOfferMapping(context) {
     const { surface } = await getRequestInfos(context);
     if (!surface) return [];
-    const mappings = await offerMappingCache.get(context, surface, async ({ etag }) => {
+    const mappings = await offerMappingCache.get(context, surface, async ({ etagFor }) => {
         const { id, status } = await getOfferMappingId(context, surface);
         if (!id) return status === 404 ? { value: [] } : null;
         const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
-        const response = await fetch(url, context, 'offer-mapping', { etag });
+        const response = await fetch(url, context, 'offer-mapping', { etag: etagFor(url) });
         if (response.status === 304) return NOT_MODIFIED;
         if (response.status !== 200) return null;
-        return { value: collectMappings(response.body, response.body.references || {}), etag: response.etag };
+        return { value: collectMappings(response.body, response.body.references || {}), etag: response.etag, url };
     });
     if (!mappings) markDegraded(context, `offer mapping ${surface}`);
     logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);

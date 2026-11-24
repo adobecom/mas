@@ -165,9 +165,11 @@ export function setHeapBudget(maxHeapUsed, getHeapUsed) {
  * Returning `{ ttl }` instead applies a short retry TTL to incomplete results. Published reads
  * keep an existing stale value during that backoff rather than replacing it with partial data.
  *
- * `conditional` caches revalidate with ETags (e.g. Odin's): the loader receives `{ etag }`, the ETag of the
- * cached entry (none on a cold read), to send as `If-None-Match`, and resolves `{ value, etag }` to store with
- * the value, or `NOT_MODIFIED` on a 304, which keeps the cached value and ETag and restarts its TTL.
+ * `conditional` caches revalidate with ETags (e.g. Odin's): the loader receives `{ etagFor }`, where `etagFor(url)`
+ * is the ETag of the cached entry to send as `If-None-Match` when it was fetched from that same `url` (none on a
+ * cold read or when the url changed, e.g. a key resolving to another fragment id, whose 304 would otherwise renew
+ * the previous fragment's value), and resolves `{ value, etag, url }` to store with the value, or `NOT_MODIFIED`
+ * on a 304, which keeps the cached value, ETag and url and restarts its TTL.
  *
  * @param {{ name: string, ttl?: number, jitter?: number,
  *   previewTtl?: number, previewMemory?: boolean, maxEntries?: number, staleWhileRevalidate?: boolean,
@@ -205,8 +207,8 @@ export function createSwrCache({
         return { mode, backend, memoryKey, persistent: context.preview && !previewMemory };
     }
 
-    function write(context, key, { value, etag }, entryTtl = jitteredTtl(context), target = resolve(context, key)) {
-        const entry = { value, etag, timestamp: Date.now(), ttl: entryTtl };
+    function write(context, key, { value, etag, url }, entryTtl = jitteredTtl(context), target = resolve(context, key)) {
+        const entry = { value, etag, url, timestamp: Date.now(), ttl: entryTtl };
         if (target.persistent) {
             localStorage.setItem(storageKey(key), JSON.stringify(entry));
             return;
@@ -219,7 +221,7 @@ export function createSwrCache({
          * Reads `key`, loading on miss/expiry with herd protection.
          * @param {*} context request context (preview endpoint isolates memory entries).
          * @param {string} key cache key within this instance's namespace.
-         * @param {({ etag }) => Promise<*>} loader resolves null/undefined to skip caching; see `conditional`
+         * @param {({ etagFor }) => Promise<*>} loader resolves null/undefined to skip caching; see `conditional`
          *   for what it resolves in conditional caches.
          */
         async get(context, key, loader) {
@@ -236,9 +238,9 @@ export function createSwrCache({
             const stale = entry && !context.preview && staleWhileRevalidate;
             if (!backend.refills.has(memoryKey)) {
                 let pending = (async () => {
-                    const loaded = await loader({ etag: entry?.etag });
+                    const loaded = await loader({ etagFor: (url) => (url === entry?.url ? entry.etag : undefined) });
                     const notModified = loaded === NOT_MODIFIED;
-                    const { value, etag } = notModified ? entry : conditional ? (loaded ?? {}) : { value: loaded };
+                    const { value, etag, url } = notModified ? entry : conditional ? (loaded ?? {}) : { value: loaded };
                     if (value == null) return value;
                     if (notModified) {
                         logDebug(
@@ -249,7 +251,7 @@ export function createSwrCache({
                     const policy = shouldCache(value);
                     if (!policy) return value;
                     if (backends[mode] === backend && !backend.superseded.has(memoryKey)) {
-                        write(context, key, stale && policy !== true ? entry : { value, etag }, policy.ttl, target);
+                        write(context, key, stale && policy !== true ? entry : { value, etag, url }, policy.ttl, target);
                     }
                     return value;
                 })();

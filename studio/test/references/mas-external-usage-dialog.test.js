@@ -176,6 +176,17 @@ describe('mas-external-usage-dialog', function () {
             expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
         });
 
+        it('shows no locale chip in the Page cell', async () => {
+            const element = await openDialog();
+            expect(element.shadowRoot.querySelector('.page-locale')).to.equal(null);
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.length(3);
+            for (const row of rows) {
+                expect(row.textContent).to.not.contain('en_US');
+                expect(row.textContent).to.not.contain('en_CA');
+            }
+        });
+
         it('keeps each body row at least 68px high', async () => {
             const element = await openDialog();
             const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
@@ -370,12 +381,6 @@ describe('mas-external-usage-dialog', function () {
         expect(countries).to.deep.equal(['us, uk', 'ca', '']);
     });
 
-    it('labels a row with its locale, which is what tells two rows of one url apart', async () => {
-        const element = await openDialog();
-        const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_US', 'en_CA']);
-    });
-
     it('keeps the rows of one url adjacent and in a stable order', async () => {
         const element = await openDialog({
             ...usage,
@@ -384,8 +389,8 @@ describe('mas-external-usage-dialog', function () {
                 { url: 'https://www.adobe.com/', requests: 3, countries: ['uk'], region: 'EMEA', locale: 'en_GB' },
             ],
         });
-        const locales = [...element.shadowRoot.querySelectorAll('.page-locale')].map((node) => node.textContent.trim());
-        expect(locales).to.deep.equal(['en_US', 'en_GB']);
+        const countries = [...element.shadowRoot.querySelectorAll('.page-countries')].map((node) => node.textContent.trim());
+        expect(countries).to.deep.equal(['us', 'uk']);
     });
 
     it('titles itself Related pages', async () => {

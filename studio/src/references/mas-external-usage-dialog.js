@@ -133,7 +133,6 @@ class MasExternalUsageDialog extends LitElement {
                         <span class="page-url-label">${this.#label(page.url, commonHost)}</span>
                         <sp-icon-open-in size="s"></sp-icon-open-in>
                     </a>
-                    ${page.locale ? html`<span class="page-locale">${page.locale}</span>` : nothing}
                     <sp-action-button
                         quiet
                         size="s"

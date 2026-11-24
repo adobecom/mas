@@ -134,16 +134,6 @@ export const styles = css`
         flex: 0 0 auto;
     }
 
-    /* Two rows can share a url and differ only in locale, so the locale is what tells them apart. */
-    .page-locale {
-        flex: 0 0 auto;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: var(--spectrum-gray-200);
-        color: var(--spectrum-neutral-subdued-content-color-default);
-        font-size: 11px;
-    }
-
     .usage-placeholder {
         display: flex;
         align-items: center;

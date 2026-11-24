@@ -353,6 +353,34 @@ describe('Promotion price display with annual template', () => {
         );
     });
 
+    it('logs locale, parameters and error when a literal fails to format', () => {
+        const errors = [];
+        const literal = '{taxTerm} inkl. MwSt.';
+        const formattedLiteral = formatLiteral(
+            { label: literal },
+            'de-DE',
+            'label',
+            { perUnit: 'LICENSE' },
+            {
+                error: (...args) => errors.push(args),
+            },
+        );
+        expect(formattedLiteral).to.equal('');
+        expect(errors).to.deep.equal([
+            [
+                'Failed to format literal:',
+                literal,
+                {
+                    error: 'ReferenceError: Missing value: taxTerm',
+                    locale: 'de-DE',
+                    parameters: { perUnit: 'LICENSE' },
+                    navigatorLanguage: navigator.language,
+                    defaultLocale: new Intl.NumberFormat().resolvedOptions().locale,
+                },
+            ],
+        ]);
+    });
+
     it('formats the ICU subset used by price literals', () => {
         const literals = {
             recurrence: "{recurrenceTerm, select, MONTH {al mese} YEAR {all'anno} other {}}",

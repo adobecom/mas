@@ -284,7 +284,17 @@ describe('class "InlinePrice"', () => {
             level: 'error',
             namespace: 'ConsonantTemplates/price',
             message: 'Failed to format literal:',
-            params: ['{invalid'],
+            params: [
+                '{invalid',
+                {
+                    error: 'SyntaxError: Invalid message: {invalid',
+                    locale: 'en-US',
+                    parameters: {},
+                    navigatorLanguage: navigator.language,
+                    defaultLocale: new Intl.NumberFormat().resolvedOptions()
+                        .locale,
+                },
+            ],
         });
     });
 
@@ -2860,7 +2870,17 @@ describe('Price browser adapter', () => {
                 level: 'error',
                 namespace: 'ConsonantTemplates/price',
                 message: 'Failed to format literal:',
-                params: ['{invalid'],
+                params: [
+                    '{invalid',
+                    {
+                        error: 'SyntaxError: Invalid message: {invalid',
+                        locale: 'en-US',
+                        parameters: { recurrenceTerm: 'MONTH' },
+                        navigatorLanguage: navigator.language,
+                        defaultLocale: new Intl.NumberFormat().resolvedOptions()
+                            .locale,
+                    },
+                ],
             },
         ]);
     });

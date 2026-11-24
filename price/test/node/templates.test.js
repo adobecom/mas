@@ -45,6 +45,53 @@ describe('legacy ICU golden literals', () => {
     }
 });
 
+describe('formatLiteral error logging', () => {
+    const literal = '{taxTerm} inkl. MwSt.';
+    const format = (locale) => {
+        const errors = [];
+        const actual = formatLiteral(
+            { label: literal },
+            locale,
+            'label',
+            { perUnit: 'LICENSE' },
+            {
+                error: (...args) => errors.push(args),
+            },
+        );
+        return { actual, errors };
+    };
+
+    it('logs the error, locale, parameters and runtime locales', () => {
+        const { actual, errors } = format('de-DE');
+        assert.equal(actual, '');
+        assert.deepEqual(errors, [
+            [
+                'Failed to format literal:',
+                literal,
+                {
+                    error: 'ReferenceError: Missing value: taxTerm',
+                    locale: 'de-DE',
+                    parameters: { perUnit: 'LICENSE' },
+                    navigatorLanguage: globalThis.navigator?.language,
+                    defaultLocale: new Intl.NumberFormat().resolvedOptions().locale,
+                },
+            ],
+        ]);
+    });
+
+    it('logs without navigator language when navigator is unavailable', () => {
+        const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+        Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true });
+        try {
+            const { errors } = format('de-DE');
+            assert.equal(errors[0][2].navigatorLanguage, undefined);
+        } finally {
+            if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
+            else delete globalThis.navigator;
+        }
+    });
+});
+
 describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };

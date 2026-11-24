@@ -188,9 +188,21 @@ describe('mas-external-usage-dialog', function () {
             for (const cell of element.shadowRoot.querySelectorAll('sp-table-head-cell')) {
                 expect(getComputedStyle(cell).borderBottomWidth).to.equal('1px');
             }
-            for (const cell of element.shadowRoot.querySelectorAll('sp-table-cell')) {
-                expect(getComputedStyle(cell).borderTopWidth).to.equal('1px');
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            for (let index = 0; index < rows.length; index++) {
+                for (const cell of rows[index].querySelectorAll('sp-table-cell')) {
+                    expect(getComputedStyle(cell).borderTopWidth).to.equal(index === 0 ? '0px' : '1px');
+                }
             }
+        });
+
+        it('gives the table body no border of its own', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('sp-table-body'));
+            expect(style.borderTopWidth).to.equal('0px');
+            expect(style.borderRightWidth).to.equal('0px');
+            expect(style.borderBottomWidth).to.equal('0px');
+            expect(style.borderLeftWidth).to.equal('0px');
         });
     });
 

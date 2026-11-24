@@ -58,6 +58,16 @@ export const styles = css`
         border-top: 1px solid var(--spectrum-gray-300, #dadada);
     }
 
+    sp-table-body {
+        border: none;
+        border-radius: 0;
+    }
+
+    sp-table-body sp-table-row:first-child sp-table-cell {
+        border-top: none;
+        border-radius: 0;
+    }
+
     /* The table markup lives in this shadow root, so the cells are styled by element selector.
        Every column is sized here rather than on the head alone, otherwise the body cells size
        themselves and the headings drift away from the values underneath them. */

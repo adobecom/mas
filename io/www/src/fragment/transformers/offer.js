@@ -21,6 +21,9 @@ const OFFERS_API_KEY = 'wcms-commerce-ims-ro-user-milo';
 // collection.
 const baselineCache = createSwrCache({ name: 'baselines', previewMemory: true });
 const offersCache = createSwrCache({ name: 'offers', maxEntries: 50 });
+// plan baselines folders, by commitment & term
+const PLANS = { 'YEAR/MONTHLY': 'abm', 'YEAR/ANNUAL': 'puf', 'MONTH/MONTHLY': 'm2m' };
+const planOf = ({ commitment, term }) => PLANS[`${commitment}/${term}`];
 
 export const clearBaselineCache = (preview = false) => {
     baselineCache.clear(preview);
@@ -47,6 +50,7 @@ async function resolveProductArrangements(context, tokens, prefetched) {
         return {
             productArrangementCode: offer?.productArrangementCode,
             marketSegment: offer?.marketSegments?.[0]?.toLowerCase(),
+            plan: offer && planOf(offer),
         };
     };
     return { resolveOffer, wcsPrefetch };
@@ -76,9 +80,10 @@ async function listFolder(context, folder) {
 const FRAGMENT_BASELINE_PATH = /^(?<key>[\w-]+(?:\/[\w-]+)?)\/baseline$/;
 
 /**
- * Fragment baselines of a template, keyed by `<pa>` or `<pa>/<segment>` (market segment override, e.g. `edu`):
- * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>[/<segment>]/baseline`, listed once (single-flight +
- * TTL), empty folders included; failures are retried next time.
+ * Fragment baselines of a template, keyed by `<pa>`, `<pa>/<segment>` (market segment override, e.g. `edu`) or
+ * `<pa>/<plan>` (plan override, e.g. `m2m`):
+ * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>[/<segment>|/<plan>]/baseline`, listed once
+ * (single-flight + TTL), empty folders included; failures are retried next time.
  */
 async function fetchFragmentBaselines(context, surface, locale, template) {
     const folder = `${MAS_ROOT}/${surface}/${locale}/baselines/${template}`;
@@ -93,11 +98,12 @@ async function fetchFragmentBaselines(context, surface, locale, template) {
 }
 
 /**
- * Fragment baseline of a product arrangement & its market segment override, if any.
+ * Fragment baseline of a product arrangement, its market segment & plan overrides, if any.
  */
-const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegment }) => ({
+const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegment, plan }) => ({
     fragmentBaseline: baselines[productArrangementCode],
     fragmentSegmentBaseline: marketSegment ? baselines[`${productArrangementCode}/${marketSegment}`] : undefined,
+    fragmentPlanBaseline: plan ? baselines[`${productArrangementCode}/${plan}`] : undefined,
 });
 
 /**
@@ -140,8 +146,8 @@ export async function getOfferBaseline(context, productArrangementCode) {
 
 /**
  * Request infos when no fragment `id` is requested (ADR CONT-0005): `offer`, `template` & `surface` select the main body,
- * the most specific baseline: the fragment baseline for that template & the offer market segment, the fragment baseline
- * for that template, or the offer baseline.
+ * the most specific baseline: the fragment baseline for that template & the offer plan, or its market segment, the
+ * fragment baseline for that template, or the offer baseline.
  * Same shape as fetchFragment's request infos, plus the `wcsPrefetch` used to resolve the offer.
  */
 export async function resolveOfferInfos(initContext) {
@@ -161,11 +167,11 @@ export async function resolveOfferInfos(initContext) {
     if (!productArrangementCode) {
         return { status: 404, message: `No product arrangement found for offer '${offer}'` };
     }
-    const [offerBaseline, { fragmentBaseline, fragmentSegmentBaseline }] = await Promise.all([
+    const [offerBaseline, { fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline }] = await Promise.all([
         getOfferBaseline(context, productArrangementCode),
         fragmentBaselines.then((baselines) => selectFragmentBaselines(baselines, resolved)),
     ]);
-    const baseline = fragmentSegmentBaseline ?? fragmentBaseline ?? offerBaseline;
+    const baseline = fragmentPlanBaseline ?? fragmentSegmentBaseline ?? fragmentBaseline ?? offerBaseline;
     if (!baseline) {
         return {
             status: 404,
@@ -231,7 +237,7 @@ function collectTargets(context) {
  * Each distinct offer, offer baseline & fragment baseline is requested once. Failures are not fatal.
  * Opt-in with a fragment `id`: only when the requested (card or collection) fragment has `enableBaselines` on, which
  * then applies to every card it references. Without `id`, the main body is a baseline, always layered.
- * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } }, wcsPrefetch }}
+ * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline } }, wcsPrefetch }}
  */
 async function init(initContext) {
     const { promises } = initContext;

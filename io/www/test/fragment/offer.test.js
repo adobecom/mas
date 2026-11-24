@@ -57,6 +57,14 @@ const EDU_BASELINE = {
     fields: { cardTitle: 'Photoshop for students', eduNote: 'Students & teachers', variations: ['some-edu-variation'] },
 };
 
+const M2M_OSI = 'PpnQ-UmW9NBwZwXlFw79zw2JybhvwIUwMTDYiIlu5qI';
+const M2M_BASELINE = {
+    id: 'm2m-baseline-id',
+    path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/m2m/baseline`,
+    model: CARD_MODEL,
+    fields: { osi: M2M_OSI, badge: 'No commitment' },
+};
+
 const PLANS_FOLDER = '/content/dam/mas/sandbox/en_US/baselines/plans';
 const listing = (folder, cursor) => `${ODIN}/?path=${folder}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
 // template folders may hold other fragments, only `<pa>/baseline` & `<pa>/<segment>/baseline` are baselines
@@ -96,7 +104,7 @@ function mockOdin({
         .returns(createResponse(200, { resolvedOffers: [] }));
     fetchStub.withArgs(sinon.match((url) => isWcsCall(url))).returns(createResponse(200, { resolvedOffers }));
     if (offerBaseline) fetchStub.withArgs(offersUrl(offerLocale)).returns(createResponse(200, { [PA]: offerBaseline }));
-    const plansItems = [...noise(PLANS_FOLDER), ...(fragmentBaseline ? [fragmentBaseline] : []), EDU_BASELINE];
+    const plansItems = [...noise(PLANS_FOLDER), ...(fragmentBaseline ? [fragmentBaseline] : []), EDU_BASELINE, M2M_BASELINE];
     fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(200, { items: plansItems }));
     fetchStub
         .withArgs(`${ODIN}/some-en-us-fragment?references=all-hydrated`)
@@ -214,6 +222,17 @@ describe('offer transformer', () => {
             expect(body.fields.osi).to.equal(OSI);
             expect(body.wcs.prod[`${OSI}-us-mult`]).to.deep.equal(RESOLVED_OFFERS);
             expect(wcsCalls()).to.have.length(1);
+        });
+
+        it('uses the plan override of the fragment baseline as main body (M2M offer)', async () => {
+            mockOdin({ resolvedOffers: [{ ...RESOLVED_OFFERS[0], commitment: 'MONTH', term: 'MONTHLY' }] });
+            const { body } = await getFragment({ offer: OSI, template: 'plans', surface: 'sandbox', locale: 'en_US' });
+            expect(body.id).to.equal('m2m-baseline-id');
+            expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
+            expect(body.fields.badge).to.equal('No commitment');
+            expect(body.fields.cardTitle).to.equal('Photoshop baseline');
+            // the requested osi still drives prices
+            expect(body.fields.osi).to.equal(OSI);
         });
 
         it('only maps the MCS fields an offer baseline has', async () => {
@@ -373,6 +392,20 @@ describe('offer transformer', () => {
             expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
             expect(body.fields.mnemonicAlt).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicAlt);
             expect(body.fields).not.to.have.property('variations');
+        });
+
+        it('layers the plan baseline of the requested osi', async () => {
+            mockOdin({ resolvedOffers: [{ ...RESOLVED_OFFERS[0], commitment: 'MONTH', term: 'MONTHLY' }] });
+            const { statusCode, body } = await getFragment({
+                id: 'some-en-us-fragment',
+                offer: OSI,
+                template: 'plans',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
+            expect(body.fragmentPlanBaselineId).to.equal('m2m-baseline-id');
+            expect(body.fields.badge).to.equal('No commitment');
         });
 
         it("resolves the fragment's own osi when only a template is requested", async () => {

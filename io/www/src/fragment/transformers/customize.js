@@ -580,12 +580,13 @@ function withoutInheritedEmptyFields(fragment, baselines) {
 }
 
 /**
- * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
- * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
+ * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < `fragmentPlanBaseline` <
+ * fragment, as resolved by the `offer` transformer for that fragment. Applied before variations, so they override
+ * baselines too.
  */
 function applyBaselines(fragment, { baselines }) {
-    const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } = baselines?.[fragment.id] ?? {};
-    const layers = [offerBaseline, fragmentBaseline, fragmentSegmentBaseline].filter(
+    const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline } = baselines?.[fragment.id] ?? {};
+    const layers = [offerBaseline, fragmentBaseline, fragmentSegmentBaseline, fragmentPlanBaseline].filter(
         (baseline) => baseline && baseline.id !== fragment.id,
     );
     if (!layers.length) return fragment;
@@ -595,6 +596,7 @@ function applyBaselines(fragment, { baselines }) {
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
     if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
+    if (fragmentPlanBaseline) merged.fragmentPlanBaselineId = fragmentPlanBaseline.id;
     return merged;
 }
 
@@ -738,7 +740,7 @@ async function customize(context) {
     };
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
     const { fragment: customizedFragment } = customizedTree;
-    if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
+    if (context.offer && !context.offerId) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
     const activeReferences = new Set([customizedFragment.id]);

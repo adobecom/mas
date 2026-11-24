@@ -79,6 +79,25 @@ describe('Mnemonic field', () => {
         expect(iconImg.src).to.include('creative-cloud.svg');
     });
 
+    it('should left-align action menu items with 12px start padding', async () => {
+        const el = await fixture(
+            html`
+                <mas-mnemonic-field
+                    icon="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
+                ></mas-mnemonic-field>
+            `,
+            { parentNode: spTheme() },
+        );
+        await el.updateComplete;
+        await el.shadowRoot.querySelector('sp-action-menu').updateComplete;
+
+        const items = el.shadowRoot.querySelectorAll('.action-menu sp-menu-item');
+        expect(items.length).to.be.greaterThan(0);
+        for (const item of items) {
+            expect(getComputedStyle(item).paddingInlineStart).to.equal('12px');
+        }
+    });
+
     it('should open modal when edit is selected from menu', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
 

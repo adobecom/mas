@@ -144,9 +144,6 @@ class MasExternalUsageDialog extends LitElement {
                         <sp-icon-copy slot="icon"></sp-icon-copy>
                     </sp-action-button>
                 </sp-table-cell>
-                <sp-table-cell class="requests-column">
-                    <span class="page-requests">${(Number(page.requests) || 0).toLocaleString()}</span>
-                </sp-table-cell>
                 <sp-table-cell>
                     <span class="page-countries">${page.countries.join(', ')}</span>
                 </sp-table-cell>
@@ -165,15 +162,7 @@ class MasExternalUsageDialog extends LitElement {
             <sp-table emphasized class="pages-table dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
                     <sp-table-head-cell sortable sort-key="page" sort-direction=${this.#sortDirectionFor('page')}>
-                        ${commonHost ? `Page on ${commonHost}` : 'Page'}
-                    </sp-table-head-cell>
-                    <sp-table-head-cell
-                        sortable
-                        sort-key="requests"
-                        class="requests-column"
-                        sort-direction=${this.#sortDirectionFor('requests')}
-                    >
-                        Requests (7d)
+                        Page
                     </sp-table-head-cell>
                     <sp-table-head-cell>Countries</sp-table-head-cell>
                 </sp-table-head>

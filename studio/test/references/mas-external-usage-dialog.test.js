@@ -76,8 +76,6 @@ function closeFixture() {
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());
 const pageHrefs = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.getAttribute('href'));
-const requestCounts = (element) =>
-    [...element.shadowRoot.querySelectorAll('.page-requests')].map((node) => node.textContent.trim());
 const headerCell = (element, index) => element.shadowRoot.querySelectorAll('sp-table-head-cell')[index];
 
 describe('mas-external-usage-dialog', function () {
@@ -124,8 +122,17 @@ describe('mas-external-usage-dialog', function () {
 
         it('fits every column inside the dialog on a desktop screen', async () => {
             const element = await openThemedDialog({ width: 1440, height: 900 });
-            const lastColumn = headerCell(element, 2).getBoundingClientRect();
+            const lastColumn = headerCell(element, 1).getBoundingClientRect();
             expect(lastColumn.right).to.be.at.most(visibleBoxOf(element).right);
+        });
+
+        it('sets the heading to 22px dark gray', async () => {
+            const element = await openThemedDialog({ width: 1440, height: 900 });
+            const heading = wrapperOf(element).shadowRoot.querySelector('h2[slot="heading"]');
+            const style = getComputedStyle(heading);
+            expect(style.fontSize).to.equal('22px');
+            expect(style.lineHeight).to.equal('26px');
+            expect(style.color).to.equal('rgb(41, 41, 41)');
         });
 
         it('wraps the bounded-sample note inside the dialog', async () => {
@@ -196,6 +203,43 @@ describe('mas-external-usage-dialog', function () {
             }
         });
 
+        it('has two headers, Page sortable and Countries not', async () => {
+            const element = await openDialog();
+            const headers = [...element.shadowRoot.querySelectorAll('sp-table-head-cell')];
+            expect(headers.map((header) => header.textContent.trim())).to.deep.equal(['Page', 'Countries']);
+            expect(headerCell(element, 0).hasAttribute('sortable')).to.equal(true);
+            expect(headerCell(element, 0).getAttribute('sort-key')).to.equal('page');
+            expect(headerCell(element, 1).getAttribute('sort-key')).to.equal(null);
+            expect(headerCell(element, 1).hasAttribute('sortable')).to.equal(false);
+        });
+
+        it('renders no requests cell', async () => {
+            const element = await openDialog();
+            expect(element.shadowRoot.querySelector('.page-requests')).to.equal(null);
+        });
+
+        it('opens with the busiest pages first', async () => {
+            const element = await openDialog();
+            expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
+        });
+
+        it('sorts the pages A to Z when the Page header is picked', async () => {
+            const element = await openDialog();
+            await opened(element);
+            headerCell(element, 0).click();
+            await element.updateComplete;
+            expect(pageLabels(element)).to.deep.equal(['/ca/creativecloud/business.html', '/express/', '/express/business']);
+        });
+
+        it('shows the countries in black', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('.page-countries'));
+            expect(style.color).to.equal('rgb(0, 0, 0)');
+            expect(style.fontSize).to.equal('14px');
+            expect(style.lineHeight).to.equal('18px');
+            expect(style.fontWeight).to.equal('400');
+        });
+
         it('gives the table body no border of its own', async () => {
             const element = await openDialog();
             const style = getComputedStyle(element.shadowRoot.querySelector('sp-table-body'));
@@ -226,7 +270,7 @@ describe('mas-external-usage-dialog', function () {
     it('drops the host every row shares, which is the part that is never what tells them apart', async () => {
         const element = await openDialog();
         expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
-        expect(element.shadowRoot.querySelector('sp-table-head-cell').textContent).to.contain('www.adobe.com');
+        expect(headerCell(element, 0).textContent.trim()).to.equal('Page');
     });
 
     it('keeps whole urls when the rows span different hosts', async () => {
@@ -317,16 +361,6 @@ describe('mas-external-usage-dialog', function () {
         expect(wrapperOf(element).headline).to.equal('Related pages');
     });
 
-    it('shows how many requests each page made', async () => {
-        const element = await openDialog();
-        expect(requestCounts(element)).to.deep.equal(['900', '120', '40']);
-    });
-
-    it('groups the thousands so large counts stay readable', async () => {
-        const element = await openDialog({ ...usage, pages: [{ ...usage.pages[0], requests: 1234567 }] });
-        expect(requestCounts(element)[0]).to.equal((1234567).toLocaleString());
-    });
-
     it('opens on the busiest pages, which is the ranking the action already computed', async () => {
         const element = await openDialog();
         expect(pageHrefs(element)).to.deep.equal([
@@ -336,12 +370,14 @@ describe('mas-external-usage-dialog', function () {
         ]);
     });
 
-    it('reverses to the quietest pages when the Requests header is toggled', async () => {
+    it('reverses to the last page first when the Page header is toggled twice', async () => {
         const element = await openDialog();
         await opened(element);
-        headerCell(element, 1).click();
+        headerCell(element, 0).click();
         await element.updateComplete;
-        expect(requestCounts(element)).to.deep.equal(['40', '120', '900']);
+        headerCell(element, 0).click();
+        await element.updateComplete;
+        expect(pageLabels(element)).to.deep.equal(['/express/business', '/express/', '/ca/creativecloud/business.html']);
     });
 
     it('switches to an alphabetical page order when the Page header is picked', async () => {
@@ -369,7 +405,7 @@ describe('mas-external-usage-dialog', function () {
         const element = await openDialog();
         await opened(element);
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal(null);
-        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('desc');
+        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal(null);
         headerCell(element, 0).click();
         await element.updateComplete;
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal('asc');
@@ -379,12 +415,14 @@ describe('mas-external-usage-dialog', function () {
     it('announces the active sort to screen readers', async () => {
         const element = await openDialog();
         await opened(element);
-        await headerCell(element, 1).updateComplete;
-        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('descending');
-        headerCell(element, 1).click();
+        headerCell(element, 0).click();
         await element.updateComplete;
-        await headerCell(element, 1).updateComplete;
-        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('ascending');
+        await headerCell(element, 0).updateComplete;
+        expect(headerCell(element, 0).getAttribute('aria-sort')).to.equal('ascending');
+        headerCell(element, 0).click();
+        await element.updateComplete;
+        await headerCell(element, 0).updateComplete;
+        expect(headerCell(element, 0).getAttribute('aria-sort')).to.equal('descending');
     });
 
     it('still omits the aggregate traffic panel, which stayed out of scope', async () => {

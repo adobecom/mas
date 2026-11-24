@@ -7,6 +7,9 @@ export const styles = css`
        caps the dialog at 90% of a narrow screen. */
     sp-dialog-wrapper {
         --mod-dialog-confirm-large-width: 800px;
+        --mod-dialog-confirm-title-text-size: 22px;
+        --mod-dialog-confirm-title-text-line-height: 26px;
+        --mod-dialog-confirm-title-text-color: #292929;
     }
 
     .dialog-content {
@@ -80,17 +83,6 @@ export const styles = css`
         gap: 4px;
     }
 
-    .requests-column {
-        flex: 0 0 120px;
-    }
-
-    /* Counts are read by comparing them down the column, so the digits are held to a common width
-       instead of shifting with each row's glyphs. */
-    .page-requests {
-        font-variant-numeric: tabular-nums;
-        color: var(--spectrum-gray-900);
-    }
-
     sp-table-head-cell:last-child,
     sp-table-cell:last-child {
         flex: 0 0 180px;
@@ -133,7 +125,7 @@ export const styles = css`
         font-weight: 400;
         white-space: normal;
         word-break: break-word;
-        color: var(--spectrum-neutral-subdued-content-color-default);
+        color: #000;
     }
 
     .page-copy {

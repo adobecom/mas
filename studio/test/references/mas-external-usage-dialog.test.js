@@ -142,6 +142,58 @@ describe('mas-external-usage-dialog', function () {
         });
     });
 
+    describe('restyle', () => {
+        const cellsOf = (element) => [
+            ...element.shadowRoot.querySelectorAll('sp-table-head-cell'),
+            ...element.shadowRoot.querySelectorAll('sp-table-cell'),
+        ];
+
+        it('paints the header cells light gray', async () => {
+            const element = await openDialog();
+            expect(getComputedStyle(headerCell(element, 0)).backgroundColor).to.equal('rgb(243, 243, 243)');
+        });
+
+        it('shows page links in blue and underlined', async () => {
+            const element = await openDialog();
+            const style = getComputedStyle(element.shadowRoot.querySelector('.page-url'));
+            expect(style.color).to.equal('rgb(59, 99, 251)');
+            expect(style.textDecorationLine).to.contain('underline');
+        });
+
+        it('adds the open-in icon after each label without changing the label text', async () => {
+            const element = await openDialog();
+            const links = [...element.shadowRoot.querySelectorAll('.page-url')];
+            for (const link of links) {
+                expect(link.querySelector('sp-icon-open-in')).to.not.equal(null);
+            }
+            expect(pageLabels(element)).to.deep.equal(['/express/', '/ca/creativecloud/business.html', '/express/business']);
+        });
+
+        it('keeps each body row at least 68px high', async () => {
+            const element = await openDialog();
+            const rows = [...element.shadowRoot.querySelectorAll('sp-table-body sp-table-row')];
+            expect(rows).to.have.lengthOf(3);
+            for (const row of rows) {
+                expect(row.getBoundingClientRect().height).to.be.at.least(68);
+            }
+        });
+
+        it('draws horizontal rules only', async () => {
+            const element = await openDialog();
+            for (const cell of cellsOf(element)) {
+                const style = getComputedStyle(cell);
+                expect(style.borderLeftWidth).to.equal('0px');
+                expect(style.borderRightWidth).to.equal('0px');
+            }
+            for (const cell of element.shadowRoot.querySelectorAll('sp-table-head-cell')) {
+                expect(getComputedStyle(cell).borderBottomWidth).to.equal('1px');
+            }
+            for (const cell of element.shadowRoot.querySelectorAll('sp-table-cell')) {
+                expect(getComputedStyle(cell).borderTopWidth).to.equal('1px');
+            }
+        });
+    });
+
     it('lists every consuming page', async () => {
         const element = await openDialog();
         expect(pageLabels(element)).to.have.lengthOf(3);

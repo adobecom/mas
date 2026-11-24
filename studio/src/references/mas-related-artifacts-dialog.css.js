@@ -57,6 +57,20 @@ export const styles = css`
         font-size: 14px;
         line-height: 18px;
         font-weight: 700;
+        --spectrum-arrow-icon-size-100: 0px;
+        --mod-table-sort-icon-inline-end-spacing: 0;
+    }
+
+    .sort-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin-inline-end: 8px;
+        color: currentColor;
+    }
+
+    sp-table-head-cell[sort-direction='desc'] .sort-icon {
+        transform: scaleY(-1);
     }
 
     sp-table-row,

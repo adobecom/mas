@@ -375,6 +375,62 @@ describe('mas-related-artifacts-dialog restyle', function () {
         expect(wrapper.overflow).to.equal('hidden');
         expect(wrapper.borderTopLeftRadius).to.equal('12px');
     });
+
+    it('spectrum sort arrow is collapsed to 0x0', async () => {
+        const el = await openThemedDialog();
+        const arrow = headCellOf(el).shadowRoot.querySelector('.sortedIcon');
+        expect(arrow).to.exist;
+        const rect = arrow.getBoundingClientRect();
+        expect(rect.width).to.equal(0);
+        expect(rect.height).to.equal(0);
+        const style = getComputedStyle(arrow);
+        expect(style.marginLeft).to.equal('0px');
+        expect(style.marginRight).to.equal('0px');
+    });
+
+    it('sort icon is 16px, 20px from the left edge, 8px before the label', async () => {
+        const el = await openThemedDialog();
+        const cell = headCellOf(el);
+        const icon = cell.firstElementChild;
+        expect(icon.matches('svg.sort-icon')).to.equal(true);
+        expect(icon.hasAttribute('aria-hidden')).to.equal(true);
+        expect(icon.hasAttribute('focusable')).to.equal(true);
+        const paths = icon.querySelectorAll('path');
+        expect(paths.length).to.equal(4);
+        for (const path of paths) expect(path.getAttribute('fill')).to.equal('currentColor');
+        const iconRect = icon.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
+        expect(Math.round(iconRect.width)).to.equal(16);
+        expect(Math.round(iconRect.height)).to.equal(16);
+        expect(Math.round(iconRect.left - cellRect.left)).to.equal(20);
+        const label = [...cell.childNodes].find(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() === 'Page',
+        );
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const labelRect = range.getBoundingClientRect();
+        expect(Math.round(labelRect.left - iconRect.right)).to.equal(8);
+        expect(Math.abs(centerY(iconRect) - centerY(cellRect))).to.be.at.most(1);
+        expect(getComputedStyle(icon).color).to.equal(resolveColor(el, 'var(--spectrum-gray-900, #222)'));
+    });
+
+    it('sort icon flips when sorted descending', async () => {
+        const el = await openThemedDialog();
+        const cell = headCellOf(el);
+        const transformOf = () => getComputedStyle(cell.querySelector('.sort-icon')).transform;
+        expect(transformOf()).to.equal('none');
+        cell.click();
+        await el.updateComplete;
+        await cell.updateComplete;
+        expect(cell.getAttribute('sort-direction')).to.equal('desc');
+        expect(transformOf()).to.equal('matrix(1, 0, 0, -1, 0, 0)');
+        expect(cell.getAttribute('aria-sort')).to.equal('descending');
+        cell.click();
+        await el.updateComplete;
+        await cell.updateComplete;
+        expect(cell.getAttribute('sort-direction')).to.equal('asc');
+        expect(transformOf()).to.equal('none');
+    });
 });
 
 describe('related artifacts modal keyboard lifecycle', function () {

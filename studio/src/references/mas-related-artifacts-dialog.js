@@ -88,7 +88,14 @@ class MasRelatedArtifactsDialog extends LitElement {
         return html`
             <sp-table emphasized class="dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
-                    <sp-table-head-cell sortable sort-direction=${this.sortDirection}>Page</sp-table-head-cell>
+                    <sp-table-head-cell sortable sort-direction=${this.sortDirection}
+                        ><svg class="sort-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                            <path fill="currentColor" d="M3 6h14v3H3z" />
+                            <path fill="currentColor" d="M3 13h10v3H3z" />
+                            <path fill="currentColor" d="M3 20h6v3H3z" />
+                            <path fill="currentColor" d="M24 6h3v14.5l3.4-3.4 2.1 2.1-6.99 7-7-7 2.1-2.1 3.39 3.4z" /></svg
+                        >Page</sp-table-head-cell
+                    >
                 </sp-table-head>
                 <sp-table-body class="dialog-table-body">${rows.map((row) => this.#renderRow(row))}</sp-table-body>
             </sp-table>

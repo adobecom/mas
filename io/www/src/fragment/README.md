@@ -52,7 +52,8 @@ target, analyticsId, wcsOsi, checkout }`, checkout urls built with `checkout/src
 `features` (the in-card what's included list), `addon`, `quantitySelect`, `secureTransaction`, `customFields`,
 `perUnitLabel`, `backgroundImage`, `style`, `seeTerms` (first `/offer-terms/` link), `tags` & `pznTags`, and `sources`
 (each filled area's layers, e.g. `{ title: ['template'], features: ['product', 'template'], badge: ['mask'] }`: `product`
-offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`). Text-bearing
+offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`; a baseline's
+M@S elements priced with the fragment's offer, like prices or checkout CTAs, also count as `fragment`). Text-bearing
 values are emitted per `type` with serialize (`json` nodes, `html` or `text` strings).
 
 Mock limitations: `price` is the rendered price markup, not a price object; badge colors are authored tokens, not hex;

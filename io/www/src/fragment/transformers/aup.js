@@ -401,7 +401,11 @@ const sourcesOf = (fields, fieldSources = {}) =>
         Object.entries(SOURCE_FIELDS)
             .map(([area, names]) => [
                 area,
-                [...new Set(names.filter((name) => isFilled(fields, name)).map((name) => fieldSources[name] ?? 'fragment'))],
+                [
+                    ...new Set(
+                        names.filter((name) => isFilled(fields, name)).flatMap((name) => fieldSources[name] ?? 'fragment'),
+                    ),
+                ],
             ])
             .filter(([, sources]) => sources.length),
     );

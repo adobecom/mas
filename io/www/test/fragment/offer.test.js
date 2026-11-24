@@ -182,7 +182,11 @@ describe('offer transformer', () => {
                 locale: 'en_US',
             });
             expect(statusCode).to.equal(200);
-            expect(body.sources).to.deep.include({ title: ['fragment'], price: ['template'], mnemonics: ['product'] });
+            expect(body.sources).to.deep.include({
+                title: ['fragment'],
+                price: ['template', 'fragment'],
+                mnemonics: ['product'],
+            });
         });
 
         it('uses the market segment override of the fragment baseline as main body (EDU offer)', async () => {

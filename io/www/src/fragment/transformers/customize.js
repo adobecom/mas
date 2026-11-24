@@ -614,7 +614,11 @@ function applyBaselines(fragment, { baselines, fieldSourcesById }) {
     const merged = deepMerge(card, ...preparedLayers, card);
     const sources = (fieldSourcesById[fragment.id] ??= {});
     preparedLayers.forEach(({ fields }, index) => {
-        for (const name of Object.keys(fields)) sources[name] = layers[index][0];
+        const [layer] = layers[index];
+        // M@S elements (prices, CTAs…) authored on a baseline are priced with the fragment's offer
+        for (const [name, value] of Object.entries(fields)) {
+            sources[name] = osi && JSON.stringify(value).includes(osi) ? [layer, 'fragment'] : layer;
+        }
     });
     for (const [name, value] of Object.entries(card.fields)) {
         if (!isEmptyFieldValue(value)) sources[name] = 'fragment';

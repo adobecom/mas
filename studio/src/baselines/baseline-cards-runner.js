@@ -1,7 +1,8 @@
 import { TAG_MERCH_CARD, TAG_MERCH_CARD_COLLECTION, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { processConcurrently } from '../common/utils/item-loading.js';
-import { createBaseline } from './baseline-model.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { buildBaselineTags, createBaseline } from './baseline-model.js';
 
 export const ITEM_STATUS = {
     PENDING: 'pending',
@@ -87,9 +88,29 @@ async function createOrReuse(repository, item, folders) {
 }
 
 /**
+ * Saves the tags an item's fragment misses, as tags are saved after the fragment is created and that can fail: a
+ * fragment created or reused without its tags fails the item.
+ * @param {ItemResult} result - result with the item fragment
+ * @returns {Promise<ItemResult>} `result` when the fragment has all its tags
+ */
+async function ensureTags(repository, item, result) {
+    if (!result.fragment) return result;
+    const current = (result.fragment.tags ?? []).map(normalizeTagId);
+    const expected = (item.type === 'baseline' ? buildBaselineTags(item) : (item.tags ?? [])).map(normalizeTagId);
+    const missing = expected.filter((tag) => !current.includes(tag));
+    if (!missing.length) return result;
+    try {
+        await repository.aem.saveValidTags(result.fragment.id, [...current, ...missing]);
+        return result;
+    } catch (error) {
+        return { status: ITEM_STATUS.FAILED, fragment: result.fragment, error: error.message };
+    }
+}
+
+/**
  * Creates the baselines, plan cards & collections of a plan one at a time, in plan order (baselines → cards →
- * collections). Existing items are reused, so running the same plan again only creates what is missing. A failed item
- * does not stop the run; a collection that needs a card that was not created is `blocked`.
+ * collections). Existing items are reused, with the tags they miss saved, so running the same plan again only creates
+ * what is missing. A failed item does not stop the run; a collection that needs a card that was not created is `blocked`.
  * @param {object} repository - mas-repository element
  * @param {object[]} items - `buildBaselineCardsPlan` items
  * @param {{ existing?: Map<string, object>, onStatus?: (item: object, result: ItemResult) => void }} [options] -
@@ -109,17 +130,21 @@ export async function runBaselineCardsPlan(repository, items, { existing = new M
     }
     const folders = new Set();
     for (const item of items) {
-        if (results.get(item.path).status === ITEM_STATUS.EXISTS) continue;
-        const missingCards = (item.cards ?? []).filter((path) => NOT_CREATED.has(results.get(path).status));
-        if (missingCards.length) {
-            report(item, {
-                status: ITEM_STATUS.BLOCKED,
-                error: `${missingCards.length} of its cards could not be created.`,
-            });
-            continue;
+        let result = results.get(item.path);
+        if (result.status !== ITEM_STATUS.EXISTS) {
+            const missingCards = (item.cards ?? []).filter((path) => NOT_CREATED.has(results.get(path).status));
+            if (missingCards.length) {
+                report(item, {
+                    status: ITEM_STATUS.BLOCKED,
+                    error: `${missingCards.length} of its cards could not be created.`,
+                });
+                continue;
+            }
+            report(item, { status: ITEM_STATUS.CREATING });
+            result = await createOrReuse(repository, item, folders);
         }
-        report(item, { status: ITEM_STATUS.CREATING });
-        report(item, await createOrReuse(repository, item, folders));
+        const complete = await ensureTags(repository, item, result);
+        if (complete !== results.get(item.path)) report(item, complete);
     }
     return results;
 }

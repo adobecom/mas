@@ -54,8 +54,13 @@ const createRepository = (existingPaths = []) => {
         aem: {
             tags: { exists: sinon.stub().resolves(true) },
             sites: { cf: { fragments: { ensureFolderExists: sinon.stub().resolves(true), getByPath } } },
+            saveValidTags: sinon.stub().callsFake(async (id, tags) => tags),
         },
-        createFragment: sinon.stub().callsFake(async ({ parentPath, name }) => ({ id: name, path: `${parentPath}/${name}` })),
+        createFragment: sinon.stub().callsFake(async ({ parentPath, name, tags = [] }) => ({
+            id: name,
+            path: `${parentPath}/${name}`,
+            tags: tags.map((id) => ({ id })),
+        })),
     };
 };
 
@@ -107,7 +112,12 @@ describe('baseline-cards-runner', () => {
                 ['baseline', ITEM_STATUS.CREATED],
             ]);
             expect(Object.values(finalStatuses(results)).every((status) => status === ITEM_STATUS.CREATED)).to.be.true;
-            expect(results.get(card('abm').path).fragment).to.deep.equal({ id: 'abm-card', path: card('abm').path });
+            expect(results.get(card('abm').path).fragment).to.deep.equal({
+                id: 'abm-card',
+                path: card('abm').path,
+                tags: [{ id: 'mas:plan_type/abm' }],
+            });
+            expect(repository.aem.saveValidTags.called).to.be.false;
         });
 
         it('creates cards & collections with their model, fields & tags, without toasts', async () => {
@@ -157,6 +167,45 @@ describe('baseline-cards-runner', () => {
             expect(repository.createFragment.called).to.be.false;
             expect(statuses.every(([, status]) => status === ITEM_STATUS.EXISTS)).to.be.true;
             expect(results.get(baseline.path).fragment).to.deep.equal({ id: `existing-${baseline.path}`, path: baseline.path });
+        });
+
+        it('saves the missing tags of a reused baseline as tag ids', async () => {
+            const repository = createRepository([baseline.path]);
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            await run(repository, { existing });
+
+            expect(repository.aem.saveValidTags.args).to.deep.equal([
+                [
+                    `existing-${baseline.path}`,
+                    ['mas:product_code/ilst', 'mas:market_segments/com', 'mas:product_arrangement_code/ilst_direct_team'],
+                ],
+            ]);
+        });
+
+        it('saves the missing tags of a reused card, so a restart repairs a card whose tags failed to save', async () => {
+            const repository = createRepository([card('abm').path]);
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            const { results } = await run(repository, { existing });
+
+            expect(repository.aem.saveValidTags.args).to.deep.equal([[`existing-${card('abm').path}`, ['mas:plan_type/abm']]]);
+            expect(results.get(card('abm').path).status).to.equal(ITEM_STATUS.EXISTS);
+            expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.CREATED);
+        });
+
+        it('fails a reused card whose missing tags cannot be saved, blocking its collection', async () => {
+            const repository = createRepository([card('abm').path]);
+            repository.aem.saveValidTags.rejects(new Error('Failed to save tags: 500'));
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            const { results } = await run(repository, { existing });
+
+            expect(results.get(card('abm').path)).to.include({
+                status: ITEM_STATUS.FAILED,
+                error: 'Failed to save tags: 500',
+            });
+            expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
         });
 
         it('keeps going after a failure and blocks the collections that need the failed card', async () => {

@@ -185,6 +185,20 @@ describe('merch-card-editor whats-included popup', () => {
         expect(box.getBoundingClientRect().height).to.equal(40);
     });
 
+    it('sizes a library icon in a feature row to fill the icon box', async () => {
+        const helper = createEditor(VARIANT_NAMES.PLANS);
+        const seed = helper.createIncludedElement('Includes:', LOGOS, [
+            { icon: 'sp-icon-ribbon', alt: 'Ribbon row', link: '' },
+        ]).outerHTML;
+        helper.remove();
+        const editor = await setup(VARIANT_NAMES.PLANS, '', seed);
+        const icon = rowsOf(editor)[0].querySelector('.feature-row-icon sp-theme > sp-icon-ribbon');
+        await icon.updateComplete;
+        const rect = icon.getBoundingClientRect();
+        expect(rect.width).to.equal(40);
+        expect(rect.height).to.equal(40);
+    });
+
     it('feature and logo rows use the shared image row style', async () => {
         const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
         const rows = [editor.querySelector('#whatsIncluded .feature-row'), logoRowsOf(editor)[0]];

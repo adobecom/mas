@@ -53,6 +53,17 @@ class MnemonicField extends LitElement {
                 object-fit: contain;
             }
 
+            .icon-preview sp-theme {
+                display: flex;
+                width: 100%;
+                height: 100%;
+            }
+
+            .icon-preview sp-theme > * {
+                width: 40px;
+                height: 40px;
+            }
+
             .icon-placeholder {
                 width: 40px;
                 height: 40px;

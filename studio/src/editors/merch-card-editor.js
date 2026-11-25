@@ -2109,6 +2109,17 @@ class MerchCardEditor extends LitElement {
                     object-fit: contain;
                 }
 
+                #whatsIncluded .feature-row-icon sp-theme {
+                    display: flex;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                #whatsIncluded .feature-row-icon sp-theme > * {
+                    width: 40px;
+                    height: 40px;
+                }
+
                 #whatsIncluded .feature-row-text {
                     display: flex;
                     flex-direction: column;

@@ -63,6 +63,32 @@ describe('Mnemonic field', () => {
         expect(value.lineHeight).to.equal('18px');
     });
 
+    it('sizes a library icon to fill the icon box', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="sp-icon-upload-to-cloud"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        el.iconLibrary = true;
+        await el.updateComplete;
+        const icon = el.shadowRoot.querySelector('.icon-preview sp-theme > sp-icon-upload-to-cloud');
+        await icon.updateComplete;
+        const rect = icon.getBoundingClientRect();
+        expect(rect.width).to.equal(40);
+        expect(rect.height).to.equal(40);
+    });
+
+    it('sizes a product image to fill the icon box', async () => {
+        const svg =
+            'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%2210%22 height%3D%2210%22%2F%3E';
+        const el = await fixture(html`<mas-mnemonic-field .icon=${svg}></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        const img = el.shadowRoot.querySelector('.icon-preview img');
+        if (!img.complete) await oneEvent(img, 'load');
+        const rect = img.getBoundingClientRect();
+        expect(rect.width).to.equal(40);
+        expect(rect.height).to.equal(40);
+    });
+
     it('shows the alt text as a second line only when set', async () => {
         const el = await fixture(html`<mas-mnemonic-field icon="own.svg" alt="Photoshop icon"></mas-mnemonic-field>`, {
             parentNode: spTheme(),

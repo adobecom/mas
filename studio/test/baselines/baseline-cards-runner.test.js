@@ -262,6 +262,22 @@ describe('baseline-cards-runner', () => {
             expect(results.get(card('abm').path).error).to.equal('Its baseline could not be created.');
         });
 
+        it('blocks an existing card whose baseline failed, and its collection', async () => {
+            const repository = createRepository([card('abm').path]);
+            repository.createFragment.withArgs(sinon.match({ name: 'baseline' })).resolves(undefined);
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            const { results } = await run(repository, { existing });
+
+            expect(results.get(card('abm').path)).to.deep.equal({
+                status: ITEM_STATUS.BLOCKED,
+                error: 'Its baseline could not be created.',
+            });
+            expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
+            expect(repository.aem.saveValidTags.called).to.be.false;
+            expect(repository.createFragment.callCount).to.equal(1);
+        });
+
         it('reuses the fragment at the item path when the create answers 409', async () => {
             const repository = createRepository();
             const existingCard = { id: 'existing-abm-card', path: card('abm').path };

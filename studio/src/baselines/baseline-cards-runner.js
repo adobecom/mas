@@ -122,7 +122,7 @@ function findBlocker({ baseline, cards = [] }, results) {
  * Creates the baselines, plan cards & collections of a plan one at a time, in plan order (baselines → cards →
  * collections). Existing items are reused, with the tags they miss saved, so running the same plan again only creates
  * what is missing. A failed item does not stop the run; a card whose baseline, or a collection with a card, was not
- * created is `blocked`.
+ * created is `blocked`, even when it exists.
  * @param {object} repository - mas-repository element
  * @param {object[]} items - `buildBaselineCardsPlan` items
  * @param {{ existing?: Map<string, object>, onStatus?: (item: object, result: ItemResult) => void }} [options] -
@@ -142,13 +142,13 @@ export async function runBaselineCardsPlan(repository, items, { existing = new M
     }
     const folders = new Set();
     for (const item of items) {
+        const blockedBy = findBlocker(item, results);
+        if (blockedBy) {
+            report(item, { status: ITEM_STATUS.BLOCKED, error: blockedBy });
+            continue;
+        }
         let result = results.get(item.path);
         if (result.status !== ITEM_STATUS.EXISTS) {
-            const blockedBy = findBlocker(item, results);
-            if (blockedBy) {
-                report(item, { status: ITEM_STATUS.BLOCKED, error: blockedBy });
-                continue;
-            }
             report(item, { status: ITEM_STATUS.CREATING });
             result = await createOrReuse(repository, item, folders);
         }

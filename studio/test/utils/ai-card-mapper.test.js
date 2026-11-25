@@ -957,12 +957,10 @@ describe('ai-card-mapper', () => {
     });
 
     describe('buildReleasePrice', () => {
-        it('builds inline-price span without outer p wrapper', () => {
-            expect(buildReleasePrice('A1B2C3')).to.equal('<span is="inline-price" data-wcs-osi="A1B2C3"></span>');
-        });
-
-        it('emits no data-template attribute', () => {
-            expect(buildReleasePrice('some-osi')).to.not.include('data-template');
+        it('builds a price-template inline-price span without outer p wrapper', () => {
+            expect(buildReleasePrice('A1B2C3')).to.equal(
+                '<span is="inline-price" data-template="price" data-wcs-osi="A1B2C3"></span>',
+            );
         });
     });
 
@@ -1034,6 +1032,39 @@ describe('ai-card-mapper', () => {
             const tags = buildReleaseTags({ arrangement_code: 'pa-1' });
             expect(tags).to.deep.equal(['mas:pa/pa-1']);
         });
+    });
+
+    describe('buildReleaseTags plan_type', () => {
+        const planProduct = { arrangement_code: 'PA-1', product_code: 'ANTR', planTypes: { ABM: true, PUF: true, M2M: true } };
+        const offers = [
+            [{ commitment: 'YEAR', term: 'MONTHLY' }, 'abm'],
+            [{ commitment: 'YEAR', term: 'ANNUAL' }, 'puf'],
+            [{ commitment: 'MONTH', term: 'MONTHLY' }, 'm2m'],
+            [{ commitment: 'PERPETUAL' }, 'perpetual'],
+        ];
+
+        for (const [offer, type] of offers) {
+            it(`emits exactly one mas:plan_type/${type} tag for ${offer.commitment}`, () => {
+                const tags = buildReleaseTags(planProduct, offer);
+                expect(tags.filter((t) => t.startsWith('mas:plan_type/'))).to.deep.equal([`mas:plan_type/${type}`]);
+            });
+        }
+
+        it('follows the selected offer, not the product planTypes map', () => {
+            const tags = buildReleaseTags(planProduct, { commitment: 'MONTH', term: 'MONTHLY' });
+            expect(tags).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1', 'mas:plan_type/m2m']);
+        });
+
+        for (const offer of [
+            undefined,
+            null,
+            { commitment: 'YEAR', term: 'P3Y' },
+            { commitment: 'TERM_LICENSE', term: 'P3Y' },
+        ]) {
+            it(`emits no plan_type tag for ${JSON.stringify(offer)}`, () => {
+                expect(buildReleaseTags(planProduct, offer)).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1']);
+            });
+        }
     });
 
     describe('createFragmentDataForAEM with tags', () => {

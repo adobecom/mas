@@ -23,7 +23,7 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
     const key = workspaceKey(vaultLogin);
     const base = `https://api.github.com/repos/${repository}`;
 
-    async function get(path) {
+    async function get(path, notFound) {
         let response;
         try {
             response = await fetchImpl(`${base}${path}`, {
@@ -36,6 +36,7 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
         } catch {
             throw new Error(`GitHub API request failed: ${path}`);
         }
+        if (response.status === 404 && notFound) return notFound;
         if (!response.ok) throw new Error(`GitHub API ${response.status}: ${path}`);
         try {
             return await response.json();
@@ -44,9 +45,9 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
         }
     }
 
-    async function* paginate(path, query, pick) {
+    async function* paginate(path, query, pick, notFound) {
         for (let page = 1; ; page++) {
-            const items = pick(await get(`${path}?${new URLSearchParams({ ...query, per_page: PER_PAGE, page })}`));
+            const items = pick(await get(`${path}?${new URLSearchParams({ ...query, per_page: PER_PAGE, page })}`, notFound));
             yield* items;
             if (items.length < PER_PAGE) return;
         }
@@ -79,10 +80,17 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
 
     for (const [workflow, resolveIdentity] of Object.entries(identityResolvers)) {
         for (const status of ACTIVE_STATUSES) {
-            const runs = paginate(`/actions/workflows/${workflow}/runs`, { status }, (result) => {
-                if (!Array.isArray(result.workflow_runs)) throw new Error(`GitHub API returned no run list for ${workflow}.`);
-                return result.workflow_runs;
-            });
+            // A workflow file not yet on the default branch has no runs, and its run list 404s.
+            const runs = paginate(
+                `/actions/workflows/${workflow}/runs`,
+                { status },
+                (result) => {
+                    if (!Array.isArray(result.workflow_runs))
+                        throw new Error(`GitHub API returned no run list for ${workflow}.`);
+                    return result.workflow_runs;
+                },
+                { workflow_runs: [] },
+            );
             for await (const run of runs) {
                 if (!isCompetingRun(run, runId)) continue;
                 const identity = await resolveIdentity(run);

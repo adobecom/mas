@@ -169,3 +169,19 @@ test('the busy message says re-pushes and runs still in tests count as busy', as
     const fetchImpl = apiFixture((url) => runsOnly(url, 'io-studio-candidate.yaml', 'in_progress', [candidate]));
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /superseded.*tests/i);
 });
+
+test('a workflow not yet on the default branch counts as having no runs', async () => {
+    const fetchImpl = async (url) => {
+        if (new URL(url).pathname.endsWith('io-studio-candidate.yaml/runs')) return { ok: false, status: 404 };
+        return { ok: true, status: 200, json: async () => ({ workflow_runs: [] }) };
+    };
+    assert.equal(await checkWorkspaceAvailability({ ...options, fetchImpl }), null);
+});
+
+test('a missing PR still cannot report an available workspace', async () => {
+    const fetchImpl = async (url) => {
+        if (new URL(url).pathname.endsWith('/pulls/42')) return { ok: false, status: 404 };
+        return { ok: true, status: 200, json: async () => runsOnly(new URL(url), 'io-studio-pr.yaml', 'queued', [prRun]) };
+    };
+    await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /GitHub API 404/);
+});

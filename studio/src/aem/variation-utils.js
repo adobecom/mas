@@ -28,10 +28,12 @@ export function variationFieldShouldInheritParent(sourceValues, isMultiple = fal
  * @param {{ fields: Array }} previewData
  * @param {{ fields?: Array }} parentFragment
  * @param {string[]} [arraysToMerge]
+ * @param {{ fields?: Array }} [iconParent] the fragment whose icons tell whether the preview data sets its own icons,
+ * the inheritance parent when the parent layers are merged one by one
  * @returns {{ fields: Array }} previewData
  */
-export function mergeParentFields(previewData, parentFragment, arraysToMerge = []) {
-    const setsOwnIcon = overridesParentIcons(previewData, parentFragment);
+export function mergeParentFields(previewData, parentFragment, arraysToMerge = [], iconParent = parentFragment) {
+    const setsOwnIcon = overridesParentIcons(previewData, iconParent);
     for (const parentField of parentFragment.fields ?? []) {
         if (!parentField.values?.length) continue;
         if (setsOwnIcon && ICON_FIELDS.has(parentField.name)) continue;

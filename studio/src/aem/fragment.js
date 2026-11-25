@@ -266,13 +266,15 @@ export class Fragment {
 
     /**
      * Whether the field may hold the explicit_empty sentinel: allowlisted fields persist it; the fields the template requires
-     * on a card inheriting from baselines only hold it while edited, so the editor flags them as required. Saving drops it
-     * (see `AEM.saveFragment`).
+     * on a card inheriting from baselines, or on a variation of such a card, only hold it while edited, so the editor flags
+     * them as required. Saving drops it (see `AEM.saveFragment`). A variation follows the baselines switch of its locale
+     * default card, the only parent carrying one.
      */
     #keepsEmpty(fieldName, parentFragment) {
         if (isExplicitEmptyField(fieldName)) return true;
         const variant = this.getFieldValue('variant') || parentFragment?.getFieldValue('variant');
-        return this.getFieldValue('enableBaselines') === true && isTemplateRequiredField(variant, fieldName);
+        const card = parentFragment?.getField('enableBaselines') ? parentFragment : this;
+        return card.getFieldValue('enableBaselines') === true && isTemplateRequiredField(variant, fieldName);
     }
 
     #ownValues(fieldName, parentFragment) {

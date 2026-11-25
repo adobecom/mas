@@ -197,6 +197,7 @@ describe('merch-card-editor whats-included popup', () => {
         const rect = icon.getBoundingClientRect();
         expect(rect.width).to.equal(40);
         expect(rect.height).to.equal(40);
+        expect(getComputedStyle(icon.parentElement).backgroundColor).to.equal('rgba(0, 0, 0, 0)');
     });
 
     it('feature and logo rows use the shared image row style', async () => {

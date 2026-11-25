@@ -74,6 +74,7 @@ describe('Mnemonic field', () => {
         const rect = icon.getBoundingClientRect();
         expect(rect.width).to.equal(40);
         expect(rect.height).to.equal(40);
+        expect(getComputedStyle(icon.parentElement).backgroundColor).to.equal('rgba(0, 0, 0, 0)');
     });
 
     it('sizes a product image to fill the icon box', async () => {

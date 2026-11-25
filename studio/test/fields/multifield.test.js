@@ -75,7 +75,7 @@ describe('Multifield', () => {
         expect(button.querySelector('sp-icon-image-add')).to.be.null;
     });
 
-    it('renders a quiet add button with sp-icon-image-add when opted in', async () => {
+    it('renders a quiet add button with an inline image-add icon when opted in', async () => {
         const el = await fixture(
             html`<mas-multifield quiet-image-add button-label="Add visual"
                 ><template><div></div></template
@@ -84,7 +84,13 @@ describe('Multifield', () => {
         );
         const button = el.shadowRoot.querySelector('sp-action-button');
         expect(button.hasAttribute('quiet')).to.be.true;
-        expect(button.querySelector('sp-icon-image-add')).to.exist;
+        const svg = button.querySelector('span[slot="icon"] svg');
+        expect(svg).to.exist;
+        expect(svg.getAttribute('viewBox')).to.equal('0 0 36 36');
+        const rect = svg.getBoundingClientRect();
+        expect(rect.width).to.equal(20);
+        expect(rect.height).to.equal(20);
+        expect(button.querySelector('sp-icon-image-add')).to.be.null;
         expect(button.querySelector('sp-icon-add')).to.be.null;
         expect(button.textContent.trim()).to.equal('Add visual');
         expect(getComputedStyle(el.shadowRoot.querySelector('.add-button-wrapper')).justifyContent).to.equal('center');

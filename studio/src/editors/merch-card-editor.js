@@ -2113,6 +2113,7 @@ class MerchCardEditor extends LitElement {
                     display: flex;
                     width: 100%;
                     height: 100%;
+                    background: transparent;
                 }
 
                 #whatsIncluded .feature-row-icon sp-theme > * {

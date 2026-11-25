@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
 import { deepEquals } from '../utils.js';
+import { imageAddIcon } from '../icons.js';
 
 class MasMultifield extends LitElement {
     static get properties() {
@@ -371,7 +372,7 @@ class MasMultifield extends LitElement {
             return html`
                 <div class="add-button-wrapper add-button-wrapper--quiet">
                     <sp-action-button quiet @click=${this.addField}>
-                        <sp-icon-image-add slot="icon"></sp-icon-image-add>${this.buttonLabel}
+                        <span slot="icon">${imageAddIcon}</span>${this.buttonLabel}
                     </sp-action-button>
                 </div>
             `;

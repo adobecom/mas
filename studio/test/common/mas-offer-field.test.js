@@ -89,7 +89,18 @@ describe('MasOfferField', () => {
                 },
             },
         ]);
-        expect(detailsText(el)).to.equal('OSI: OSI-1 PA code: PA-1 Market segment: EDU Commitment · term: YEAR · MONTHLY');
+        expect(detailsText(el)).to.equal('OSI: OSI-1 PA code: PA-1 Market segment: EDU Commitment: YEAR Term: MONTHLY');
+    });
+
+    it('shows the commitment of a perpetual offer, which has no term', async () => {
+        const el = await mount();
+
+        el.openOfferSelector();
+        selectOffer({ offerSelectorId: 'OSI-PERPETUAL', offer: { productArrangementCode: 'PA-1', commitment: 'PERPETUAL' } });
+        await oneEvent(el, 'change');
+        await el.updateComplete;
+
+        expect(detailsText(el)).to.equal('OSI: OSI-PERPETUAL PA code: PA-1 Commitment: PERPETUAL');
     });
 
     it('drops the details of an offer replaced while it resolves', async () => {

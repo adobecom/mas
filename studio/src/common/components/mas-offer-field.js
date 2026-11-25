@@ -103,7 +103,8 @@ export class MasOfferField extends LitElement {
                 <p>OSI: <strong>${this.osi}</strong></p>
                 <p>PA code: <strong>${productArrangementCode || (this.error ? '—' : '…')}</strong></p>
                 ${marketSegment ? html`<p>Market segment: <strong>${marketSegment}</strong></p>` : nothing}
-                ${commitment && term ? html`<p>Commitment · term: <strong>${commitment} · ${term}</strong></p>` : nothing}
+                ${commitment ? html`<p>Commitment: <strong>${commitment}</strong></p>` : nothing}
+                ${term ? html`<p>Term: <strong>${term}</strong></p>` : nothing}
             </div>`;
     }
 

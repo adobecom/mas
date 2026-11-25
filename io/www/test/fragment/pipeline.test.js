@@ -1,6 +1,9 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { main as action, resetCache } from '../../src/fragment/pipeline.js';
+import { main as action, resetCache, handleGarbageCollection } from '../../src/fragment/pipeline.js';
+import { constants } from 'node:perf_hooks';
+import v8 from 'v8';
+import { createSwrCache, getMemoryStats, setHeapBudget } from '../../src/fragment/utils/swr-cache.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
@@ -17,6 +20,97 @@ import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 
 let fetchStub;
+
+describe('fragment pipeline garbage collection observer', () => {
+    let cache;
+    let clock;
+    let heapUsed;
+    let maxHeapUsed;
+    let name;
+
+    beforeEach(function () {
+        maxHeapUsed = getMemoryStats().maxHeapUsed;
+        setHeapBudget();
+        clock = sinon.stub(performance, 'now').returns(1000);
+        name = `observer-${this.currentTest.title}`;
+        cache = createSwrCache({ name });
+        heapUsed = 0;
+        setHeapBudget(1000, () => heapUsed);
+        for (const key of ['a', 'b', 'c', 'd']) cache.set({}, key, key.repeat(98));
+        heapUsed = 1000 + getMemoryStats().bytes - 250;
+        cache.set({}, 'e', 'e'.repeat(98));
+    });
+
+    afterEach(() => {
+        cache.clear();
+        sinon.restore();
+        setHeapBudget(maxHeapUsed, () => v8.getHeapStatistics().used_heap_size);
+    });
+
+    const gc = (startTime, kind = constants.NODE_PERFORMANCE_GC_MAJOR) => ({ startTime, detail: { kind } });
+    const notify = (...entries) => handleGarbageCollection({ getEntries: () => entries });
+    const stats = () => getMemoryStats().caches[name];
+
+    it('preserves credit for a batch containing only minor GCs', () => {
+        notify(gc(1500, constants.NODE_PERFORMANCE_GC_MINOR), gc(2500, constants.NODE_PERFORMANCE_GC_MINOR));
+        cache.set({}, 'f', 'f'.repeat(98));
+
+        expect(stats()).to.deep.equal({ entries: 4, bytes: 400, evictions: 2 });
+    });
+
+    it('clears credit older than a major GC but preserves credit before a newer minor GC', () => {
+        clock.returns(2000);
+        heapUsed += 100;
+        cache.set({}, 'f', 'f'.repeat(98));
+        heapUsed = 1150;
+
+        notify(gc(1500), gc(2500, constants.NODE_PERFORMANCE_GC_MINOR));
+        cache.set({}, 'g', 'g'.repeat(98));
+
+        expect(stats()).to.deep.equal({ entries: 3, bytes: 300, evictions: 4 });
+    });
+
+    it('uses the newest major GC in a batch containing several major GCs', () => {
+        clock.returns(2000);
+        heapUsed += 100;
+        cache.set({}, 'f', 'f'.repeat(98));
+        clock.returns(3000);
+        heapUsed += 100;
+        cache.set({}, 'g', 'g'.repeat(98));
+        heapUsed = 1150;
+
+        notify(gc(1500), gc(2500), gc(3500, constants.NODE_PERFORMANCE_GC_MINOR));
+        cache.set({}, 'h', 'h'.repeat(98));
+
+        expect(stats()).to.deep.equal({ entries: 3, bytes: 300, evictions: 5 });
+    });
+
+    it('accumulates repeated eviction rounds until the next major GC clears them together', () => {
+        notify(gc(500));
+        clock.returns(2000);
+        heapUsed += 100;
+        cache.set({}, 'f', 'f'.repeat(98));
+        clock.returns(3000);
+        heapUsed += 100;
+        cache.set({}, 'g', 'g'.repeat(98));
+        cache.set({}, 'h', 'h'.repeat(98));
+        expect(stats()).to.deep.equal({ entries: 4, bytes: 400, evictions: 4 });
+        heapUsed = 1250;
+
+        notify(gc(3500));
+        cache.set({}, 'i', 'i'.repeat(98));
+
+        expect(stats()).to.deep.equal({ entries: 2, bytes: 200, evictions: 7 });
+    });
+
+    it('ignores batches with no major GC entries', () => {
+        notify({ startTime: 1500 }, gc(2500, constants.NODE_PERFORMANCE_GC_INCREMENTAL));
+        notify();
+        cache.set({}, 'f', 'f'.repeat(98));
+
+        expect(stats()).to.deep.equal({ entries: 4, bytes: 400, evictions: 2 });
+    });
+});
 
 function decompress(response) {
     const body =

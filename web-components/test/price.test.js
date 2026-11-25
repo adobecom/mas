@@ -288,11 +288,7 @@ describe('class "InlinePrice"', () => {
                 '{invalid',
                 {
                     error: 'SyntaxError: Invalid message: {invalid',
-                    locale: 'en-US',
                     parameters: {},
-                    navigatorLanguage: navigator.language,
-                    defaultLocale: new Intl.NumberFormat().resolvedOptions()
-                        .locale,
                 },
             ],
         });
@@ -2874,11 +2870,7 @@ describe('Price browser adapter', () => {
                     '{invalid',
                     {
                         error: 'SyntaxError: Invalid message: {invalid',
-                        locale: 'en-US',
                         parameters: { recurrenceTerm: 'MONTH' },
-                        navigatorLanguage: navigator.language,
-                        defaultLocale: new Intl.NumberFormat().resolvedOptions()
-                            .locale,
                     },
                 ],
             },

@@ -117,13 +117,7 @@ export function formatLiteral(literals, locale, key, parameters, logger = consol
         const formattedLiteral = formatMessage(literal, locale, parameters);
         return hasLinks || hasPrices ? decodeLinksAndPrices(formattedLiteral) : formattedLiteral;
     } catch (error) {
-        logger.error('Failed to format literal:', literal, {
-            error: `${error}`,
-            locale,
-            parameters,
-            navigatorLanguage: globalThis.navigator?.language,
-            defaultLocale: new Intl.NumberFormat().resolvedOptions().locale,
-        });
+        logger.error('Failed to format literal:', literal, { error: `${error}`, parameters });
         return '';
     }
 }

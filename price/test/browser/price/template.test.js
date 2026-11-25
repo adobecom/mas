@@ -353,7 +353,7 @@ describe('Promotion price display with annual template', () => {
         );
     });
 
-    it('logs locale, parameters and error when a literal fails to format', () => {
+    it('logs the error and parameters when a literal fails to format', () => {
         const errors = [];
         const literal = '{taxTerm} inkl. MwSt.';
         const formattedLiteral = formatLiteral(
@@ -370,13 +370,7 @@ describe('Promotion price display with annual template', () => {
             [
                 'Failed to format literal:',
                 literal,
-                {
-                    error: 'ReferenceError: Missing value: taxTerm',
-                    locale: 'de-DE',
-                    parameters: { perUnit: 'LICENSE' },
-                    navigatorLanguage: navigator.language,
-                    defaultLocale: new Intl.NumberFormat().resolvedOptions().locale,
-                },
+                { error: 'ReferenceError: Missing value: taxTerm', parameters: { perUnit: 'LICENSE' } },
             ],
         ]);
     });

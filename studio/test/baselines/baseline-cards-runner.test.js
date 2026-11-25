@@ -27,6 +27,7 @@ const card = (plan) => ({
     parentPath: CARDS_FOLDER,
     name: `${plan}-card`,
     title: `CC: Mini Compare: Illustrator: Team: ${plan.toUpperCase()}: default`,
+    baseline: `${BASELINE_FOLDER}/baseline`,
     fields: [{ name: 'osi', type: 'text', multiple: false, values: [`${plan}-osi`] }],
     tags: [`mas:plan_type/${plan}`],
 });
@@ -223,6 +224,23 @@ describe('baseline-cards-runner', () => {
             });
             expect(repository.createFragment.calledWith(sinon.match({ name: 'puf-collection' }))).to.be.false;
             expect(results.get(card('puf').path).error).to.equal('Failed to create fragment.');
+        });
+
+        it('blocks the cards of a failed baseline, and their collections', async () => {
+            const repository = createRepository();
+            repository.createFragment.withArgs(sinon.match({ name: 'baseline' })).resolves(undefined);
+
+            const { results } = await run(repository);
+
+            expect(finalStatuses(results)).to.deep.equal({
+                baseline: ITEM_STATUS.FAILED,
+                'abm-card': ITEM_STATUS.BLOCKED,
+                'puf-card': ITEM_STATUS.BLOCKED,
+                'abm-collection': ITEM_STATUS.BLOCKED,
+                'puf-collection': ITEM_STATUS.BLOCKED,
+            });
+            expect(repository.createFragment.callCount).to.equal(1);
+            expect(results.get(card('abm').path).error).to.equal('Its baseline could not be created.');
         });
 
         it('reuses the fragment at the item path when the create answers 409', async () => {

@@ -108,9 +108,21 @@ async function ensureTags(repository, item, result) {
 }
 
 /**
+ * Why an item cannot be created: the baseline of a card or a card of a collection was not created.
+ * @param {Map<string, ItemResult>} results
+ * @returns {string | undefined}
+ */
+function findBlocker({ baseline, cards = [] }, results) {
+    if (baseline && NOT_CREATED.has(results.get(baseline).status)) return 'Its baseline could not be created.';
+    const missingCards = cards.filter((path) => NOT_CREATED.has(results.get(path).status));
+    if (missingCards.length) return `${missingCards.length} of its cards could not be created.`;
+}
+
+/**
  * Creates the baselines, plan cards & collections of a plan one at a time, in plan order (baselines → cards →
  * collections). Existing items are reused, with the tags they miss saved, so running the same plan again only creates
- * what is missing. A failed item does not stop the run; a collection that needs a card that was not created is `blocked`.
+ * what is missing. A failed item does not stop the run; a card whose baseline, or a collection with a card, was not
+ * created is `blocked`.
  * @param {object} repository - mas-repository element
  * @param {object[]} items - `buildBaselineCardsPlan` items
  * @param {{ existing?: Map<string, object>, onStatus?: (item: object, result: ItemResult) => void }} [options] -
@@ -132,12 +144,9 @@ export async function runBaselineCardsPlan(repository, items, { existing = new M
     for (const item of items) {
         let result = results.get(item.path);
         if (result.status !== ITEM_STATUS.EXISTS) {
-            const missingCards = (item.cards ?? []).filter((path) => NOT_CREATED.has(results.get(path).status));
-            if (missingCards.length) {
-                report(item, {
-                    status: ITEM_STATUS.BLOCKED,
-                    error: `${missingCards.length} of its cards could not be created.`,
-                });
+            const blockedBy = findBlocker(item, results);
+            if (blockedBy) {
+                report(item, { status: ITEM_STATUS.BLOCKED, error: blockedBy });
                 continue;
             }
             report(item, { status: ITEM_STATUS.CREATING });

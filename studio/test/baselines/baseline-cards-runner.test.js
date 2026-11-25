@@ -48,9 +48,21 @@ const PATHS = ITEMS.map(({ path }) => path);
 
 const notFoundError = () => Object.assign(new Error('Fragment not found'), { status: 404 });
 
+const existingFragment = (
+    item,
+    fields = item.type === 'baseline' ? [{ name: 'variant', values: [item.template] }] : item.fields,
+) => ({
+    id: `existing-${item.path}`,
+    path: item.path,
+    model: { id: TAG_MODEL_ID_MAPPING[item.type === 'collection' ? TAG_MERCH_CARD_COLLECTION : TAG_MERCH_CARD] },
+    fields,
+});
+
 const createRepository = (existingPaths = []) => {
     const getByPath = sinon.stub().rejects(notFoundError());
-    for (const path of existingPaths) getByPath.withArgs(path).resolves({ id: `existing-${path}`, path });
+    for (const path of existingPaths) {
+        getByPath.withArgs(path).resolves(existingFragment(ITEMS.find((item) => item.path === path)));
+    }
     return {
         aem: {
             tags: { exists: sinon.stub().resolves(true) },
@@ -186,7 +198,7 @@ describe('baseline-cards-runner', () => {
 
             expect(repository.createFragment.called).to.be.false;
             expect(statuses.every(([, status]) => status === ITEM_STATUS.EXISTS)).to.be.true;
-            expect(results.get(baseline.path).fragment).to.deep.equal({ id: `existing-${baseline.path}`, path: baseline.path });
+            expect(results.get(baseline.path).fragment).to.deep.equal(existingFragment(baseline));
         });
 
         it('saves the missing tags of a reused baseline as tag ids', async () => {
@@ -280,7 +292,7 @@ describe('baseline-cards-runner', () => {
 
         it('reuses the fragment at the item path when the create answers 409', async () => {
             const repository = createRepository();
-            const existingCard = { id: 'existing-abm-card', path: card('abm').path };
+            const existingCard = existingFragment(card('abm'));
             repository.createFragment
                 .withArgs(sinon.match({ name: 'abm-card' }))
                 .rejects(new Error('Failed to create fragment: 409 Conflict'));
@@ -305,6 +317,59 @@ describe('baseline-cards-runner', () => {
                 error: 'Failed to create fragment: 409 Conflict',
             });
             expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
+        });
+
+        it('reports a different card at the item path as a conflict, leaving it untouched and blocking its collection', async () => {
+            const repository = createRepository();
+            const otherCard = existingFragment(card('abm'), [{ name: 'osi', values: ['other-osi'] }]);
+            repository.aem.sites.cf.fragments.getByPath.withArgs(card('abm').path).resolves(otherCard);
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            const { results, statuses } = await run(repository, { existing });
+
+            expect(statuses[1]).to.deep.equal(['abm-card', ITEM_STATUS.CONFLICT]);
+            expect(results.get(card('abm').path)).to.deep.equal({
+                status: ITEM_STATUS.CONFLICT,
+                error: 'A different fragment already exists at its path.',
+            });
+            expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
+            expect(repository.createFragment.calledWith(sinon.match({ name: 'abm-card' }))).to.be.false;
+            expect(repository.aem.saveValidTags.called).to.be.false;
+        });
+
+        it('reports an existing baseline of another template as a conflict and blocks its cards', async () => {
+            const repository = createRepository();
+            const otherBaseline = existingFragment(baseline, [{ name: 'variant', values: ['catalog'] }]);
+            repository.aem.sites.cf.fragments.getByPath.withArgs(baseline.path).resolves(otherBaseline);
+
+            const { results } = await run(repository);
+
+            expect(finalStatuses(results)).to.deep.equal({
+                baseline: ITEM_STATUS.CONFLICT,
+                'abm-card': ITEM_STATUS.BLOCKED,
+                'puf-card': ITEM_STATUS.BLOCKED,
+                'abm-collection': ITEM_STATUS.BLOCKED,
+                'puf-collection': ITEM_STATUS.BLOCKED,
+            });
+            expect(repository.createFragment.called).to.be.false;
+            expect(repository.aem.saveValidTags.called).to.be.false;
+        });
+
+        it('reports a conflict when the collection found after a 409 has other cards', async () => {
+            const repository = createRepository();
+            repository.createFragment
+                .withArgs(sinon.match({ name: 'abm-collection' }))
+                .rejects(new Error('Failed to create fragment: 409 Conflict'));
+            const otherCollection = existingFragment(collection('abm'), [
+                { name: 'cards', values: [card('abm').path, `${CARDS_FOLDER}/other-card`] },
+            ]);
+            repository.aem.sites.cf.fragments.getByPath.withArgs(collection('abm').path).resolves(otherCollection);
+
+            const { results } = await run(repository);
+
+            expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.CONFLICT);
+            expect(results.get(collection('puf').path).status).to.equal(ITEM_STATUS.CREATED);
+            expect(repository.aem.saveValidTags.called).to.be.false;
         });
     });
 });

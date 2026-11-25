@@ -48,7 +48,7 @@ const NEW_PLAN_CARD_FIELDS = {
  * @property {Record<string, PlanOffer | CheckedPlanOffer>} offers - offers by plan type
  */
 
-const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values ?? [];
+export const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values ?? [];
 
 const parseHtml = (html) => {
     const template = document.createElement('template');

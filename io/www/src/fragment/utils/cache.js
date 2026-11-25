@@ -41,10 +41,11 @@ const getRequestMetadataKey = ({
 
 // Memory copies of the stored values, re-read from State and Files at most every minute or so per container.
 const MEMORY_TTL = 60 * 1000;
-// A stored response refreshed less than this ago is served as is; an older one is rebuilt.
+// A stored response refreshed less than this ago is served as is (`hit`).
 const RESPONSE_MAX_AGE = 5 * 60 * 1000;
-// While a rebuild is in progress, an older stored response is still served, up to this age; beyond it requests wait.
-const STALE_MAX_AGE = 15 * 60 * 1000;
+// An older one is still served, up to this age, while it is refreshed in the background (`stale`); beyond it, it is
+// rebuilt while the request waits (`miss`).
+const STALE_MAX_AGE = 60 * 60 * 1000;
 // Larger responses are neither stored nor kept in memory (most are under 20 KB).
 const MAX_STORED_RESPONSE_LENGTH = 900 * 1024;
 // A Files read or write taking longer is given up: a miss rather than a slow response.

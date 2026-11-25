@@ -24,6 +24,7 @@ const SCOPE_FIELDS = {
     productDescription: { fields: ['cardTitle', 'description', 'features', 'compareChart', 'shortDescription'] },
     promoText: { fields: ['promoText', 'promoCode'] },
     subtitle: { fields: ['subtitle'] },
+    badge: { fields: ['badge'] },
     fragmentDescription: { properties: ['description'] },
     fragmentTitle: { properties: ['title'] },
     tags: { tags: true },

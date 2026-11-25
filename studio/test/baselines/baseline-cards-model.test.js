@@ -94,6 +94,13 @@ const ccProCard = () =>
         trialOsi: 'ccpro-abm-trial',
     });
 
+const ccProEduCard = () =>
+    createCard({
+        title: 'CC: Mini Compare Mweb: CC Pro: Students: default',
+        osi: 'ccpro-edu-abm',
+        trialOsi: 'ccpro-abm-trial',
+    });
+
 const getField = (fields, name) => fields.find((item) => item.name === name);
 
 const ccProProduct = (offers) => ({
@@ -132,13 +139,7 @@ describe('baseline-cards-model', () => {
         });
 
         it('splits the cards of a PA code by market segment, each with its own ABM offer', async () => {
-            const eduCard = createCard({
-                title: 'CC: Mini Compare Mweb: CC Pro: Students: default',
-                osi: 'ccpro-edu-abm',
-                trialOsi: 'ccpro-abm-trial',
-            });
-
-            const { products } = await groupCardsByProduct([ccProCard(), eduCard], { cache: createCache() });
+            const { products } = await groupCardsByProduct([ccProCard(), ccProEduCard()], { cache: createCache() });
 
             expect(
                 products.map(({ productArrangementCode, marketSegment, offers }) => [
@@ -357,6 +358,15 @@ describe('baseline-cards-model', () => {
                 ),
             ).to.equal('CC: Mini Compare Mweb: Illustrator and CC Pro plans: ABM');
         });
+
+        it('puts a market segment other than COM in a collection title', () => {
+            const title = 'CC: Mini Compare Mweb: CC Pro: Students: default';
+
+            expect(['COM', 'EDU'].map((segment) => buildCollectionTitle(title, 'CC Pro plans', 'abm', segment))).to.deep.equal([
+                'CC: Mini Compare Mweb: CC Pro plans: ABM',
+                'CC: Mini Compare Mweb: CC Pro plans: EDU: ABM',
+            ]);
+        });
     });
 
     describe('withPlanTypeTag', () => {
@@ -376,6 +386,14 @@ describe('baseline-cards-model', () => {
             productCode: 'ILST',
             cards: [illustratorTeamCard()],
             offers: { abm: { osi: ILST_TEAM_OSI, trialOsi: ILST_INDIVIDUAL_TRIAL_OSI } },
+        });
+
+        const ccProEduProduct = () => ({
+            productArrangementCode: CCSN_INDIVIDUAL,
+            marketSegment: 'EDU',
+            productCode: 'CCSN',
+            cards: [ccProEduCard()],
+            offers: { abm: { osi: 'ccpro-edu-abm' } },
         });
 
         const buildPlan = async (products, disclaimerKeys) =>
@@ -447,6 +465,15 @@ describe('baseline-cards-model', () => {
                 [`CC: Mini Compare Mweb: ${LABEL}: PUF`, [`${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-puf-default`]],
             ]);
             expect(getField(collections[1].fields, 'cards').values).to.deep.equal(collections[1].cards);
+        });
+
+        it('builds one collection per template, market segment and plan', async () => {
+            const items = await buildPlan([ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm }), ccProEduProduct()]);
+
+            expect(items.filter(({ type }) => type === 'collection').map(({ title, cards }) => [title, cards])).to.deep.equal([
+                [`CC: Mini Compare Mweb: ${LABEL}: ABM`, [`${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-abm-default`]],
+                [`CC: Mini Compare Mweb: ${LABEL}: EDU: ABM`, [`${FOLDER}/cc-mini-compare-mweb-cc-pro-students-abm-default`]],
+            ]);
         });
 
         it('builds no ABM card nor ABM collection for a product without ABM, keeping its baseline', async () => {

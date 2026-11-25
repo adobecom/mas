@@ -3,7 +3,13 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
 import { normalizeFragmentName } from '../utils.js';
 import { getPlanType } from '../utils/plan-type.js';
-import { buildBaselineFolderPath, CARD_OWN_FIELDS, hasContent, resolveBaselineOffer } from './baseline-model.js';
+import {
+    buildBaselineFolderPath,
+    CARD_OWN_FIELDS,
+    DEFAULT_MARKET_SEGMENT,
+    hasContent,
+    resolveBaselineOffer,
+} from './baseline-model.js';
 
 /**
  * Plan types a product gets a card and a collection for, in creation order.
@@ -208,11 +214,13 @@ export function buildPlanTitle(title, plan) {
 export const buildBaselineTitle = (title) => [...splitTitle(title).parts, BASELINE_NAME].join(': ');
 
 /**
- * Title of a collection: "<prefix>: <Template>: <label>: <PLAN>", prefix & template being the first two parts of the
- * title of an ABM card of the template.
+ * Title of a collection: "<prefix>: <Template>: <label>: [<SEGMENT>: ]<PLAN>", prefix & template being the first two
+ * parts of the title of an ABM card of the template; the market segment is only there when it is not the default one.
  */
-export const buildCollectionTitle = (cardTitle, label, plan) =>
-    [...splitTitle(cardTitle).parts.slice(0, 2), label?.trim(), plan.toUpperCase()].filter(Boolean).join(': ');
+export const buildCollectionTitle = (cardTitle, label, plan, marketSegment) => {
+    const segment = marketSegment?.toLowerCase() === DEFAULT_MARKET_SEGMENT ? undefined : marketSegment?.toUpperCase();
+    return [...splitTitle(cardTitle).parts.slice(0, 2), label?.trim(), segment, plan.toUpperCase()].filter(Boolean).join(': ');
+};
 
 /**
  * Fields of a plan card: the card own fields, plan fields & `cardName` of the ABM card, everything else being inherited
@@ -295,8 +303,8 @@ const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey, allocat
     };
 };
 
-const buildCollectionItem = (card, plan, label, cards, allocatePath) => {
-    const title = buildCollectionTitle(card.title, label, plan);
+const buildCollectionItem = ({ card, marketSegment }, plan, label, cards, allocatePath) => {
+    const title = buildCollectionTitle(card.title, label, plan, marketSegment);
     const parentPath = folderOf(card.path);
     return {
         type: 'collection',
@@ -315,8 +323,8 @@ const buildCollectionItem = (card, plan, label, cards, allocatePath) => {
 /**
  * Baselines, plan cards & collections to create from products with checked offers, in creation order: one baseline per
  * template, PA code & market segment, copied from its ABM card; one card per template & plan the product has a valid
- * offer for, inheriting from that baseline; one collection per template & plan with the cards of that plan, in product
- * order. A plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM
+ * offer for, inheriting from that baseline; one collection per template, market segment & plan with the cards of that
+ * plan, in product order. A plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM
  * cards, with a `-1`, `-2`… suffix when their name is the one of an ABM card or of another planned item.
  * @param {{ surface: string, products: Product[], label: string, disclaimerKeys?: Record<string, string> }} plan -
  * `products` hold the result of `checkPlanOffers` as `offers`; `disclaimerKeys` are placeholder keys by plan type
@@ -326,26 +334,29 @@ const buildCollectionItem = (card, plan, label, cards, allocatePath) => {
 export function buildBaselineCardsPlan({ surface, products, label, disclaimerKeys = {} }) {
     const baselines = new Map();
     const cards = [];
-    const templates = new Map();
+    const collectionGroups = new Map();
     const allocatePath = createPathAllocator(products.flatMap((product) => product.cards.map(({ path }) => path)));
     for (const product of products) {
         for (const card of product.cards) {
             const baseline = buildBaselineItem(surface, product, card);
             if (!baselines.has(baseline.path)) baselines.set(baseline.path, baseline);
-            if (!templates.has(baseline.template)) templates.set(baseline.template, { card, cards: {} });
-            const templateCards = templates.get(baseline.template).cards;
+            const groupKey = `${baseline.template}/${product.marketSegment}`;
+            if (!collectionGroups.has(groupKey)) {
+                collectionGroups.set(groupKey, { card, marketSegment: product.marketSegment, cards: {} });
+            }
+            const groupCards = collectionGroups.get(groupKey).cards;
             for (const plan of PLAN_TYPES) {
                 const offer = product.offers[plan];
                 if (!offer?.osi || offer.error) continue;
                 const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan], allocatePath);
                 cards.push(planCard);
-                (templateCards[plan] ??= []).push(planCard.path);
+                (groupCards[plan] ??= []).push(planCard.path);
             }
         }
     }
-    const collections = [...templates.values()].flatMap(({ card, cards: cardsByPlan }) =>
-        PLAN_TYPES.filter((plan) => cardsByPlan[plan]).map((plan) =>
-            buildCollectionItem(card, plan, label, cardsByPlan[plan], allocatePath),
+    const collections = [...collectionGroups.values()].flatMap((group) =>
+        PLAN_TYPES.filter((plan) => group.cards[plan]).map((plan) =>
+            buildCollectionItem(group, plan, label, group.cards[plan], allocatePath),
         ),
     );
     return [...baselines.values(), ...cards, ...collections];

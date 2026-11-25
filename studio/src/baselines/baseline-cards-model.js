@@ -264,32 +264,45 @@ const buildBaselineItem = (surface, product, card) => {
     };
 };
 
-const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey) => {
+/**
+ * Allocates fragment names in folders, a `-1`, `-2`… suffix making a name unique against the taken paths.
+ * @param {Iterable<string>} takenPaths
+ * @returns {(parentPath: string, title: string) => { path: string, name: string }}
+ */
+const createPathAllocator = (takenPaths) => {
+    const taken = new Set(takenPaths);
+    return (parentPath, title) => {
+        const baseName = normalizeFragmentName(title);
+        let name = baseName;
+        for (let suffix = 1; taken.has(`${parentPath}/${name}`); suffix++) name = `${baseName}-${suffix}`;
+        const path = `${parentPath}/${name}`;
+        taken.add(path);
+        return { path, name };
+    };
+};
+
+const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey, allocatePath) => {
     const title = buildPlanTitle(card.title, plan);
-    const name = normalizeFragmentName(title);
     const parentPath = folderOf(card.path);
     return {
         type: 'card',
         plan,
-        path: `${parentPath}/${name}`,
+        ...allocatePath(parentPath, title),
         parentPath,
-        name,
         title,
         fields: buildPlanCardFields(card, { plan, osi, trialOsi, disclaimerKey }),
         tags: withPlanTypeTag(card.tags ?? [], plan),
     };
 };
 
-const buildCollectionItem = (card, plan, label, cards) => {
+const buildCollectionItem = (card, plan, label, cards, allocatePath) => {
     const title = buildCollectionTitle(card.title, label, plan);
-    const name = normalizeFragmentName(title);
     const parentPath = folderOf(card.path);
     return {
         type: 'collection',
         plan,
-        path: `${parentPath}/${name}`,
+        ...allocatePath(parentPath, title),
         parentPath,
-        name,
         title,
         cards,
         fields: [
@@ -301,18 +314,20 @@ const buildCollectionItem = (card, plan, label, cards) => {
 
 /**
  * Baselines, plan cards & collections to create from products with checked offers, in creation order: one baseline per
- * template, PA code & market segment, copied from its ABM card; one card per template & plan the product has a valid offer for,
- * inheriting from that baseline; one collection per template & plan with the cards of that plan, in product order. A
- * plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM cards.
+ * template, PA code & market segment, copied from its ABM card; one card per template & plan the product has a valid
+ * offer for, inheriting from that baseline; one collection per template & plan with the cards of that plan, in product
+ * order. A plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM
+ * cards, with a `-1`, `-2`… suffix when their name is the one of an ABM card or of another planned item.
  * @param {{ surface: string, products: Product[], label: string, disclaimerKeys?: Record<string, string> }} plan -
  * `products` hold the result of `checkPlanOffers` as `offers`; `disclaimerKeys` are placeholder keys by plan type
- * @returns {object[]} items, each with its `type` ('baseline' | 'card' | 'collection'), fixed `path`, `title` and
+ * @returns {object[]} items, each with its `type` ('baseline' | 'card' | 'collection'), unique `path`, `title` and
  * AEM `fields`; baselines also carry what `createBaseline` needs, cards their `tags`, collections their `cards` paths
  */
 export function buildBaselineCardsPlan({ surface, products, label, disclaimerKeys = {} }) {
     const baselines = new Map();
     const cards = [];
     const templates = new Map();
+    const allocatePath = createPathAllocator(products.flatMap((product) => product.cards.map(({ path }) => path)));
     for (const product of products) {
         for (const card of product.cards) {
             const baseline = buildBaselineItem(surface, product, card);
@@ -322,14 +337,16 @@ export function buildBaselineCardsPlan({ surface, products, label, disclaimerKey
             for (const plan of PLAN_TYPES) {
                 const offer = product.offers[plan];
                 if (!offer?.osi || offer.error) continue;
-                const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan]);
+                const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan], allocatePath);
                 cards.push(planCard);
                 (templateCards[plan] ??= []).push(planCard.path);
             }
         }
     }
     const collections = [...templates.values()].flatMap(({ card, cards: cardsByPlan }) =>
-        PLAN_TYPES.filter((plan) => cardsByPlan[plan]).map((plan) => buildCollectionItem(card, plan, label, cardsByPlan[plan])),
+        PLAN_TYPES.filter((plan) => cardsByPlan[plan]).map((plan) =>
+            buildCollectionItem(card, plan, label, cardsByPlan[plan], allocatePath),
+        ),
     );
     return [...baselines.values(), ...cards, ...collections];
 }

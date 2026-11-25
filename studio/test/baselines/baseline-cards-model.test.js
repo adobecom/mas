@@ -473,5 +473,35 @@ describe('baseline-cards-model', () => {
 
             expect(items.filter(({ type }) => type === 'baseline')).to.have.length(1);
         });
+
+        it('suffixes the plan card of a second card with the same title in the folder', async () => {
+            const product = ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm });
+            product.cards.push({ ...ccProCard(), id: 'same-title', path: `${ccProCard().path}-1` });
+
+            const items = await buildPlan([product]);
+            const planCards = [
+                `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-abm-default`,
+                `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-abm-default-1`,
+            ];
+
+            expect(items.filter(({ type }) => type === 'card').map(({ path, name }) => [path, name])).to.deep.equal([
+                [planCards[0], 'cc-mini-compare-mweb-cc-pro-individual-abm-default'],
+                [planCards[1], 'cc-mini-compare-mweb-cc-pro-individual-abm-default-1'],
+            ]);
+            expect(items.find(({ type }) => type === 'collection').cards).to.deep.equal(planCards);
+        });
+
+        it('does not map an ABM card with a plan title onto its own path', async () => {
+            const card = createCard({
+                title: 'CC: Mini Compare Mweb: CC Pro: Individual: ABM: default',
+                osi: 'ccpro-abm',
+                trialOsi: 'ccpro-abm-trial',
+            });
+            const product = { ...ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm }), cards: [card] };
+
+            const items = await buildPlan([product]);
+
+            expect(items.find(({ type }) => type === 'card').path).to.equal(`${card.path}-1`);
+        });
     });
 });

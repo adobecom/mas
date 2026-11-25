@@ -47,6 +47,7 @@ import { Fragment, isTemplateRequiredField } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
+import { imageRowStyles } from '../common/fields/image-row.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
@@ -2059,61 +2060,13 @@ class MerchCardEditor extends LitElement {
                     margin: 8px 16px 8px 0;
                 }
 
-                #whatsIncluded .feature-row,
-                #whatsIncluded .logo-row {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 8px 12px;
-                    border: 1px solid var(--spectrum-gray-300, #dadada);
-                    border-radius: 8px;
-                    cursor: pointer;
-                }
-
-                #whatsIncluded .feature-row:hover,
-                #whatsIncluded .feature-row:focus-visible,
-                #whatsIncluded .logo-row:hover,
-                #whatsIncluded .logo-row:focus-visible {
-                    background: var(--spectrum-gray-200, #e9e9e9);
-                }
-
-                #whatsIncluded .feature-row .action-menu,
-                #whatsIncluded .logo-row .action-menu {
-                    margin-left: auto;
-                }
-
                 #whatsIncluded .feature-row-empty {
                     color: var(--spectrum-gray-700, #505050);
                 }
 
-                #whatsIncluded .action-menu sp-menu {
-                    --mod-menu-item-selectable-edge-to-text-not-selected: var(
-                        --spectrum-menu-item-label-inline-edge-to-content,
-                        12px
-                    );
-                }
-
-                #whatsIncluded .feature-row-icon {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 32px;
-                    height: 32px;
-                    flex-shrink: 0;
-                }
-
-                #whatsIncluded .feature-row-icon img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: contain;
-                }
-
-                #whatsIncluded .feature-row-text {
-                    display: flex;
-                    flex-direction: column;
-                    min-width: 0;
-                    font-size: 14px;
-                    line-height: 18px;
+                .editor-section[data-section='Badge and card decoration'] badge-section {
+                    display: block;
+                    margin-top: 30px;
                 }
 
                 .menu-item-container {
@@ -2297,7 +2250,7 @@ class MerchCardEditor extends LitElement {
                     background: var(--spectrum-gray-50, #f8f8f8);
                 }
 
-                ${fieldStatusStyles}
+                ${fieldStatusStyles} ${imageRowStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -2410,6 +2363,7 @@ class MerchCardEditor extends LitElement {
                         <mas-multifield
                             id="mnemonics"
                             button-label="Add visual"
+                            quiet-image-add
                             data-field-state="${this.getMnemonicsFieldState()}"
                             .value="${this.mnemonics}"
                             @change="${this.#updateMnemonics}"
@@ -3084,13 +3038,13 @@ class MerchCardEditor extends LitElement {
         };
         const description = this.#featureRowDescription(bullet.alt ?? '').trim();
         return html`
-            <div class="feature-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
-                <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
-                <div class="feature-row-text">
-                    <strong>${this.#featureRowName(icon)}</strong>
+            <div class="image-row feature-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
+                <div class="image-row-icon">${this.#featureRowIcon(icon)}</div>
+                <div class="image-row-text">
+                    <span class="image-row-name">${this.#featureRowName(icon)}</span>
                     ${description
-                        ? html`<span>${description}</span>`
-                        : html`<span class="feature-row-empty">No description</span>`}
+                        ? html`<span class="image-row-description">${description}</span>`
+                        : html`<span class="image-row-description feature-row-empty">No description</span>`}
                 </div>
                 ${this.#renderRowMenu(() => this.#deleteWhatsIncludedFeature(index))}
             </div>
@@ -3111,11 +3065,11 @@ class MerchCardEditor extends LitElement {
             open();
         };
         return html`
-            <div class="logo-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
-                <div class="feature-row-icon">${this.#featureRowIcon(icon)}</div>
-                <div class="feature-row-text">
-                    <strong>${this.#logoRowName(icon)}</strong>
-                    <span>${this.#featureRowDescription(logo.alt ?? '')}</span>
+            <div class="image-row logo-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
+                <div class="image-row-icon">${this.#featureRowIcon(icon)}</div>
+                <div class="image-row-text">
+                    <span class="image-row-name">${this.#logoRowName(icon)}</span>
+                    <span class="image-row-description">${this.#featureRowDescription(logo.alt ?? '')}</span>
                 </div>
                 ${this.#renderRowMenu(() => this.#deleteWhatsIncludedLogo(index))}
             </div>

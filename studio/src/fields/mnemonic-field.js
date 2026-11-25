@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
+import { imageRowStyles } from '../common/fields/image-row.css.js';
 import '../mas-mnemonic-modal.js';
 
 /** Item state of a visual inherited from a baseline (other states are the variation ones, e.g. `overridden`). */
@@ -22,39 +23,15 @@ class MnemonicField extends LitElement {
 
     static styles = [
         fieldStatusStyles,
+        imageRowStyles,
         css`
             :host {
                 display: block;
             }
 
-            .mnemonic-preview {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 12px;
-                border: 1px solid var(--spectrum-gray-300);
-                border-radius: 10px;
-                min-height: 48px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-            }
-
-            .icon-preview {
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .icon-preview img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-            }
-
             .icon-placeholder {
-                width: 32px;
-                height: 32px;
+                width: 40px;
+                height: 40px;
                 background: var(--spectrum-gray-200);
                 border-radius: 4px;
                 display: flex;
@@ -68,33 +45,9 @@ class MnemonicField extends LitElement {
                 min-width: 0;
             }
 
-            .mnemonic-info .value {
-                font-size: 14px;
-                color: var(--spectrum-gray-900);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
             .mnemonic-info .empty {
                 color: var(--spectrum-gray-500);
                 font-style: italic;
-            }
-
-            .action-menu {
-                margin-left: auto;
-            }
-
-            .action-menu sp-menu {
-                --mod-menu-item-selectable-edge-to-text-not-selected: var(
-                    --spectrum-menu-item-label-inline-edge-to-content,
-                    12px
-                );
-            }
-
-            .icon-library.mnemonic-preview {
-                cursor: pointer;
-                min-height: unset;
             }
 
             :host([data-field-state='overridden']) .mnemonic-preview {
@@ -151,13 +104,22 @@ class MnemonicField extends LitElement {
         );
     }
 
+    #stopEvent = (event) => event.stopPropagation();
+
+    #handleRowClick() {
+        this.#handleEditClick();
+    }
+
+    #handleRowKeydown(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.#handleEditClick();
+    }
+
     #handleMenuChange(event) {
         event.stopPropagation();
         const value = event.target.value;
-        if (
-            (this.iconLibrary && event.target.tagName !== 'SP-ACTION-MENU' && event.target.tagName !== 'SP-MENU-ITEM') ||
-            value === 'edit'
-        ) {
+        if (value === 'edit') {
             this.#handleEditClick();
         } else if (value === 'delete') {
             this.#handleDeleteClick();
@@ -259,8 +221,14 @@ class MnemonicField extends LitElement {
 
     render() {
         return html`
-            <div class="mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}" @click="${this.#handleMenuChange}">
-                <div class="icon-preview">
+            <div
+                class="image-row mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}"
+                role="button"
+                tabindex="0"
+                @click=${this.#handleRowClick}
+                @keydown=${this.#handleRowKeydown}
+            >
+                <div class="image-row-icon">
                     ${this.icon
                         ? html`${this.renderIcon()}`
                         : html`<div class="icon-placeholder">
@@ -268,11 +236,20 @@ class MnemonicField extends LitElement {
                           </div>`}
                 </div>
 
-                <div class="mnemonic-info">
-                    <div class="value">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
+                <div class="image-row-text mnemonic-info">
+                    <div class="image-row-name">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
+                    ${this.alt ? html`<div class="image-row-description">${this.alt}</div>` : nothing}
                 </div>
 
-                <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>
+                <sp-action-menu
+                    class="action-menu"
+                    quiet
+                    size="s"
+                    placement="bottom-end"
+                    @click=${this.#stopEvent}
+                    @keydown=${this.#stopEvent}
+                    @change=${this.#handleMenuChange}
+                >
                     <sp-icon-more slot="icon"></sp-icon-more>
                     <sp-menu>
                         <sp-menu-item value="edit">

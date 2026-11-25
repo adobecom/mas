@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
 import { deepEquals } from '../utils.js';
+import { imageAddIcon } from '../icons.js';
 
 class MasMultifield extends LitElement {
     static get properties() {
@@ -14,6 +15,7 @@ class MasMultifield extends LitElement {
             osi: { type: String, attribute: 'osi' },
             dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
             addAllowed: { type: Boolean },
+            quietImageAdd: { type: Boolean, attribute: 'quiet-image-add' },
         };
     }
 
@@ -52,6 +54,14 @@ class MasMultifield extends LitElement {
 
         .add-button-wrapper sp-action-button {
             flex: 1;
+        }
+
+        .add-button-wrapper--quiet {
+            justify-content: center;
+        }
+
+        .add-button-wrapper--quiet sp-action-button {
+            flex: 0 0 auto;
         }
     `;
 
@@ -358,6 +368,15 @@ class MasMultifield extends LitElement {
 
     get addButton() {
         if (!this.addAllowed) return nothing;
+        if (this.quietImageAdd) {
+            return html`
+                <div class="add-button-wrapper add-button-wrapper--quiet">
+                    <sp-action-button quiet @click=${this.addField}>
+                        <span slot="icon">${imageAddIcon}</span>${this.buttonLabel}
+                    </sp-action-button>
+                </div>
+            `;
+        }
         return html`
             <div class="add-button-wrapper">
                 <sp-action-button @click=${this.addField}>

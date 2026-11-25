@@ -16,8 +16,7 @@ export const CANDIDATE_IO_QUERY = '?io.project=merchatscale&io.studio.env=pinata
 async function fetchDeployedSha(url, fetchImpl) {
     const response = await fetchImpl(url);
     if (!response.ok) throw new Error(`health check answered ${response.status}`);
-    const { sha } = await response.json();
-    return sha ? String(sha).toLowerCase() : null;
+    return (await response.json()).sha;
 }
 
 /** Returns the process exit code. */
@@ -27,7 +26,6 @@ export async function checkCandidateCurrent(files, { headSha, fetchImpl = fetch,
         return 0;
     }
     const url = `${resolveIoBaseUrl(CANDIDATE_IO_QUERY)}/health-check`;
-    const candidate = headSha.toLowerCase();
     let deployed;
     try {
         deployed = await fetchDeployedSha(url, fetchImpl);
@@ -39,14 +37,14 @@ export async function checkCandidateCurrent(files, { headSha, fetchImpl = fetch,
         out.error(`FAIL: ${url} reports no deployed commit; redeploy the candidate and recapture.`);
         return 1;
     }
-    if (deployed !== candidate) {
+    if (deployed !== headSha) {
         out.error(
-            `FAIL: the bot workspace serves ${deployed}, not this candidate ${candidate}. ` +
+            `FAIL: the bot workspace serves ${deployed}, not this candidate ${headSha}. ` +
                 'Another candidate deployed over it, so screenshots may show its IO. Redeploy and recapture.',
         );
         return 1;
     }
-    out.log(`OK: the bot workspace still serves ${candidate}`);
+    out.log(`OK: the bot workspace still serves ${headSha}`);
     return 0;
 }
 

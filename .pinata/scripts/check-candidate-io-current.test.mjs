@@ -19,7 +19,7 @@ const harness = (respond) => {
     return { check, urls, logs: () => logs.join('\n') };
 };
 
-const serving = (sha) => () => ({ ok: true, status: 200, json: async () => ({ message: 'Hello, world!', sha }) });
+const serving = (sha) => () => ({ ok: true, json: async () => ({ sha }) });
 
 test('skips without a request when no io/studio file changed', async () => {
     const h = harness(serving(HEAD));
@@ -35,7 +35,7 @@ test('asks the health check Studio uses for the candidate surface', async () => 
 });
 
 test('passes when the workspace serves the candidate commit', async () => {
-    const h = harness(serving(HEAD.toUpperCase()));
+    const h = harness(serving(HEAD));
     assert.equal(await h.check(), 0);
     assert.match(h.logs(), /OK/);
 });
@@ -69,7 +69,6 @@ test('fails when the health check is unreachable', async () => {
 test('fails when the health check returns invalid JSON', async () => {
     const h = harness(() => ({
         ok: true,
-        status: 200,
         json: async () => {
             throw new SyntaxError('Unexpected token <');
         },

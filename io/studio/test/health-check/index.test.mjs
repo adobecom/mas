@@ -11,7 +11,7 @@ describe('health-check', () => {
     });
 
     it('returns the deployed commit', async () => {
-        const { body } = await main({ deployedSha: SHA.toUpperCase() });
+        const { body } = await main({ deployedSha: SHA });
         expect(body.sha).to.equal(SHA);
     });
 

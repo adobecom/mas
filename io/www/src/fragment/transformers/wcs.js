@@ -2,13 +2,12 @@ import {
     fetch,
     getCountry,
     getFragmentId,
-    getOfferSelection,
-    getOfferSelectionSuffix,
     getRegionalLocale,
     getRequestInfos,
     markDegraded,
     matchesGeo,
 } from '../utils/common.js';
+import { getOfferSelection, getOfferSelectionSuffix } from '../utils/offer-selection.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';

@@ -1,4 +1,5 @@
-import { getJsonFromState, getOfferSelection, getOfferSelectionSuffix, mark, measureTiming } from './common.js';
+import { getJsonFromState, mark, measureTiming } from './common.js';
+import { getOfferSelection, getOfferSelectionSuffix } from './offer-selection.js';
 import { geoCacheKey } from '../locales.js';
 import { log, logError } from './log.js';
 import { createSwrCache } from './swr-cache.js';
@@ -10,7 +11,8 @@ const escapeKeyValue = (value) =>
         .replaceAll('%', '.');
 
 // e.g. `req-<id>-fr_FR-CA.p-edu.m-catalog`, or `req-.offer-en_US.o-<offer>.t-plans.s-acom` without a fragment id;
-// `-latest` follows the geo when latest Stage offers are served (`serveLatest`, with a Stage WCS configuration).
+// `-latest` / `-legacy` follow the geo for explicit WCS selection; stage-only defaults also use `-legacy`.
+// Mixed configurations default to `-stage-legacy`, keeping production defaults apart from explicit legacy selection.
 const getRequestMetadataKey = ({
     id,
     locale,
@@ -24,8 +26,9 @@ const getRequestMetadataKey = ({
     wcsConfiguration = [],
 }) => {
     const geo = geoCacheKey(locale, country);
+    const stageOnly = wcsConfiguration.every(({ env }) => env === 'stage');
     const selectionSuffix = wcsConfiguration.length
-        ? getOfferSelectionSuffix(getOfferSelection(serveLatest)) ||
+        ? getOfferSelectionSuffix(getOfferSelection(serveLatest, stageOnly ? 'stage' : undefined)) ||
           (wcsConfiguration.some(({ env }) => env === 'stage') ? '-stage-legacy' : '')
         : '';
     const fragment =

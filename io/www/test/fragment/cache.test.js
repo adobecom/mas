@@ -27,6 +27,13 @@ describe('request metadata key', () => {
         );
     });
 
+    for (const serveLatest of [false, 'false']) {
+        it(`reuses stage-only legacy metadata for explicit ${JSON.stringify(serveLatest)}`, async () => {
+            const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'stage' }] };
+            expect(await requestKey({ ...params, serveLatest })).to.equal(await requestKey(params));
+        });
+    }
+
     for (const serveLatest of [undefined, 'on', 'TRUE']) {
         it(`preserves the normal key when latest mode is ${JSON.stringify(serveLatest)}`, async () => {
             const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'stage' }] };

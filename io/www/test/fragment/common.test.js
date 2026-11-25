@@ -7,11 +7,10 @@ import {
     geoMatchScore,
     matchesGeo,
     getCountry,
-    getOfferSelection,
-    getOfferSelectionSuffix,
     isGroupedVariationFragmentPath,
     hasGeoTag,
 } from '../../src/fragment/utils/common.js';
+import { getOfferSelection, getOfferSelectionSuffix } from '../../src/fragment/utils/offer-selection.js';
 
 describe('common utils', () => {
     describe('WCS offer selection', () => {

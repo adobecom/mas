@@ -20,7 +20,7 @@ import { Defaults } from './defaults.js';
 import {
     getOfferSelection,
     getOfferSelectionSuffix,
-} from '../../io/www/src/fragment/utils/common.js';
+} from '../../io/www/src/fragment/utils/offer-selection.js';
 
 const NAMESPACE = 'wcs';
 

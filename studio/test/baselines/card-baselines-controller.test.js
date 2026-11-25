@@ -353,6 +353,7 @@ describe('CardBaselinesController', () => {
             await flush();
             controller.hostUpdate();
 
+            expect(controller.enabled).to.be.false;
             expect(lastParent(host)).to.be.null;
         });
 

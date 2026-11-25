@@ -22,3 +22,27 @@ export {
     injectJsonLd,
     resolvePriceTaxFlags,
 };
+
+export {
+    createTag,
+    getHeadlessCtaVariant,
+    getService,
+    hydrateHeadlessCta,
+    printMeasure,
+} from './utils.js';
+export { createMasElement } from './mas-element.js';
+export { toPromotionCodes } from './utilities.js';
+export { UptLink } from './upt-link.js';
+export {
+    extractBackgroundUrl,
+    rewriteImageUrlsForProd,
+    sanitizePictureMarkup,
+} from './image-markup.js';
+export { hostOsi } from './plan-type-text.js';
+export {
+    applyContextPromotionCode,
+    applyDisplayAnnualDefault,
+    applyHideStPriceLabels,
+    mergePriceLiterals,
+    registerContextOptionsProviders,
+} from './mas-context.js';

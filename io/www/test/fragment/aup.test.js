@@ -221,9 +221,9 @@ describe('aup transformer', () => {
 
     it('serializes text-bearing values per type', async () => {
         const json = await map(PRO_FIELDS, { type: 'json' });
-        expect(json.title).to.deep.equal([
-            { nodeType: 'paragraph', content: [{ nodeType: 'text', value: 'Creative Cloud Pro' }] },
-        ]);
+        expect(json.title).to.deep.equal({
+            json: [{ nodeType: 'paragraph', content: [{ nodeType: 'text', value: 'Creative Cloud Pro' }] }],
+        });
         expect(json.badge.text).to.equal('Save 50%');
         const text = await map(PRO_FIELDS, { type: 'text' });
         expect(text.description).to.equal('Save on 20+ apps.\nSee terms');

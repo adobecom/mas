@@ -58,7 +58,7 @@ per column, `includedApps` & `whatsIncluded`, and its header, e.g. `includedApps
 offer baseline, `template`, `segment` & `plan` baselines, `fragment` (its variations included), `mask`; a baseline's
 M@S elements priced with the fragment's offer count as `fragment`: alone for `price` & `ctas`, alongside the baseline
 elsewhere, e.g. a description embedding a price). Text-bearing
-values are emitted per `type` with serialize (`json` nodes, `html` or `text` strings).
+values are emitted per `type` with serialize (`{ json: nodes }` rich text, `html` or `text` strings).
 
 Mock limitations: `price` is the rendered price markup, not a price object; badge colors are authored tokens, not hex;
 `features` only holds what's included; checkout urls are prod, `adobe_com` client, without the page context (`cli`

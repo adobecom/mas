@@ -244,6 +244,26 @@ describe('MAS Mnemonic Modal', () => {
         expect(dialog.getBoundingClientRect().height).to.be.lessThan(selectHeight);
     });
 
+    it('should size the Select tab form and dialog to the Figma height', async () => {
+        const el = await badgeFixture();
+        const form = el.shadowRoot.querySelector('form.select-tab');
+        expect(form.getBoundingClientRect().height).to.be.within(256, 258);
+        expect(el.shadowRoot.querySelector('sp-dialog').getBoundingClientRect().height).to.be.within(411, 427);
+    });
+
+    it('should size the badge icon heading box to 26px', async () => {
+        const el = await badgeFixture();
+        const h2 = el.shadowRoot.querySelector('sp-dialog h2');
+        expect(h2.getBoundingClientRect().height).to.be.within(25, 27);
+    });
+
+    it('should not give the Import via URL form the Select tab height', async () => {
+        const el = await badgeFixture('https://a.com/i.svg');
+        const form = el.shadowRoot.querySelector('sp-dialog form');
+        expect(form.classList.contains('select-tab')).to.be.false;
+        expect(getComputedStyle(form).height).to.not.equal('257px');
+    });
+
     it('should set no-divider only on the add visual dialog', async () => {
         const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
         expect(el.shadowRoot.querySelector('sp-dialog').hasAttribute('no-divider')).to.be.true;

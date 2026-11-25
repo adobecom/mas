@@ -79,7 +79,7 @@ class MasIconSelect extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 2px;
-            max-height: 168px;
+            max-height: var(--mas-icon-select-list-max-height, 168px);
             overflow-y: auto;
         }
 

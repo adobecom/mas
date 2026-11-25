@@ -806,7 +806,9 @@ export class MasCollapsibleTableRow extends LitElement {
     renderPersonalizationTags(item) {
         const tags = parseTags(pznTagsValue(item));
         return html`<sp-table-cell class="pzn-tags">
-            ${tags.length ? html`<sp-tags>${tags.map(({ label }) => html`<sp-tag>${label}</sp-tag>`)}</sp-tags>` : nothing}
+            ${tags.length
+                ? html`<sp-tags>${tags.map(({ id, label }) => html`<sp-tag title=${id}>${label}</sp-tag>`)}</sp-tags>`
+                : nothing}
         </sp-table-cell>`;
     }
 

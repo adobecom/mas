@@ -14,6 +14,7 @@ class MasMultifield extends LitElement {
             osi: { type: String, attribute: 'osi' },
             dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
             addAllowed: { type: Boolean },
+            quietImageAdd: { type: Boolean, attribute: 'quiet-image-add' },
         };
     }
 
@@ -52,6 +53,14 @@ class MasMultifield extends LitElement {
 
         .add-button-wrapper sp-action-button {
             flex: 1;
+        }
+
+        .add-button-wrapper--quiet {
+            justify-content: center;
+        }
+
+        .add-button-wrapper--quiet sp-action-button {
+            flex: 0 0 auto;
         }
     `;
 
@@ -358,6 +367,15 @@ class MasMultifield extends LitElement {
 
     get addButton() {
         if (!this.addAllowed) return nothing;
+        if (this.quietImageAdd) {
+            return html`
+                <div class="add-button-wrapper add-button-wrapper--quiet">
+                    <sp-action-button quiet @click=${this.addField}>
+                        <sp-icon-image-add slot="icon"></sp-icon-image-add>${this.buttonLabel}
+                    </sp-action-button>
+                </div>
+            `;
+        }
         return html`
             <div class="add-button-wrapper">
                 <sp-action-button @click=${this.addField}>

@@ -60,6 +60,36 @@ describe('Multifield', () => {
         expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(0);
     });
 
+    it('keeps the filled add button with sp-icon-add by default', async () => {
+        const el = await fixture(
+            html`<mas-multifield
+                ><template><div></div></template
+            ></mas-multifield>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        const button = el.shadowRoot.querySelector('sp-action-button');
+        expect(button.hasAttribute('quiet')).to.be.false;
+        expect(button.querySelector('sp-icon-add')).to.exist;
+        expect(button.querySelector('sp-icon-image-add')).to.be.null;
+    });
+
+    it('renders a quiet add button with sp-icon-image-add when opted in', async () => {
+        const el = await fixture(
+            html`<mas-multifield quiet-image-add button-label="Add visual"
+                ><template><div></div></template
+            ></mas-multifield>`,
+            { parentNode: spTheme() },
+        );
+        const button = el.shadowRoot.querySelector('sp-action-button');
+        expect(button.hasAttribute('quiet')).to.be.true;
+        expect(button.querySelector('sp-icon-image-add')).to.exist;
+        expect(button.querySelector('sp-icon-add')).to.be.null;
+        expect(button.textContent.trim()).to.equal('Add visual');
+        expect(getComputedStyle(el.shadowRoot.querySelector('.add-button-wrapper')).justifyContent).to.equal('center');
+    });
+
     it('should support min attribute', async () => {
         const el = await fixture(
             html`

@@ -30,17 +30,18 @@ class MnemonicField extends LitElement {
             .mnemonic-preview {
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 8px;
                 padding: 12px;
-                border: 1px solid var(--spectrum-gray-300);
+                background: var(--spectrum-white, #fff);
+                border: 2px solid var(--spectrum-gray-300, #dadada);
                 border-radius: 10px;
                 min-height: 48px;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
             }
 
             .icon-preview {
-                width: 32px;
-                height: 32px;
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -53,8 +54,8 @@ class MnemonicField extends LitElement {
             }
 
             .icon-placeholder {
-                width: 32px;
-                height: 32px;
+                width: 40px;
+                height: 40px;
                 background: var(--spectrum-gray-200);
                 border-radius: 4px;
                 display: flex;
@@ -70,7 +71,19 @@ class MnemonicField extends LitElement {
 
             .mnemonic-info .value {
                 font-size: 14px;
-                color: var(--spectrum-gray-900);
+                line-height: 18px;
+                font-weight: 500;
+                color: var(--spectrum-gray-800, #292929);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .mnemonic-info .alt {
+                font-size: 14px;
+                line-height: 18px;
+                font-weight: 400;
+                color: var(--spectrum-gray-700, #505050);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -270,6 +283,7 @@ class MnemonicField extends LitElement {
 
                 <div class="mnemonic-info">
                     <div class="value">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
+                    ${this.alt ? html`<div class="alt">${this.alt}</div>` : nothing}
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

@@ -181,8 +181,25 @@ describe('merch-card-editor whats-included popup', () => {
         expect(logoRows[0].querySelector('span').textContent).to.equal('Photoshop');
         const box = logoRows[0].querySelector('.feature-row-icon');
         expect(box.querySelector('img')).to.exist;
-        expect(box.getBoundingClientRect().width).to.equal(32);
-        expect(box.getBoundingClientRect().height).to.equal(32);
+        expect(box.getBoundingClientRect().width).to.equal(40);
+        expect(box.getBoundingClientRect().height).to.equal(40);
+    });
+
+    it('feature and logo rows use the shared image row style', async () => {
+        const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
+        const rows = [editor.querySelector('#whatsIncluded .feature-row'), logoRowsOf(editor)[0]];
+        for (const row of rows) {
+            const style = getComputedStyle(row);
+            expect(style.borderTopWidth).to.equal('2px');
+            expect(style.borderTopLeftRadius).to.equal('10px');
+            expect(style.paddingTop).to.equal('12px');
+            expect(style.columnGap).to.equal('8px');
+            expect(style.backgroundColor).to.equal('rgb(255, 255, 255)');
+            expect(style.cursor).to.equal('pointer');
+        }
+        const strong = getComputedStyle(rows[0].querySelector('.feature-row-text strong'));
+        expect(strong.fontWeight).to.equal('500');
+        expect(strong.color).to.equal('rgb(44, 44, 44)');
     });
 
     it('clicking a logo row (or Enter/Space) opens the dialog on Logo with that logo and index', async () => {

@@ -45,6 +45,48 @@ describe('Mnemonic field', () => {
         expect(el.shadowRoot.querySelector('.field-status-indicator')).to.be.null;
     });
 
+    it('renders the shared image row style', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" alt="Photoshop icon"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        const preview = getComputedStyle(el.shadowRoot.querySelector('.mnemonic-preview'));
+        expect(preview.borderTopWidth).to.equal('2px');
+        expect(preview.borderTopLeftRadius).to.equal('10px');
+        expect(preview.paddingTop).to.equal('12px');
+        expect(preview.columnGap).to.equal('8px');
+        expect(preview.boxShadow).to.equal('none');
+        const box = el.shadowRoot.querySelector('.icon-preview').getBoundingClientRect();
+        expect(box.width).to.equal(40);
+        expect(box.height).to.equal(40);
+        const value = getComputedStyle(el.shadowRoot.querySelector('.mnemonic-info .value'));
+        expect(value.fontWeight).to.equal('500');
+        expect(value.lineHeight).to.equal('18px');
+    });
+
+    it('shows the alt text as a second line only when set', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" alt="Photoshop icon"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        const alt = el.shadowRoot.querySelector('.mnemonic-info .alt');
+        expect(alt.textContent).to.equal('Photoshop icon');
+        expect(getComputedStyle(alt).fontWeight).to.equal('400');
+        el.alt = '';
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.mnemonic-info .alt')).to.be.null;
+    });
+
+    it('keeps the blue border when overridden', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" data-field-state="overridden"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        el.style.setProperty('--spectrum-blue-400', 'rgb(1, 2, 3)');
+        el.style.setProperty('--spectrum-blue-100', 'rgb(4, 5, 6)');
+        const preview = getComputedStyle(el.shadowRoot.querySelector('.mnemonic-preview'));
+        expect(preview.borderTopWidth).to.equal('2px');
+        expect(preview.borderTopColor).to.equal('rgb(1, 2, 3)');
+        expect(preview.backgroundColor).to.equal('rgb(4, 5, 6)');
+    });
+
     it('should render without default properties', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
         expect(el.icon).to.equal('');

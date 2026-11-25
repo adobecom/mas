@@ -2063,10 +2063,11 @@ class MerchCardEditor extends LitElement {
                 #whatsIncluded .logo-row {
                     display: flex;
                     align-items: center;
-                    gap: 12px;
-                    padding: 8px 12px;
-                    border: 1px solid var(--spectrum-gray-300, #dadada);
-                    border-radius: 8px;
+                    gap: 8px;
+                    padding: 12px;
+                    background: var(--spectrum-white, #fff);
+                    border: 2px solid var(--spectrum-gray-300, #dadada);
+                    border-radius: 10px;
                     cursor: pointer;
                 }
 
@@ -2097,8 +2098,8 @@ class MerchCardEditor extends LitElement {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 32px;
-                    height: 32px;
+                    width: 40px;
+                    height: 40px;
                     flex-shrink: 0;
                 }
 
@@ -2114,6 +2115,11 @@ class MerchCardEditor extends LitElement {
                     min-width: 0;
                     font-size: 14px;
                     line-height: 18px;
+                }
+
+                #whatsIncluded .feature-row-text strong {
+                    font-weight: 500;
+                    color: var(--spectrum-gray-800, #292929);
                 }
 
                 .menu-item-container {
@@ -2410,6 +2416,7 @@ class MerchCardEditor extends LitElement {
                         <mas-multifield
                             id="mnemonics"
                             button-label="Add visual"
+                            quiet-image-add
                             data-field-state="${this.getMnemonicsFieldState()}"
                             .value="${this.mnemonics}"
                             @change="${this.#updateMnemonics}"

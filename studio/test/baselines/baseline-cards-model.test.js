@@ -501,6 +501,17 @@ describe('baseline-cards-model', () => {
             expect(items.filter(({ type }) => type === 'baseline')).to.have.length(1);
         });
 
+        it('builds a baseline per market segment for COM and EDU cards of a PA code, the EDU one under edu', async () => {
+            const items = await buildPlan([ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm }), ccProEduProduct()]);
+
+            expect(
+                items.filter(({ type }) => type === 'baseline').map(({ path, marketSegment }) => [path, marketSegment]),
+            ).to.deep.equal([
+                [`${BASELINES}/${TEMPLATE}/${CCSN_INDIVIDUAL}/baseline`, 'COM'],
+                [`${BASELINES}/${TEMPLATE}/${CCSN_INDIVIDUAL}/edu/baseline`, 'EDU'],
+            ]);
+        });
+
         it('suffixes the plan card of a second card with the same title in the folder', async () => {
             const product = ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm });
             product.cards.push({ ...ccProCard(), id: 'same-title', path: `${ccProCard().path}-1` });

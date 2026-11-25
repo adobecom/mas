@@ -12,6 +12,7 @@ const STAGED_TAG = 'mas:studio/internal/staged';
 const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 const STAGED_CLEAR_CONCURRENCY = 5;
 const STAGED_CLEAR_FAILED = 'staged-clear-failed';
+const STAGED_REPUBLISH_FAILED = 'staged-republish-failed';
 const MAX_CHUNK_SIZE = 50;
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
@@ -153,18 +154,41 @@ async function clearCardStagedTag(fragment, odinEndpoint, authToken) {
     return true;
 }
 
+async function inStep(step, action) {
+    try {
+        return await action();
+    } catch (error) {
+        throw new Error(`${step}: ${error.message || String(error)}`);
+    }
+}
+
 async function clearStagedTag(path, odinEndpoint, authToken) {
     const { fragment, status } = await fetchFragmentByPath(odinEndpoint, path, authToken);
     if (!fragment) throw new Error(`fetch ${status}`);
-    const clearedField = !isCollection(fragment) && (await clearCardStagedTag(fragment, odinEndpoint, authToken));
-    const clearedTags = await clearFragmentStagedTag(fragment, odinEndpoint, authToken);
+    const clearedField =
+        !isCollection(fragment) && (await inStep('tags field', () => clearCardStagedTag(fragment, odinEndpoint, authToken)));
+    const clearedTags = await inStep('fragment tags', () => clearFragmentStagedTag(fragment, odinEndpoint, authToken));
     return clearedField || clearedTags;
 }
 
+async function republishCleared(paths, odinEndpoint, authToken, logger) {
+    const failures = [];
+    for (const chunk of groupAndChunk(paths, MAX_CHUNK_SIZE)) {
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { filterReferencesByStatus: [] });
+        for (const result of results) {
+            if (result.status === STATUS.FAILED) {
+                failures.push({ path: result.path, reason: STAGED_REPUBLISH_FAILED, error: result.reason || 'publish failed' });
+            }
+        }
+    }
+    return failures;
+}
+
 /**
- * Removes the staged tag from every fragment that was published successfully. Runs after publishing so
- * a failed publish keeps its tag; a clearing failure is reported but never changes the publish outcome.
- * @returns {Promise<Array<{ path: string, reason: string, error: string }>>} clearing failures
+ * Removes the staged tag from every fragment that was published successfully, then publishes the cleared
+ * fragments again (without references) so the live copy loses the tag too. Runs after publishing so a failed
+ * publish keeps its tag; clearing or republishing failures are reported but never change the publish outcome.
+ * @returns {Promise<Array<{ path: string, reason: string, error: string }>>} clearing and republishing failures
  */
 async function clearStagedTagsAfterPublish(details, odinEndpoint, authToken, logger) {
     const paths = details
@@ -178,9 +202,18 @@ async function clearStagedTagsAfterPublish(details, odinEndpoint, authToken, log
         }
     });
     const failures = results.filter((r) => r.reason);
-    const cleared = results.filter((r) => r.cleared).length;
-    logger.info(JSON.stringify({ event: 'staged-clear', total: paths.length, cleared, failed: failures.length }));
-    return failures;
+    const clearedPaths = results.filter((r) => r.cleared).map((r) => r.path);
+    const republishFailures = await republishCleared(clearedPaths, odinEndpoint, authToken, logger);
+    logger.info(
+        JSON.stringify({
+            event: 'staged-clear',
+            total: paths.length,
+            cleared: clearedPaths.length,
+            failed: failures.length,
+            republishFailed: republishFailures.length,
+        }),
+    );
+    return [...failures, ...republishFailures];
 }
 
 module.exports = {

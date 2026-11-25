@@ -221,6 +221,7 @@ describe('bulk-publish/publish-core.js — clearStagedTagsAfterPublish', () => {
     const logger = { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() };
     let core;
     let stubs;
+    let publishChunkStub;
 
     beforeEach(() => {
         stubs = {
@@ -228,7 +229,9 @@ describe('bulk-publish/publish-core.js — clearStagedTagsAfterPublish', () => {
             patchToOdin: sinon.stub().resolves({ success: true }),
             fetchOdin: sinon.stub().resolves({ headers: { get: () => 'tag-etag' } }),
         };
+        publishChunkStub = sinon.stub().callsFake(async ({ chunk }) => chunk.map((path) => ({ path, status: 'published' })));
         core = proxyquire('../../src/bulk-publish/publish-core.js', {
+            './publisher.js': { publishChunk: publishChunkStub },
             '../common.js': {
                 ...stubs,
                 getValues: (fragment, name) => {
@@ -361,7 +364,67 @@ describe('bulk-publish/publish-core.js — clearStagedTagsAfterPublish', () => {
 
         expect(failures).to.deep.equal([
             { path: CARD, reason: 'staged-clear-failed', error: 'fetch 404' },
-            { path: FR_CARD, reason: 'staged-clear-failed', error: 'boom' },
+            { path: FR_CARD, reason: 'staged-clear-failed', error: 'tags field: boom' },
         ]);
+    });
+
+    it('names the fragment tags step when it fails after the tags field was cleared', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a', STAGED]), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+        stubs.fetchOdin
+            .withArgs(sinon.match.any, sinon.match.any, sinon.match.any, sinon.match({ method: 'PUT' }))
+            .rejects(new Error('412 Precondition Failed'));
+
+        const failures = await core.clearStagedTagsAfterPublish(
+            [{ path: CARD, status: 'published' }],
+            'https://odin',
+            't',
+            logger,
+        );
+
+        expect(failures).to.deep.equal([
+            { path: CARD, reason: 'staged-clear-failed', error: 'fragment tags: 412 Precondition Failed' },
+        ]);
+    });
+
+    it('publishes the cleared fragments again without their references', async () => {
+        stubs.fetchFragmentByPath.withArgs('https://odin', CARD).resolves({ fragment: card([STAGED]), status: 200 });
+        stubs.fetchFragmentByPath.withArgs('https://odin', FR_CARD).resolves({ fragment: card(['mas:a']), status: 200 });
+        const details = [
+            { path: CARD, status: 'published' },
+            { path: FR_CARD, status: 'published' },
+        ];
+
+        await core.clearStagedTagsAfterPublish(details, 'https://odin', 't', logger);
+
+        expect(publishChunkStub).to.have.been.calledOnce;
+        expect(publishChunkStub.firstCall.args[0]).to.include({ odinEndpoint: 'https://odin', authToken: 't' });
+        expect(publishChunkStub.firstCall.args[0].chunk).to.deep.equal([CARD]);
+        expect(publishChunkStub.firstCall.args[0].filterReferencesByStatus).to.deep.equal([]);
+    });
+
+    it('does not publish again a fragment whose clearing failed', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card([STAGED]), status: 200 });
+        stubs.patchToOdin.resolves({ success: false, error: 'boom' });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(publishChunkStub).to.not.have.been.called;
+    });
+
+    it('reports a cleared fragment that fails to publish again', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card([STAGED]), status: 200 });
+        publishChunkStub.resolves([{ path: CARD, status: 'failed', reason: 'error-referenced' }]);
+
+        const failures = await core.clearStagedTagsAfterPublish(
+            [{ path: CARD, status: 'published' }],
+            'https://odin',
+            't',
+            logger,
+        );
+
+        expect(failures).to.deep.equal([{ path: CARD, reason: 'staged-republish-failed', error: 'error-referenced' }]);
     });
 });

@@ -25,6 +25,7 @@ export class MasOfferField extends LitElement {
         optional: { type: Boolean, reflect: true },
         error: { type: String },
         details: { state: true },
+        resolving: { state: true },
     };
 
     #selectionId = 0;
@@ -38,6 +39,7 @@ export class MasOfferField extends LitElement {
         this.optional = false;
         this.error = '';
         this.details = {};
+        this.resolving = false;
     }
 
     connectedCallback() {
@@ -86,9 +88,11 @@ export class MasOfferField extends LitElement {
         this.#resolvedOsi = osi;
         const marketSegment = ostOffer.market_segments?.[0];
         this.details = { marketSegment };
+        this.resolving = Boolean(osi);
         if (!osi) return false;
         const resolved = await resolveBaselineOffer(osi, ostOffer);
         if (selectionId !== this.#selectionId || osi !== this.osi) return false;
+        this.resolving = false;
         this.details = { ...resolved, marketSegment: resolved.marketSegment ?? marketSegment };
         return true;
     }
@@ -102,7 +106,7 @@ export class MasOfferField extends LitElement {
         return html`<sp-icon-shopping-cart></sp-icon-shopping-cart>
             <div class="offer-details">
                 <p>OSI: <strong>${this.osi}</strong></p>
-                <p>PA code: <strong>${productArrangementCode || (this.error ? '—' : '…')}</strong></p>
+                <p>PA code: <strong>${productArrangementCode || (this.resolving ? '…' : '—')}</strong></p>
                 ${marketSegment ? html`<p>Market segment: <strong>${marketSegment}</strong></p>` : nothing}
                 ${commitment ? html`<p>Commitment: <strong>${commitment}</strong></p>` : nothing}
                 ${term ? html`<p>Term: <strong>${term}</strong></p>` : nothing}

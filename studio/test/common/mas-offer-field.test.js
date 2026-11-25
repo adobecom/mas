@@ -185,6 +185,20 @@ describe('MasOfferField', () => {
         expect(change.called).to.be.false;
     });
 
+    it('stops showing the loading state when a preset offer has no PA code', async () => {
+        let resolveOffer;
+        service.resolveOfferSelectors.returns([new Promise((resolve) => (resolveOffer = resolve))]);
+        const el = await mount(html`<mas-offer-field label="ABM offer" osi="NO-PA"></mas-offer-field>`);
+
+        expect(detailsText(el)).to.equal('OSI: NO-PA PA code: …');
+
+        resolveOffer([{}]);
+        await new Promise((resolve) => setTimeout(resolve));
+        await el.updateComplete;
+
+        expect(detailsText(el)).to.equal('OSI: NO-PA PA code: —');
+    });
+
     it('keeps the change event of the hidden osi-field inside the component', async () => {
         const el = await mount();
         const change = sandbox.spy();

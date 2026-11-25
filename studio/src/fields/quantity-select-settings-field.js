@@ -61,6 +61,7 @@ export class QuantitySelectSettingsField extends LitElement {
         if (!this.#isChecked()) return nothing;
         return html`
             <quantity-select-field
+                layout="grid"
                 .value=${this.value}
                 .splitTitle=${this.splitTitle}
                 @change=${this.handleQuantityFieldChange}

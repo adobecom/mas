@@ -72,7 +72,7 @@
 
                         const stepField = el.shadowRoot.querySelector('#quantity-selector-step');
                         stepField.value = '2';
-                        stepField.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        stepField.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await el.updateComplete;
 
                         expect(el.defaultValue).to.equal('2');
@@ -94,7 +94,7 @@
 
                         const start = el.shadowRoot.querySelector('#quantity-selector-start');
                         start.value = '4';
-                        start.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        start.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await el.updateComplete;
 
                         expect(stub.calledOnce).to.be.true;
@@ -104,28 +104,158 @@
                         el.remove();
                     });
 
-                    it('shows toast and keeps default when default is set below min', async () => {
-                        const stub = sinon.stub(Events.toast, 'emit');
+                    const render = async (config, attributes = {}) => {
                         const el = document.createElement('quantity-select-field');
-                        el.value = createQuantitySelectValue({
-                            title: '',
-                            min: '5',
-                            step: '1',
-                            defaultValue: '5',
-                        });
+                        for (const [name, value] of Object.entries(attributes)) el.setAttribute(name, value);
+                        el.value = createQuantitySelectValue({ title: 'Seat', ...config });
                         document.body.append(el);
                         await el.updateComplete;
+                        return el;
+                    };
+                    const optionValues = (el, selector) =>
+                        [...el.shadowRoot.querySelectorAll(`${selector} sp-menu-item`)].map((item) =>
+                            item.getAttribute('value'),
+                        );
+                    const config = { min: '1', step: '1', defaultValue: '1' };
 
-                        const def = el.shadowRoot.querySelector('#quantity-selector-default');
-                        def.value = '3';
-                        def.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                        await el.updateComplete;
-
-                        expect(stub.calledOnce).to.be.true;
-                        expect(stub.firstCall.args[0].variant).to.equal('negative');
-                        expect(el.defaultValue).to.equal('5');
-                        stub.restore();
+                    it('renders pickers for minimum, default and increment', async () => {
+                        const el = await render(config);
+                        for (const id of ['start', 'default', 'step']) {
+                            const picker = el.shadowRoot.querySelector(`#quantity-selector-${id}`);
+                            expect(picker.localName).to.equal('sp-picker');
+                            expect(picker.getAttribute('size')).to.equal('m');
+                        }
+                        expect(el.shadowRoot.querySelector('#quantity-selector-title').localName).to.equal('sp-textfield');
                         el.remove();
+                    });
+
+                    it('offers 1 to 10 for minimum and increment', async () => {
+                        const el = await render(config);
+                        const expected = Array.from({ length: 10 }, (_, i) => `${i + 1}`);
+                        expect(optionValues(el, '#quantity-selector-start')).to.deep.equal(expected);
+                        expect(optionValues(el, '#quantity-selector-step')).to.deep.equal(expected);
+                        el.remove();
+                    });
+
+                    it('offers only the step ladder for default', async () => {
+                        const el = await render({ min: '2', step: '3', defaultValue: '2' });
+                        expect(optionValues(el, '#quantity-selector-default')).to.deep.equal(['2', '5', '8']);
+                        el.remove();
+                    });
+
+                    it('keeps a legacy minimum outside 1 to 10 as an extra option', async () => {
+                        const el = await render({ min: '12', step: '1', defaultValue: '12' });
+                        expect(optionValues(el, '#quantity-selector-start')).to.include('12');
+                        expect(el.shadowRoot.querySelector('#quantity-selector-start').value).to.equal('12');
+                        expect(el.value).to.include('min="12"');
+                        el.remove();
+                    });
+
+                    it('does not offer default values below the minimum', async () => {
+                        const el = await render({ min: '5', step: '1', defaultValue: '5' });
+                        expect(optionValues(el, '#quantity-selector-default')).to.not.include('3');
+                        el.remove();
+                    });
+
+                    it('resets default to min when a step change leaves it off the ladder', async () => {
+                        const el = await render({ min: '1', step: '2', defaultValue: '5' });
+                        const step = el.shadowRoot.querySelector('#quantity-selector-step');
+                        step.value = '3';
+                        step.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+                        expect(el.defaultValue).to.equal('1');
+                        expect(el.value).to.include('default-value="1"');
+                        el.remove();
+                    });
+
+                    it('emits a single change event with the same markup', async () => {
+                        const el = await render({ min: '1', step: '1', defaultValue: '1' });
+                        const handler = sinon.spy();
+                        el.addEventListener('change', handler);
+                        const def = el.shadowRoot.querySelector('#quantity-selector-default');
+                        def.value = '4';
+                        def.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+                        expect(handler.calledOnce).to.be.true;
+                        expect(handler.firstCall.args[0].detail.value).to.equal(
+                            '<merch-quantity-select title="Seat" min="1" default-value="4" max="10" step="1"></merch-quantity-select>',
+                        );
+                        el.remove();
+                    });
+
+                    it('disables all controls', async () => {
+                        const el = await render(config);
+                        el.disabled = true;
+                        await el.updateComplete;
+                        for (const id of ['title', 'start', 'default', 'step']) {
+                            expect(el.shadowRoot.querySelector(`#quantity-selector-${id}`).hasAttribute('disabled')).to.be.true;
+                        }
+                        el.remove();
+                    });
+
+                    it('lays out the title full width and the pickers in three equal columns with layout grid', async () => {
+                        const el = await render(config, { layout: 'grid' });
+                        const rect = (id) => el.shadowRoot.querySelector(`#quantity-selector-${id}`).getBoundingClientRect();
+                        const [start, def, step] = ['start', 'default', 'step'].map(rect);
+                        expect(def.top).to.equal(start.top);
+                        expect(step.top).to.equal(start.top);
+                        expect(def.width).to.be.closeTo(start.width, 1);
+                        expect(step.width).to.be.closeTo(start.width, 1);
+                        expect(rect('title').width).to.be.closeTo(el.getBoundingClientRect().width, 1);
+                        expect(rect('title').bottom).to.be.below(start.top);
+                        el.remove();
+                    });
+
+                    it('outlines the pickers in every layout', async () => {
+                        for (const attributes of [{}, { layout: 'vertical' }, { layout: 'grid' }]) {
+                            const el = await render(config, attributes);
+                            for (const id of ['start', 'default', 'step']) {
+                                const style = getComputedStyle(el.shadowRoot.querySelector(`#quantity-selector-${id}`));
+                                const property = (name) => style.getPropertyValue(name).trim();
+                                expect(property('--mod-picker-border-width')).to.equal('2px');
+                                expect(property('--mod-picker-border-radius')).to.equal('8px');
+                                expect(property('--mod-picker-background-color-default')).to.equal(
+                                    property('--spectrum-white'),
+                                );
+                                expect(property('--mod-picker-border-color-default')).to.equal(property('--spectrum-gray-300'));
+                            }
+                            el.remove();
+                        }
+                    });
+
+                    it('keeps 12px between the title and the pickers with layout grid', async () => {
+                        const el = await render(config, { layout: 'grid' });
+                        const label = el.shadowRoot.querySelector('.quantity-pickers sp-field-label');
+                        const title = el.shadowRoot.querySelector('#quantity-selector-title');
+                        expect(label.getBoundingClientRect().top - title.getBoundingClientRect().bottom).to.be.closeTo(12, 1);
+                        el.remove();
+                    });
+
+                    it('keeps 12px between the plural field and the pickers with a split title in layout grid', async () => {
+                        const el = document.createElement('quantity-select-field');
+                        el.splitTitle = true;
+                        el.setAttribute('layout', 'grid');
+                        el.value = createQuantitySelectValue({ title: 'Seat|Seats', ...config });
+                        document.body.append(el);
+                        await el.updateComplete;
+                        const label = el.shadowRoot.querySelector('.quantity-pickers sp-field-label');
+                        const plural = el.shadowRoot.querySelector('#quantity-selector-plural');
+                        expect(label.getBoundingClientRect().top - plural.getBoundingClientRect().bottom).to.be.closeTo(12, 1);
+                        el.remove();
+                    });
+
+                    it('stacks the controls full width with layout vertical or no layout', async () => {
+                        for (const attributes of [{}, { layout: 'vertical' }]) {
+                            const el = await render(config, attributes);
+                            const rect = (id) =>
+                                el.shadowRoot.querySelector(`#quantity-selector-${id}`).getBoundingClientRect();
+                            const hostWidth = el.getBoundingClientRect().width;
+                            expect(rect('default').top).to.be.above(rect('start').top);
+                            expect(rect('step').top).to.be.above(rect('default').top);
+                            expect(rect('start').width).to.be.closeTo(hostWidth, 1);
+                            expect(rect('title').width).to.be.closeTo(hostWidth, 1);
+                            el.remove();
+                        }
                     });
                 });
 
@@ -201,6 +331,16 @@
                         };
                         expect(await titleAfterToggle(true)).to.equal('{{license-label}}|{{licenses-label}}');
                         expect(await titleAfterToggle(false)).to.equal('');
+                    });
+
+                    it('renders the quantity field with layout grid', async () => {
+                        const el = document.createElement('quantity-select-settings-field');
+                        el.id = 'quantity-select-settings-field';
+                        el.value = '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>';
+                        document.body.append(el);
+                        await el.updateComplete;
+                        expect(el.querySelector('quantity-select-field').getAttribute('layout')).to.equal('grid');
+                        el.remove();
                     });
 
                     it('renders the switch when settingsDefaults is empty', async () => {

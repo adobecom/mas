@@ -783,7 +783,10 @@
                             expect(fieldGroups.length).to.equal(4);
 
                             const textfields = [...quantitySelect.shadowRoot.querySelectorAll('sp-textfield')];
-                            expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm', 'm']);
+                            expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m']);
+
+                            const pickers = [...quantitySelect.shadowRoot.querySelectorAll('sp-picker')];
+                            expect(pickers.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm']);
                         });
                     });
 

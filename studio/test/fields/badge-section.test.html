@@ -256,6 +256,65 @@
                         expect(withText.querySelector('mas-mnemonic-field').style.display).to.equal('block');
                     });
 
+                    it('places the icon group after the colors', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                show-colors
+                                show-icon
+                                .value=${'Badge'}
+                                .colors=${BADGE_COLORS}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        const grid = el.querySelector('.two-column-grid');
+                        const group = el.querySelector('sp-field-group.toggle#badgeIcon');
+                        expect(grid.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+                    });
+
+                    it('shows the Add icon button and opens the Badge icon dialog', async () => {
+                        const el = await mount(
+                            html`<badge-section show-icon .value=${'Badge'} .colors=${BADGE_COLORS}></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        const field = el.querySelector('mas-mnemonic-field');
+                        await field.updateComplete;
+                        const button = field.shadowRoot.querySelector('.add-button-wrapper--quiet sp-action-button');
+                        expect(button.textContent.trim()).to.equal('Add icon');
+                        expect(field.shadowRoot.querySelector('.image-row')).to.be.null;
+                        button.click();
+                        await field.updateComplete;
+                        const modal = field.shadowRoot.querySelector('mas-mnemonic-modal');
+                        await modal.updateComplete;
+                        expect(modal.open).to.be.true;
+                        expect(modal.shadowRoot.querySelector('[slot="heading"]').textContent.trim()).to.equal('Badge icon');
+                    });
+
+                    it('saves the chosen icon and clears it on delete', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                show-colors
+                                show-icon
+                                .value=${'Badge'}
+                                .colors=${BADGE_COLORS}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        const field = el.querySelector('mas-mnemonic-field');
+                        await field.updateComplete;
+                        field.shadowRoot.querySelector('sp-action-button').click();
+                        await field.updateComplete;
+                        const modal = field.shadowRoot.querySelector('mas-mnemonic-modal');
+                        await modal.updateComplete;
+                        modal.shadowRoot
+                            .querySelector('mas-icon-select')
+                            .dispatchEvent(new CustomEvent('change', { detail: { id: 'sp-icon-ribbon' } }));
+                        await modal.updateComplete;
+                        const saved = oneEvent(el, 'change');
+                        modal.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+                        const event = await saved;
+                        expect(event.detail.value).to.contain('icon="sp-icon-ribbon"');
+                    });
+
                     it('does not render an icon field without show-icon', async () => {
                         const el = await mount(
                             html`<badge-section show-colors .value=${'Badge'} .colors=${BADGE_COLORS}></badge-section>`,

@@ -120,6 +120,62 @@ describe('MAS Mnemonic Modal', () => {
         expect(el.shadowRoot.querySelector('sp-dialog').classList.contains('icon-library')).to.be.true;
     });
 
+    it('should render the badge icon dialog with Confirm disabled when empty', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open .iconLibrary=${true} .badgeIcon=${true}></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        expect(el.shadowRoot.querySelector('[slot="heading"]').textContent.trim()).to.equal('Badge icon');
+        expect(el.shadowRoot.querySelector('mas-icon-select').placeholder).to.equal('Please select');
+        expect(el.shadowRoot.querySelector('#product-alt')).to.be.null;
+        expect(el.shadowRoot.querySelector('sp-button[variant="accent"]').hasAttribute('disabled')).to.be.true;
+    });
+
+    it('should open the badge icon dialog on Select for an sp-icon value and save it', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-modal open .iconLibrary=${true} .badgeIcon=${true} icon="sp-icon-ribbon"></mas-mnemonic-modal>`,
+            { parentNode: spTheme() },
+        );
+
+        expect(el.selectedTab).to.equal('product-icon');
+        expect(el.selectedProductId).to.equal('sp-icon-ribbon');
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+        expect(event.detail.icon).to.equal('sp-icon-ribbon');
+    });
+
+    it('should open the badge icon dialog on Import via URL for a URL value and save it', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-modal
+                open
+                .iconLibrary=${true}
+                .badgeIcon=${true}
+                icon="https://a.com/i.svg"
+            ></mas-mnemonic-modal>`,
+            { parentNode: spTheme() },
+        );
+
+        expect(el.selectedTab).to.equal('url');
+        expect(el.shadowRoot.querySelector('#url-icon').value).to.equal('https://a.com/i.svg');
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+        expect(event.detail.icon).to.equal('https://a.com/i.svg');
+    });
+
+    it('should restore the original icon when the badge icon dialog is cancelled', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-modal open .iconLibrary=${true} .badgeIcon=${true} icon="sp-icon-ribbon"></mas-mnemonic-modal>`,
+            { parentNode: spTheme() },
+        );
+
+        el.icon = 'https://a.com/other.svg';
+        await el.updateComplete;
+        el.shadowRoot.querySelector('sp-button[variant="secondary"]').click();
+        expect(el.icon).to.equal('sp-icon-ribbon');
+    });
+
     it('should set no-divider only on the add visual dialog', async () => {
         const el = await fixture(html`<mas-mnemonic-modal open></mas-mnemonic-modal>`, { parentNode: spTheme() });
         expect(el.shadowRoot.querySelector('sp-dialog').hasAttribute('no-divider')).to.be.true;

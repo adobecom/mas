@@ -3,6 +3,7 @@ import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 import './rte/rte-field.js';
 import './fields/product-picker.js';
+import './fields/icon-select.js';
 import { addRecent, readRecent, writeRecent } from './utils/recent-products.js';
 
 class MasMnemonicModal extends LitElement {
@@ -20,6 +21,7 @@ class MasMnemonicModal extends LitElement {
         recentIds: { type: Array, state: true },
         altHtml: { type: String, state: true },
         iconLibrary: { type: Boolean },
+        badgeIcon: { type: Boolean },
         useRte: { type: Boolean },
         variant: { type: String },
     };
@@ -206,6 +208,62 @@ class MasMnemonicModal extends LitElement {
         sp-dialog.add-visual sp-button[slot='button'][variant='accent'] {
             margin-left: 0;
         }
+
+        sp-dialog.badge-icon {
+            box-sizing: border-box;
+            width: 454px;
+            max-width: 454px;
+            border-radius: 16px;
+            --mod-dialog-confirm-padding-grid: 20px;
+            --spectrum-dialog-footer-justify-content: flex-end;
+            --spectrum-dialog-footer-padding-top: 0;
+            --spectrum-dialog-footer-border-top: none;
+        }
+
+        sp-dialog.badge-icon form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 16px;
+            margin-bottom: 32px;
+        }
+
+        sp-dialog.badge-icon .form-field {
+            margin-bottom: 0;
+        }
+
+        sp-dialog.badge-icon sp-action-group {
+            gap: 0;
+            background: var(--spectrum-gray-200, #e9e9e9);
+            border-radius: 8px;
+            align-self: flex-start;
+        }
+
+        sp-dialog.badge-icon sp-action-button {
+            --mod-actionbutton-background-color-default: transparent;
+            --mod-actionbutton-background-color-hover: transparent;
+            --mod-actionbutton-border-color-default: transparent;
+            --mod-actionbutton-border-color-hover: transparent;
+            --mod-actionbutton-content-color-default-selected: #292929;
+            --mod-actionbutton-content-color-hover-selected: #292929;
+            --mod-actionbutton-content-color-down-selected: #292929;
+            --mod-actionbutton-content-color-focus-selected: #292929;
+            --mod-actionbutton-border-radius: 8px;
+            --mod-actionbutton-border-width: 2px;
+        }
+
+        sp-dialog.badge-icon sp-action-button[selected] {
+            background-color: #fff;
+            border-color: #292929;
+        }
+
+        sp-dialog.badge-icon sp-button[slot='button'][variant='secondary'] {
+            margin-right: 0;
+        }
+
+        sp-dialog.badge-icon sp-button[slot='button'][variant='accent'] {
+            margin-left: 0;
+        }
     `;
 
     constructor() {
@@ -270,6 +328,8 @@ class MasMnemonicModal extends LitElement {
         this.selectedProductId = null;
         if (this.icon) {
             this.selectedTab = 'url';
+        } else if (this.badgeIcon) {
+            this.selectedTab = 'product-icon';
         }
     }
 
@@ -368,6 +428,83 @@ class MasMnemonicModal extends LitElement {
         );
 
         this.#handleClose();
+    }
+
+    get badgeConfirmDisabled() {
+        if (this.selectedTab === 'product-icon') return !this.selectedProductId;
+        return this.icon?.startsWith('sp-icon-') || !(this.icon || '').trim();
+    }
+
+    #handleBadgeSubmit() {
+        if (this.badgeConfirmDisabled) return;
+        const icon = this.selectedTab === 'product-icon' ? this.selectedProductId : this.icon.trim();
+        this.dispatchEvent(
+            new CustomEvent('save', {
+                bubbles: true,
+                composed: true,
+                detail: { icon, alt: '', link: '' },
+            }),
+        );
+        this.#handleClose();
+    }
+
+    #handleBadgeModeChange(e) {
+        this.selectedTab = e.target.selected[0] === 'url' ? 'url' : 'product-icon';
+    }
+
+    get badgeIconTemplate() {
+        const isUrl = this.selectedTab === 'url';
+        return html`
+            <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>
+                <sp-underlay ?open=${this.open}></sp-underlay>
+                <sp-dialog class="badge-icon" no-divider>
+                    <h2 slot="heading">Badge icon</h2>
+                    <form @submit=${(e) => e.preventDefault()}>
+                        <sp-action-group
+                            selects="single"
+                            .selected=${[isUrl ? 'url' : 'select']}
+                            @change=${this.#handleBadgeModeChange}
+                        >
+                            <sp-action-button value="select">Select</sp-action-button>
+                            <sp-action-button value="url">Import via URL</sp-action-button>
+                        </sp-action-group>
+                        ${isUrl
+                            ? html`<div class="form-field">
+                                  <sp-field-label for="url-icon">Icon URL</sp-field-label>
+                                  <sp-textfield
+                                      id="url-icon"
+                                      placeholder="e.g., https://adobe.com/assets/firefly-icon.svg"
+                                      .value=${!this.icon?.startsWith('sp-icon-') ? (this.icon ?? '') : ''}
+                                      @input=${(e) => (this.icon = e.target.value)}
+                                  ></sp-textfield>
+                              </div>`
+                            : html`<div class="form-field">
+                                  <sp-field-label>Icon</sp-field-label>
+                                  <mas-icon-select
+                                      .value=${this.selectedProductId ?? ''}
+                                      .variant=${this.variant}
+                                      placeholder="Please select"
+                                      @change=${(e) => {
+                                          this.selectedProductId = e.detail.id;
+                                          this.icon = e.detail.id;
+                                      }}
+                                  ></mas-icon-select>
+                              </div>`}
+                    </form>
+                    <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleCancel} type="button">
+                        Cancel
+                    </sp-button>
+                    <sp-button
+                        slot="button"
+                        variant="accent"
+                        ?disabled=${this.badgeConfirmDisabled}
+                        @click=${this.#handleBadgeSubmit}
+                    >
+                        Confirm
+                    </sp-button>
+                </sp-dialog>
+            </div>
+        `;
     }
 
     get altLabel() {
@@ -517,6 +654,7 @@ class MasMnemonicModal extends LitElement {
     }
 
     render() {
+        if (this.badgeIcon) return this.badgeIconTemplate;
         const isEditing = !!(this.icon || this.#hasAltContent(this.altHtml || this.alt || '') || (this.link || '').trim());
 
         return html`

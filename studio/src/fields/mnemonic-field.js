@@ -3,6 +3,7 @@ import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { imageRowStyles } from '../common/fields/image-row.css.js';
+import { imageAddIcon } from '../icons.js';
 import '../mas-mnemonic-modal.js';
 
 /** Item state of a visual inherited from a baseline (other states are the variation ones, e.g. `overridden`). */
@@ -16,6 +17,7 @@ class MnemonicField extends LitElement {
             link: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
             iconLibrary: { type: Boolean, state: true },
+            badgeIcon: { type: Boolean },
             variant: { type: String },
             fieldState: { type: String, attribute: 'data-field-state' },
         };
@@ -38,6 +40,18 @@ class MnemonicField extends LitElement {
                 align-items: center;
                 justify-content: center;
                 color: var(--spectrum-gray-600);
+            }
+
+            .add-button-wrapper {
+                display: flex;
+            }
+
+            .add-button-wrapper--quiet {
+                justify-content: center;
+            }
+
+            .add-button-wrapper--quiet sp-action-button {
+                flex: 0 0 auto;
             }
 
             .mnemonic-info {
@@ -64,6 +78,7 @@ class MnemonicField extends LitElement {
         this.link = '';
         this.modalOpen = false;
         this.iconLibrary = false;
+        this.badgeIcon = false;
         this.variant = '';
     }
 
@@ -78,7 +93,7 @@ class MnemonicField extends LitElement {
     #handleModalClose() {
         this.modalOpen = false;
         // If field is empty (no icon selected), remove it
-        if (!this.icon) {
+        if (!this.icon && !this.badgeIcon) {
             this.#handleDeleteClick();
         }
     }
@@ -219,7 +234,17 @@ class MnemonicField extends LitElement {
         </div>`;
     }
 
-    render() {
+    get addButtonTemplate() {
+        return html`
+            <div class="add-button-wrapper add-button-wrapper--quiet">
+                <sp-action-button quiet @click=${this.#handleEditClick}>
+                    <span slot="icon">${imageAddIcon}</span>Add icon
+                </sp-action-button>
+            </div>
+        `;
+    }
+
+    get rowTemplate() {
         return html`
             <div
                 class="image-row mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}"
@@ -263,9 +288,15 @@ class MnemonicField extends LitElement {
                     </sp-menu>
                 </sp-action-menu>
             </div>
+        `;
+    }
 
+    render() {
+        return html`
+            ${this.badgeIcon && !this.icon ? this.addButtonTemplate : this.rowTemplate}
             <mas-mnemonic-modal
                 ?open=${this.modalOpen}
+                .badgeIcon=${this.badgeIcon}
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}

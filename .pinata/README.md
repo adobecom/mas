@@ -7,18 +7,19 @@ ecosystem package.
 
 ## What is included
 
-| File                                 | Purpose                                                                                                              |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `manifest.yaml`                      | MAS identity and shared planning models.                                                                             |
-| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection.               |
-| `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                                        |
-| `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                                     |
-| `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                                  |
-| `scripts/check-contract.py`          | Configuration and model-reference checks.                                                                            |
-| `scripts/check-dist-sync.sh`         | Rebuild web-component bundles/docs (no drift check).                                                                 |
-| `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                                       |
-| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                                     |
-| `scripts/deploy-candidate-io.mjs`    | io-studio-candidate gate: dispatch the CI deploy and wait for its verdict (tests in `deploy-candidate-io.test.mjs`). |
+| File                                     | Purpose                                                                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `manifest.yaml`                          | MAS identity and shared planning models.                                                                             |
+| `gates.yaml`                             | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection.               |
+| `floor/gates.yaml`                       | Organization minimums checked alongside the repository gates.                                                        |
+| `preview.yaml`                           | Preview startup, test surfaces, and authentication requirements.                                                     |
+| `pr.yaml`                                | Jira-first branch names and MAS before/after links.                                                                  |
+| `scripts/check-contract.py`              | Configuration and model-reference checks.                                                                            |
+| `scripts/check-dist-sync.sh`             | Rebuild web-component bundles/docs (no drift check).                                                                 |
+| `scripts/test-preview-supervisor.sh`     | Isolated tests of preview startup and cleanup.                                                                       |
+| `scripts/test_contract.py`               | Offline checks for ownership references, IO review policy, and preview mappings.                                     |
+| `scripts/deploy-candidate-io.mjs`        | io-studio-candidate gate: dispatch the CI deploy and wait for its verdict (tests in `deploy-candidate-io.test.mjs`). |
+| `scripts/check-candidate-io-current.mjs` | io-candidate-current gate: confirm the bot workspace still serves this candidate after `visual`.                     |
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
@@ -93,7 +94,7 @@ pipeline code. A human approval to continue is an explicit exception.
 
 `io/studio` changes stop at `io-preview-support` for a human until self-hosted
 runner isolation/cleanup is verified; then the `io-studio-candidate` gate goes
-back in `gates.yaml`. That gate dispatches
+back in `gates.yaml`, together with `io-candidate-current` (below). That gate dispatches
 `.github/workflows/io-studio-candidate.yaml` on the pushed candidate branch: it
 refuses branches that touch `.github` or `.pinata`, runs the io/studio unit
 tests, and deploys to the `pinatacode[bot]` workspace resolved by
@@ -115,7 +116,25 @@ the conflicting PR/run and retry guidance. It excludes the current run; candidat
 identity is the original actor, while PR identity is the author. The check can
 race, GitHub can replace a pending concurrency job, and manual deploys outside
 these workflows are not protected. This is not strict zero-queue admission.
-An advisory screenshot taken after the lock ends can still show a later run's IO.
+
+The lock ends after the health check, so a later candidate can replace this one's
+IO before or during its `visual` screenshots. Every io/studio deploy stamps the
+deployed commit into `/health-check` (`sha`), and `io-candidate-current` runs
+after `visual`, before `adversary`: it fails, naming both commits, unless the bot
+workspace still serves the candidate HEAD. A mismatch needs a redeploy and
+recapture, not new code, so it escalates:
+
+```yaml
+io-candidate-current:
+    template: command
+    name: Bot workspace still serves this candidate
+    cmd: node .pinata/scripts/check-candidate-io-current.mjs {changed_files}
+    blocking: true
+    failure_route: escalate_to_human
+```
+
+The shared preview stays single-slot: a human opening it later sees whichever
+candidate deployed last. `/health-check` shows which commit that is.
 
 Omitting shared AOS/OST credentials for automated candidates is intentional.
 Passing unit tests, deploy and `/health-check` establishes only those contracts;

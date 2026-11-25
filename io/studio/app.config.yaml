@@ -162,6 +162,8 @@ application:
                         function: src/health-check/index.js
                         web: 'yes'
                         runtime: nodejs:22
+                        inputs:
+                            deployedSha: $DEPLOYED_SHA
                         annotations:
                             require-adobe-auth: false
                             final: true

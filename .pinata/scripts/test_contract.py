@@ -102,6 +102,9 @@ class PreviewPolicyTests(unittest.TestCase):
     def test_io_studio_candidate_gate_stays_off_until_runner_isolation_is_verified(self):
         self.assertNotIn("io-studio-candidate", self.gates)
 
+    def test_io_candidate_current_gate_stays_off_with_the_candidate_gate(self):
+        self.assertNotIn("io-candidate-current", self.gates)
+
     def test_io_www_files_select_no_surface(self):
         path = "io/www/src/fragment/index.js"
         for surface in self.preview["surfaces"]:

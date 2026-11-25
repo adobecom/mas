@@ -153,6 +153,11 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
+            # health-check reports this commit, so a later gate can tell whether the
+            # workspace still serves what this run deployed (.pinata/scripts/check-candidate-io-current.mjs).
+            - name: Stamp deployed commit
+              run: echo "DEPLOYED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
             - name: Deploy core Studio actions
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com

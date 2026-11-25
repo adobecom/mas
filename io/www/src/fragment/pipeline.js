@@ -132,7 +132,8 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             const initTime = measureTiming(context, 'init', 'start').duration;
             let timeout = context.networkConfig?.mainTimeout || 5000;
             timeout = Math.max(timeout - initTime, 0);
-            const triggerRefreshOfRequest = () => triggerRefresh(params, requestId, openwhiskFactory);
+            const deadline = performance.now() + timeout;
+            const triggerRefreshOfRequest = () => triggerRefresh(params, requestId, openwhiskFactory, deadline);
             returnValue = await Promise.race([mainProcess(context, triggerRefreshOfRequest), createTimeoutPromise(timeout)]);
         }
     } catch (error) {
@@ -197,18 +198,26 @@ const refreshes = new Map();
 const REFRESH_INTERVAL = 60 * 1000;
 // the (non-blocking) refresh invocation is not awaited longer, so that the stale response is not delayed
 const REFRESH_TRIGGER_TIMEOUT = 500;
+// time kept, before the request deadline, to return the stale response once the refresh invocation is not awaited anymore
+const STALE_RESPONSE_MARGIN = 100;
 
-/** Invokes this action, without waiting for it, to rebuild and store the response for the same request parameters. */
-async function triggerRefresh(params, requestId, openwhiskFactory) {
+/**
+ * Invokes this action, without waiting for it, to rebuild and store the response for the same request parameters.
+ * The invocation is awaited up to REFRESH_TRIGGER_TIMEOUT, and never past the request `deadline` (minus a margin).
+ */
+async function triggerRefresh(params, requestId, openwhiskFactory, deadline) {
     const refreshParams = Object.fromEntries(Object.entries(params).filter(([key]) => !key.startsWith('__ow_')));
     const invocation = openwhiskFactory().actions.invoke({
         name: process.env.__OW_ACTION_NAME,
         params: { ...refreshParams, refresh: requestId },
         blocking: false,
     });
+    const wait = Math.floor(
+        Math.max(Math.min(REFRESH_TRIGGER_TIMEOUT, deadline - performance.now() - STALE_RESPONSE_MARGIN), 0),
+    );
     let timer;
     const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`timed out after ${REFRESH_TRIGGER_TIMEOUT}ms`)), REFRESH_TRIGGER_TIMEOUT);
+        timer = setTimeout(() => reject(Object.assign(new Error(`timed out after ${wait}ms`), { isTimeout: true })), wait);
     });
     return Promise.race([invocation, timeout]).finally(() => clearTimeout(timer));
 }
@@ -227,6 +236,11 @@ async function refreshInBackground(context, requestKey, refresh) {
         const { activationId } = await refresh();
         return `, refresh triggered (activation ${activationId})`;
     } catch (error) {
+        // a timed out invocation may still be accepted and running: the refresh stays registered, not to trigger it twice
+        if (error.isTimeout) {
+            logError(`refresh of ${requestKey} not acknowledged: ${error.message}`, context);
+            return ', refresh trigger timed out';
+        }
         refreshes.delete(requestKey);
         logError(`failed to trigger the refresh of ${requestKey}: ${error.message}`, context);
         return ', refresh trigger failed';

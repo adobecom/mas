@@ -355,28 +355,53 @@ describe('pipeline end to end', () => {
             expect(summaries(lines).find((line) => line.includes('cache stale'))).to.match(/, rebuild in progress\)$/);
         });
 
-        for (const { title, setup, error } of [
-            { title: 'fails', setup: () => invoke.rejects(new Error('throttled')), error: 'throttled' },
-            { title: 'is slow', setup: () => invoke.returns(new Promise(() => {})), error: 'timed out after 500ms' },
-        ]) {
-            it(`should serve the stale response when triggering the refresh ${title}, and retry next time`, async () => {
-                setup();
-                const { state, files } = storeResponse(10 * 60 * 1000);
-                const { result, lines } = await logs(async () => {
-                    const first = await getFragment({ ...request, state, files }, deps());
-                    await getFragment({ ...request, state, files }, deps());
-                    return first;
-                });
-                expect(result.body).to.deep.equal({ stale: true });
-                expect(invoke.calledTwice).to.be.true;
-                expect(
-                    lines.some((line) =>
-                        line.includes(`failed to trigger the refresh of req-some-en-us-fragment-fr_FR: ${error}`),
-                    ),
-                ).to.be.true;
-                expect(summaries(lines)[0]).to.match(/cache stale .*, refresh trigger failed\)$/);
+        it('should serve the stale response when triggering the refresh fails, and retry next time', async () => {
+            invoke.rejects(new Error('throttled'));
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            const { result, lines } = await logs(async () => {
+                const first = await getFragment({ ...request, state, files }, deps());
+                await getFragment({ ...request, state, files }, deps());
+                return first;
             });
-        }
+            expect(result.body).to.deep.equal({ stale: true });
+            expect(invoke.calledTwice).to.be.true;
+            expect(
+                lines.some((line) =>
+                    line.includes('failed to trigger the refresh of req-some-en-us-fragment-fr_FR: throttled'),
+                ),
+            ).to.be.true;
+            expect(summaries(lines)[0]).to.match(/cache stale .*, refresh trigger failed\)$/);
+        });
+
+        it('should serve the stale response when triggering the refresh is slow, and not trigger it again', async () => {
+            invoke.returns(new Promise(() => {}));
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            const { result, lines } = await logs(async () => {
+                const first = await getFragment({ ...request, state, files }, deps());
+                await getFragment({ ...request, state, files }, deps());
+                return first;
+            });
+            expect(result.body).to.deep.equal({ stale: true });
+            expect(invoke.calledOnce).to.be.true;
+            expect(
+                lines.some((line) =>
+                    line.includes('refresh of req-some-en-us-fragment-fr_FR not acknowledged: timed out after 500ms'),
+                ),
+            ).to.be.true;
+            const [first, second] = summaries(lines);
+            expect(first).to.match(/cache stale .*, refresh trigger timed out\)$/);
+            expect(second).to.match(/cache stale .*, refresh already triggered\)$/);
+        });
+
+        it('should serve the stale response before the request deadline when triggering the refresh is slow', async () => {
+            invoke.returns(new Promise(() => {}));
+            const { state, files } = storeResponse(10 * 60 * 1000);
+            await state.put('configuration', '{"networkConfig":{"mainTimeout":200}}');
+            const { result, lines } = await logs(() => getFragment({ ...request, state, files }, deps()));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.equal({ stale: true });
+            expect(summaries(lines)[0]).to.match(/cache stale .*, refresh trigger timed out\)$/);
+        });
     });
 
     describe('re-reading State before rebuilding', () => {

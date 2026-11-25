@@ -92,6 +92,25 @@ describe('baseline-cards-runner', () => {
             expect([...existing.keys()]).to.deep.equal([baseline.path]);
             expect(repository.aem.sites.cf.fragments.getByPath.callCount).to.equal(ITEMS.length);
         });
+
+        it('looks up at most 4 item paths at a time', async () => {
+            let inFlight = 0;
+            let maxInFlight = 0;
+            const getByPath = sinon.stub().callsFake(async () => {
+                inFlight += 1;
+                maxInFlight = Math.max(maxInFlight, inFlight);
+                await new Promise((resolve) => setTimeout(resolve, 5));
+                inFlight -= 1;
+                throw notFoundError();
+            });
+            const items = [...ITEMS, card('m2m'), collection('m2m')];
+
+            const existing = await findExistingItems({ getByPath }, items);
+
+            expect(maxInFlight).to.equal(4);
+            expect(getByPath.callCount).to.equal(items.length);
+            expect(existing.size).to.equal(0);
+        });
     });
 
     describe('runBaselineCardsPlan', () => {

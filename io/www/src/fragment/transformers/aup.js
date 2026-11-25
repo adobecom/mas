@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { parseFragment, serialize as innerHtml } from 'parse5';
 import { applyPlanType, selectOffers } from '../../../../../price/src/offers.js';
 import { buildCheckoutUrl } from '../../../../../checkout/src/buildCheckoutUrl.js';
@@ -402,6 +403,19 @@ const sourcesOf = (fragment, features, fieldSources = {}) => {
     })).filter(({ fields: sourceFields }) => sourceFields.length);
 };
 
+/** name-based (v5 layout) uuid, so a given name always maps to the same id */
+const uuidOf = (name) => {
+    const hash = createHash('sha1').update(name).digest();
+    hash[6] = (hash[6] & 0x0f) | 0x50;
+    hash[8] = (hash[8] & 0x3f) | 0x80;
+    const hex = hash.subarray(0, 16).toString('hex');
+    return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+};
+
+/** stable analytics key of what's served: surface (api_key, or the fragment's `/content/dam/mas/<surface>/` path), template & offer */
+const analyticsIdOf = (surface, template, offerId) =>
+    surface && template && offerId ? uuidOf(`${surface}:${template}:${offerId}`) : undefined;
+
 async function mapCard(context) {
     const { body: fragment, type } = context;
     const { fields } = fragment;
@@ -415,6 +429,7 @@ async function mapCard(context) {
     const osi = raw('osi');
     const [offer] = (osi && cachedOffers([osi], effectivePromotionCode(raw('promoCode') ?? ''), scope)) || [];
     const productArrangementCode = offer?.productArrangementCode;
+    const offerId = context.offerId ?? offer?.offerId;
     const includedAppCodes = [raw('includedApps') ?? []].flat();
     const fulfillableItems = includedAppCodes.length ? await fulfillableItemsOf(productArrangementCode, context) : [];
     const whatsIncludedHtml = [raw('whatsIncluded'), raw('shortDescription')].filter(Boolean).join('');
@@ -423,10 +438,8 @@ async function mapCard(context) {
     return {
         fragment: fragment.id,
         template: raw('variant'),
-        analyticsId: raw('tags')
-            ?.find((tag) => tag.startsWith('mas:product_code/'))
-            ?.split('/')[1],
-        offerId: context.offerId ?? offer?.offerId,
+        analyticsId: analyticsIdOf(context.surface ?? fragment.path?.split('/')[4], raw('variant'), offerId),
+        offerId,
         osi,
         productArrangementCode,
         title: richValue('cardTitle'),

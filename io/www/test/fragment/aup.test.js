@@ -74,6 +74,19 @@ describe('aup transformer', () => {
         expect((await map(PRO_FIELDS, { wcs })).offerId).to.equal('WCS-OFFER-ID');
     });
 
+    it('derives a stable analytics uuid from surface, template & offer id', async () => {
+        const offerId = '257E1D82082387D152029F93C1030624';
+        const { analyticsId } = await map(PRO_FIELDS, { surface: 'sandbox', offerId });
+        expect(analyticsId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+        expect((await map(PRO_FIELDS, { surface: 'sandbox', offerId })).analyticsId).to.equal(analyticsId);
+        const byPath = await map(PRO_FIELDS, { offerId, body: { path: '/content/dam/mas/sandbox/en_US/card' } });
+        expect(byPath.analyticsId).to.equal(analyticsId);
+        expect((await map(PRO_FIELDS, { surface: 'acom', offerId })).analyticsId).to.not.equal(analyticsId);
+        expect((await map({ ...PRO_FIELDS, variant: 'plans' }, { surface: 'sandbox', offerId })).analyticsId).to.not.equal(
+            analyticsId,
+        );
+    });
+
     it('maps a card to the AUP shape', async () => {
         const body = await map(PRO_FIELDS, {
             offer: '257E1D82082387D152029F93C1030624',
@@ -82,7 +95,6 @@ describe('aup transformer', () => {
         expect(body).to.include({
             fragment: 'card',
             template: 'pro',
-            analyticsId: 'ccsn',
             offerId: '257E1D82082387D152029F93C1030624',
             osi: 'OSI-PRO',
             productArrangementCode: 'pa-OSI-PRO',

@@ -44,7 +44,7 @@ dropped and logged as errors.
 Mock of the AUP response mapping of the M@S & AUP integration architecture (§4.4.1), only active for api keys whose
 `apiKeyDefaults` set `mapping: "aup"` (hardcoded for `unified_checkout_server_v3`; a `mapping` request parameter is
 ignored), with a `type`, on cards (collections are left as delivered). It runs after render and replaces the body with:
-`fragment`, `template`, `analyticsId` (`mas:product_code/` tag), `offerId`, `osi`, `productArrangementCode` (cached
+`fragment`, `template`, `analyticsId` (uuid hashed from surface, template & offer id), `offerId`, `osi`, `productArrangementCode` (cached
 WCS offer), `title`, `subtitle`, `badge` & `trialBadge` (`{ text, color, backgroundColor, borderColor }`, from
 `merch-badge` attributes or the card's color fields, documented defaults otherwise), `mnemonics`, `description`,
 `promoText`, `promoCode`, `callout`, `price`, `ctas` (`{ text, variant, style, isCheckout, url,

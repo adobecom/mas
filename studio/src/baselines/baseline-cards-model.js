@@ -34,7 +34,7 @@ const NEW_PLAN_CARD_FIELDS = {
 /**
  * @typedef {{ osi?: string, trialOsi?: string }} PlanOffer
  * @typedef {{ osi: string, trialOsi?: string, removedTrialOsi?: string, error?: string }} CheckedPlanOffer
- * @typedef {object} Product - ABM cards sharing the PA code of their offer
+ * @typedef {object} Product - ABM cards sharing the PA code & market segment of their offer
  * @property {string} productArrangementCode
  * @property {string} [marketSegment]
  * @property {string} [productCode]
@@ -76,8 +76,8 @@ export const getTrialOsi = (card) =>
         ?.getAttribute('data-wcs-osi');
 
 /**
- * Groups the ABM cards by the PA code of their own `osi`, in paste order. The ABM offer & trial of a product are read
- * from its first card: its `osi` and its free trial CTA.
+ * Groups the ABM cards by the PA code & market segment of their own `osi`, in paste order. The ABM offer & trial of a
+ * product are read from its first card: its `osi` and its free trial CTA.
  * @param {object[]} cards - card fragments (AEM format)
  * @param {{ cache?: Map, timeoutMs?: number }} [options] - `cache` is the `loadOfferData` cache of the page
  * @returns {Promise<{ products: Product[], unresolvedCards: object[] }>} `unresolvedCards`: cards whose offer has no PA
@@ -95,12 +95,13 @@ export async function groupCardsByProduct(cards, { cache, timeoutMs } = {}) {
             unresolvedCards.push(card);
             return;
         }
-        const product = products.get(productArrangementCode);
+        const key = `${productArrangementCode}/${marketSegment}`;
+        const product = products.get(key);
         if (product) {
             product.cards.push(card);
             return;
         }
-        products.set(productArrangementCode, {
+        products.set(key, {
             productArrangementCode,
             marketSegment,
             productCode,
@@ -112,18 +113,20 @@ export async function groupCardsByProduct(cards, { cache, timeoutMs } = {}) {
 }
 
 /**
- * Why an offer cannot be the `plan` offer of a product: its PA code must be the product one and its commitment & term the
- * plan ones. `null` for a valid offer.
+ * Why an offer cannot be the `plan` offer of a product: its PA code & market segment must be the product ones and its
+ * commitment & term the plan ones. `null` for a valid offer.
  * @param {object | null} offer - resolved WCS offer
- * @param {{ productArrangementCode: string }} product
+ * @param {{ productArrangementCode: string, marketSegment: string }} product
  * @param {string} plan
  * @returns {string | null}
  */
-export function getPlanOfferError(offer, { productArrangementCode }, plan) {
+export function getPlanOfferError(offer, { productArrangementCode, marketSegment }, plan) {
     if (!offer) return 'The offer could not be loaded.';
     if (offer.productArrangementCode !== productArrangementCode) {
         return `The offer is for ${offer.productArrangementCode}, not ${productArrangementCode}.`;
     }
+    const offerSegment = offer.marketSegments?.[0];
+    if (offerSegment !== marketSegment) return `The offer is for ${offerSegment}, not ${marketSegment}.`;
     if (getPlanType(offer) !== plan) {
         return `The offer is ${offer.commitment} / ${offer.term}, ${plan.toUpperCase()} needs ${PLAN_COMMITMENT_TERMS[plan]}.`;
     }
@@ -298,7 +301,7 @@ const buildCollectionItem = (card, plan, label, cards) => {
 
 /**
  * Baselines, plan cards & collections to create from products with checked offers, in creation order: one baseline per
- * template & PA code, copied from its ABM card; one card per template & plan the product has a valid offer for,
+ * template, PA code & market segment, copied from its ABM card; one card per template & plan the product has a valid offer for,
  * inheriting from that baseline; one collection per template & plan with the cards of that plan, in product order. A
  * plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM cards.
  * @param {{ surface: string, products: Product[], label: string, disclaimerKeys?: Record<string, string> }} plan -

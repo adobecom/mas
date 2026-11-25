@@ -22,11 +22,11 @@ const ILST_INDIVIDUAL_TRIAL_OSI = 'nlYSyCqrsegoFuLBJfEe-QqgnptUzduO5I-jA06CNFI';
 const ILST_TEAM = 'ilst_direct_indirect_team';
 const CCSN_INDIVIDUAL = 'ccsn_direct_individual';
 
-const wcsOffer = (productArrangementCode, commitment, term, productCode) => ({
+const wcsOffer = (productArrangementCode, commitment, term, productCode, marketSegment = 'COM') => ({
     productArrangementCode,
     commitment,
     term,
-    marketSegments: ['COM'],
+    marketSegments: [marketSegment],
     productArrangement: { productCode },
 });
 
@@ -40,6 +40,7 @@ const createCache = () =>
         ['ccpro-m2m-trial', wcsOffer(CCSN_INDIVIDUAL, 'MONTH', 'MONTHLY', 'CCSN')],
         ['ccpro-puf', wcsOffer(CCSN_INDIVIDUAL, 'YEAR', 'ANNUAL', 'CCSN')],
         ['ccpro-puf-trial', wcsOffer(CCSN_INDIVIDUAL, 'YEAR', 'ANNUAL', 'CCSN')],
+        ['ccpro-edu-abm', wcsOffer(CCSN_INDIVIDUAL, 'YEAR', 'MONTHLY', 'CCSN', 'EDU')],
         ['unknown-osi', null],
     ]);
 
@@ -130,6 +131,27 @@ describe('baseline-cards-model', () => {
             ]);
         });
 
+        it('splits the cards of a PA code by market segment, each with its own ABM offer', async () => {
+            const eduCard = createCard({
+                title: 'CC: Mini Compare Mweb: CC Pro: Students: default',
+                osi: 'ccpro-edu-abm',
+                trialOsi: 'ccpro-abm-trial',
+            });
+
+            const { products } = await groupCardsByProduct([ccProCard(), eduCard], { cache: createCache() });
+
+            expect(
+                products.map(({ productArrangementCode, marketSegment, offers }) => [
+                    productArrangementCode,
+                    marketSegment,
+                    offers.abm.osi,
+                ]),
+            ).to.deep.equal([
+                [CCSN_INDIVIDUAL, 'COM', 'ccpro-abm'],
+                [CCSN_INDIVIDUAL, 'EDU', 'ccpro-edu-abm'],
+            ]);
+        });
+
         it('reads the product, the ABM offer and the ABM trial from the card', async () => {
             const { products } = await groupCardsByProduct([illustratorTeamCard()], { cache: createCache() });
 
@@ -165,6 +187,7 @@ describe('baseline-cards-model', () => {
         it('keeps the Illustrator Team ABM offer and removes its Illustrator Individual trial, without M2M', async () => {
             const product = {
                 productArrangementCode: ILST_TEAM,
+                marketSegment: 'COM',
                 offers: { abm: { osi: ILST_TEAM_OSI, trialOsi: ILST_INDIVIDUAL_TRIAL_OSI }, m2m: { osi: '' } },
             };
 
@@ -199,9 +222,22 @@ describe('baseline-cards-model', () => {
             );
         });
 
+        it('reports an offer of another market segment', () => {
+            const offer = wcsOffer(CCSN_INDIVIDUAL, 'MONTH', 'MONTHLY', 'CCSN', 'EDU');
+
+            expect(getPlanOfferError(offer, { productArrangementCode: CCSN_INDIVIDUAL, marketSegment: 'COM' }, 'm2m')).to.equal(
+                'The offer is for EDU, not COM.',
+            );
+        });
+
         it('accepts an offer of the product and plan', () => {
-            expect(getPlanOfferError(wcsOffer(ILST_TEAM, 'YEAR', 'ANNUAL'), { productArrangementCode: ILST_TEAM }, 'puf')).to.be
-                .null;
+            expect(
+                getPlanOfferError(
+                    wcsOffer(ILST_TEAM, 'YEAR', 'ANNUAL'),
+                    { productArrangementCode: ILST_TEAM, marketSegment: 'COM' },
+                    'puf',
+                ),
+            ).to.be.null;
         });
     });
 

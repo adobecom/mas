@@ -55,6 +55,8 @@
                         expect(linkEditor.linkStyleElement).to.not.exist;
                         expect(linkEditor.checkoutParametersElement).to.not.exist;
                         expect(linkEditor.linkAnalyticsIdElement).to.exist;
+                        expect(linkEditor.linkAnalyticsIdElement.getAttribute('invalid')).to.not.exist;
+                        expect(linkEditor.shadowRoot.getElementById('saveButton').getAttribute('disabled')).to.not.exist;
                     });
 
                     it('should render given values', async function () {
@@ -76,6 +78,8 @@
                         expect(linkEditor.linkTitleElement.value).to.equal('test title');
                         expect(linkEditor.linkTargetElement.value).to.equal('_blank');
                         expect(linkEditor.linkAnalyticsIdElement.value).to.equal('see-terms');
+                        expect(linkEditor.linkAnalyticsIdElement.getAttribute('invalid')).to.not.exist;
+                        expect(linkEditor.shadowRoot.getElementById('saveButton').getAttribute('disabled')).to.not.exist;
                     });
 
                     it('should emit save event with form data', async function () {
@@ -109,6 +113,15 @@
                         const linkEditor = await createFromTemplate('checkout', this.test.title);
                         expect(linkEditor.checkoutParametersElement.value).to.equal('');
                         expect(linkEditor.linkAnalyticsIdElement.value).to.equal('');
+                    });
+
+                    it('should render disabled save button', async function () {
+                        const linkEditor = await createFromTemplate('checkoutFilledNoAnalyticsId', this.test.title);
+                        linkEditor.linkAttrs = { ['data-template']: 'checkoutUrl', ['data-wcs-osi']: 'ABM' };
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.linkAnalyticsIdElement.getAttribute('invalid')).to.exist;
+                        expect(linkEditor.shadowRoot.getElementById('saveButton').getAttribute('disabled')).to.exist;
                     });
 
                     it('should support checkout and variant parameters', async function () {
@@ -317,6 +330,16 @@
                 variant="outline"
                 checkout-parameters="promoid=test&mv=other"
                 data-analytics-id="buy-now"
+            ></rte-link-editor>
+        </template>
+        <template id="checkoutFilledNoAnalyticsId">
+            <rte-link-editor
+                href="https://www.adobe.com"
+                text="link text"
+                title="test title"
+                target="_blank"
+                variant="outline"
+                checkout-parameters="promoid=test&mv=other"
             ></rte-link-editor>
         </template>
     </body>

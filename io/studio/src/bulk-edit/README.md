@@ -58,18 +58,18 @@ Start a search. **`replace` is required** — it defines the replacement text ap
 }
 ```
 
-| Field          | Required | Notes                                                                                                                                                                                                              |
-| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `surface`      | yes      | e.g. `sandbox`, `acom`                                                                                                                                                                                             |
-| `find`         | yes      | Text to search for                                                                                                                                                                                                 |
-| `replace`      | yes      | Replacement text applied within each match at replace time                                                                                                                                                         |
-| `searchIn`     | no       | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `tags`) — not arbitrary Odin fields |
-| `matchCase`    | no       | Default `false`                                                                                                                                                                                                    |
-| `locale`       | no       | String or array; omit for all locales                                                                                                                                                                              |
-| `tags`         | no       | Filter by fragment tags                                                                                                                                                                                            |
-| `status`       | no       | e.g. `PUBLISHED`, `DRAFT`                                                                                                                                                                                          |
-| `limit`        | no       | Max matches per run (batch size). Omitted → unbounded (single pass). See [Batched find](#batched-find-limit).                                                                                                      |
-| `forceRefresh` | no       | Re-run even if a cached job exists                                                                                                                                                                                 |
+| Field          | Required | Notes                                                                                                                                                                                                                       |
+| -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface`      | yes      | e.g. `sandbox`, `acom`                                                                                                                                                                                                      |
+| `find`         | yes      | Text to search for                                                                                                                                                                                                          |
+| `replace`      | yes      | Replacement text applied within each match at replace time                                                                                                                                                                  |
+| `searchIn`     | no       | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `badge`, `fragmentDescription`, `fragmentTitle`, `tags`) — not arbitrary Odin fields |
+| `matchCase`    | no       | Default `false`                                                                                                                                                                                                             |
+| `locale`       | no       | String or array; omit for all locales                                                                                                                                                                                       |
+| `tags`         | no       | Filter by fragment tags                                                                                                                                                                                                     |
+| `status`       | no       | e.g. `PUBLISHED`, `DRAFT`                                                                                                                                                                                                   |
+| `limit`        | no       | Max matches per run (batch size). Omitted → unbounded (single pass). See [Batched find](#batched-find-limit).                                                                                                               |
+| `forceRefresh` | no       | Re-run even if a cached job exists                                                                                                                                                                                          |
 
 Response: `202 { jobId, reused }`
 
@@ -221,7 +221,7 @@ fragment_id,path,locale,field,find,etag,status
 ```
 
 - One row per **match** (a fragment with two field hits → two rows)
-- `field` is the Odin field name (e.g. `cardTitle`, `subtitle`, `callout`); legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
+- `field` is the Odin field name (e.g. `cardTitle`, `subtitle`, `callout`, `badge`); badge matches appear as their own rows in exports and can be selected in a CSV subset upload; legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
 - `find` — matched value at find time
 - `etag` — fragment etag at find time; replace skips the write when the server etag differs (`SKIPPED`, `reason: etag_mismatch`)
 - **Tags** can appear in find results but are never rewritten on replace (present rows come back `SKIPPED`)

@@ -23,12 +23,12 @@ One CDN miss used to rebuild the whole response, which means many Odin and WCS c
 
 We will cache the `/mas/io/fragment` API at every layer below. Each layer has its own key and lifetime, and is only filled by the layer above it missing. From the visitor down:
 
-| #   | Layer                                                 | Owner                  | Key                                      | Lifetime                                         |
-| --- | ----------------------------------------------------- | ---------------------- | ---------------------------------------- | ------------------------------------------------ |
-| 1   | Browser: HTTP cache and the `aem-fragment` page cache | M@S (`web-components`) | URL; fragment id                         | up to 5 min; page life                           |
-| 2   | `www.adobe.com` CDN, `/mas/io` path                   | M@S                    | request URL                              | 15 min                                           |
-| 3   | `io/www` container memory                             | M@S (`io/www`)         | see below                                | 60 s for stored copies; 5 min ±20% for inputs    |
-| 4   | App Builder State and Files of the namespace          | M@S (`io/www`)         | `req-<request key>`, `res-<request key>` | refreshed after 5 min; served stale up to 15 min |
+| #   | Layer                                                 | Owner                  | Key                                      | Lifetime                                      |
+| --- | ----------------------------------------------------- | ---------------------- | ---------------------------------------- | --------------------------------------------- |
+| 1   | Browser: HTTP cache and the `aem-fragment` page cache | M@S (`web-components`) | URL; fragment id                         | up to 5 min; page life                        |
+| 2   | `www.adobe.com` CDN, `/mas/io` path                   | M@S                    | request URL                              | 15 min                                        |
+| 3   | `io/www` container memory                             | M@S (`io/www`)         | see below                                | 60 s for stored copies; 5 min ±20% for inputs |
+| 4   | App Builder State and Files of the namespace          | M@S (`io/www`)         | `req-<request key>`, `res-<request key>` | refreshed after 5 min; served stale up to 1 h |
 
 On a rebuild, `io/www` calls two other APIs, each with its own cache:
 
@@ -45,10 +45,10 @@ Layers 3 and 4 live in `io/www`. They behave as follows:
     - `res-`, in Files (`fragment-cache/res-<request key>.json`), holds the response: `{ hash, body }`, the body being brotli compressed and base64 encoded. Responses over 900 KB are not stored; most are under 20 KB.
     - Files reads and writes are best effort: one failing or taking over 500 ms is a miss. Until a container's Files client is ready (a couple of seconds after it starts), its requests skip `res-`.
     - A response is served as is while `refreshedAt` is less than 5 minutes old.
-    - Beyond that, one rebuild starts per container while the previous response is served, up to 15 minutes old. Older ones wait for the rebuild.
-    - Before rebuilding, the container re-reads both entries, in case another container just refreshed them.
-    - A failed rebuild (5xx), or one still running near the request deadline, falls back to a response less than 15 minutes old; the slow rebuild goes on and stores its response.
-    - A degraded rebuild (a 200 missing data after an Odin or WCS failure: settings, dictionary, promotions, baselines, offers, offer mapping, WCS 5xx) is not stored, and falls back the same way; otherwise it is served, and the next request rebuilds again.
+    - Before going further, the container re-reads both entries, in case another container just refreshed them.
+    - Up to 1 hour old, the previous response is served as is (`stale`, with a 30 s CDN `max-age`, `networkConfig.staleCacheMaxAge`), and a non-blocking invocation of the action with the same parameters and `refresh` set to the id of the triggering request rebuilds and stores it (`refresh`, logged with the `refresh-<that id>` request id; the trigger logs the activation id). A container triggers at most one refresh per key a minute, and none while it rebuilds that key; `refresh` is ignored on web requests. A failed refresh leaves the previous response, so the next request triggers another one.
+    - Older (or never stored) responses are rebuilt while the request waits (`miss`); concurrent requests of the same container wait for the same rebuild (`joined`).
+    - A degraded rebuild (a 200 missing data after an Odin or WCS failure: settings, dictionary, promotions, baselines, offers, offer mapping, WCS 5xx) is not stored: it is served, and the next request rebuilds again.
     - Every rebuild rewrites `req-`, to update `refreshedAt`. `res-` is only rewritten when the hash changed, or when its previous write failed (the response then only lived in memory).
 - **Memory**, one shared LRU (least recently used) cache per container, bounded by 75% of the V8 heap:
     - copies of the stored entries, re-read at most every minute;
@@ -71,15 +71,15 @@ The `offers` action follows the same pattern: it syncs offer baselines into Stat
 ### Positive
 
 - Most CDN misses are served from memory, State or Files without calling Odin or WCS. Rebuild traffic depends on the number of keys, not on the number of visitors.
-- Odin or WCS failures and slowness are hidden for up to 15 minutes per key.
-- Each request logs one `pipeline completed` line with its cache outcome (`hit`, `stale`, `joined`, `stale-error`, `miss`) and key. Memory and evictions are logged on a separate `memory:` line.
+- Odin or WCS failures and slowness are hidden for up to 1 hour per key, and rebuild time is hidden from visitors for keys requested at least once an hour.
+- Each request logs one `pipeline completed` line with its cache outcome (`hit`, `stale`, `joined`, `miss`, `refresh` for background rebuilds) and key. Memory and evictions are logged on a separate `memory:` line.
 
 ### Costs and risks
 
 - **Staleness adds up and nothing is purged on publish.** A publication can take over an hour to show in the worst case:
     - Odin CDN up to 1 h, unless purged (`softpurge`);
     - 5 min for the shared input caches;
-    - 5 to 15 min for the stored response, plus 1 min for the memory copy;
+    - 5 min to 1 h for the stored response (a rarely requested key shows its 1 h old response once, then the refreshed one), plus 1 min for the memory copy;
     - 15 min in Akamai;
     - 5 min in the browser.
 - **Hot keys only**: every request key needs its own entry, so rarely requested ones are still built on their first miss. State is limited to 200k keys and 1 GB per workspace; entries expire after 24 h without a write.

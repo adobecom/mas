@@ -356,6 +356,14 @@ async function reserveVersion(context, event, exclusive = false) {
 
 async function compactReservations(context, ledger, keepId) {
     let changed = false;
+    const cutoff = Date.now() - REQUEST_TTL * 1000;
+    for (const [id, entry] of Object.entries(ledger.entries)) {
+        if (id === keepId || !(Math.max(Date.parse(entry.createdAt), entry.lockedUntil ?? 0) < cutoff)) continue;
+        const guard = await context.state.get(`${namespace(context, 'request')}${id}`);
+        if (guard?.value) continue;
+        delete ledger.entries[id];
+        changed = true;
+    }
     const candidates = Object.entries(ledger.entries).filter(([id, entry]) => id !== keepId && !entry.lockedUntil);
     const pages = new Map();
     for (const [id, entry] of candidates.slice(0, 1000)) {
@@ -481,9 +489,13 @@ async function readIndexPage(context, page) {
     return context.indexPages.get(page);
 }
 
-async function* indexedEntries(context, before) {
+async function* indexedEntries(context, before, version) {
     const pages = Object.entries(context.index.pages)
-        .filter(([, range]) => !before || range.oldest.localeCompare(indexPosition(before)) < 0)
+        .filter(
+            ([page, range]) =>
+                (version === undefined || Number(page) === indexPage(version)) &&
+                (!before || range.oldest.localeCompare(indexPosition(before)) < 0),
+        )
         .map(([page, range]) => ({ page: Number(page), ...range }))
         .sort((a, b) => b.newest.localeCompare(a.newest));
     const pending = [];
@@ -492,7 +504,9 @@ async function* indexedEntries(context, before) {
             const { page } = pages.shift();
             pending.push(
                 ...(await readIndexPage(context, page)).filter(
-                    (entry) => !before || indexPosition(entry).localeCompare(indexPosition(before)) < 0,
+                    (entry) =>
+                        (version === undefined || entry.version === version) &&
+                        (!before || indexPosition(entry).localeCompare(indexPosition(before)) < 0),
                 ),
             );
             pending.sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
@@ -766,7 +780,7 @@ async function list(context, params) {
     const before = params.cursor ? await historyCursor(context, params.cursor) : undefined;
     const page = [];
     let currentEventId = null;
-    if (params.cursor) {
+    if (params.cursor || query) {
         for await (const entry of indexedEntries(context)) {
             const event = await findEntry(context, entry.id);
             if (!event) continue;
@@ -778,7 +792,11 @@ async function list(context, params) {
             }
         }
     }
-    const entries = indexedEntries(context, before);
+    const version = query ? Number(query.replace(/^version /, '')) : undefined;
+    if (query && (!Number.isSafeInteger(version) || version < 1 || ![String(version), `version ${version}`].includes(query))) {
+        return { events: [], currentEventId };
+    }
+    const entries = indexedEntries(context, before, version);
     let finished = false;
     while (!finished) {
         const batch = [];

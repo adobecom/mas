@@ -6,6 +6,7 @@ import State from '@adobe/aio-lib-state';
 import Files from '@adobe/aio-lib-files';
 import openwhisk from 'openwhisk';
 
+// Promotion is the only scope supported by resolveScope; extend this migration when another scope is added.
 const ENTRY_KEY =
     /^history\.promotion\.([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\.entry\.([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 const CLEANUP_DRAIN_KEY = 'history.migration.cleanup-drain';

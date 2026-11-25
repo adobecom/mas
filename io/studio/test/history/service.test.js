@@ -528,6 +528,73 @@ describe('Promotion project versions', () => {
         expect(Buffer.byteLength(JSON.stringify(ledger))).to.be.lessThan(750000);
     });
 
+    it('reclaims version-less claims left by failed preparation after the request TTL', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        await expectError(call('record', { phase: 'prepare', expectedEtag: '"stale"' }), 409);
+        const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+        const [claimId] = Object.keys(numberingFiles.get(path).body.entries);
+        expect(numberingFiles.get(path).body.entries[claimId]).not.to.have.property('version');
+        clock.tick(96 * 86400000);
+
+        await call('record', { action: 'create', requestId: 'after-abandoned-claim' });
+
+        expect(numberingFiles.get(path).body.entries).to.deep.equal({});
+    });
+
+    it('reclaims abandoned restore leases once their request guard has expired without deleting history', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const { event } = await save();
+        failPostWriteCapture();
+        await expectError(undo(event), 503);
+        const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+        expect(Object.values(numberingFiles.get(path).body.entries)[0]).to.have.property('lockedUntil');
+        clock.tick(96 * 86400000);
+        stored.clear();
+
+        const next = await call('record', { action: 'create', requestId: 'after-abandoned-restore' });
+
+        expect(next.event.version).to.equal(3);
+        expect(numberingFiles.get(path).body.entries).to.deep.equal({});
+        expect((await call('list')).events.map((item) => item.id)).to.deep.equal([next.event.id, event.id]);
+    });
+
+    it('preserves recent claims, active leases and stale reservations with a live request guard', async () => {
+        const now = Date.now();
+        sinon.useFakeTimers({ now, toFake: ['Date'] });
+        const cutoff = now - 95 * 86400000;
+        const createdAt = new Date(cutoff - 86400000).toISOString();
+        const entries = {
+            recent: { createdAt: new Date(cutoff).toISOString() },
+            active: { createdAt, version: 1, lockedUntil: now + 70000 },
+            expiring: { createdAt, version: 2, lockedUntil: cutoff },
+            recoverable: { createdAt, version: 3, lockedUntil: cutoff - 1 },
+        };
+        stored.set(`history.promotion.${PROJECT}.request.recoverable`, JSON.stringify({ versionPending: true }));
+        const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+        numberingFiles.set(path, { etag: '"1"', body: { lastVersion: 3, entries: structuredClone(entries) } });
+
+        await call('record', { action: 'create', requestId: 'preserve-recoverable' });
+
+        expect(numberingFiles.get(path).body.entries).to.deep.equal(entries);
+    });
+
+    it('reclaims stale claims before enforcing the numbering metadata size limit', async () => {
+        const createdAt = new Date(Date.now() - 96 * 86400000).toISOString();
+        const entries = {};
+        for (let index = 0; index < 6500; index++) {
+            const id = `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, '0')}`;
+            entries[id] = { createdAt, claimToken: id };
+        }
+        const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+        numberingFiles.set(path, { etag: '"1"', body: { lastVersion: 0, entries } });
+        expect(Buffer.byteLength(JSON.stringify(entries))).to.be.greaterThan(750000);
+
+        const { event } = await call('record', { action: 'create' });
+
+        expect(event.version).to.equal(1);
+        expect(numberingFiles.get(path).body.entries).to.deep.equal({});
+    });
+
     it('records verified identity, ISO time, changed fields and authoritative native manifests', async () => {
         const { event } = await save(PROJECT, undefined, { user: { name: 'Impersonator' } });
         expect(event.user).to.deep.equal(profile);
@@ -829,6 +896,50 @@ describe('Promotion project versions', () => {
         ]);
     });
 
+    it('searches the matching index page without reading unrelated history archives or index pages', async () => {
+        const events = await recordHistory(225);
+        state.get.resetHistory();
+
+        const page = await call('list', { query: 'version 1' });
+
+        expect(page.events).to.deep.equal([events.at(-1)]);
+        expect(page.currentEventId).to.equal(events[0].id);
+        expect(eventReads()).to.have.length(2);
+        const indexPages = fetchStub
+            .getCalls()
+            .filter(({ args: [url] }) => /\/index-\d+\.json$/.test(url))
+            .map(({ args: [url] }) => new URL(url).pathname);
+        expect(indexPages).to.have.members([
+            `/private/history/promotion/${PROJECT}/index-2.json`,
+            `/private/history/promotion/${PROJECT}/index-0.json`,
+        ]);
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(0);
+    });
+
+    for (const query of ['not a version', '01', 'version 01', '1e0', '1.0', '9007199254740992', '9999']) {
+        it(`reads only the current event for a non-matching version query ${JSON.stringify(query)}`, async () => {
+            const events = await recordHistory(12);
+
+            const page = await call('list', { query });
+
+            expect(page).to.deep.equal({ events: [], currentEventId: events[0].id });
+            expect(eventReads()).to.have.length(1);
+        });
+    }
+
+    it('applies the cursor when searching an indexed version', async () => {
+        const events = await recordHistory(12);
+        const first = await call('list', { limit: 1 });
+        fetchStub.resetHistory();
+
+        const older = await call('list', { cursor: first.cursor, query: String(events.at(-1).version) });
+        const newer = await call('list', { cursor: first.cursor, query: String(events[0].version) });
+
+        expect(older.events).to.deep.equal([events.at(-1)]);
+        expect(newer).to.deep.equal({ events: [], currentEventId: events[0].id });
+        expect(eventReads()).to.have.length(3);
+    });
+
     it('continues correctly across index-page boundaries without duplicate or missing events', async () => {
         const events = await recordHistory(125);
         state.list.resetHistory();
@@ -1098,6 +1209,27 @@ describe('Promotion project versions', () => {
 
         expect((await call('list')).events).to.deep.equal([event]);
         expect(numberingFiles.get(eventPath(event.id)).body).to.deep.equal(event);
+    });
+
+    it('releases a re-reserved number when an authoritative archive wins a concurrent record retry', async () => {
+        const original = await call('record', { action: 'create' });
+        stored.clear();
+        numberingFiles.delete(eventPath(original.event.id));
+        fetchStub.resetHistory();
+        fetchStub
+            .withArgs(`https://files.example.com${eventPath(original.event.id)}`, sinon.match.has('method', 'PUT'))
+            .callsFake(async () => {
+                numberingFiles.set(eventPath(original.event.id), { body: original.event, etag: '"2"' });
+                return response({}, 412);
+            });
+
+        const replay = await call('record', { action: 'create' });
+
+        expect(replay).to.deep.equal(original);
+        const ledger = numberingFiles.get(`/private/history/promotion/${PROJECT}/numbering.json`).body;
+        expect(ledger).to.deep.equal({ lastVersion: 2, entries: {} });
+        expect((await call('list')).events).to.deep.equal([original.event]);
+        expect((await call('record', { action: 'create', requestId: 'after-replay' })).event.version).to.equal(3);
     });
 
     it('surfaces legacy archival failures instead of returning history that can still expire', async () => {

@@ -206,6 +206,44 @@
                         el.remove();
                     });
 
+                    it('outlines the pickers in every layout', async () => {
+                        for (const attributes of [{}, { layout: 'vertical' }, { layout: 'grid' }]) {
+                            const el = await render(config, attributes);
+                            for (const id of ['start', 'default', 'step']) {
+                                const style = getComputedStyle(el.shadowRoot.querySelector(`#quantity-selector-${id}`));
+                                const property = (name) => style.getPropertyValue(name).trim();
+                                expect(property('--mod-picker-border-width')).to.equal('2px');
+                                expect(property('--mod-picker-border-radius')).to.equal('8px');
+                                expect(property('--mod-picker-background-color-default')).to.equal(
+                                    property('--spectrum-white'),
+                                );
+                                expect(property('--mod-picker-border-color-default')).to.equal(property('--spectrum-gray-300'));
+                            }
+                            el.remove();
+                        }
+                    });
+
+                    it('keeps 12px between the title and the pickers with layout grid', async () => {
+                        const el = await render(config, { layout: 'grid' });
+                        const label = el.shadowRoot.querySelector('.quantity-pickers sp-field-label');
+                        const title = el.shadowRoot.querySelector('#quantity-selector-title');
+                        expect(label.getBoundingClientRect().top - title.getBoundingClientRect().bottom).to.be.closeTo(12, 1);
+                        el.remove();
+                    });
+
+                    it('keeps 12px between the plural field and the pickers with a split title in layout grid', async () => {
+                        const el = document.createElement('quantity-select-field');
+                        el.splitTitle = true;
+                        el.setAttribute('layout', 'grid');
+                        el.value = createQuantitySelectValue({ title: 'Seat|Seats', ...config });
+                        document.body.append(el);
+                        await el.updateComplete;
+                        const label = el.shadowRoot.querySelector('.quantity-pickers sp-field-label');
+                        const plural = el.shadowRoot.querySelector('#quantity-selector-plural');
+                        expect(label.getBoundingClientRect().top - plural.getBoundingClientRect().bottom).to.be.closeTo(12, 1);
+                        el.remove();
+                    });
+
                     it('stacks the controls full width with layout vertical or no layout', async () => {
                         for (const attributes of [{}, { layout: 'vertical' }]) {
                             const el = await render(config, attributes);

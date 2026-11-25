@@ -79,7 +79,15 @@ export class QuantitySelectField extends LitElement {
             width: 100%;
         }
 
+        sp-picker {
+            --mod-picker-background-color-default: var(--spectrum-white);
+            --mod-picker-border-color-default: var(--spectrum-gray-300);
+            --mod-picker-border-width: 2px;
+            --mod-picker-border-radius: 8px;
+        }
+
         :host([layout='grid']) .quantity-pickers {
+            margin-top: 12px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             column-gap: 20px;

@@ -215,6 +215,12 @@ class MasMnemonicModal extends LitElement {
             max-width: 454px;
             border-radius: 16px;
             --mod-dialog-confirm-padding-grid: 20px;
+            --mod-dialog-confirm-title-text-size: 22px;
+            --mod-dialog-confirm-title-text-line-height: 26px;
+            --mod-dialog-confirm-title-text-color: #292929;
+            --mod-dialog-confirm-divider-block-spacing-start: 0px;
+            --mod-dialog-confirm-divider-block-spacing-end: 16px;
+            --mod-dialog-confirm-buttongroup-padding-top: 0px;
             --spectrum-dialog-footer-justify-content: flex-end;
             --spectrum-dialog-footer-padding-top: 0;
             --spectrum-dialog-footer-border-top: none;
@@ -223,13 +229,26 @@ class MasMnemonicModal extends LitElement {
         sp-dialog.badge-icon form {
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            margin-top: 16px;
+            gap: 8px;
+            margin-top: 32px;
             margin-bottom: 32px;
+        }
+
+        sp-dialog.badge-icon form.select-tab {
+            box-sizing: border-box;
+            height: 281px;
+        }
+
+        sp-dialog.badge-icon form.select-tab .form-field {
+            flex: 1;
         }
 
         sp-dialog.badge-icon .form-field {
             margin-bottom: 0;
+        }
+
+        sp-dialog.badge-icon .form-field sp-field-label {
+            margin-bottom: 8px;
         }
 
         sp-dialog.badge-icon sp-action-group {
@@ -459,7 +478,7 @@ class MasMnemonicModal extends LitElement {
                 <sp-underlay ?open=${this.open}></sp-underlay>
                 <sp-dialog class="badge-icon" no-divider>
                     <h2 slot="heading">Badge icon</h2>
-                    <form @submit=${(e) => e.preventDefault()}>
+                    <form class=${isUrl ? '' : 'select-tab'} @submit=${(e) => e.preventDefault()}>
                         <sp-action-group
                             selects="single"
                             .selected=${[isUrl ? 'url' : 'select']}

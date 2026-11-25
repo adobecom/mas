@@ -4,6 +4,7 @@ import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 import '../src/swc.js';
 import '../src/mas-mnemonic-modal.js';
 import { ADOBE_PRODUCTS } from '../src/constants/adobe-products.js';
+import { ICON_LIBRARY } from '../src/constants/icon-library.js';
 import { spTheme } from './utils.js';
 
 describe('MAS Mnemonic Modal', () => {
@@ -174,6 +175,73 @@ describe('MAS Mnemonic Modal', () => {
         await el.updateComplete;
         el.shadowRoot.querySelector('sp-button[variant="secondary"]').click();
         expect(el.icon).to.equal('sp-icon-ribbon');
+    });
+
+    const badgeFixture = (icon) =>
+        fixture(
+            icon
+                ? html`<mas-mnemonic-modal open .iconLibrary=${true} .badgeIcon=${true} icon=${icon}></mas-mnemonic-modal>`
+                : html`<mas-mnemonic-modal open .iconLibrary=${true} .badgeIcon=${true}></mas-mnemonic-modal>`,
+            { parentNode: spTheme() },
+        );
+
+    it('should render the badge icon heading at 22px', async () => {
+        const el = await badgeFixture();
+        const h2 = el.shadowRoot.querySelector('sp-dialog h2');
+        expect(getComputedStyle(h2).fontSize).to.equal('22px');
+    });
+
+    it('should keep 32px between the heading and the mode switch', async () => {
+        const el = await badgeFixture();
+        const h2 = el.shadowRoot.querySelector('sp-dialog h2');
+        const group = el.shadowRoot.querySelector('sp-action-group');
+        const gap = group.getBoundingClientRect().top - h2.getBoundingClientRect().bottom;
+        expect(gap).to.be.within(30, 34);
+    });
+
+    for (const [tab, icon] of [
+        ['Select', undefined],
+        ['URL', 'https://a.com/i.svg'],
+    ]) {
+        it(`should match the badge icon spacing on the ${tab} tab`, async () => {
+            const el = await badgeFixture(icon);
+            const group = el.shadowRoot.querySelector('sp-action-group');
+            const label = el.shadowRoot.querySelector('sp-field-label');
+            expect(label.getBoundingClientRect().top - group.getBoundingClientRect().bottom).to.be.within(7, 9);
+
+            const field = el.shadowRoot.querySelector('.form-field');
+            const cancel = el.shadowRoot.querySelector('sp-button[variant="secondary"]');
+            expect(cancel.getBoundingClientRect().top - field.getBoundingClientRect().bottom).to.be.within(30, 34);
+        });
+    }
+
+    it('should keep the open icon dropdown inside the badge dialog content', async () => {
+        const el = await badgeFixture();
+        const select = el.shadowRoot.querySelector('mas-icon-select');
+        select.shadowRoot.querySelector('.trigger').click();
+        await select.updateComplete;
+
+        const items = select.shadowRoot.querySelectorAll('.list .icon-item');
+        const last = items[items.length - 1];
+        last.scrollIntoView({ block: 'nearest' });
+        expect(last.textContent).to.include(ICON_LIBRARY[ICON_LIBRARY.length - 1].name);
+
+        const list = select.shadowRoot.querySelector('.list').getBoundingClientRect();
+        const lastRect = last.getBoundingClientRect();
+        expect(lastRect.top).to.be.at.least(list.top - 1);
+        expect(lastRect.bottom).to.be.at.most(list.bottom + 1);
+
+        const content = el.shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.content').getBoundingClientRect();
+        expect(select.shadowRoot.querySelector('.panel').getBoundingClientRect().bottom).to.be.at.most(content.bottom);
+    });
+
+    it('should make the badge dialog shorter on Import via URL than on Select', async () => {
+        const el = await badgeFixture();
+        const dialog = el.shadowRoot.querySelector('sp-dialog');
+        const selectHeight = dialog.getBoundingClientRect().height;
+        el.selectedTab = 'url';
+        await el.updateComplete;
+        expect(dialog.getBoundingClientRect().height).to.be.lessThan(selectHeight);
     });
 
     it('should set no-divider only on the add visual dialog', async () => {

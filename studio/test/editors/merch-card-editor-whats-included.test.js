@@ -109,10 +109,18 @@ describe('merch-card-editor whats-included popup', () => {
         const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
         const rows = rowsOf(editor);
         expect(rows).to.have.lengthOf(3);
-        expect(rows.map((row) => row.querySelector('strong').textContent)).to.deep.equal(['Star', 'firefly-icon.svg', 'Brush']);
+        expect(rows.map((row) => row.querySelector('.image-row-name').textContent)).to.deep.equal([
+            'Star',
+            'firefly-icon.svg',
+            'Brush',
+        ]);
+        for (const row of rows) {
+            expect(row.querySelector('.image-row-name').tagName).to.equal('SPAN');
+            expect(row.querySelector('strong')).to.be.null;
+        }
         expect(rows[0].textContent).to.contain('Plain text');
         expect(rows[1].textContent).to.contain('Rich text');
-        rows.forEach((row) => expect(row.querySelector('.feature-row-icon').children.length).to.be.greaterThan(0));
+        rows.forEach((row) => expect(row.querySelector('.image-row-icon').children.length).to.be.greaterThan(0));
     });
 
     it('clicking the second row or pressing Enter opens the popup with focusIndex 1', async () => {
@@ -170,16 +178,23 @@ describe('merch-card-editor whats-included popup', () => {
         const editor = await setup(VARIANT_NAMES.PLANS, '', standardSeed());
         const children = [...editor.querySelector('#whatsIncluded .feature-rows').children];
         expect(children.map((child) => child.className)).to.deep.equal([
-            'feature-row',
-            'feature-row',
-            'feature-row',
-            'logo-row',
-            'logo-row',
+            'image-row feature-row',
+            'image-row feature-row',
+            'image-row feature-row',
+            'image-row logo-row',
+            'image-row logo-row',
         ]);
         const logoRows = logoRowsOf(editor);
-        expect(logoRows.map((row) => row.querySelector('strong').textContent)).to.deep.equal(['Photoshop', 'Illustrator']);
-        expect(logoRows[0].querySelector('span').textContent).to.equal('Photoshop');
-        const box = logoRows[0].querySelector('.feature-row-icon');
+        expect(logoRows.map((row) => row.querySelector('.image-row-name').textContent)).to.deep.equal([
+            'Photoshop',
+            'Illustrator',
+        ]);
+        for (const row of logoRows) {
+            expect(row.querySelector('.image-row-name').tagName).to.equal('SPAN');
+            expect(row.querySelector('strong')).to.be.null;
+        }
+        expect(logoRows[0].querySelector('.image-row-description').textContent).to.equal('Photoshop');
+        const box = logoRows[0].querySelector('.image-row-icon');
         expect(box.querySelector('img')).to.exist;
         expect(box.getBoundingClientRect().width).to.equal(40);
         expect(box.getBoundingClientRect().height).to.equal(40);
@@ -192,7 +207,7 @@ describe('merch-card-editor whats-included popup', () => {
         ]).outerHTML;
         helper.remove();
         const editor = await setup(VARIANT_NAMES.PLANS, '', seed);
-        const icon = rowsOf(editor)[0].querySelector('.feature-row-icon sp-theme > sp-icon-ribbon');
+        const icon = rowsOf(editor)[0].querySelector('.image-row-icon sp-theme > sp-icon-ribbon');
         await icon.updateComplete;
         const rect = icon.getBoundingClientRect();
         expect(rect.width).to.equal(40);
@@ -212,9 +227,41 @@ describe('merch-card-editor whats-included popup', () => {
             expect(style.backgroundColor).to.equal('rgb(255, 255, 255)');
             expect(style.cursor).to.equal('pointer');
         }
-        const strong = getComputedStyle(rows[0].querySelector('.feature-row-text strong'));
-        expect(strong.fontWeight).to.equal('500');
-        expect(strong.color).to.equal('rgb(44, 44, 44)');
+        const name = getComputedStyle(rows[0].querySelector('.image-row-text .image-row-name'));
+        expect(name.fontWeight).to.equal('500');
+        expect(name.color).to.equal('rgb(44, 44, 44)');
+    });
+
+    it('spaces the card, badge and trial badge groups 30px apart', async () => {
+        const fragment = new Fragment({
+            model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+            fields: [
+                { name: 'variant', values: ['headless'] },
+                { name: 'size', values: [] },
+                { name: 'badge', values: ['<merch-badge>New</merch-badge>'] },
+                { name: 'trialBadge', values: ['Trial'] },
+                ...EMPTY_FIELDS.map((name) => ({ name, values: [] })),
+            ],
+            tags: [],
+            title: '',
+            description: '',
+        });
+        const editor = new (customElements.get('merch-card-editor'))();
+        editor.fragmentStore = generateFragmentStore(fragment);
+        document.body.append(editor);
+        await finishRendering(editor);
+        await editor.toggleFields();
+        const section = editor.querySelector('.editor-section[data-section="Badge and card decoration"]');
+        const badge = section.querySelector('badge-section[field="badge"]');
+        const trialBadge = section.querySelector('badge-section[field="trialBadge"]');
+        const cardGrid = section.querySelector(':scope > .two-column-grid');
+        const cardToBadge =
+            badge.querySelector('sp-field-label').getBoundingClientRect().top - cardGrid.getBoundingClientRect().bottom;
+        const badgeToTrial =
+            trialBadge.querySelector('sp-field-label').getBoundingClientRect().top -
+            badge.querySelector('.two-column-grid').getBoundingClientRect().bottom;
+        expect(cardToBadge).to.be.closeTo(30, 1);
+        expect(badgeToTrial).to.be.closeTo(30, 1);
     });
 
     it('clicking a logo row (or Enter/Space) opens the dialog on Logo with that logo and index', async () => {
@@ -284,10 +331,8 @@ describe('merch-card-editor whats-included popup', () => {
                 expect(items[0].textContent.trim()).to.equal('Delete');
             }
         }
-        expect(styleTextOf(standard)).to.include('#whatsIncluded .feature-row .action-menu');
-        expect(styleTextOf(standard)).to.match(
-            /\.feature-row \.action-menu,\s*#whatsIncluded \.logo-row \.action-menu \{\s*margin-left: auto;/,
-        );
+        expect(styleTextOf(standard)).to.not.include('#whatsIncluded .feature-row .action-menu');
+        expect(styleTextOf(standard)).to.match(/\.image-row \.action-menu \{\s*margin-left: auto;/);
     });
 
     it('keeps the dialog closed when using a row menu', async () => {
@@ -349,6 +394,7 @@ describe('merch-card-editor whats-included popup', () => {
         expect(rows).to.have.lengthOf(3);
         for (const row of rows.slice(0, 2)) {
             expect(row.querySelector('.feature-row-empty').textContent).to.equal('No description');
+            expect(row.querySelector('.feature-row-empty').classList.contains('image-row-description')).to.be.true;
         }
         expect(rows[2].querySelector('.feature-row-empty')).to.be.null;
         expect(rows[2].textContent).to.contain('Filled');
@@ -362,8 +408,8 @@ describe('merch-card-editor whats-included popup', () => {
         helper.remove();
         const editor = await setup(VARIANT_NAMES.PLANS, '', seed);
         const rows = logoRowsOf(editor);
-        expect(rows[0].querySelector('span').textContent).to.equal('Photoshop');
-        expect(rows[1].querySelector('.feature-row-text span').textContent).to.equal('');
+        expect(rows[0].querySelector('.image-row-description').textContent).to.equal('Photoshop');
+        expect(rows[1].querySelector('.image-row-description').textContent).to.equal('');
         expect(rows[1].querySelector('.feature-row-empty')).to.be.null;
         expect(rows[1].textContent).to.not.contain('No description');
     });

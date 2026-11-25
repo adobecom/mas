@@ -96,6 +96,15 @@ export class CardBaselinesController {
         this.#lookupKey = null;
     }
 
+    /** A variation follows the baselines toggle of its locale default card. */
+    get enabled() {
+        const { effectiveIsVariation, localeDefaultFragment } = this.host;
+        const value = effectiveIsVariation
+            ? localeDefaultFragment.getFieldValue('enableBaselines')
+            : this.host.getEffectiveFieldValue('enableBaselines');
+        return value === true;
+    }
+
     #lookUp(fragment) {
         const surface = extractSurfaceFromPath(fragment.path);
         const locale = extractLocaleFromPath(fragment.path);
@@ -139,12 +148,8 @@ export class CardBaselinesController {
     }
 
     #applyParent(fragment, fragmentStore) {
-        const { effectiveIsVariation, localeDefaultFragment } = this.host;
-        const baselineCard = effectiveIsVariation ? localeDefaultFragment : fragment;
-        const enabled =
-            (effectiveIsVariation
-                ? baselineCard.getFieldValue('enableBaselines')
-                : this.host.getEffectiveFieldValue('enableBaselines')) === true;
+        const baselineCard = this.host.effectiveIsVariation ? this.host.localeDefaultFragment : fragment;
+        const enabled = this.enabled;
         const icons = baselineCard.getEffectiveFieldValues('mnemonicIcon', null, false);
         const parentKey = [this.#lookupId, this.status, enabled, hasContent(icons)].join('|');
         if (fragmentStore === this.#parentStore && parentKey === this.#parentKey) return;

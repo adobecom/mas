@@ -45,6 +45,30 @@ describe('legacy ICU golden literals', () => {
     }
 });
 
+describe('formatLiteral error logging', () => {
+    it('logs the error and parameters', () => {
+        const errors = [];
+        const literal = '{taxTerm} inkl. MwSt.';
+        const actual = formatLiteral(
+            { label: literal },
+            'de-DE',
+            'label',
+            { perUnit: 'LICENSE' },
+            {
+                error: (...args) => errors.push(args),
+            },
+        );
+        assert.equal(actual, '');
+        assert.deepEqual(errors, [
+            [
+                'Failed to format literal:',
+                literal,
+                { error: 'ReferenceError: Missing value: taxTerm', parameters: { perUnit: 'LICENSE' } },
+            ],
+        ]);
+    });
+});
+
 describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };

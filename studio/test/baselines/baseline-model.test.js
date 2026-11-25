@@ -462,6 +462,28 @@ describe('baseline-model', () => {
             expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Offer']);
         });
 
+        it('drops the template icon and alt text when the segment baseline has an icon', () => {
+            const { fragment } = buildBaselineParent({
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicIcon', 'segment.svg')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['segment.svg']);
+            expect(fragment.getField('mnemonicAlt')).to.be.undefined;
+        });
+
+        it('lets a baseline above the icon override its alt text alone', () => {
+            const { fragment, sources } = buildBaselineParent({
+                offerBaseline: layer('offer', field('mnemonicAlt', 'Offer')),
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicAlt', 'Segment')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['template.svg']);
+            expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Segment']);
+            expect(sources).to.deep.equal({ mnemonicIcon: 'template', mnemonicAlt: 'segment' });
+        });
+
         it('concatenates compare-chart-column features across baselines, like delivery', () => {
             const card = new Fragment({ fields: [field('variant', 'compare-chart-column')] });
             const delivered = deepMerge(

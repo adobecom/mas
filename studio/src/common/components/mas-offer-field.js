@@ -5,9 +5,11 @@ import { resolveBaselineOffer } from '../../baselines/baseline-model.js';
 import '../../rte/osi-field.js';
 import { offerFieldStyles } from './mas-offer-field.css.js';
 
+let selectingField = null;
+
 /**
  * Offer picker for Studio forms: opens OST, shows the selected offer and resolves its details.
- * Only reacts to OST selections opened from its own button, so several fields can share a page.
+ * Only the field that opened OST last reacts to its selection or close, so several fields can share a page.
  *
  * @fires change - `{ osi, offer }` when an offer is selected; `offer` is null while it resolves,
  *   then `{ productArrangementCode, marketSegment, productCode, commitment, term }`.
@@ -25,7 +27,6 @@ export class MasOfferField extends LitElement {
         details: { state: true },
     };
 
-    #selecting = false;
     #selectionId = 0;
     #resolvedOsi = '';
 
@@ -61,13 +62,13 @@ export class MasOfferField extends LitElement {
     }
 
     openOfferSelector() {
-        this.#selecting = true;
+        selectingField = this;
         this.osiField.handleOpenOfferSelector();
     }
 
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
-        if (!this.#selecting || !offer) return;
-        this.#selecting = false;
+        if (selectingField !== this || !offer) return;
+        selectingField = null;
         this.osi = offerSelectorId;
         const resolving = this.#resolve(offerSelectorId, offer);
         this.#emitChange(null);
@@ -75,8 +76,8 @@ export class MasOfferField extends LitElement {
     };
 
     #onOstClose = () => {
-        if (!this.#selecting) return;
-        this.#selecting = false;
+        if (selectingField !== this) return;
+        selectingField = null;
         this.dispatchEvent(new CustomEvent('cancel'));
     };
 

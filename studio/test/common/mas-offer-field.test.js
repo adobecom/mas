@@ -55,6 +55,33 @@ describe('MasOfferField', () => {
         expect(pufChange.called).to.be.false;
     });
 
+    it('ignores later selections once another field has opened the offer selector', async () => {
+        const container = await fixture(
+            html`<div>
+                <mas-offer-field label="M2M offer"></mas-offer-field>
+                <mas-offer-field label="PUF offer"></mas-offer-field>
+            </div>`,
+        );
+        const [m2m, puf] = container.querySelectorAll('mas-offer-field');
+        await Promise.all([m2m.updateComplete, puf.updateComplete]);
+        sandbox.stub(m2m.osiField, 'handleOpenOfferSelector');
+        sandbox.stub(puf.osiField, 'handleOpenOfferSelector');
+        const m2mChange = sandbox.spy();
+        const m2mCancel = sandbox.spy();
+        m2m.addEventListener('change', m2mChange);
+        m2m.addEventListener('cancel', m2mCancel);
+
+        m2m.openOfferSelector();
+        puf.openOfferSelector();
+        selectOffer({ offerSelectorId: 'PUF-OSI', offer: { productArrangementCode: 'PA-2' } });
+        document.dispatchEvent(new CustomEvent('ost-close'));
+
+        expect(puf.osi).to.equal('PUF-OSI');
+        expect(m2m.osi).to.equal('');
+        expect(m2mChange.called).to.be.false;
+        expect(m2mCancel.called).to.be.false;
+    });
+
     it('reports the selected offer, then its resolved details', async () => {
         const el = await mount();
         const changes = [];

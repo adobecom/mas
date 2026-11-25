@@ -207,6 +207,15 @@ export class AemFragment extends HTMLElement {
         return `-${settings.env === Env.STAGE ? '' : 'prod-'}${settings.orion ? 'orion' : 'legacy'}`;
     }
 
+    getOfferSelectionFromCacheSuffix(cacheSuffix) {
+        return {
+            '-orion': true,
+            '-prod-orion': true,
+            '-legacy': false,
+            '-prod-legacy': false,
+        }[cacheSuffix];
+    }
+
     cacheKey(cacheSuffix = this.cacheSuffix) {
         return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}${cacheSuffix}`;
     }
@@ -428,8 +437,9 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
-        if (cacheSuffix) {
-            endpoint += `&serveLatest=${cacheSuffix.endsWith('orion')}`;
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
+        if (serveLatest !== undefined) {
+            endpoint += `&serveLatest=${serveLatest}`;
         }
 
         if (this.#mask) {
@@ -589,13 +599,12 @@ export class AemFragment extends HTMLElement {
 
     async generatePreview(cacheSuffix = this.cacheSuffix) {
         const fragmentClientUrl = this.getFragmentClientUrl();
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
         const defaultOptions = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
-            ...(cacheSuffix
-                ? { serveLatest: cacheSuffix.endsWith('orion') }
-                : {}),
+            ...(serveLatest !== undefined ? { serveLatest } : {}),
         };
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??

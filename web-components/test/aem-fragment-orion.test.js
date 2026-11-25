@@ -88,6 +88,22 @@ describe('Orion fragment requests and cache isolation', () => {
         return fragment;
     };
 
+    for (const [suffix, expected] of [
+        ['-orion', true],
+        ['-prod-orion', true],
+        ['-legacy', false],
+        ['-prod-legacy', false],
+        ['', undefined],
+        ['-unknown-orion', undefined],
+    ]) {
+        it(`resolves offer selection ${expected} for cache suffix "${suffix}"`, () => {
+            const fragment = document.createElement('aem-fragment');
+            expect(fragment.getOfferSelectionFromCacheSuffix(suffix)).to.equal(
+                expected,
+            );
+        });
+    }
+
     const switchMode = (mode, preview = false) => {
         window.history.replaceState(
             {},

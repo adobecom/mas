@@ -219,7 +219,7 @@ class MasMnemonicModal extends LitElement {
             --mod-dialog-confirm-title-text-line-height: 26px;
             --mod-dialog-confirm-title-text-color: #292929;
             --mod-dialog-confirm-divider-block-spacing-start: 0px;
-            --mod-dialog-confirm-divider-block-spacing-end: 12px;
+            --mod-dialog-confirm-divider-block-spacing-end: 0px;
             --mod-dialog-confirm-buttongroup-padding-top: 0px;
             --spectrum-dialog-footer-justify-content: flex-end;
             --spectrum-dialog-footer-padding-top: 0;
@@ -245,6 +245,7 @@ class MasMnemonicModal extends LitElement {
 
         sp-dialog.badge-icon h2[slot='heading'] {
             margin: 0;
+            padding: 0;
             line-height: 26px;
         }
 

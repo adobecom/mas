@@ -197,6 +197,14 @@ describe('MAS Mnemonic Modal', () => {
         const group = el.shadowRoot.querySelector('sp-action-group');
         const gap = group.getBoundingClientRect().top - h2.getBoundingClientRect().bottom;
         expect(gap).to.be.within(30, 34);
+        expect(getComputedStyle(h2).paddingBottom).to.equal('0px');
+    });
+
+    it('should remove the badge icon heading bottom padding', async () => {
+        const el = await badgeFixture();
+        const h2 = el.shadowRoot.querySelector('sp-dialog h2');
+        expect(getComputedStyle(h2).paddingBottom).to.equal('0px');
+        expect(h2.getBoundingClientRect().height).to.be.within(25, 27);
     });
 
     for (const [tab, icon] of [

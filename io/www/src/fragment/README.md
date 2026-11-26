@@ -2,26 +2,27 @@
 
 ![pipeline description](architecture.png)
 
-this action sits behind mas/io/fragment in CDN and treats multiple odin related requests to provide m@s customers with :
-
-- placeholders,
-- settings,
-- promotion,
-- masks (field overlays applied on top of card fragments),
-- regional and personalization customization,
-
-that each stand behind so called transformers. To optimize calls make to odin, the sequence is based on promises created at init time and sometimes depending on each other. The pipeline order is:
+This action sits behind `mas/io/fragment` in the CDN and serves M@S fragments with their placeholders, settings, promotions, masks, regional and personalization variations and baselines. Each of these is a transformer; to limit Odin calls, transformers create promises at init time, some depending on others. The pipeline order is:
 
 `fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector → serialize`
 
-Grouped and promo variations tagged with both geography and an audience require both to match.
-Geography-only and audience-only variations remain supported.
+![flow](flow.png)
 
-The API contract (request parameters, api keys and their defaults, surface resolution, response types) is ADR [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md).
+Contracts:
 
-## serialize transformer
+- API (request parameters, api keys, surface resolution, response types): [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md)
+- caches, from the CDN to the stored responses: [DLV-0001](../../../../docs/decisions/delivery/DLV-0001-layer-caches-from-edge-to-origins.md)
+- content layout: [CONT-0001](../../../../docs/decisions/content/CONT-0001-organize-content-by-surface-and-locale.md), variations: [CONT-0006](../../../../docs/decisions/content/CONT-0006-select-one-fragment-variation.md), promotions: [CONT-0003](../../../../docs/decisions/content/CONT-0003-model-promotions-as-projects-and-variations.md), baselines: [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md)
 
-Last step of the pipeline: emits the rich text fields as the requested `type` (`html`, `json` or `text`), see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md#response-types).
+## offer baselines
+
+Implementation details on top of [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md):
+
+- with `id`, baselines are opt-in: only when the requested card or collection has `enableBaselines` on (toggled in Studio's General info), which then applies to every card it references. Failures are logged and ignored.
+- without `id`, the response is the most specific baseline of `offer` and `template` (`404` if none). In both cases the root `fields.osi` is forced to the `offer` parameter.
+- icons and their alt text: a layer setting its own icons (`mnemonicIcon`) drops the icons and alt text (`mnemonicAlt`) of every lower layer (baseline, fragment, variation or mask), while it can still override the alt text alone. Cleared icons (`['']`) count as setting icons for variations and masks, not over baselines. On cards without baselines, a variation or mask changing the icon keeps the card alt text.
+- offer baselines are synced by the `offers` action into the namespace state, and fetched per locale (en_US fallback included) from `https://www.adobe.com/mas/io/offers?api_key=…&locale=<locale>&id` (the bare `id` is only there for the CDN to accept the request until WPS-36294).
+- nothing is requested twice: distinct offers are resolved in one WCS batch reused by the `wcs` transformer (and shipped in `body.wcs`); fragment baselines are fetched with one paginated listing per template, in parallel with WCS. Both are kept in a single-flight SWR cache (5 min TTL), absence included.
 
 ## Inactive price-render transformer
 
@@ -127,58 +128,6 @@ fixtures assert exact price contents inside preserved wrappers. The shared
 package's empty-offer/missing-option fixtures intentionally produce errors at
 this transformer boundary, rather than blank prices.
 
-You can see the full flow on below diagram:
-![flow](image.png)
-
-## offer baselines
-
-See ADR [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md).
-
-Request parameters and surface resolution: see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md).
-
-- with `id`: baselines are opt-in: only when the requested card or collection has `enableBaselines` on (a boolean of both models, toggled in Studio's General info), which then applies to every card it references whatever their own flag. The `offer` transformer then looks baselines up for the requested fragment and for every card of its references tree (collections). Each fragment's offer (the `offer` param for the root, its own `osi` otherwise) is resolved through WCS to its product arrangement code, its template is its `variant` (or the `template` param for the root). `customize` then layers, per fragment: offer baseline < fragment baseline < fragment market segment baseline < fragment < its variations. An icon's alt text describes it: a layer setting its own icons (`mnemonicIcon`) drops the icons & alt text (`mnemonicAlt`) of every lower layer, baseline, fragment, variation or mask, while it can still override the alt text alone; cleared icons (`['']`) count as setting icons for variations & masks, but not over baselines. Variations & masks only drop the fragment alt text on cards with baselines: on other cards, a variation or mask changing the icon only keeps the card alt text. A fragment baseline can hold the content common to all cards of an offer & template. Failures are logged and ignored.
-- without `id`: `offer`, `template` & a surface (parameter or api key's) are required (400 otherwise). The main body is the most specific baseline: the fragment market segment baseline, the fragment baseline, or the offer baseline (404 if there is none).
-
-Baselines locations (`<pa>` being the product arrangement code, e.g. `phsp_direct_individual`, `<segment>` the lower cased market segment of the resolved offer, e.g. `edu`, `gov`):
-
-- offer baseline (offer model, MCS copy & assets): `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to `en_US`. With ~1800 product arrangements per locale in MCS, that folder is too big to list per request: the `offers` action (every 15 minutes) syncs it into the namespace state (only changed ones are written, removed ones deleted) and serves a locale at once; the pipeline fetches the whole locale (en_US fallback included) from `https://www.adobe.com/mas/io/offers?api_key=…&locale=<locale>&id` (CDN cached; the bare `id` is only there for the CDN to accept the request until WPS-36294). Its MCS fields are mapped to card fields: `name` → `cardTitle`, first (svg) `icons` → `mnemonicIcon` with `name` as `mnemonicAlt` (see the icon layer rule above); the other offer model fields are dropped (MCS `description` and `shortDescription` do not mean a card's),
-- fragment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/baseline`,
-- fragment market segment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/<segment>/baseline`, only applied to offers of that market segment (COM offers use the fragment baseline only). Offer baselines have no market segment override.
-
-Baselines are fields only: their references are not hydrated.
-
-Baselines' own variations are ignored. Each customized fragment exposes `offerBaselineId` / `fragmentBaselineId` / `fragmentSegmentBaselineId`, and the root `fields.osi` is forced to the `offer` param.
-
-Nothing is requested twice, whatever the collection size: distinct offers are resolved in one WCS batch whose artifacts are reused by the `wcs` transformer (and always shipped in `body.wcs`). Fragment baselines are fetched in bulk, in parallel with WCS, with one (paginated) listing of `/content/dam/mas/<surface>/<locale>/baselines/<template>` per template used; offer baselines are fetched once per locale. Both are kept in a single-flight SWR cache (5 min TTL) shared by all fragments and requests, absence included.
-
-## Orion stage testing
-
-The optional fragment query parameter `serveLatest=true` requests latest offers
-from WCS configurations whose `env` is `stage`. Production WCS requests are
-unchanged. Both the offer transformer's early WCS lookup and final prefill use
-the same mode, reusing artifacts under `body.wcs["stage-latest"]` rather than
-`body.wcs.stage`. The existing OSI/country/language/promotion keys are unchanged.
-Direct render callers can select this cache with `environment: 'stage-latest'`.
-
-Latest requests use a separate request metadata/ETag key only when a Stage WCS
-configuration is present. Without one, normal metadata is reused because prefill
-is unchanged. The fragment URL
-contains `serveLatest=true`; the deployed CDN must retain this query parameter
-in its cache key and forward it to the action. Verify normal/latest cache
-isolation on stage and coordinate WCS cache expiry or purge when its
-`wcs.feature.enableServeLatest` flag changes.
-
-The offers sync does not fetch WCS pricing and is unchanged. The agent/flatten
-runtime continues using its production configuration and production prefill.
-
-## response cache
-
-Responses are stored per request key (`req-` metadata in State, `res-` body in Files, both copied in container memory for a minute), and served depending on their last refresh (logged as `cache <outcome>`):
-
-- less than 5 minutes ago: served as is (`hit`),
-- less than an hour ago: served as is (`stale`, with a short CDN `max-age`, `networkConfig.staleCacheMaxAge`, 30s by default), while a non-blocking invocation of this action with the same parameters and `refresh` set to the id of the triggering request rebuilds and stores it (`refresh`, logged with the `refresh-<that id>` request id; the trigger logs the activation id). A container triggers at most one refresh per key a minute, and none while it rebuilds that key. `refresh` is ignored on web requests,
-- otherwise (or never stored): rebuilt while the request waits (`miss`), concurrent requests of the same container waiting for the same rebuild (`joined`).
-
 ## configuration
 
 you can configure a few things via state with `aio app state put/del` command
@@ -195,7 +144,7 @@ below are the members of that object
 | `apiKeyDefaults` | Request parameter defaults per api key, e.g. `{"my-key": {"surface": "express", "type": "json"}}`, merged over the hardcoded `API_KEY_DEFAULTS`, see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md#api-keys). | Object |`` |
 | `apiKeySurfaces` | Legacy, superseded by `apiKeyDefaults`: surface served by an api key, e.g. `{"my-key": "express"}`. | Object |`` |
 | `debugLogs` | turns debug log on | Boolean | `false` |
-| `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500`, as well as the CDN `cacheMaxAge` (300s), `cacheStaleWhileRevalidate` (86400s) and `staleCacheMaxAge` (30s, for `stale` responses, see [response cache](#response-cache)) | Array |`` |
+| `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500`, as well as the CDN `cacheMaxAge` (300s), `cacheStaleWhileRevalidate` (86400s) and `staleCacheMaxAge` (30s, for `stale` responses, see [DLV-0001](../../../../docs/decisions/delivery/DLV-0001-layer-caches-from-edge-to-origins.md)) | Array |`` |
 
 Each configuration can be managed using the following commands:
 https://wiki.corp.adobe.com/pages/viewpage.action?pageId=3587728545

@@ -244,7 +244,10 @@ export class MerchCardCollection extends LitElement {
             (child) => child.tagName === 'MERCH-CARD' && !child.failed,
         );
 
-        if (children.length === 0) return;
+        if (children.length === 0) {
+            if (arrangeCards) this.resultCount = 0;
+            return;
+        }
 
         if (arrangeCards) this.#arrangeCards(children, changedProperties);
 
@@ -907,7 +910,8 @@ const RESULT_TEXT_SLOT_NAMES = {
 const updatePlaceholders = (el, key, value) => {
     const placeholders = el.querySelectorAll(`[data-placeholder="${key}"]`);
     placeholders.forEach((placeholder) => {
-        placeholder.innerText = value || '';
+        const text = value || '';
+        if (placeholder.innerText !== text) placeholder.innerText = text;
     });
 };
 
@@ -1110,6 +1114,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         return html` <div
             id="result"
             aria-live="polite"
+            aria-atomic="true"
             type=${type}
             quantity=${quantity}
         >

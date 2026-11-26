@@ -174,6 +174,86 @@ runTests(async () => {
             expect(header.resultSlotName).to.equal('noSearchResultsMobileText');
         });
 
+        describe('search status live region', () => {
+            const slottedText = () => {
+                const slot = header.shadowRoot.querySelector('#result slot');
+                return slot
+                    .assignedNodes()
+                    .map((node) => node.textContent)
+                    .join(' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
+
+            const literalsEvent = () =>
+                new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, {
+                    detail: {
+                        resultCount: merchCards.resultCount,
+                        searchTerm: merchCards.search,
+                    },
+                });
+
+            const searchAndSync = async (search) => {
+                pushState({ search });
+                await delay(100);
+                header.updateLiterals(literalsEvent());
+                await header.updateComplete;
+            };
+
+            beforeEach(async () => {
+                await renderWithSidenav();
+                header.insertAdjacentHTML(
+                    'beforeend',
+                    `<span slot="searchResultMobileText">1 result for <span data-placeholder="searchTerm"></span></span>
+                    <span slot="searchResultsMobileText"><span data-placeholder="resultCount"></span> results for <span data-placeholder="searchTerm"></span></span>
+                    <span slot="noSearchResultsMobileText">Your search for <span data-placeholder="searchTerm"></span> did not yield any results</span>`,
+                );
+                document.location.hash = '';
+            });
+
+            it('announces only the no-results message when nothing matches', async () => {
+                await searchAndSync('cafebabe');
+                const result = header.shadowRoot.querySelector('#result');
+                expect(merchCards.resultCount).to.equal(0);
+                expect(result.getAttribute('quantity')).to.equal('none');
+                expect(result.getAttribute('aria-atomic')).to.equal('true');
+                const text = slottedText();
+                expect(text).to.include('did not yield any results');
+                expect(text).to.include('cafebabe');
+                expect(text).to.not.match(/\b1 result|one result/i);
+            });
+
+            it('announces the number of results when cards match', async () => {
+                await searchAndSync('acrobat');
+                const result = header.shadowRoot.querySelector('#result');
+                expect(merchCards.resultCount).to.equal(2);
+                expect(result.getAttribute('quantity')).to.equal('multiple');
+                expect(slottedText()).to.include('2 results');
+            });
+
+            it('does not touch the live region when literals are unchanged', async () => {
+                await searchAndSync('cafebabe');
+                const slotted = header.shadowRoot
+                    .querySelector('#result slot')
+                    .assignedNodes()[0];
+                const records = [];
+                const observer = new MutationObserver((mutations) =>
+                    records.push(...mutations),
+                );
+                observer.observe(slotted, {
+                    subtree: true,
+                    childList: true,
+                    characterData: true,
+                    attributes: true,
+                });
+                header.updateLiterals(literalsEvent());
+                await header.updateComplete;
+                records.push(...observer.takeRecords());
+                observer.disconnect();
+                expect(records.length).to.equal(0);
+            });
+        });
+
         it('should have touch-friendly search input on mobile', async () => {
             await renderWithSidenav();
             const searchInput =
@@ -1142,6 +1222,27 @@ runTests(async () => {
             expect(collection.resultCount).to.equal(2);
             // Failed card must stay hidden — collection update must not un-hide it
             expect(card3.style.display).to.equal('none');
+
+            collection.remove();
+        });
+
+        it('resets a stale resultCount when every card has failed', async () => {
+            const collection = document.createElement('merch-card-collection');
+            collection.setAttribute('filter', 'all');
+            const card = document.createElement('merch-card');
+            card.filters = { all: { order: 1 } };
+            card.failed = true;
+            collection.append(card);
+            document.getElementById('content').appendChild(collection);
+            await collection.updateComplete;
+            await delay(20);
+
+            collection.resultCount = 1;
+            collection.arrangeRequested = true;
+            collection.requestUpdate();
+            await collection.updateComplete;
+
+            expect(collection.resultCount).to.equal(0);
 
             collection.remove();
         });

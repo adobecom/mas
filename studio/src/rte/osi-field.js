@@ -98,6 +98,7 @@ class OsiField extends LitElement {
             new CustomEvent('change', {
                 bubbles: true,
                 composed: true,
+                detail: { promotionCode },
             }),
         );
         closeOfferSelectorTool();

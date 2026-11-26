@@ -395,5 +395,21 @@ describe('baseline-cards-runner', () => {
             expect(results.get(collection('puf').path).status).to.equal(ITEM_STATUS.CREATED);
             expect(repository.aem.saveValidTags.called).to.be.false;
         });
+
+        it('reports an existing collection with its cards in another order as a conflict', async () => {
+            const plannedCollection = { ...collection('abm'), cards: [card('abm').path, card('puf').path] };
+            const repository = createRepository();
+            repository.aem.sites.cf.fragments.getByPath
+                .withArgs(plannedCollection.path)
+                .resolves(
+                    existingFragment(plannedCollection, [{ name: 'cards', values: [card('puf').path, card('abm').path] }]),
+                );
+            const items = [baseline, card('abm'), card('puf'), plannedCollection];
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, items);
+
+            const results = await runBaselineCardsPlan(repository, items, { existing });
+
+            expect(results.get(plannedCollection.path).status).to.equal(ITEM_STATUS.CONFLICT);
+        });
     });
 });

@@ -30,7 +30,8 @@ const IDENTITY_FIELDS = {
 
 const isConflictError = (error) => error.message?.includes(': 409');
 
-const sameValues = (values, expected) => values.length === expected.length && expected.every((value) => values.includes(value));
+const sameValues = (values, expected) =>
+    values.length === expected.length && expected.every((value, index) => values[index] === value);
 
 /**
  * Reuses the fragment at an item path only when it is the one the item creates: same model, and same `variant` for a

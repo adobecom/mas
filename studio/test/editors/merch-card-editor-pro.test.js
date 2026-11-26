@@ -238,6 +238,23 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect(picker.disabled).to.be.false;
     });
 
+    it('puts each color swatch in the icon slot so the closed field shows it before the name', async () => {
+        const { editor } = makeAppearanceEditor(VARIANT_NAMES.HEADLESS);
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#border-color sp-picker');
+        const items = [...picker.querySelectorAll('sp-menu-item')];
+        expect(items[0].value).to.equal('Default');
+        expect(items[0].querySelector('[slot="icon"]')).to.be.null;
+        for (const item of items.slice(1)) {
+            const swatch = item.querySelector(':scope > [slot="icon"]');
+            expect(swatch, item.value).to.exist;
+            expect(swatch.style.width).to.equal('16px');
+            expect(swatch.style.height).to.equal('16px');
+        }
+        const transparent = items.find((item) => item.value === 'Transparent');
+        expect(transparent.querySelector('[slot="icon"]').style.background).to.include('linear-gradient');
+    });
+
     it('shows a legacy stored Transparent border value as Default', async () => {
         const { editor, store } = makeAppearanceEditor();
         store.get().updateField('borderColor', ['transparent']);

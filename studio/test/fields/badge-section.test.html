@@ -463,7 +463,37 @@
                         const values = [...items].map((i) => i.getAttribute('value'));
                         expect(values).to.include('Default');
                         expect(values).to.include('Transparent');
-                        expect(picker.querySelectorAll('.color-swatch').length).to.equal(BADGE_COLORS.length);
+                        expect(picker.querySelectorAll('.color-swatch').length).to.equal(BADGE_COLORS.length + 1);
+                        expect(items[0].querySelector('.color-swatch')).to.be.null;
+                    });
+
+                    it('uses Figma names and a Transparent swatch', async () => {
+                        const colors = [
+                            'spectrum-yellow-300-plans',
+                            'spectrum-gray-300-plans',
+                            'spectrum-gray-700-plans',
+                            'spectrum-green-900-plans',
+                            'gradient-purple-blue',
+                            'spectrum-red-700-plans',
+                        ];
+                        const el = await mount(
+                            html`<badge-section show-colors .value=${'Badge'} .colors=${colors}></badge-section>`,
+                        );
+                        await el.updateComplete;
+
+                        const picker = el.querySelector('sp-picker');
+                        const names = [...picker.querySelectorAll('.color-name-text')].map((n) => n.textContent.trim());
+                        expect(names).to.deep.equal([
+                            'Yellow',
+                            'Gray',
+                            'Dark gray',
+                            'Green',
+                            'Gradient purple / blue',
+                            'Red 700',
+                        ]);
+                        const swatch = picker.querySelector('sp-menu-item[value="Transparent"] [slot="icon"]');
+                        expect(swatch.getAttribute('style')).to.include('linear-gradient');
+                        expect(swatch.style.width).to.equal('16px');
                     });
 
                     it('does not show a status indicator when nothing is inherited', async () => {

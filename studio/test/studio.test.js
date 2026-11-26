@@ -102,6 +102,32 @@ describe('MasStudio – page getters', () => {
     }
 });
 
+describe('MasStudio - commerce defaults', () => {
+    let sandbox;
+    let el;
+    let container;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        el = document.createElement('mas-studio');
+        container = document.createElement('div');
+        container.append(document.createElement('mas-commerce-service'));
+        sandbox.stub(el, 'commerceService').get(() => container.querySelector('mas-commerce-service'));
+    });
+
+    afterEach(() => sandbox.restore());
+
+    for (const surface of ['adobe-home', 'ccd', 'sandbox']) {
+        it(`enables pricing defaults for ${surface}`, () => {
+            sandbox.stub(Store, 'surface').returns(surface);
+
+            el.renderCommerceService();
+
+            expect(el.commerceService.getAttribute('data-mas-ff-defaults')).to.equal('on');
+        });
+    }
+});
+
 describe('MasStudio promotion history routing', () => {
     it('updates the active history project when only the promotion ID changes', async () => {
         const previousPage = Store.page.get();

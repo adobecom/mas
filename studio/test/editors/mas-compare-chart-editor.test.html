@@ -247,6 +247,25 @@
                         expect(sw.hasAttribute('checked')).to.be.true;
                     });
 
+                    it('Fragment description field still renders in the compare chart editor', async () => {
+                        const seed = structuredClone(compareChartSeed);
+                        seed.description = 'Chart description';
+                        const fragmentStore = generateFragmentStore(seed);
+                        const el = await fixture(
+                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                            { parentNode: fixtureHost() },
+                        );
+                        await el.updateComplete;
+                        const field = el.shadowRoot.querySelector('sp-textfield#compchart-fragment-description');
+                        expect(field).to.exist;
+                        expect(field.value).to.equal('Chart description');
+                        expect(field.previousElementSibling.textContent.trim()).to.equal('Fragment description');
+                        field.value = 'Updated description';
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                        await el.updateComplete;
+                        expect(fragmentStore.get().description).to.equal('Updated description');
+                    });
+
                     it('renders three cards, sections, features, and authored feature tooltips', async () => {
                         const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
                         const el = await fixture(

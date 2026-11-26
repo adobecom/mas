@@ -1994,7 +1994,7 @@
                             });
                         }
 
-                        const expectedGridOrder = ['variant', 'size', 'fragment-title-group', 'fragment-description-group'];
+                        const expectedGridOrder = ['variant', 'size', 'fragment-title-group'];
 
                         const expectBaselinesRowAfter = (grid) => {
                             const section = grid.closest('.editor-section[data-section="Card framework"]');
@@ -2628,6 +2628,43 @@
                             expect(previewBox.localName).to.equal('div');
                             expect(state.compareDocumentPosition(previewBox) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
                             expect(getComputedStyle(previewBox).backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
+                        });
+
+                        it('marks Template as required like Org', async () => {
+                            await setup({}, 'title-template-required');
+                            expect(editor.querySelector('sp-field-label[for="card-variant"]').hasAttribute('required')).to.be
+                                .true;
+                        });
+
+                        it('does not render the Fragment description field', async () => {
+                            await setup({}, 'title-no-description');
+                            expect(editor.querySelector('#fragment-description-group')).to.not.exist;
+                            expect(editor.querySelector('#fragment-description')).to.not.exist;
+                        });
+
+                        it('renders the Org in bold dark text and the rest in lighter gray', async () => {
+                            await setup({}, 'title-colors');
+                            await typeInto('#fragment-org', 'merch');
+                            const org = getComputedStyle(editor.querySelector('.title-preview-org'));
+                            const rest = getComputedStyle(editor.querySelector('.title-preview-rest'));
+                            const channelSum = (color) =>
+                                color
+                                    .match(/\d+/g)
+                                    .slice(0, 3)
+                                    .reduce((a, b) => a + +b, 0);
+
+                            expect(org.fontWeight).to.equal('700');
+                            expect(channelSum(org.color)).to.be.lessThan(channelSum(rest.color));
+                            expect(rest.color).to.not.equal('rgb(80, 80, 80)');
+                        });
+
+                        it('shows the Org in uppercase while typing and keeps the saved title', async () => {
+                            const { fragmentStore } = await setup({}, 'title-org-upper');
+                            await typeInto('#fragment-org', 'acom');
+
+                            expect(editor.querySelector('#fragment-org').value).to.equal('ACOM');
+                            expect(editor.titleOrg).to.equal('ACOM');
+                            expect(fragmentStore.get().title).to.equal('ACOM: Catalog: Photoshop: Individual');
                         });
 
                         it('shows the block or page field for headless-style templates only', async () => {

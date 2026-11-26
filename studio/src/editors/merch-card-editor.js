@@ -2015,13 +2015,19 @@ class MerchCardEditor extends LitElement {
                     padding: 8px 12px;
                     border: 1px solid var(--spectrum-gray-200);
                     border-radius: 4px;
-                    background: var(--spectrum-gray-100, #f8f8f8);
-                    color: var(--spectrum-gray-700);
+                    background: var(--spectrum-gray-50, #f8f8f8);
+                    color: var(--spectrum-gray-500);
                     overflow-wrap: anywhere;
                 }
 
                 .title-preview-org {
                     font-weight: 700;
+                    color: var(--spectrum-gray-800);
+                }
+
+                .title-preview-rest {
+                    font-weight: 400;
+                    color: var(--spectrum-gray-500);
                 }
 
                 .tags-spacing {
@@ -2267,7 +2273,7 @@ class MerchCardEditor extends LitElement {
                     </div>
                     <div class="two-column-grid">
                         <sp-field-group id="variant">
-                            <sp-field-label for="card-variant">Template</sp-field-label>
+                            <sp-field-label for="card-variant" required>Template</sp-field-label>
                             <variant-picker
                                 id="card-variant"
                                 data-field="variant"
@@ -2295,15 +2301,6 @@ class MerchCardEditor extends LitElement {
                             ${this.renderFieldStatusIndicator('size')}
                         </sp-field-group>
                         ${this.fragmentTitleTemplate}
-                        <sp-field-group id="fragment-description-group">
-                            <sp-field-label for="fragment-description">Fragment description</sp-field-label>
-                            <sp-textfield
-                                placeholder="Enter fragment description"
-                                id="fragment-description"
-                                value="${this.fragment.description}"
-                                @input="${this.#handleFragmentDescriptionUpdate}"
-                            ></sp-textfield>
-                        </sp-field-group>
                     </div>
                 </div>
                 <div class="editor-section editor-section--meta" data-section="Meta data">
@@ -2819,10 +2816,22 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentTitleUpdate();
     }
 
+    // The host's text-transform does not reach the inner native input, so the value itself is uppercased.
+    #handleOrgInput(e) {
+        const input = e.target;
+        const upper = input.value.toUpperCase();
+        if (upper !== input.value) {
+            const { selectionStart, selectionEnd } = input.focusElement;
+            input.value = upper;
+            input.focusElement.setSelectionRange(selectionStart, selectionEnd);
+        }
+        this.#handleTitlePartChange('titleOrg', e);
+    }
+
     get fragmentTitleTemplate() {
         const orgInvalid = this.titleOrgTouched && !this.titleOrg.trim();
         const [orgPart, rest] = splitFragmentTitle(this.#fragmentTitle, this.titleOrg);
-        const preview = html`<span class="title-preview-org">${orgPart}</span>${rest}`;
+        const preview = html`<span class="title-preview-org">${orgPart}</span><span class="title-preview-rest">${rest}</span>`;
         return html`<sp-field-group id="fragment-title-group" vertical>
             <sp-field-label>Fragment title</sp-field-label>
             <div class="fragment-title-fields">
@@ -2834,7 +2843,7 @@ class MerchCardEditor extends LitElement {
                         placeholder="i.e. mas"
                         value="${this.titleOrg}"
                         ?invalid=${orgInvalid}
-                        @input=${(e) => this.#handleTitlePartChange('titleOrg', e)}
+                        @input=${this.#handleOrgInput}
                         @focusout=${() => (this.titleOrgTouched = true)}
                     ></sp-textfield>
                     ${orgInvalid ? html`<sp-help-text slot="negative-help-text">Enter an org</sp-help-text>` : nothing}
@@ -2866,10 +2875,6 @@ class MerchCardEditor extends LitElement {
                 </div>
             </sp-field-group>
         </sp-field-group>`;
-    }
-
-    #handleFragmentDescriptionUpdate(e) {
-        this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
     #handleEnableBaselines() {

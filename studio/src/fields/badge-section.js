@@ -53,8 +53,8 @@ const COLOR_DISPLAY_NAMES = {
 export const TRANSPARENT_SWATCH_BACKGROUND =
     'linear-gradient(to top right, #fff calc(50% - 1px), var(--spectrum-red-700, #d31510) calc(50% - 1px), var(--spectrum-red-700, #d31510) calc(50% + 1px), #fff calc(50% + 1px))';
 
-/** Figma display name of a color value; colors without one keep the formatted token name. */
-export const colorDisplayName = (color) => COLOR_DISPLAY_NAMES[color] ?? formatColorName(color);
+/** Figma display name of a color value; colors without one keep the name from `fallback`. */
+export const colorDisplayName = (color, fallback = formatColorName) => COLOR_DISPLAY_NAMES[color] ?? fallback(color);
 
 /**
  * Swatch for a picker menu item. Sized inline and placed in the `icon` slot because sp-picker

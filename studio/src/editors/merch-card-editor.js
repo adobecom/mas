@@ -4145,7 +4145,7 @@ class MerchCardEditor extends LitElement {
                                       : html`
                                             ${renderColorSwatch(
                                                 isSpecialValue(color) ? variantSpecialValues[color] : `var(--${color})`,
-                                            )}${isSpecialValue(color) ? this.#formatName(color) : colorDisplayName(color)}
+                                            )}${colorDisplayName(color, isSpecialValue(color) ? this.#formatName : undefined)}
                                         `}
                             </sp-menu-item>
                         `,

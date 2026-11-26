@@ -23,9 +23,9 @@ const MODEL_IDS = {
     collection: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
 };
 const IDENTITY_FIELDS = {
-    baseline: (item) => ['variant', [item.template]],
-    card: (item) => ['osi', fieldValues(item, 'osi')],
-    collection: (item) => ['cards', item.cards],
+    baseline: (item) => [['variant', [item.template]]],
+    card: (item) => ['osi', 'variant', 'enableBaselines'].map((name) => [name, fieldValues(item, name)]),
+    collection: (item) => [['cards', item.cards]],
 };
 
 const isConflictError = (error) => error.message?.includes(': 409');
@@ -34,12 +34,15 @@ const sameValues = (values, expected) => values.length === expected.length && ex
 
 /**
  * Reuses the fragment at an item path only when it is the one the item creates: same model, and same `variant` for a
- * baseline, `osi` for a card or `cards` for a collection. Any other fragment is a conflict, left untouched.
+ * baseline, `osi`, `variant` & `enableBaselines` for a card or `cards` for a collection. Any other fragment is a
+ * conflict, left untouched.
  * @returns {ItemResult}
  */
 const reuse = (item, fragment) => {
-    const [name, expected] = IDENTITY_FIELDS[item.type](item);
-    if (fragment.model?.id === MODEL_IDS[item.type] && sameValues(fieldValues(fragment, name), expected)) {
+    const identical = IDENTITY_FIELDS[item.type](item).every(([name, expected]) =>
+        sameValues(fieldValues(fragment, name), expected),
+    );
+    if (fragment.model?.id === MODEL_IDS[item.type] && identical) {
         return { status: ITEM_STATUS.EXISTS, fragment };
     }
     return { status: ITEM_STATUS.CONFLICT, error: 'A different fragment already exists at its path.' };

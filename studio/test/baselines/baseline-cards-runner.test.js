@@ -28,7 +28,11 @@ const card = (plan) => ({
     name: `${plan}-card`,
     title: `CC: Mini Compare: Illustrator: Team: ${plan.toUpperCase()}: default`,
     baseline: `${BASELINE_FOLDER}/baseline`,
-    fields: [{ name: 'osi', type: 'text', multiple: false, values: [`${plan}-osi`] }],
+    fields: [
+        { name: 'variant', type: 'text', multiple: false, values: ['mini-compare-chart'] },
+        { name: 'osi', type: 'text', multiple: false, values: [`${plan}-osi`] },
+        { name: 'enableBaselines', type: 'boolean', multiple: false, values: [true] },
+    ],
     tags: [`mas:plan_type/${plan}`],
 });
 
@@ -336,6 +340,26 @@ describe('baseline-cards-runner', () => {
             expect(repository.createFragment.calledWith(sinon.match({ name: 'abm-card' }))).to.be.false;
             expect(repository.aem.saveValidTags.called).to.be.false;
         });
+
+        for (const [name, values] of [
+            ['variant', ['catalog']],
+            ['enableBaselines', [false]],
+        ]) {
+            it(`reports an existing card with another ${name} as a conflict, leaving it untouched`, async () => {
+                const repository = createRepository();
+                const fields = card('abm').fields.map((field) => (field.name === name ? { ...field, values } : field));
+                repository.aem.sites.cf.fragments.getByPath
+                    .withArgs(card('abm').path)
+                    .resolves(existingFragment(card('abm'), fields));
+                const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+                const { results } = await run(repository, { existing });
+
+                expect(results.get(card('abm').path).status).to.equal(ITEM_STATUS.CONFLICT);
+                expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
+                expect(repository.aem.saveValidTags.called).to.be.false;
+            });
+        }
 
         it('reports an existing baseline of another template as a conflict and blocks its cards', async () => {
             const repository = createRepository();

@@ -25,7 +25,7 @@ import {
 } from './settings-store.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
-const isGeoTagPath = (path) => /\/pzn\/country\/[^/]+$/i.test(path) || /\/locale\/(?:[^/]+\/)?[^/]+_[^/]+$/i.test(path);
+const isCountryTagPath = (path) => /\/pzn\/country\/[^/]+$/i.test(path);
 
 const getSettingDefaultValue = (definition) => {
     if (definition.editor === 'boolean') return true;
@@ -320,7 +320,7 @@ class MasSettings extends LitElement {
         if (!aem?.tags?.list) return;
         const tags = await ensureNamespaceTags(MAS_TAG_NAMESPACE, (namespace) => aem.tags.list(namespace));
         this.geoOptions = [...tags.keys()]
-            .filter(isGeoTagPath)
+            .filter(isCountryTagPath)
             .map((path) => toAttribute(path))
             .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     }
@@ -1151,6 +1151,12 @@ class MasSettings extends LitElement {
         `;
     }
 
+    /** Country options plus stored geos outside them (e.g. legacy locale tags) so they stay visible and removable. */
+    get overrideGeoOptions() {
+        const stored = this.form.geos.filter((geo) => !this.geoOptions.includes(geo));
+        return stored.length ? [...this.geoOptions, ...stored] : this.geoOptions;
+    }
+
     get addOverrideDialogTemplate() {
         if (this.dialog?.type !== 'override') return nothing;
         const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
@@ -1210,7 +1216,7 @@ class MasSettings extends LitElement {
                         <sp-field-label>Geos</sp-field-label>
                         <mas-promo-variation-geos
                             compact
-                            .geos=${this.geoOptions}
+                            .geos=${this.overrideGeoOptions}
                             .value=${this.form.geos}
                             @change=${this.#handleOverrideGeosChange}
                         ></mas-promo-variation-geos>

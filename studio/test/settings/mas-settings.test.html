@@ -565,7 +565,7 @@
                             ]);
                         });
 
-                        it('loads prefixed country and region tokens for the promotion geo picker', async () => {
+                        it('loads only country tokens, excluding locale tags, for the promotion geo picker', async () => {
                             __tagCacheStores.data.delete('/content/cq:tags/mas');
                             const { aem } = createSettingsIndexAemMock({ references: referencesWithOverride });
                             aem.tags = {
@@ -582,7 +582,8 @@
                             const overrideDialog = await openOverrideDialog(settingsPage, table);
                             const geoPicker = overrideDialog.querySelector('mas-promo-variation-geos');
 
-                            expect(geoPicker.geos).to.deep.equal(['mas:locale/US/en_US', 'mas:pzn/country/KR']);
+                            expect(geoPicker.geos).to.deep.equal(['mas:pzn/country/KR']);
+                            expect(overrideDialog.querySelectorAll('mas-locale-picker').length).to.equal(1);
                         });
 
                         it('loads geo options from the settings store AEM client', async () => {

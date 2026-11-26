@@ -2015,8 +2015,8 @@ class MerchCardEditor extends LitElement {
                     padding: 8px 12px;
                     border: 1px solid var(--spectrum-gray-200);
                     border-radius: 4px;
-                    background: var(--spectrum-gray-100, #f8f8f8);
-                    color: var(--spectrum-gray-600);
+                    background: var(--spectrum-gray-50, #f8f8f8);
+                    color: var(--spectrum-gray-500);
                     overflow-wrap: anywhere;
                 }
 
@@ -2027,7 +2027,7 @@ class MerchCardEditor extends LitElement {
 
                 .title-preview-rest {
                     font-weight: 400;
-                    color: var(--spectrum-gray-600);
+                    color: var(--spectrum-gray-500);
                 }
 
                 .tags-spacing {

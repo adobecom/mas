@@ -1,6 +1,6 @@
 import { LitElement, html, nothing, css } from 'lit';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
-import { openOfferSelectorTool, closeOfferSelectorTool } from './ost.js';
+import { openOfferSelectorTool, closeOfferSelectorTool, pickedPromoCode } from './ost.js';
 
 let osiFieldSource;
 
@@ -98,7 +98,7 @@ class OsiField extends LitElement {
             new CustomEvent('change', {
                 bubbles: true,
                 composed: true,
-                detail: { promotionCode },
+                detail: { promotionCode: pickedPromoCode(promotionCode) },
             }),
         );
         closeOfferSelectorTool();

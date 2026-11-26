@@ -82,3 +82,40 @@ describe('Plan type field', () => {
         expect(toggle.textContent.trim()).to.equal('Show Plan Type');
     });
 });
+
+describe('Plan type tooltip', () => {
+    const copy = 'Shows the plan type, for example Annual, paid monthly, with the price.';
+    const render = () =>
+        fixture(html`<mas-plan-type-field label="Show plan type" tooltip=${copy}></mas-plan-type-field>`, {
+            parentNode: spTheme(),
+        });
+
+    it('renders an info icon after the switch', async () => {
+        const el = await render();
+        const trigger = el.querySelector('overlay-trigger');
+        const toggle = el.querySelector('sp-switch');
+        expect(trigger.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_PRECEDING).to.be.ok;
+        const button = trigger.querySelector('[slot="trigger"]');
+        expect(button.querySelector('sp-icon-info')).to.exist;
+        expect(button.getAttribute('aria-label')).to.equal('About Show plan type');
+        expect(button.tagName).to.equal('SP-ACTION-BUTTON');
+    });
+
+    it('carries the tooltip copy as hover content', async () => {
+        const el = await render();
+        const tooltip = el.querySelector('sp-tooltip[slot="hover-content"]');
+        expect(tooltip.textContent.trim()).to.equal(copy);
+    });
+
+    it('keeps the switch text equal to the label', async () => {
+        const el = await render();
+        expect(el.querySelector('sp-switch').textContent.trim()).to.equal('Show plan type');
+    });
+
+    it('renders no tooltip trigger without tooltip', async () => {
+        const el = await fixture(html`<mas-plan-type-field label="Show plan type"></mas-plan-type-field>`, {
+            parentNode: spTheme(),
+        });
+        expect(el.querySelector('overlay-trigger')).to.not.exist;
+    });
+});

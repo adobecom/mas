@@ -23,6 +23,58 @@ describe('osi-field error state', () => {
     });
 });
 
+describe('osi-field rendering', () => {
+    const button = (field) => field.shadowRoot.querySelector('#offerSelectorToolButtonOSI');
+
+    it('shows the OSI as visible text, not an input value', async () => {
+        const field = await fixture(html`<osi-field id="osi" value="ABC123"></osi-field>`);
+        const value = field.shadowRoot.querySelector('.osi-value');
+        expect(value.tagName).to.equal('SPAN');
+        expect(value.textContent).to.equal('ABC123');
+    });
+
+    it('exposes the OSI text and the button inside osi-field#osi', async () => {
+        const wrapper = await fixture(html`<div><osi-field id="osi" value="ABC123"></osi-field></div>`);
+        const field = wrapper.querySelector('osi-field#osi');
+        expect(field.textContent + field.shadowRoot.textContent).to.include('ABC123');
+        expect(button(field)).to.exist;
+    });
+
+    it('places the button at the right end of the field', async () => {
+        const field = await fixture(html`<osi-field value="ABC123"></osi-field>`);
+        const box = field.shadowRoot.querySelector('.osi-field');
+        const value = field.shadowRoot.querySelector('.osi-value');
+        expect(box.lastElementChild).to.equal(button(field));
+        const buttonRect = button(field).getBoundingClientRect();
+        expect(box.getBoundingClientRect().right - buttonRect.right).to.be.at.most(1);
+        expect(buttonRect.left).to.be.at.least(value.getBoundingClientRect().right - 1);
+    });
+
+    it('opens the offer selector when the button is clicked', async () => {
+        const proto = customElements.get('osi-field').prototype;
+        const original = proto.handleOpenOfferSelector;
+        let openedBy;
+        proto.handleOpenOfferSelector = function () {
+            openedBy = this;
+        };
+        try {
+            const field = await fixture(html`<osi-field value="ABC123"></osi-field>`);
+            button(field).click();
+            expect(openedBy).to.equal(field);
+        } finally {
+            proto.handleOpenOfferSelector = original;
+        }
+    });
+
+    it('renders an empty field with the error state when there is no value', async () => {
+        const field = await fixture(html`<osi-field></osi-field>`);
+        expect(field.shadowRoot.querySelector('.osi-value').textContent.trim()).to.equal('');
+        expect(button(field)).to.exist;
+        expect(field.shadowRoot.querySelector('sp-icon-alert')).to.exist;
+        expect(field.shadowRoot.querySelector('sp-icon-shopping-cart').classList.contains('error-state')).to.be.true;
+    });
+});
+
 describe('osi-field readonly', () => {
     const button = (field) => field.shadowRoot.querySelector('#offerSelectorToolButtonOSI');
 

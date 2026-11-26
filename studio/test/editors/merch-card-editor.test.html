@@ -360,6 +360,7 @@
                         expect(osiField.readonly).to.be.true;
                         expect(osiField.hasAttribute('readonly')).to.be.true;
                         expect(osiField.value).to.equal('parent-osi');
+                        expect(osiField.shadowRoot.textContent).to.include('parent-osi');
                     });
 
                     it('keeps the OSI editable on the base card', async () => {
@@ -2549,6 +2550,25 @@
                             expect(editor.querySelector('mas-plan-type-field').label).to.equal('Show plan type');
                             expect(labelOf('sp-field-group#promoCode')).to.equal('Promo code');
                             expect(labelOf('sp-field-group#promoText')).to.equal('Promo text');
+                        });
+
+                        it('renders Promo code full width and wires the plan type tooltip', async () => {
+                            const { editor } = await setupTestEnvironment(
+                                { isVariation: false, variant: ['plans'] },
+                                'figma-price-promo',
+                            );
+                            const promoCode = editor.querySelector('sp-field-group#promoCode');
+                            const promoText = editor.querySelector('sp-field-group#promoText');
+                            expect(promoCode.closest('.two-column-grid')).to.be.null;
+                            expect(promoCode.offsetWidth).to.equal(promoText.offsetWidth);
+                            expect(editor.querySelector('#promo-code').offsetWidth).to.equal(promoCode.offsetWidth);
+                            const planType = editor.querySelector('mas-plan-type-field');
+                            const copy = 'Shows the plan type, for example Annual, paid monthly, with the price.';
+                            expect(planType.tooltip).to.equal(copy);
+                            await planType.updateComplete;
+                            expect(planType.querySelector('sp-tooltip[slot="hover-content"]').textContent.trim()).to.equal(
+                                copy,
+                            );
                         });
 
                         it('places the Primary CTA label before the CTAs field', async () => {

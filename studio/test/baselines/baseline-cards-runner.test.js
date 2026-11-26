@@ -244,6 +244,20 @@ describe('baseline-cards-runner', () => {
             expect(results.get(collection('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
         });
 
+        it('fails a reused baseline when only some of its missing tags are saved, blocking its cards', async () => {
+            const repository = createRepository([baseline.path]);
+            repository.aem.saveValidTags.callsFake(async (id, tags) => tags.slice(0, -1));
+            const existing = await findExistingItems(repository.aem.sites.cf.fragments, ITEMS);
+
+            const { results } = await run(repository, { existing });
+
+            expect(results.get(baseline.path)).to.include({
+                status: ITEM_STATUS.FAILED,
+                error: 'Tags could not be saved: mas:product_arrangement_code/ilst_direct_team.',
+            });
+            expect(results.get(card('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
+        });
+
         it('keeps going after a failure and blocks the collections that need the failed card', async () => {
             const repository = createRepository();
             repository.createFragment.withArgs(sinon.match({ name: 'puf-card' })).resolves(undefined);

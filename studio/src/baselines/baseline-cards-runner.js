@@ -122,8 +122,14 @@ async function ensureTags(repository, item, result) {
     const missing = expected.filter((tag) => !current.includes(tag));
     if (!missing.length) return result;
     try {
-        await repository.aem.saveValidTags(result.fragment.id, [...current, ...missing]);
-        return result;
+        const saved = await repository.aem.saveValidTags(result.fragment.id, [...current, ...missing]);
+        const unsaved = missing.filter((tag) => !saved.includes(tag));
+        if (!unsaved.length) return result;
+        return {
+            status: ITEM_STATUS.FAILED,
+            fragment: result.fragment,
+            error: `Tags could not be saved: ${unsaved.join(', ')}.`,
+        };
     } catch (error) {
         return { status: ITEM_STATUS.FAILED, fragment: result.fragment, error: error.message };
     }

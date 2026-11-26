@@ -205,13 +205,20 @@ describe('baseline-model', () => {
         it('gives up when the lookup does not settle in time', async () => {
             service.resolveOfferSelectors.returns([new Promise(() => {})]);
 
-            expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
+            expect(await resolveBaselineOffer('OSI', {}, { timeoutMs: 10 })).to.deep.equal({
                 productArrangementCode: undefined,
                 marketSegment: undefined,
                 productCode: undefined,
                 commitment: undefined,
                 term: undefined,
             });
+        });
+
+        it('reads the offer from the shared cache without a lookup', async () => {
+            const cache = new Map([['OSI', { productArrangementCode: 'PA-3', marketSegments: ['COM'] }]]);
+
+            expect(await resolveBaselineOffer('OSI', {}, { cache })).to.deep.include({ productArrangementCode: 'PA-3' });
+            expect(service.resolveOfferSelectors.called).to.be.false;
         });
     });
 
@@ -264,6 +271,20 @@ describe('baseline-model', () => {
                     data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;
+        });
+
+        it('seeds the baseline with the given fields, a seeded card title replacing the title', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+            const fields = [
+                { name: 'cardTitle', type: 'text', multiple: false, values: ['Illustrator'] },
+                { name: 'description', type: 'long-text', multiple: false, values: ['<p>Get Illustrator.</p>'] },
+            ];
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI', fields });
+
+            const { fields: seedFields, data } = repository.createFragment.firstCall.args[0];
+            expect(seedFields).to.deep.equal(fields);
+            expect(data).to.deep.equal({ osi: 'OSI', variant: 'catalog', compatVersion: COMPAT_VERSION });
         });
     });
 

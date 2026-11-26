@@ -1,5 +1,4 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { classMap } from 'lit/directives/class-map.js';
 import {
     BASELINE_CREATE_TYPE,
     BASELINE_SOURCE_LOCALE,
@@ -19,10 +18,11 @@ import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
+import './common/components/mas-offer-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
-import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
+import { createBaseline } from './baselines/baseline-model.js';
 
 const BASELINE_CONFLICT_ERROR = 'A baseline for this product code, market segment and template already exists.';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
@@ -60,8 +60,6 @@ export class MasCreateDialog extends LitElement {
         productCode: { state: true },
         template: { state: true },
     };
-
-    #selectionId = 0;
 
     search = new StoreController(this, Store.search);
     filters = new StoreController(this, Store.filters);
@@ -145,36 +143,6 @@ export class MasCreateDialog extends LitElement {
             width: 100%;
         }
 
-        .full-width {
-            width: 100%;
-        }
-
-        .full-width.invalid {
-            --spectrum-actionbutton-border-color-default: var(--spectrum-negative-border-color-default);
-            border: 1px solid var(--spectrum-negative-border-color-default);
-        }
-
-        .offer-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 8px;
-        }
-
-        .offer-details {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .offer-details p {
-            margin: 0;
-        }
-
         sp-help-text {
             display: flex;
             align-items: center;
@@ -247,7 +215,6 @@ export class MasCreateDialog extends LitElement {
         this.errors = INITIAL_ERRORS;
         this.offerSelectorOpened = false;
         this.osi = '';
-        this.#selectionId++;
         this.productArrangementCode = '';
         this.marketSegment = '';
         this.productCode = '';
@@ -269,21 +236,17 @@ export class MasCreateDialog extends LitElement {
         this.#touch('osi');
     };
 
-    #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
-        if (!offer) return;
+    #onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
+        if (!offer || this.type === BASELINE_CREATE_TYPE) return;
         this.osi = offerSelectorId;
-        this.marketSegment = offer.market_segments?.[0] ?? '';
-        const selectionId = ++this.#selectionId;
-        if (this.type !== BASELINE_CREATE_TYPE) return;
-        this.productArrangementCode = '';
-        this.productCode = '';
-        this.#setError('offer', '');
-        const { productArrangementCode, marketSegment, productCode } = await resolveBaselineOffer(offerSelectorId, offer);
-        if (selectionId !== this.#selectionId) return;
-        this.productArrangementCode = productArrangementCode ?? '';
-        this.marketSegment = marketSegment ?? this.marketSegment;
-        this.productCode = productCode ?? '';
-        this.#setError('offer', productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
+    };
+
+    #onOfferChange = ({ detail: { osi, offer } }) => {
+        this.osi = osi;
+        this.productArrangementCode = offer?.productArrangementCode ?? '';
+        this.marketSegment = offer?.marketSegment ?? '';
+        this.productCode = offer?.productCode ?? '';
+        this.#setError('offer', !offer || offer.productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
     };
 
     #handleTemplateChange(event) {
@@ -478,9 +441,8 @@ export class MasCreateDialog extends LitElement {
         return this.shadowRoot.querySelector('osi-field');
     }
 
-    openOfferSelector() {
-        this.offerSelectorOpened = true;
-        this.osiField.handleOpenOfferSelector();
+    get offerField() {
+        return this.shadowRoot.querySelector('mas-offer-field');
     }
 
     get offerErrorMessage() {
@@ -488,40 +450,15 @@ export class MasCreateDialog extends LitElement {
     }
 
     get offerFieldTemplate() {
-        const errorMessage = this.offerErrorMessage;
-        const pendingProductArrangementCode = this.errors.offer ? '—' : '…';
         return html`
             <div class="form-field with-message">
-                <sp-field-label id="offer-label" required>Offer</sp-field-label>
-                <osi-field hidden></osi-field>
-                <div role="group" aria-labelledby="offer-label" class=${this.osi ? 'offer-card' : nothing}>
-                    ${this.osi
-                        ? html`<sp-icon-shopping-cart></sp-icon-shopping-cart>
-                              <div class="offer-details">
-                                  <p>OSI: <strong>${this.osi}</strong></p>
-                                  <p>
-                                      PA code:
-                                      <strong>${this.productArrangementCode || pendingProductArrangementCode}</strong>
-                                  </p>
-                                  ${this.marketSegment
-                                      ? html`<p>Market segment: <strong>${this.marketSegment}</strong></p>`
-                                      : nothing}
-                              </div>`
-                        : nothing}
-                    <sp-action-button
-                        class=${classMap({ 'full-width': !this.osi, invalid: !this.osi && Boolean(errorMessage) })}
-                        ?quiet=${Boolean(this.osi)}
-                        aria-invalid=${errorMessage ? 'true' : nothing}
-                        aria-describedby=${errorMessage ? 'offer-error' : nothing}
-                        @click=${this.openOfferSelector}
-                    >
-                        ${this.osi
-                            ? html`<sp-icon-edit slot="icon"></sp-icon-edit>`
-                            : html`<sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>`}
-                        ${this.osi ? 'Change offer' : 'Select offer…'}
-                    </sp-action-button>
-                </div>
-                ${fieldMessage('offer-error', errorMessage)}
+                <mas-offer-field
+                    label="Offer"
+                    .osi=${this.osi}
+                    .error=${this.offerErrorMessage}
+                    @change=${this.#onOfferChange}
+                    @cancel=${() => this.#touch('osi')}
+                ></mas-offer-field>
             </div>
         `;
     }

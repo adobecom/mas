@@ -133,6 +133,8 @@ export async function resolveBaselineOffer(offerSelectorId, offer, timeoutMs) {
             productArrangementCode: offer.productArrangementCode,
             marketSegment: offer.market_segments?.[0],
             productCode: offer.product_code,
+            commitment: offer.commitment,
+            term: offer.term,
         };
     }
     const resolvedOffer = await loadOfferData({}, { fallbackWcsOsi: offerSelectorId, timeoutMs });
@@ -140,6 +142,8 @@ export async function resolveBaselineOffer(offerSelectorId, offer, timeoutMs) {
         productArrangementCode: resolvedOffer?.productArrangementCode,
         marketSegment: resolvedOffer?.marketSegments?.[0],
         productCode: resolvedOffer?.productArrangement?.productCode,
+        commitment: resolvedOffer?.commitment,
+        term: resolvedOffer?.term,
     };
 }
 

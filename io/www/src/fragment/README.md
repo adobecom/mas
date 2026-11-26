@@ -17,23 +17,11 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 Grouped and promo variations tagged with both geography and an audience require both to match.
 Geography-only and audience-only variations remain supported.
 
-## serialize transformer (MWPW-214943)
+The API contract (request parameters, api keys and their defaults, surface resolution, response types) is ADR [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md).
 
-Runs with the effective `type` (request parameter, else api key default, see configuration, else `html`). The rich text fields of the card
-model (`badge`, `trialBadge`, `prices`, `shortDescription`, `description`, `callout`, `customFields`; not `ctas`) of the
-body and its referenced cards are parsed once with parse5 into a sanitized tree in the Odin multi-line `json` format, then
-emitted per `type`:
+## serialize transformer
 
-- `json`: `{ "json": [ { "nodeType": "paragraph", "content": [ { "nodeType": "text", "value": "…", "format": { "variants": ["bold"] } } ] } ] }`,
-- `html`: `{ "value": "<p>…</p>", "mimeType": "text/html" }`, re-serialized from the sanitized tree,
-- `text`: `{ "value": "…", "mimeType": "text/plain" }`, one line per block.
-
-Vocabulary: `paragraph`, `header` (`style` `h1`…`h6`), `unordered-list`, `ordered-list`, `list-item`, `line-break`,
-`link` (`data: { href, target }`, `https:`, `mailto:` & `tel:` only, unwrapped otherwise), `text` with `bold`, `italic`,
-`underline` & `strikethrough` variants (resolved strikethrough prices included). `span`, `div`, `sup`, `sub`, `small`
-are unwrapped, as are unknown elements (logged); hidden (`.disabled`, `sr-only`) and unsafe (`script`, `style`,
-`iframe`…) elements are dropped; non rich text ones (checkout links, `img`, `button`, `merch-icon`, `mas-mnemonic`) are
-dropped and logged as errors.
+Last step of the pipeline: emits the rich text fields as the requested `type` (`html`, `json` or `text`), see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md#response-types).
 
 ## Inactive price-render transformer
 
@@ -146,9 +134,7 @@ You can see the full flow on below diagram:
 
 See ADR [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md).
 
-Request parameters: `locale` (required), `id`, `offer` (an OSI for now), `template` (a card variant), `surface`, `type` (`html` | `json` | `text`, defaulting to the api key's, `apiKeyDefaults` configuration, then to `html`; any other value → `400`). Text-bearing fields are always returned sanitized, see serialize.
-
-Surface resolution: the `surface` parameter is the source of truth, then the surface of the `id` fragment, then the api key's (`apiKeyDefaults` configuration). A `surface` parameter different from the api key's or the fragment's surface returns `404`.
+Request parameters and surface resolution: see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md).
 
 - with `id`: baselines are opt-in: only when the requested card or collection has `enableBaselines` on (a boolean of both models, toggled in Studio's General info), which then applies to every card it references whatever their own flag. The `offer` transformer then looks baselines up for the requested fragment and for every card of its references tree (collections). Each fragment's offer (the `offer` param for the root, its own `osi` otherwise) is resolved through WCS to its product arrangement code, its template is its `variant` (or the `template` param for the root). `customize` then layers, per fragment: offer baseline < fragment baseline < fragment market segment baseline < fragment < its variations. An icon's alt text describes it: a layer setting its own icons (`mnemonicIcon`) drops the icons & alt text (`mnemonicAlt`) of every lower layer, baseline, fragment, variation or mask, while it can still override the alt text alone; cleared icons (`['']`) count as setting icons for variations & masks, but not over baselines. Variations & masks only drop the fragment alt text on cards with baselines: on other cards, a variation or mask changing the icon only keeps the card alt text. A fragment baseline can hold the content common to all cards of an offer & template. Failures are logged and ignored.
 - without `id`: `offer`, `template` & a surface (parameter or api key's) are required (400 otherwise). The main body is the most specific baseline: the fragment market segment baseline, the fragment baseline, or the offer baseline (404 if there is none).
@@ -205,9 +191,9 @@ below are the members of that object
 | Configuration Key | Description | Type | Default |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------- |
 | `wcsConfiguration` | WCS (Web Content Service) endpoints, one per environment, e.g. `[{"wcsURL":"https://www.stage.adobe.com/web_commerce_artifact","env":"stage"}]`. The `prod` row is hardcoded in `utils/configuration.js`; you only need to list extra envs here. A state entry with `env: "prod"` overrides the hardcoded URL (handy for dev/test workspaces). | Array | ``    |
-| `apiKeys`           | Extra accepted client API keys, merged with the hardcoded baseline in `utils/configuration.js`. Entries are literal strings; wrap a value in `/.../` to match a regex pattern, e.g. `["my-test-key", "/^CreativeCloud_v\\d+_\\d+$/"]`. Unknown api_key values in the request → `401` before any downstream call. | Array |`` |
-| `apiKeyDefaults` | Request parameter defaults of an api key, e.g. `{"my-key": {"surface": "express"}, "/^my_v\\d+$/": {"type": "json"}}` (keys accept the same `/.../` regex form as `apiKeys`). Merged over the hardcoded api keys of `utils/configuration.js` (`AdobeExpressWeb` → `{"surface": "express"}`, `/^CreativeCloud_v\\d+_\\d+$/` → `{"surface": "ccd"}`) and the legacy `apiKeySurfaces`. `surface` is used when the request has neither `surface` nor `id`, a `surface` parameter conflicting with it → `404`; `type` is used when the request has none. | Object |`` |
-| `apiKeySurfaces` | Legacy, superseded by `apiKeyDefaults`: surface served by an api key, e.g. `{"AdobeExpressWeb": "express"}`. | Object |`` |
+| `apiKeys` | Extra accepted client api keys, literal or `/regex/`, e.g. `["my-test-key", "/^my_v\\d+$/"]`, see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md#api-keys). | Array |`` |
+| `apiKeyDefaults` | Request parameter defaults per api key, e.g. `{"my-key": {"surface": "express", "type": "json"}}`, merged over the hardcoded `API_KEY_DEFAULTS`, see [DLV-0002](../../../../docs/decisions/delivery/DLV-0002-define-the-fragment-api-contract.md#api-keys). | Object |`` |
+| `apiKeySurfaces` | Legacy, superseded by `apiKeyDefaults`: surface served by an api key, e.g. `{"my-key": "express"}`. | Object |`` |
 | `debugLogs` | turns debug log on | Boolean | `false` |
 | `networkConfig` | Sets of threshold for timing out main process (`mainTimeout`) & subsequent fetches (`fetchTimeout`), e.g. `{"fetchTimeout":2000,"mainTimeout":15000,"retries":3,"retryDelay":500`, as well as the CDN `cacheMaxAge` (300s), `cacheStaleWhileRevalidate` (86400s) and `staleCacheMaxAge` (30s, for `stale` responses, see [response cache](#response-cache)) | Array |`` |
 

@@ -603,9 +603,11 @@ export function previewFragmentOnPage(fragment) {
         window.open(url.href, '_blank');
         return;
     }
-    const hostname = fragment?.status === STATUS_PUBLISHED ? 'milo.adobe.com' : 'main--milo--adobecom.aem.page';
+    const isPublished = fragment?.status === STATUS_PUBLISHED;
+    const hostname = isPublished ? 'milo.adobe.com' : 'main--milo--adobecom.aem.page';
+    const previewOn = isPublished ? '&mas.preview=on' : '';
     window.open(
-        `https://${hostname}/merch/mas/preview?fragment-id=${fragment?.id}&content-type=${type}&locale=${locale}`,
+        `https://${hostname}/merch/mas/preview?fragment-id=${fragment?.id}&content-type=${type}&locale=${locale}${previewOn}`,
         '_blank',
     );
 }

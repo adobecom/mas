@@ -9,7 +9,7 @@ export default {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 color: {
                     original: 'Default',
-                    updated: 'Gradient Purple Blue',
+                    updated: 'Gradient purple / blue',
                 },
                 borderColorAttribute: 'gradient-purple-blue',
                 gradientStops: ['#B539C8', '#7155FA', '#3B63FB'],

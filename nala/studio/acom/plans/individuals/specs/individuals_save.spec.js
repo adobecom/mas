@@ -53,15 +53,15 @@ export default {
                 },
                 whatsIncludedText: 'List of items:',
                 badgeColor: {
-                    name: 'Green 900',
+                    name: 'Green',
                     css: 'rgb(5, 131, 78)',
                 },
                 badgeBorderColor: {
-                    name: 'Green 900',
+                    name: 'Green',
                     css: 'rgb(5, 131, 78)',
                 },
                 borderColor: {
-                    name: 'Gray 300',
+                    name: 'Gray',
                     css: 'rgb(218, 218, 218)',
                 },
             },

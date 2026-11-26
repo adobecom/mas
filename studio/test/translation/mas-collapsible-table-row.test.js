@@ -940,7 +940,21 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderPersonalizationTags', () => {
-        it('renders one tag per personalization tag leaf', async () => {
+        it('renders one tag per personalization tag leaf, including geo tags', async () => {
+            const topLevelCard = createMockTopLevelCard({
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar', 'mas:locale/fr_FR'] }],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['PersonalizationTags']}
+                ></mas-collapsible-table-row>`,
+            );
+            const tags = [...el.shadowRoot.querySelectorAll('.pzn-tags sp-tag')].map((tag) => tag.textContent.trim());
+            expect(tags).to.deep.equal(['edu', 'ar', 'fr_FR']);
+        });
+
+        it('sets the full tag id as the title of each tag', async () => {
             const topLevelCard = createMockTopLevelCard({
                 fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
             });
@@ -950,8 +964,26 @@ describe('MasCollapsibleTableRow', () => {
                     .cellsOverride=${['PersonalizationTags']}
                 ></mas-collapsible-table-row>`,
             );
-            const tags = [...el.shadowRoot.querySelectorAll('.pzn-tags sp-tag')].map((tag) => tag.textContent.trim());
-            expect(tags).to.deep.equal(['edu']);
+            const titles = [...el.shadowRoot.querySelectorAll('.pzn-tags sp-tag')].map((tag) => tag.title);
+            expect(titles).to.deep.equal(['mas:pzn/edu', 'mas:pzn/country/ar']);
+        });
+
+        it('keeps tags above the row link overlay so their tooltip is reachable', async () => {
+            const topLevelCard = {
+                ...createMockTopLevelCard({ fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] }),
+                id: 'card-id',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['PersonalizationTags']}
+                ></mas-collapsible-table-row>`,
+            );
+            expect(el.shadowRoot.querySelector('a.row-link-overlay')).to.exist;
+            const tag = el.shadowRoot.querySelector('.pzn-tags sp-tag');
+            const { left, top, width, height } = tag.getBoundingClientRect();
+            const hit = el.shadowRoot.elementFromPoint(left + width / 2, top + height / 2);
+            expect(hit.closest('sp-tag')?.title).to.equal('mas:pzn/edu');
         });
 
         it('renders an empty cell when there are no personalization tags', async () => {

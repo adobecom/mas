@@ -190,6 +190,8 @@ function checkoutOptionsProvider(element, options) {
 const CTA_MODIFICATION_WARNING =
     'Changing these CTAs may affect the user experience on pages using this fragment. Removing or reordering CTAs may affect existing page references. Review the impact before publishing.';
 
+const PLAN_TYPE_TOOLTIP = 'Shows the plan type, for example Annual, paid monthly, with the price.';
+
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
         description: {
@@ -2411,6 +2413,7 @@ class MerchCardEditor extends LitElement {
                             class="settings-toggle-field"
                             id="plan-type-field"
                             label="Show plan type"
+                            tooltip=${PLAN_TYPE_TOOLTIP}
                             data-field="showPlanType"
                             data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
@@ -2419,21 +2422,19 @@ class MerchCardEditor extends LitElement {
                         ></mas-plan-type-field>
                     </sp-field-group>
                     ${this.#claimed('shortDescription') ? nothing : this.#renderShortDescriptionField(form)}
-                    <div class="two-column-grid">
-                        <sp-field-group id="promoCode">
-                            <sp-field-label for="promo-code">Promo code</sp-field-label>
-                            <sp-textfield
-                                placeholder="Enter promo code"
-                                id="promo-code"
-                                data-field="promoCode"
-                                data-field-state="${this.getFieldState('promoCode')}"
-                                value="${form.promoCode?.values[0]}"
-                                @input="${this.#handleFragmentUpdate}"
-                                ?disabled=${this.disabled}
-                            ></sp-textfield>
-                            ${this.renderFieldStatusIndicator('promoCode')}
-                        </sp-field-group>
-                    </div>
+                    <sp-field-group id="promoCode">
+                        <sp-field-label for="promo-code">Promo code</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter promo code"
+                            id="promo-code"
+                            data-field="promoCode"
+                            data-field-state="${this.getFieldState('promoCode')}"
+                            value="${form.promoCode?.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                            ?disabled=${this.disabled}
+                        ></sp-textfield>
+                        ${this.renderFieldStatusIndicator('promoCode')}
+                    </sp-field-group>
                     ${this.#renderPromoTextField(form)}
                     <sp-field-group id="perUnitLabel" class="toggle">
                         <sp-divider></sp-divider>

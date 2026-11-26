@@ -6,6 +6,7 @@ export class PlanTypeField extends LitElement {
         id: { type: String },
         label: { type: String },
         value: { type: String },
+        tooltip: { type: String },
         checked: { type: Boolean, state: true },
         indicatorTemplate: { attribute: false },
     };
@@ -15,6 +16,7 @@ export class PlanTypeField extends LitElement {
         this.id = '';
         this.label = '';
         this.value = '';
+        this.tooltip = '';
         this.disabled = false;
         this.checked = false;
         this.indicatorTemplate = nothing;
@@ -52,6 +54,20 @@ export class PlanTypeField extends LitElement {
                     <sp-switch id="${this.id}-toggle" size="m" .checked="${this.checked}" @change="${this.#handleToggle}"
                         >${this.label}</sp-switch
                     >
+                    ${this.tooltip
+                        ? html`<overlay-trigger placement="top" class="plan-type-info">
+                              <sp-action-button
+                                  slot="trigger"
+                                  quiet
+                                  size="s"
+                                  class="label-info-trigger"
+                                  aria-label="About ${this.label}"
+                              >
+                                  <sp-icon-info slot="icon"></sp-icon-info>
+                              </sp-action-button>
+                              <sp-tooltip slot="hover-content" placement="top">${this.tooltip}</sp-tooltip>
+                          </overlay-trigger>`
+                        : nothing}
                     ${this.indicatorTemplate}
                 </div>
             </sp-field-group>

@@ -18,6 +18,42 @@ class OsiField extends LitElement {
     };
 
     static styles = css`
+        :host {
+            display: block;
+        }
+
+        :host([hidden]) {
+            display: none;
+        }
+
+        .osi-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 32px;
+            padding-inline-start: 10px;
+            color: var(--spectrum-gray-800);
+            /* sp-textfield's own tokens are scoped to it; the system tokens resolve from sp-theme. */
+            background-color: var(--system-textfield-background-color);
+            border: var(--system-textfield-border-width) solid var(--system-textfield-border-color);
+            border-radius: var(--system-textfield-corner-radius);
+        }
+
+        .osi-value {
+            flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        #offerSelectorToolButtonOSI {
+            flex: none;
+            margin-inline-start: auto;
+            /* fits inside the 2px field border so the field stays 32px, like sp-textfield */
+            --mod-actionbutton-height: 28px;
+        }
+
         .error-state {
             color: #ea3829;
         }
@@ -115,15 +151,13 @@ class OsiField extends LitElement {
 
     render() {
         return html`
-            <div>
-                <sp-action-group quiet size="m" aria-label="OSI field toolbar actions">
-                    ${this.#offerSelectorToolButton}
-                </sp-action-group>
-                <p id=${this.id}>Selected Offer: <strong>${this.value}</strong></p>
-                ${this.readonly
-                    ? html`<sp-tooltip self-managed placement="top">The OSI is managed on the parent card.</sp-tooltip>`
-                    : nothing}
+            <div class="osi-field" part="field">
+                <span class="osi-value" id=${this.id}>${this.value}</span>
+                ${this.#offerSelectorToolButton}
             </div>
+            ${this.readonly
+                ? html`<sp-tooltip self-managed placement="top">The OSI is managed on the parent card.</sp-tooltip>`
+                : nothing}
         `;
     }
 }

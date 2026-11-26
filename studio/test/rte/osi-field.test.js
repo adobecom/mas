@@ -109,3 +109,44 @@ describe('osi-field readonly', () => {
         expect(field.showOfferSelector).to.be.false;
     });
 });
+
+describe('osi-field OST offer select', () => {
+    let originalOst;
+
+    beforeEach(() => {
+        originalOst = window.ost;
+        window.ost = { openOfferSelectorTool: () => {}, closeOfferSelectorTool: () => {} };
+    });
+
+    afterEach(() => {
+        window.ost = originalOst;
+    });
+
+    it('keeps the plain OSI and forwards the promo code in the change detail', async () => {
+        const field = await fixture(html`<osi-field></osi-field>`);
+        field.handleOpenOfferSelector();
+        const changed = new Promise((resolve) => field.addEventListener('change', resolve, { once: true }));
+        document.dispatchEvent(
+            new CustomEvent('ost-offer-select', {
+                detail: { offerSelectorId: 'OSI-1', promotionCode: 'TESTPROMO26' },
+            }),
+        );
+        const event = await changed;
+        expect(field.value).to.equal('OSI-1');
+        expect(event.detail.promotionCode).to.equal('TESTPROMO26');
+    });
+
+    it('forwards no promo code when the promo is disabled in OST', async () => {
+        const field = await fixture(html`<osi-field></osi-field>`);
+        field.handleOpenOfferSelector();
+        const changed = new Promise((resolve) => field.addEventListener('change', resolve, { once: true }));
+        document.dispatchEvent(
+            new CustomEvent('ost-offer-select', {
+                detail: { offerSelectorId: 'OSI-1', promotionCode: 'cancel-context' },
+            }),
+        );
+        const event = await changed;
+        expect(field.value).to.equal('OSI-1');
+        expect(event.detail.promotionCode).to.equal('');
+    });
+});

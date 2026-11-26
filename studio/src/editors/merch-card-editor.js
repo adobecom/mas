@@ -2397,7 +2397,7 @@ class MerchCardEditor extends LitElement {
                             .value=${form.osi.values[0]}
                             ?readonly=${this.isOsiReadOnly}
                             @input="${this.#handleFragmentUpdate}"
-                            @change="${this.#handleFragmentUpdate}"
+                            @change="${this.#handleOsiChange}"
                         ></osi-field>
                         ${this.renderFieldStatusIndicator('osi')}
                     </sp-field-group>
@@ -3809,6 +3809,13 @@ class MerchCardEditor extends LitElement {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
+    }
+
+    #handleOsiChange(event) {
+        this.#handleFragmentUpdate(event);
+        const promotionCode = event.detail?.promotionCode?.trim();
+        if (!promotionCode) return;
+        this.#handleFragmentUpdate({ target: { value: promotionCode, dataset: { field: 'promoCode' } } });
     }
 
     #getPerUnitDisplayValue(value) {

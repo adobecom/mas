@@ -166,15 +166,29 @@ describe('baseline-model', () => {
                     productArrangementCode: 'PA-1',
                     market_segments: ['EDU'],
                     product_code: 'CCSN',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
                 }),
-            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
+            ).to.deep.equal({
+                productArrangementCode: 'PA-1',
+                marketSegment: 'EDU',
+                productCode: 'CCSN',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
         it('resolves the PA code and segment from the offer selector', async () => {
             service.resolveOfferSelectors.returns([
                 Promise.resolve([
-                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                    {
+                        productArrangementCode: 'PA-2',
+                        marketSegments: ['GOV'],
+                        productArrangement: { productCode: 'PHSP' },
+                        commitment: 'MONTH',
+                        term: 'MONTHLY',
+                    },
                 ]),
             ]);
 
@@ -182,6 +196,8 @@ describe('baseline-model', () => {
                 productArrangementCode: 'PA-2',
                 marketSegment: 'GOV',
                 productCode: 'PHSP',
+                commitment: 'MONTH',
+                term: 'MONTHLY',
             });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
@@ -193,6 +209,8 @@ describe('baseline-model', () => {
                 productArrangementCode: undefined,
                 marketSegment: undefined,
                 productCode: undefined,
+                commitment: undefined,
+                term: undefined,
             });
         });
     });
@@ -460,6 +478,28 @@ describe('baseline-model', () => {
 
             expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['offer.svg']);
             expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Offer']);
+        });
+
+        it('drops the template icon and alt text when the segment baseline has an icon', () => {
+            const { fragment } = buildBaselineParent({
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicIcon', 'segment.svg')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['segment.svg']);
+            expect(fragment.getField('mnemonicAlt')).to.be.undefined;
+        });
+
+        it('lets a baseline above the icon override its alt text alone', () => {
+            const { fragment, sources } = buildBaselineParent({
+                offerBaseline: layer('offer', field('mnemonicAlt', 'Offer')),
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicAlt', 'Segment')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['template.svg']);
+            expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Segment']);
+            expect(sources).to.deep.equal({ mnemonicIcon: 'template', mnemonicAlt: 'segment' });
         });
 
         it('concatenates compare-chart-column features across baselines, like delivery', () => {

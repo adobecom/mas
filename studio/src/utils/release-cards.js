@@ -36,12 +36,22 @@ export function releaseFragmentName(title) {
  * @param {string} args.variant - card variant, e.g. 'plans' or 'catalog'
  * @param {string} [args.baseOsi] - base offer selector id
  * @param {string} [args.trialOsi] - trial offer selector id
+ * @param {Object} [args.baseOffer] - selected base offer (commitment, term); drives the plan_type tag
  * @param {string} args.parentPath - AEM parent folder
  * @param {string} [args.title] - override AEM fragment title (defaults to "<name> - <Variant>")
  * @param {string} [args.name] - override fragment name (defaults to a slug + timestamp)
  * @returns {Promise<Object>} fragment data ready for repository.aem.sites.cf.fragments.create
  */
-export async function buildReleaseFragmentData({ product, variant, baseOsi, trialOsi, parentPath, title, name } = {}) {
+export async function buildReleaseFragmentData({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    title,
+    name,
+} = {}) {
     const productName = getProductName(product);
     const cardTitle = title || `${productName} - ${capitalize(variant)}`;
 
@@ -65,7 +75,7 @@ export async function buildReleaseFragmentData({ product, variant, baseOsi, tria
         title: cardTitle,
         name: name || releaseFragmentName(cardTitle),
         parentPath,
-        tags: buildReleaseTags(product),
+        tags: buildReleaseTags(product, baseOffer),
     });
 }
 
@@ -78,12 +88,49 @@ export async function buildReleaseFragmentData({ product, variant, baseOsi, tria
  * @param {Object} args.repository - the mas-repository element
  * @returns {Promise<Object>} the created fragment
  */
-export async function createReleaseCard({ product, variant, baseOsi, trialOsi, parentPath, repository, title, name } = {}) {
+export async function createReleaseCard({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    repository,
+    title,
+    name,
+} = {}) {
     if (!repository?.aem?.sites?.cf?.fragments?.create) {
         throw new Error('mas-repository is not available to create release cards');
     }
-    const fragmentData = await buildReleaseFragmentData({ product, variant, baseOsi, trialOsi, parentPath, title, name });
-    const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+    const fragmentData = await buildReleaseFragmentData({
+        product,
+        variant,
+        baseOsi,
+        trialOsi,
+        baseOffer,
+        parentPath,
+        title,
+        name,
+    });
+    return createFragmentWithTags(repository, fragmentData);
+}
 
+/**
+ * Create a fragment, then save its tags. AEM's create request carries no tags
+ * (`Aem.createFragment` sends only title, name, description and fields), so tags
+ * passed to it are dropped unless saved on the created fragment. AEM tag ids are
+ * lowercase and unknown ids are skipped, as in the IO create path
+ * (studio-operations.createCard).
+ *
+ * @param {Object} repository - the mas-repository element
+ * @param {Object} fragmentData - fragment payload, with optional `tags`
+ * @returns {Promise<Object>} the created fragment
+ */
+export async function createFragmentWithTags(repository, fragmentData) {
+    const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+    if (newFragment && fragmentData.tags?.length) {
+        const tags = fragmentData.tags.map((tag) => tag.toLowerCase());
+        await repository.aem.saveValidTags(newFragment.id, tags);
+    }
     return newFragment;
 }

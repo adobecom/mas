@@ -340,6 +340,42 @@ class AEM {
         }
     }
 
+    async putTags(id, tags) {
+        const url = `${this.cfFragmentsUrl}/${id}/tags`;
+        const current = await fetch(url, { method: 'GET', headers: this.headers }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        return fetch(url, {
+            method: 'PUT',
+            headers: { ...this.headers, 'Content-Type': 'application/json', 'If-Match': current.headers.get('Etag') },
+            body: JSON.stringify({ tags }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+    }
+
+    /**
+     * Save tags on a fragment, skipping tag ids AEM does not know: it rejects the whole request
+     * when one id is unknown, which would drop the valid ones too. Mirrors applyValidTags in
+     * io/operations/src/lib/aem-client.js.
+     * @param {string} id - fragment id
+     * @param {string[]} tags - tag ids
+     * @returns {Promise<string[]>} the tag ids saved
+     */
+    async saveValidTags(id, tags) {
+        let response = await this.putTags(id, tags);
+        if (response.ok) return tags;
+        const { detail = '' } = await response.json().catch(() => ({}));
+        const listed = detail.match(/Tag id\(s\) not valid: \[([^\]]+)\]/)?.[1];
+        if (!listed) throw new Error(`Failed to save tags: ${response.status}`);
+        const invalid = listed.split(',').map((tag) => tag.trim());
+        const valid = tags.filter((tag) => !invalid.includes(tag));
+        if (!valid.length) return [];
+        response = await this.putTags(id, valid);
+        if (!response.ok) throw new Error(`Failed to save tags: ${response.status}`);
+        return valid;
+    }
+
     async pollCreatedFragment(newFragment) {
         let attempts = 0;
         while (attempts < MAX_POLL_ATTEMPTS) {

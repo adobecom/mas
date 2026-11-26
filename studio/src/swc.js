@@ -163,6 +163,7 @@ import '@spectrum-web-components/tabs/sp-tabs.js';
 import '@spectrum-web-components/tags/sp-tag.js';
 import '@spectrum-web-components/tags/sp-tags.js';
 import '@spectrum-web-components/textfield/sp-textfield.js';
+import { css } from '@spectrum-web-components/base';
 import '@spectrum-web-components/theme/sp-theme.js';
 import '@spectrum-web-components/theme/spectrum-two/scale-large-core-tokens.js';
 import '@spectrum-web-components/theme/spectrum-two/scale-medium-core-tokens.js';
@@ -173,3 +174,12 @@ import '@spectrum-web-components/tooltip/sp-tooltip.js';
 import '@spectrum-web-components/top-nav/sp-top-nav-item.js';
 import '@spectrum-web-components/top-nav/sp-top-nav.js';
 import '@spectrum-web-components/underlay/sp-underlay.js';
+
+// Reaches into Spectrum's internals: the inner input exposes no `part`, so the
+// placeholder can only be styled by appending a sheet that targets its `.input` class.
+// Must run before any sp-textfield connects, since Lit copies elementStyles on first connect.
+customElements.get('sp-textfield').elementStyles.push(css`
+    .input::placeholder {
+        color: var(--spectrum-gray-600);
+    }
+`);

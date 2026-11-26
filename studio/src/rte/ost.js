@@ -11,6 +11,12 @@ import {
 import Store from '../store.js';
 import { getLocaleByCode } from '../locales.js';
 
+/** The promo code an OST offer pick carries, or '' when there is none (OST sends `cancel-context` for a disabled promo). */
+export const pickedPromoCode = (promotionCode) => {
+    const code = promotionCode?.trim() ?? '';
+    return code === 'cancel-context' ? '' : code;
+};
+
 let ostRoot = document.getElementById('ost');
 let closeFunction;
 let newOstLoadPromise = null;

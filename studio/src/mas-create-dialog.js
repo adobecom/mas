@@ -18,6 +18,7 @@ import router from './router.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import './rte/osi-field.js';
+import { pickedPromoCode } from './rte/ost.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
@@ -247,6 +248,7 @@ export class MasCreateDialog extends LitElement {
         this.errors = INITIAL_ERRORS;
         this.offerSelectorOpened = false;
         this.osi = '';
+        this.promoCode = '';
         this.#selectionId++;
         this.productArrangementCode = '';
         this.marketSegment = '';
@@ -269,9 +271,10 @@ export class MasCreateDialog extends LitElement {
         this.#touch('osi');
     };
 
-    #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
+    #onOstSelect = async ({ detail: { offerSelectorId, offer, promotionCode } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
+        this.promoCode = pickedPromoCode(promotionCode);
         this.marketSegment = offer.market_segments?.[0] ?? '';
         const selectionId = ++this.#selectionId;
         if (this.type !== BASELINE_CREATE_TYPE) return;
@@ -389,6 +392,7 @@ export class MasCreateDialog extends LitElement {
                 tags: this.tags,
                 compatVersion: COMPAT_VERSION,
             };
+            if (this.promoCode) fragmentData.data.promoCode = this.promoCode;
         } else {
             fragmentData.data = { label: this.title };
             if (this.type === COMPARE_CHART_CREATE_TYPE) {

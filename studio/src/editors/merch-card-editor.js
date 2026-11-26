@@ -2064,6 +2064,13 @@ class MerchCardEditor extends LitElement {
                     margin: 8px 16px 8px 0;
                 }
 
+                /* The field group wraps its column, so children size to their content unless held to its width. */
+                #whatsIncluded > #whats-included-divider-color,
+                #whatsIncluded > .feature-rows {
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+
                 #whatsIncluded .feature-rows {
                     display: flex;
                     flex-direction: column;

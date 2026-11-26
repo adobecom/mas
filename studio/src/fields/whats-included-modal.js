@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { renderSpIcon } from '../constants/icon-library.js';
+import { ICON_LIBRARY, renderSpIcon } from '../constants/icon-library.js';
 import { ADOBE_PRODUCTS } from '../constants/adobe-products.js';
 import '../rte/rte-field.js';
 import './icon-select.js';
@@ -8,6 +8,13 @@ import './product-picker.js';
 import { addRecent, readRecent, writeRecent } from '../utils/recent-products.js';
 
 const PRODUCT_ICON_BASE = 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/';
+
+/** Product logos first, then library icons, matching the order of `mas-icon-picker-modal`. */
+const COMBINED_ICON_CHOICES = [
+    ...ADOBE_PRODUCTS.map(({ id, name }) => ({ id: `${PRODUCT_ICON_BASE}${id}.svg`, name, product: true })),
+    ...ICON_LIBRARY.map(({ id, name }) => ({ id, name })),
+];
+const PRODUCT_ICON_URLS = new Set(COMBINED_ICON_CHOICES.filter(({ product }) => product).map(({ id }) => id));
 
 class MasWhatsIncludedModal extends LitElement {
     #nextKey = 0;
@@ -26,6 +33,8 @@ class MasWhatsIncludedModal extends LitElement {
         logo: { type: Object },
         logoIndex: { type: Number },
         showLogoTab: { type: Boolean },
+        showSectionTitle: { type: Boolean },
+        combinedIcons: { type: Boolean },
         activeTab: { type: String, state: true },
         draftLogo: { type: Object, state: true },
         selectedProductId: { type: String, state: true },
@@ -99,7 +108,8 @@ class MasWhatsIncludedModal extends LitElement {
             gap: 8px;
         }
 
-        .field sp-textfield {
+        .field sp-textfield,
+        .field sp-picker {
             width: 100%;
         }
 
@@ -197,6 +207,8 @@ class MasWhatsIncludedModal extends LitElement {
         this.logo = { icon: '', alt: '', link: '' };
         this.logoIndex = -1;
         this.showLogoTab = true;
+        this.showSectionTitle = true;
+        this.combinedIcons = false;
         this.activeTab = 'icon';
         this.draftLogo = { icon: '', alt: '', link: '' };
         this.selectedProductId = '';
@@ -224,8 +236,8 @@ class MasWhatsIncludedModal extends LitElement {
     }
 
     #toDraft({ icon, alt, link }) {
-        const mode = icon && !icon.startsWith('sp-icon-') ? 'url' : 'select';
-        return { key: this.#nextKey++, icon, alt, link, mode };
+        const selectable = !icon || icon.startsWith('sp-icon-') || (this.combinedIcons && PRODUCT_ICON_URLS.has(icon));
+        return { key: this.#nextKey++, icon, alt, link, mode: selectable ? 'select' : 'url' };
     }
 
     #focusItem(index) {
@@ -327,6 +339,15 @@ class MasWhatsIncludedModal extends LitElement {
         return html`<sp-icon-image></sp-icon-image>`;
     }
 
+    renderIconSelect(item, index) {
+        return html`<mas-icon-select
+            .value=${item.icon}
+            .variant=${this.variant}
+            .choices=${this.combinedIcons ? COMBINED_ICON_CHOICES : ICON_LIBRARY}
+            @change=${(event) => this.#updateItem(index, { icon: event.detail.id })}
+        ></mas-icon-select>`;
+    }
+
     renderItem(item, index) {
         return html`
             <div class="item-card">
@@ -347,11 +368,7 @@ class MasWhatsIncludedModal extends LitElement {
                 ${item.mode === 'select'
                     ? html`<div class="field">
                           <sp-field-label>Icon</sp-field-label>
-                          <mas-icon-select
-                              .value=${item.icon}
-                              .variant=${this.variant}
-                              @change=${(event) => this.#updateItem(index, { icon: event.detail.id })}
-                          ></mas-icon-select>
+                          ${this.renderIconSelect(item, index)}
                       </div>`
                     : html`<div class="field">
                           <sp-field-label>Icon URL</sp-field-label>
@@ -378,7 +395,7 @@ class MasWhatsIncludedModal extends LitElement {
     get iconTabTemplate() {
         return html`
             <div class="tab-content">
-                ${this.labelTemplate}
+                ${this.showSectionTitle ? this.labelTemplate : nothing}
                 <div class="items-header">
                     <sp-field-label>Content items</sp-field-label>
                     <span class="count">${this.itemCountText}</span>

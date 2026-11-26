@@ -6,6 +6,7 @@ class MasIconSelect extends LitElement {
         value: { type: String },
         variant: { type: String },
         placeholder: { type: String },
+        choices: { attribute: false },
         open: { type: Boolean, state: true },
         query: { type: String, state: true },
     };
@@ -107,6 +108,7 @@ class MasIconSelect extends LitElement {
         this.value = '';
         this.variant = '';
         this.placeholder = 'Select icon';
+        this.choices = ICON_LIBRARY;
         this.open = false;
         this.query = '';
     }
@@ -124,7 +126,13 @@ class MasIconSelect extends LitElement {
 
     get matches() {
         const needle = this.query.trim().toLowerCase();
-        return ICON_LIBRARY.filter((icon) => icon.name.toLowerCase().includes(needle));
+        return this.choices.filter((icon) => icon.name.toLowerCase().includes(needle));
+    }
+
+    /** Product logos are image URLs; every other choice is a library icon id. */
+    renderChoiceIcon(choice) {
+        if (choice.product) return html`<img src=${choice.id} alt="" width="20" height="20" />`;
+        return renderSpIcon(choice.id, this.variant);
     }
 
     focus() {
@@ -170,7 +178,7 @@ class MasIconSelect extends LitElement {
     }
 
     get selectedIcon() {
-        return ICON_LIBRARY.find((icon) => icon.id === this.value);
+        return this.choices.find((icon) => icon.id === this.value);
     }
 
     get triggerTemplate() {
@@ -178,7 +186,7 @@ class MasIconSelect extends LitElement {
         return html`
             <button type="button" class="trigger" aria-haspopup="listbox" aria-expanded=${this.open} @click=${this.#toggle}>
                 ${selected
-                    ? html`${renderSpIcon(selected.id, this.variant)}<span>${selected.name}</span>`
+                    ? html`${this.renderChoiceIcon(selected)}<span>${selected.name}</span>`
                     : html`<span class="placeholder">${this.placeholder}</span>`}
                 <sp-icon-chevron-down></sp-icon-chevron-down>
             </button>
@@ -206,7 +214,7 @@ class MasIconSelect extends LitElement {
                                 @click=${() => this.#select(icon.id)}
                                 @keydown=${(event) => this.#handleKeydown(event, icon.id)}
                             >
-                                ${renderSpIcon(icon.id, this.variant)}${icon.name}
+                                ${this.renderChoiceIcon(icon)}${icon.name}
                             </div>
                         `,
                     )}

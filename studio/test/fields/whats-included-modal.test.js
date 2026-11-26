@@ -2,6 +2,7 @@ import { expect, fixture, html, oneEvent, aTimeout } from '@open-wc/testing';
 import '../../src/swc.js';
 import '../../src/fields/whats-included-modal.js';
 import { ADOBE_PRODUCTS } from '../../src/constants/adobe-products.js';
+import { ICON_LIBRARY } from '../../src/constants/icon-library.js';
 import { readRecent } from '../../src/utils/recent-products.js';
 
 const ITEMS = [
@@ -239,6 +240,28 @@ describe('mas-whats-included-modal', () => {
         expect(event.detail).to.deep.equal({ tab: 'icon', label: 'Includes:', items: ITEMS });
         expect(el.open).to.be.false;
         expect(closed).to.be.true;
+    });
+
+    it('default modal renders Section title and mas-icon-select', async () => {
+        const el = await openModal();
+        expect(el.shadowRoot.querySelector('#section-title')).to.exist;
+        expect(cards(el)[0].querySelector('mas-icon-select').choices).to.equal(ICON_LIBRARY);
+    });
+
+    it('combinedIcons without Logo tab or Section title lists products first, then library icons', async () => {
+        const items = [{ icon: PRODUCT_URL, alt: '<p>Photoshop</p>', link: 'https://adobe.com' }, ...ITEMS];
+        const el = await openModal(items, '', { showLogoTab: false, showSectionTitle: false, combinedIcons: true });
+        expect(el.shadowRoot.querySelectorAll('sp-tab')).to.have.lengthOf(1);
+        expect(el.shadowRoot.querySelector('#section-title')).to.be.null;
+        const combined = cards(el)[0].querySelector('mas-icon-select');
+        expect(combined.value).to.equal(PRODUCT_URL);
+        const values = combined.choices.map((choice) => choice.id);
+        expect(values.length).to.equal(ADOBE_PRODUCTS.length + ICON_LIBRARY.length);
+        expect(values[0]).to.equal(`${PRODUCT_URL.replace('photoshop.svg', '')}${ADOBE_PRODUCTS[0].id}.svg`);
+        expect(values[ADOBE_PRODUCTS.length]).to.equal(ICON_LIBRARY[0].id);
+        setTimeout(() => confirmButton(el).click());
+        const event = await oneEvent(el, 'save');
+        expect(event.detail.items).to.deep.equal(items);
     });
 
     it('Cancel emits no save', async () => {

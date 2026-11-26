@@ -33,7 +33,8 @@ class OsiField extends LitElement {
             box-sizing: border-box;
             min-width: 0;
             min-height: 32px;
-            padding-inline-start: 8px;
+            padding-inline-start: 10px;
+            color: var(--spectrum-gray-800);
             /* sp-textfield's own tokens are scoped to it; the system tokens resolve from sp-theme. */
             background-color: var(--system-textfield-background-color);
             border: var(--system-textfield-border-width) solid var(--system-textfield-border-color);
@@ -49,6 +50,8 @@ class OsiField extends LitElement {
         #offerSelectorToolButtonOSI {
             flex: none;
             margin-inline-start: auto;
+            /* fits inside the 2px field border so the field stays 32px, like sp-textfield */
+            --mod-actionbutton-height: 28px;
         }
 
         .error-state {

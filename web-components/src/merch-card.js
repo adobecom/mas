@@ -277,6 +277,7 @@ export class MerchCard extends LitElement {
     #service;
     #startMarkName;
     #resolveHydration;
+    #loadGeneration = 0;
     #hydrationPromise = new Promise((resolve) => {
         this.#resolveHydration = resolve;
     });
@@ -723,20 +724,26 @@ export class MerchCard extends LitElement {
             this.failed = false;
             if (e.target.nodeName === 'AEM-FRAGMENT') {
                 const fragment = e.detail;
+                const generation = ++this.#loadGeneration;
+                const isCurrent = () => generation === this.#loadGeneration;
                 try {
                     if (!this.#resolveHydration) {
                         this.#hydrationPromise = new Promise((resolve) => {
                             this.#resolveHydration = resolve;
                         });
                     }
-                    await hydrate(fragment, this);
+                    await hydrate(fragment, this, { isCurrent });
                 } catch (e) {
-                    this.#fail(`hydration has failed: ${e.message}`);
+                    if (isCurrent()) {
+                        this.#fail(`hydration has failed: ${e.message}`);
+                    }
                 } finally {
-                    this.#resolveHydration?.();
-                    this.#resolveHydration = undefined;
+                    if (isCurrent()) {
+                        this.#resolveHydration?.();
+                        this.#resolveHydration = undefined;
+                    }
                 }
-                this.checkReady();
+                if (isCurrent()) this.checkReady();
             }
         }
     }
@@ -770,8 +777,10 @@ export class MerchCard extends LitElement {
     async checkReady() {
         if (!this.isConnected) return;
         if (this.failed) return;
+        const generation = this.#loadGeneration;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
+            if (generation !== this.#loadGeneration) return this.checkReady();
             if (
                 VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant) ||
                 VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(this.variant)
@@ -783,6 +792,7 @@ export class MerchCard extends LitElement {
         if (this.variantLayoutPromise) {
             await this.variantLayoutPromise;
             this.variantLayoutPromise = undefined;
+            if (generation !== this.#loadGeneration) return this.checkReady();
         }
         let timeoutId;
         const timeoutPromise = new Promise((resolve) => {
@@ -796,6 +806,10 @@ export class MerchCard extends LitElement {
                 this.aemFragment.updateComplete,
                 timeoutPromise,
             ]);
+            if (generation !== this.#loadGeneration) {
+                clearForegroundTimeout(timeoutId);
+                return this.checkReady();
+            }
             if (result === false || result === 'timeout') {
                 const errorMessage =
                     result === 'timeout'
@@ -826,6 +840,7 @@ export class MerchCard extends LitElement {
         clearForegroundTimeout(timeoutId);
 
         if (!this.isConnected) return;
+        if (generation !== this.#loadGeneration) return this.checkReady();
 
         const connectedMasElements = masElements.filter((el) => el.isConnected);
         const allResolved =

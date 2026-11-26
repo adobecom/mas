@@ -1215,7 +1215,8 @@ export function cleanup(merchCard) {
     merchCard.classList.remove(...classesToRemove);
 }
 
-export async function hydrate(fragment, merchCard) {
+export async function hydrate(fragment, merchCard, options = {}) {
+    const { isCurrent } = options;
     // Guard against missing fragment or fragment.fields
     if (!fragment) {
         const cardIdForError = merchCard?.id || 'unknown';
@@ -1262,6 +1263,8 @@ export async function hydrate(fragment, merchCard) {
         );
     merchCard.variant = variant;
     await merchCard.updateComplete;
+    // a newer load owns the card now and has already cleared it
+    if (isCurrent && !isCurrent()) return;
 
     const mapping =
         merchCard.variantLayout?.aemFragmentMapping ??
@@ -1310,6 +1313,7 @@ export async function hydrate(fragment, merchCard) {
         // must not block remaining hydration steps.
     }
     await processCTAs(fields, merchCard, mapping, variant, settings);
+    if (isCurrent && !isCurrent()) return;
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

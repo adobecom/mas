@@ -183,6 +183,8 @@ export class AemFragment extends HTMLElement {
      * Internal promise to track if fetching is in progress.
      */
     #fetchPromise;
+    #requestId = 0;
+    #inFlightKey;
 
     #author = false;
     #fetchCount = 0;
@@ -336,8 +338,11 @@ export class AemFragment extends HTMLElement {
                 this.#fetchPromise,
                 Promise.resolve(false),
             ]);
-            if (!ready) return; // already fetching data
+            // already fetching data for the same mask, pzn and fragment
+            if (!ready && this.cacheKey() === this.#inFlightKey) return;
         }
+        const requestId = ++this.#requestId;
+        this.#inFlightKey = this.cacheKey();
         if (flushCache) {
             cache.remove(this.cacheKey());
         }
@@ -346,14 +351,18 @@ export class AemFragment extends HTMLElement {
                 cache.getAsPromise(this.cacheKey()),
                 new Promise((resolve) => setTimeout(resolve, this.#timeout)),
             ]);
+            if (requestId !== this.#requestId) return this.#fetchPromise;
         }
         try {
-            this.#fetchPromise = this.#fetchData();
+            this.#fetchPromise = this.#fetchData(requestId);
             await this.#fetchPromise;
         } catch (e) {
+            if (requestId !== this.#requestId) return this.#fetchPromise;
             this.#fail(e.message);
             return false;
         }
+        // a newer request owns the data and the aem:load event
+        if (requestId !== this.#requestId) return this.#fetchPromise;
         const { references, referencesTree, placeholders, wcs } =
             this.#rawData || {};
 
@@ -395,7 +404,7 @@ export class AemFragment extends HTMLElement {
         );
     }
 
-    async #fetchData() {
+    async #fetchData(requestId) {
         const cacheSuffix = this.cacheSuffix;
         const cacheKey = this.cacheKey(cacheSuffix);
         this.#fetchInfo = cache.getFetchInfo(cacheKey);
@@ -403,8 +412,10 @@ export class AemFragment extends HTMLElement {
         this.#data = null;
         let fragment = cache.get(cacheKey);
         if (fragment) {
-            this.#rawData = fragment;
-            this.#rawDataCacheSuffix = cacheSuffix;
+            if (requestId === this.#requestId) {
+                this.#rawData = fragment;
+                this.#rawDataCacheSuffix = cacheSuffix;
+            }
             return true;
         }
         const {
@@ -444,10 +455,10 @@ export class AemFragment extends HTMLElement {
         } catch (error) {
             if (cacheSuffix === this.cacheSuffix) throw error;
             this.#log.error(error.message, this.#fetchInfo);
-            return this.#fetchData();
+            return this.#fetchData(requestId);
         }
         if (this.#preview && cacheSuffix !== this.cacheSuffix) {
-            return this.#fetchData();
+            return this.#fetchData(requestId);
         }
         fragment.fields.originalId ??= this.#fragmentId;
         if (this.#mask || this.#pzn) {
@@ -456,10 +467,12 @@ export class AemFragment extends HTMLElement {
             cache.add(fragment, true, cacheSuffix);
         }
         if (cacheSuffix !== this.cacheSuffix) {
-            return this.#fetchData();
+            return this.#fetchData(requestId);
         }
-        this.#rawData = fragment;
-        this.#rawDataCacheSuffix = cacheSuffix;
+        if (requestId === this.#requestId) {
+            this.#rawData = fragment;
+            this.#rawDataCacheSuffix = cacheSuffix;
+        }
         return true;
     }
 

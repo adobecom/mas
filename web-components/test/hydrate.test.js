@@ -1309,6 +1309,43 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
+    it('does not append content for a superseded hydrate call', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = (cardTitle) => ({
+            id: 'overlap',
+            fields: { variant: 'pro', cardTitle },
+        });
+        await hydrate(fragment('Stale'), litCard, { isCurrent: () => false });
+        expect(litCard.querySelector('[slot]')).to.not.exist;
+        litCard.remove();
+    });
+
+    it('keeps only the latest of two overlapping hydrate calls', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = (cardTitle) => ({
+            id: 'overlap',
+            fields: { variant: 'pro', cardTitle },
+        });
+        await hydrate(fragment('Single'), litCard);
+        const singleCount = litCard.querySelectorAll('[slot]').length;
+        let generation = 0;
+        const guarded = (title) => {
+            const own = ++generation;
+            return hydrate(fragment(title), litCard, {
+                isCurrent: () => own === generation,
+            });
+        };
+        await Promise.all([guarded('First'), guarded('Second')]);
+        expect(litCard.querySelectorAll('[slot]').length).to.equal(singleCount);
+        expect(litCard.textContent).to.contain('Second');
+        expect(litCard.textContent).to.not.contain('First');
+        litCard.remove();
+    });
+
     it('hydrates a legacy bizpro fragment as pro', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);

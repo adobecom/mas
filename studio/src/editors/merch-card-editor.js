@@ -1409,6 +1409,11 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.PRO;
     }
 
+    /** Mini compare chart keeps its items in the card's content list (`values`), not in the bullets. */
+    get #isMiniCompareChartWhatsIncluded() {
+        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.MINI_COMPARE_CHART;
+    }
+
     get whatsIncluded() {
         if (this.#isProWhatsIncluded) {
             return parseProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
@@ -1602,14 +1607,6 @@ class MerchCardEditor extends LitElement {
                 const field = this.querySelector(`sp-field-group#${attributeId}`);
                 if (field) field.style.display = 'none';
             });
-        }
-
-        // Mini-compare-chart uses icon picker field for whatsIncluded
-        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART) {
-            const shared = this.querySelector('sp-field-group.toggle#whatsIncluded');
-            const iconPicker = this.querySelector('sp-field-group.toggle#whatsIncludedIconPicker');
-            if (shared) shared.style.display = 'none';
-            if (iconPicker) iconPicker.style.display = 'block';
         }
 
         this.toggleSectionHeadings();
@@ -2065,6 +2062,13 @@ class MerchCardEditor extends LitElement {
 
                 #whatsIncluded mas-multifield {
                     margin: 8px 16px 8px 0;
+                }
+
+                /* The field group wraps its column, so children size to their content unless held to its width. */
+                #whatsIncluded > #whats-included-divider-color,
+                #whatsIncluded > .feature-rows {
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 #whatsIncluded .feature-rows {
@@ -2693,14 +2697,19 @@ class MerchCardEditor extends LitElement {
                           <div class="editor-section" data-section="What's included">
                               ${this.#sectionHeaderTemplate('whatsIncluded')}
                               <sp-field-group class="toggle" id="whatsIncluded">
-                                  <sp-field-label for="whatsIncludedLabel">Section title</sp-field-label>
-                                  ${this.#renderWhatsIncludedLabel()} ${this.#featureRowsTemplate}
+                                  ${this.#isMiniCompareChartWhatsIncluded
+                                      ? this.#whatsIncludedDividerTemplate
+                                      : html`<sp-field-label for="whatsIncludedLabel">Section title</sp-field-label>
+                                            ${this.#renderWhatsIncludedLabel()}`}
+                                  ${this.#featureRowsTemplate}
                                   <mas-whats-included-modal
                                       .open=${this.whatsIncludedPopup.open}
                                       .tab=${this.whatsIncludedPopup.tab}
                                       .logo=${this.whatsIncludedPopup.logo}
                                       .logoIndex=${this.whatsIncludedPopup.logoIndex}
-                                      .showLogoTab=${!this.#isProWhatsIncluded}
+                                      .showLogoTab=${!this.#isProWhatsIncluded && !this.#isMiniCompareChartWhatsIncluded}
+                                      .showSectionTitle=${!this.#isMiniCompareChartWhatsIncluded}
+                                      .combinedIcons=${this.#isMiniCompareChartWhatsIncluded}
                                       .label=${this.whatsIncluded.label}
                                       .items=${this.whatsIncludedPopup.items}
                                       .focusIndex=${this.whatsIncludedPopup.focusIndex}
@@ -2711,29 +2720,23 @@ class MerchCardEditor extends LitElement {
                                   ></mas-whats-included-modal>
                                   ${this.renderFieldStatusIndicator('whatsIncluded')}
                               </sp-field-group>
-                              <sp-field-group class="toggle" id="whatsIncludedIconPicker">
-                                  ${this.currentVariantMapping?.whatsIncludedDividerColor
-                                      ? this.#renderColorPicker(
-                                            'whats-included-divider-color',
-                                            'Divider color',
-                                            this.availableWhatsIncludedDividerColors,
-                                            this.whatsIncludedDividerFromMarkup,
-                                            'whatsIncludedDividerColor',
-                                        )
-                                      : nothing}
-                                  <mas-multifield
-                                      button-label="Add application"
-                                      data-field-state="${this.getFieldState('whatsIncluded')}"
-                                      .value="${this.whatsIncluded.values}"
-                                      @change="${(e) => this.#updateWhatsIncluded(e, false)}"
-                                      @input="${(e) => this.#updateWhatsIncluded(e, false)}"
-                                  >
-                                      <template>
-                                          <mas-icon-picker-field></mas-icon-picker-field>
-                                      </template>
-                                  </mas-multifield>
-                                  ${this.renderFieldStatusIndicator('whatsIncluded')}
-                              </sp-field-group>
+                              ${this.#isMiniCompareChartWhatsIncluded
+                                  ? nothing
+                                  : html`<sp-field-group class="toggle" id="whatsIncludedIconPicker">
+                                        ${this.#whatsIncludedDividerTemplate}
+                                        <mas-multifield
+                                            button-label="Add application"
+                                            data-field-state="${this.getFieldState('whatsIncluded')}"
+                                            .value="${this.whatsIncluded.values}"
+                                            @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                            @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                                        >
+                                            <template>
+                                                <mas-icon-picker-field></mas-icon-picker-field>
+                                            </template>
+                                        </mas-multifield>
+                                        ${this.renderFieldStatusIndicator('whatsIncluded')}
+                                    </sp-field-group>`}
                           </div>
                       `
                     : nothing}
@@ -3043,7 +3046,9 @@ class MerchCardEditor extends LitElement {
 
     #renderFeatureRow(bullet, index) {
         const icon = bullet.icon ?? '';
-        const open = () => this.#openWhatsIncludedPopup(this.whatsIncluded.bullets, index);
+        const mcc = this.#isMiniCompareChartWhatsIncluded;
+        const items = mcc ? this.whatsIncluded.values : this.whatsIncluded.bullets;
+        const open = () => this.#openWhatsIncludedPopup(items, index);
         const handleKeydown = (event) => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
@@ -3054,12 +3059,14 @@ class MerchCardEditor extends LitElement {
             <div class="image-row feature-row" role="button" tabindex="0" @click=${open} @keydown=${handleKeydown}>
                 <div class="image-row-icon">${this.#featureRowIcon(icon)}</div>
                 <div class="image-row-text">
-                    <span class="image-row-name">${this.#featureRowName(icon)}</span>
+                    <span class="image-row-name">${mcc ? this.#logoRowName(icon) : this.#featureRowName(icon)}</span>
                     ${description
                         ? html`<span class="image-row-description">${description}</span>`
                         : html`<span class="image-row-description feature-row-empty">No description</span>`}
                 </div>
-                ${this.#renderRowMenu(() => this.#deleteWhatsIncludedFeature(index))}
+                ${mcc
+                    ? this.#renderRowMenu(() => this.#deleteWhatsIncludedLogo(index), open)
+                    : this.#renderRowMenu(() => this.#deleteWhatsIncludedFeature(index))}
             </div>
         `;
     }
@@ -3089,7 +3096,7 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #renderRowMenu(onDelete) {
+    #renderRowMenu(onDelete, onEdit) {
         const stop = (event) => event.stopPropagation();
         return html`
             <sp-action-menu
@@ -3101,10 +3108,17 @@ class MerchCardEditor extends LitElement {
                 @keydown=${stop}
                 @change=${(event) => {
                     if (event.target.value === 'delete') onDelete();
+                    if (event.target.value === 'edit') onEdit();
                 }}
             >
                 <sp-icon-more slot="icon"></sp-icon-more>
                 <sp-menu>
+                    ${onEdit
+                        ? html`<sp-menu-item value="edit">
+                              <sp-icon-edit slot="icon"></sp-icon-edit>
+                              Edit
+                          </sp-menu-item>`
+                        : nothing}
                     <sp-menu-item value="delete">
                         <sp-icon-delete slot="icon"></sp-icon-delete>
                         Delete
@@ -3114,17 +3128,30 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    get #whatsIncludedDividerTemplate() {
+        if (!this.currentVariantMapping?.whatsIncludedDividerColor) return nothing;
+        return this.#renderColorPicker(
+            'whats-included-divider-color',
+            'Divider color',
+            this.availableWhatsIncludedDividerColors,
+            this.whatsIncludedDividerFromMarkup,
+            'whatsIncludedDividerColor',
+        );
+    }
+
     get #featureRowsTemplate() {
         const { bullets, values } = this.whatsIncluded;
+        const mcc = this.#isMiniCompareChartWhatsIncluded;
+        const items = mcc ? values : bullets;
         return html`
             <div class="feature-rows">
-                ${bullets.map((bullet, index) => this.#renderFeatureRow(bullet, index))}
-                ${this.#isProWhatsIncluded ? nothing : values.map((logo, index) => this.#renderLogoRow(logo, index))}
+                ${items.map((item, index) => this.#renderFeatureRow(item, index))}
+                ${this.#isProWhatsIncluded || mcc ? nothing : values.map((logo, index) => this.#renderLogoRow(logo, index))}
             </div>
             <sp-action-button
                 quiet
                 class="add-feature"
-                @click=${() => this.#openWhatsIncludedPopup([...bullets, { icon: '', alt: '', link: '' }], bullets.length)}
+                @click=${() => this.#openWhatsIncludedPopup([...items, { icon: '', alt: '', link: '' }], items.length)}
             >
                 <sp-icon-add slot="icon"></sp-icon-add>
                 Add feature
@@ -3175,6 +3202,10 @@ class MerchCardEditor extends LitElement {
             if (index === -1) value.push(logo);
             else value[index] = logo;
             this.#updateWhatsIncluded({ target: { value } }, false);
+            return;
+        }
+        if (this.#isMiniCompareChartWhatsIncluded) {
+            this.#updateWhatsIncluded({ target: { value: items } }, false);
             return;
         }
         this.#updateWhatsIncluded({ target: { value: items } }, true);

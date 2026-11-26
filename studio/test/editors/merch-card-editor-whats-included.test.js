@@ -505,4 +505,124 @@ describe('merch-card-editor whats-included popup', () => {
         expect(editor.whatsIncluded.values).to.deep.equal(LOGOS);
         expect(editor.whatsIncluded.bullets[1]).to.deep.equal(STANDARD_BULLETS[1]);
     });
+
+    describe('mini compare chart', () => {
+        const MCC_ITEMS = [
+            { icon: LOGOS[0].icon, alt: '<p>Photoshop</p>', link: 'https://example.com' },
+            { icon: 'sp-icon-star', alt: '<p>Star</p>', link: '' },
+            { icon: CUSTOM_LOGO.icon, alt: '<p>Custom</p>', link: '' },
+        ];
+
+        const mccSeed = () => {
+            const helper = createEditor(VARIANT_NAMES.MINI_COMPARE_CHART);
+            const markup = helper.createIncludedElement('', MCC_ITEMS, [], 'spectrum-gray-300-plans').outerHTML;
+            helper.remove();
+            return markup;
+        };
+
+        const chooseMenu = (row, value) => {
+            const menu = row.querySelector('sp-action-menu');
+            menu.value = value;
+            menu.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        it('renders one row per item with Add feature and no old item cards or Add application', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            expect(rowsOf(editor)).to.have.lengthOf(MCC_ITEMS.length);
+            expect(logoRowsOf(editor)).to.have.lengthOf(0);
+            expect(editor.querySelectorAll('#whatsIncluded .add-feature')).to.have.lengthOf(1);
+            // booleans avoid chai stalling on a failing DOM node
+            expect(!!editor.querySelector('#whatsIncludedIconPicker')).to.be.false;
+            expect(!!editor.querySelector('mas-icon-picker-field')).to.be.false;
+            expect(!!editor.querySelector('#whatsIncluded #whatsIncludedLabel')).to.be.false;
+        });
+
+        it('keeps Divider color above the rows', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            const divider = editor.querySelector('#whats-included-divider-color');
+            const rows = editor.querySelector('.feature-rows');
+            expect(divider).to.exist;
+            expect(divider.compareDocumentPosition(rows) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.ok;
+        });
+
+        it('row click and Edit open the popup on that item; Delete removes it', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            rowsOf(editor)[1].click();
+            await editor.updateComplete;
+            expect(modalOf(editor).open).to.be.true;
+            expect(modalOf(editor).focusIndex).to.equal(1);
+            expect(modalOf(editor).items).to.deep.equal(editor.whatsIncluded.values);
+            modalOf(editor).dispatchEvent(new CustomEvent('modal-close'));
+            await editor.updateComplete;
+            chooseMenu(rowsOf(editor)[2], 'edit');
+            await editor.updateComplete;
+            expect(modalOf(editor).open).to.be.true;
+            expect(modalOf(editor).focusIndex).to.equal(2);
+            modalOf(editor).dispatchEvent(new CustomEvent('modal-close'));
+            await editor.updateComplete;
+            chooseMenu(rowsOf(editor)[0], 'delete');
+            await editor.updateComplete;
+            expect(modalOf(editor).open).to.be.false;
+            expect(editor.whatsIncluded.values.map((item) => item.icon)).to.deep.equal([MCC_ITEMS[1].icon, MCC_ITEMS[2].icon]);
+        });
+
+        it('Add feature opens the popup for a new item and Confirm adds a row', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            editor.querySelector('#whatsIncluded .add-feature').click();
+            await editor.updateComplete;
+            const modal = modalOf(editor);
+            expect(modal.items).to.have.lengthOf(MCC_ITEMS.length + 1);
+            expect(modal.focusIndex).to.equal(MCC_ITEMS.length);
+            modal.dispatchEvent(
+                new CustomEvent('save', {
+                    detail: {
+                        tab: 'icon',
+                        label: '',
+                        items: [...MCC_ITEMS, { icon: 'sp-icon-brush', alt: '<p>New</p>', link: '' }],
+                    },
+                }),
+            );
+            await editor.updateComplete;
+            expect(rowsOf(editor)).to.have.lengthOf(MCC_ITEMS.length + 1);
+        });
+
+        it('closing a new-item popup without Confirm leaves stored content unchanged', async () => {
+            const seed = mccSeed();
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', seed);
+            editor.querySelector('#whatsIncluded .add-feature').click();
+            await editor.updateComplete;
+            modalOf(editor).dispatchEvent(new CustomEvent('modal-close'));
+            await editor.updateComplete;
+            expect(storedOf(editor)).to.equal(seed);
+        });
+
+        it('passes Icon-only, no Section title and combined icons to the popup', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            const modal = modalOf(editor);
+            expect(modal.showLogoTab).to.be.false;
+            expect(modal.showSectionTitle).to.be.false;
+            expect(modal.combinedIcons).to.be.true;
+        });
+
+        it('editing one item updates that row only', async () => {
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', mccSeed());
+            const items = editor.whatsIncluded.values.map((item) => ({ ...item }));
+            items[1].icon = 'sp-icon-brush';
+            modalOf(editor).dispatchEvent(new CustomEvent('save', { detail: { tab: 'icon', label: '', items } }));
+            await editor.updateComplete;
+            const values = editor.whatsIncluded.values;
+            expect(values[0]).to.deep.equal(MCC_ITEMS[0]);
+            expect(values[1].icon).to.equal('sp-icon-brush');
+            expect(values[2]).to.deep.equal(MCC_ITEMS[2]);
+        });
+
+        it('Confirm without edits saves identical content', async () => {
+            const seed = mccSeed();
+            const editor = await setup(VARIANT_NAMES.MINI_COMPARE_CHART, '', seed);
+            rowsOf(editor)[0].click();
+            await editor.updateComplete;
+            await confirm(editor);
+            expect(storedOf(editor)).to.equal(seed);
+        });
+    });
 });

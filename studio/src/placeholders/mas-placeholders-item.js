@@ -4,8 +4,8 @@ import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
 import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
-import { confirmation } from '../mas-confirm-dialog.js';
-import { showToast, normalizeKey, extractSurfaceFromPath } from '../utils.js';
+import { confirmPlaceholderReferences } from './placeholder-reference-guard.js';
+import { showToast, normalizeKey, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { canEditPlaceholders } from '../groups.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
@@ -119,24 +119,48 @@ class MasPlaceholdersItem extends LitElement {
         if (!this.checkEditingAccess()) return;
         this.updatePending(true);
         this.toggleDropdown(this.placeholder.key, event);
-        const confirmed = await confirmation({
-            title: 'Delete placeholder',
-            content: `Are you sure you want to delete the placeholder "${this.placeholder.key}"? This action cannot be undone.`,
-            confirmLabel: 'Delete',
+        const shouldProceed = await confirmPlaceholderReferences({
+            aem: this.repository.aem,
+            key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
+            excludePath: this.placeholder.path,
+            mode: 'remove',
         });
-        if (!confirmed) return;
+        if (!shouldProceed) {
+            this.updatePending(false);
+            return;
+        }
         showToast('Deleting placeholder...');
-        if (!(await removeFromIndexFragment(this.placeholder))) return;
-        this.repository.deleteFragment(this.placeholder, {
-            startToast: false,
-            endToast: false,
-        });
+        if (!(await removeFromIndexFragment(this.placeholder))) {
+            this.updatePending(false);
+            return;
+        }
+        try {
+            await this.repository.deleteFragment(this.placeholder, {
+                startToast: false,
+                endToast: false,
+            });
+        } catch (error) {
+            showToast('Failed to delete placeholder.', 'negative');
+        } finally {
+            this.updatePending(false);
+        }
     }
 
     async onPublish(event) {
         if (!this.checkEditingAccess()) return;
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
+        const shouldProceed = await confirmPlaceholderReferences({
+            aem: this.repository.aem,
+            key: this.placeholder.key,
+            surface: extractSurfaceFromPath(this.placeholder.path),
+            locale: extractLocaleFromPath(this.placeholder.path),
+            excludePath: this.placeholder.path,
+            mode: 'publish',
+        });
+        if (!shouldProceed) return;
         showToast('Publishing placeholder...');
         const success = await publishPlaceholder(this.placeholder);
         if (success) {

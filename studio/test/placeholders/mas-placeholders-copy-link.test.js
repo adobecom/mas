@@ -78,6 +78,14 @@ describe('mas-placeholders copy links', () => {
         expect(element.shadowRoot.querySelector('.create-button')).to.be.null;
     });
 
+    it('does not expose bulk deletion for authorized placeholder editors', async () => {
+        Store.placeholders.selection.set(['first']);
+
+        await elementUpdated(element);
+
+        expect(element.shadowRoot.querySelector('mas-selection-panel').onDelete).to.be.null;
+    });
+
     it('blocks editing a foreign placeholder even when CCD is selected', async () => {
         Store.profile.set({ email: 'curator@adobe.com' });
         Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);

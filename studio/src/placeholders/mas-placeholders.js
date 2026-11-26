@@ -406,7 +406,6 @@ class MasPlaceholders extends LitElement {
             <mas-selection-panel
                 ?open=${this.selection.length > 0}
                 .selectionStore=${Store.placeholders.selection}
-                .onDelete=${this.canEdit ? this.onBulkDelete : null}
                 .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>

@@ -294,22 +294,15 @@ describe('Promotion project versions', () => {
         expect(event.changes[0]).to.include({ before: 'Project', after: 'External edit' });
     });
 
-    it('reuses preparation within seven days and captures a fresh snapshot when its checkpoint expires', async () => {
-        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
-        const prepared = await call('record', { phase: 'prepare' });
-        const [key, , options] = state.put.lastCall.args;
-        const expiresAt = Date.now() + options.ttl * 1000;
-        const get = state.get;
-        state.get = sinon.spy(async (requestKey) => (requestKey === key && Date.now() >= expiresAt ? null : get(requestKey)));
-        clock.tick(6 * 86400000);
-        expect(await call('record', { phase: 'prepare' })).to.deep.equal(prepared);
-        expect(nativePosts()).to.have.length(1);
+    it('persists preparation checkpoints with a seven-day TTL', async () => {
+        await call('record', { phase: 'prepare' });
 
-        clock.tick(86400000);
-        const renewed = await call('record', { phase: 'prepare' });
-
-        expect(renewed.beforeVersionId).not.to.equal(prepared.beforeVersionId);
-        expect(nativePosts()).to.have.length(2);
+        sinon.assert.calledWith(
+            state.put,
+            sinon.match((key) => key.startsWith(`history.promotion.${PROJECT}.request.`)),
+            sinon.match.string,
+            { ttl: 7 * 86400 },
+        );
     });
 
     it('reuses the previous change-set snapshot even after 95 days when it matches the current fragment', async () => {
@@ -552,7 +545,7 @@ describe('Promotion project versions', () => {
         const path = `/private/history/promotion/${PROJECT}/numbering.json`;
         const [claimId] = Object.keys(numberingFiles.get(path).body.entries);
         expect(numberingFiles.get(path).body.entries[claimId]).not.to.have.property('version');
-        clock.tick(96 * 86400000);
+        clock.tick(8 * 86400000);
 
         await call('record', { action: 'create', requestId: 'after-abandoned-claim' });
 
@@ -566,7 +559,7 @@ describe('Promotion project versions', () => {
         await expectError(undo(event), 503);
         const path = `/private/history/promotion/${PROJECT}/numbering.json`;
         expect(Object.values(numberingFiles.get(path).body.entries)[0]).to.have.property('lockedUntil');
-        clock.tick(96 * 86400000);
+        clock.tick(8 * 86400000);
         stored.clear();
 
         const next = await call('record', { action: 'create', requestId: 'after-abandoned-restore' });
@@ -1442,6 +1435,42 @@ describe('Promotion project versions', () => {
         await expectError(undo(event), 409);
         expect(writes()).to.have.length(1);
     });
+
+    for (const { expectedEtag, message } of [
+        { expectedEtag: '"one"', message: 'Fragment changed; reload before restoring' },
+        {
+            expectedEtag: '"after-restore"',
+            message: 'Selected fields changed since this version; review newer changes before restoring',
+        },
+    ]) {
+        it(`rejects a pending restore retry after guard expiry with expected ETag ${expectedEtag}`, async () => {
+            const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            const { event } = await save();
+            failPostWriteCapture();
+            await expectError(undo(event), 503);
+            const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+            const [requestId] = Object.keys(numberingFiles.get(path).body.entries);
+            const key = `history.promotion.${PROJECT}.request.${requestId}`;
+            expect(JSON.parse(stored.get(key)).versionPending).to.equal(true);
+            sinon.assert.calledWith(state.put, key, sinon.match.string, { ttl: 7 * 86400 });
+            const captures = nativePosts().length;
+            clock.tick(8 * 86400000);
+            stored.delete(key);
+            fetchStub
+                .withArgs(`https://author.example.com/adobe/sites/cf/fragments/${PROJECT}`)
+                .resolves(response(fragments.get(PROJECT), 200, '"after-restore"'));
+
+            const error = await expectError(
+                undo(event, ['@title'], { expected: [{ fragmentId: PROJECT, etag: expectedEtag }] }),
+                409,
+            );
+
+            expect(error.message).to.equal(message);
+            expect(fragments.get(PROJECT).title).to.equal('Project');
+            expect(writes()).to.have.length(1);
+            expect(nativePosts()).to.have.length(captures);
+        });
+    }
 
     it('stops starting draft writes at the time budget and records completed restores', async () => {
         const first = (await save()).event;

@@ -26,6 +26,11 @@ describe('mas-icon-select', () => {
         expect(rows(el)).to.have.lengthOf(13);
     });
 
+    it('keeps a 168px list max-height by default', async () => {
+        const el = await openSelect();
+        expect(getComputedStyle(el.shadowRoot.querySelector('.list')).maxHeight).to.equal('168px');
+    });
+
     it('shows the selected icon name in the trigger', async () => {
         const el = await fixture(html`<mas-icon-select value="sp-icon-star"></mas-icon-select>`);
         expect(el.shadowRoot.querySelector('.trigger').textContent).to.contain('Star');

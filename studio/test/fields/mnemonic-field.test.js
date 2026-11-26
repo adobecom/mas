@@ -3,10 +3,36 @@ import { html } from 'lit';
 import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 import '../../src/swc.js';
 import '../../src/fields/mnemonic-field.js';
+import '../../src/fields/icon-select.js';
 import { imageRowStyles } from '../../src/common/fields/image-row.css.js';
 import { spTheme } from '../utils.js';
 
 describe('Mnemonic field', () => {
+    it('shows the icon select placeholder with a default and an override', async () => {
+        const def = await fixture(html`<mas-icon-select></mas-icon-select>`, { parentNode: spTheme() });
+        expect(def.shadowRoot.querySelector('.placeholder').textContent.trim()).to.equal('Select icon');
+        const custom = await fixture(html`<mas-icon-select placeholder="Please select"></mas-icon-select>`, {
+            parentNode: spTheme(),
+        });
+        expect(custom.shadowRoot.querySelector('.placeholder').textContent.trim()).to.equal('Please select');
+    });
+
+    it('shows the Add icon button in badge mode and no change on cancel', async () => {
+        const el = await fixture(html`<mas-mnemonic-field .iconLibrary=${true} .badgeIcon=${true}></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        let changed = false;
+        el.addEventListener('change', () => (changed = true));
+        el.shadowRoot.querySelector('sp-action-button').click();
+        await el.updateComplete;
+        const modal = el.shadowRoot.querySelector('mas-mnemonic-modal');
+        await modal.updateComplete;
+        modal.shadowRoot.querySelector('sp-button[variant="secondary"]').click();
+        await el.updateComplete;
+        expect(changed).to.be.false;
+        expect(el.shadowRoot.querySelector('.add-button-wrapper--quiet')).to.exist;
+    });
+
     it('shows that a visual comes from the baseline', async () => {
         const el = await fixture(
             html`<mas-mnemonic-field icon="baseline.svg" data-field-state="baseline"></mas-mnemonic-field>`,

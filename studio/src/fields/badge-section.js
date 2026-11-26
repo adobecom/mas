@@ -192,21 +192,6 @@ class BadgeSection extends LitElement {
                 ></rte-field>
                 ${this.#statusIndicator('text')}
             </sp-field-group>
-            ${this.showIcon
-                ? html`
-                      <sp-field-group class="toggle" id="${this.field}Icon">
-                          <mas-mnemonic-field
-                              .icon="${icon}"
-                              .iconLibrary="${true}"
-                              .variant="${this.variant}"
-                              data-field-state="${this.fieldStates?.icon ?? 'no-parent'}"
-                              style="display: ${text ? 'block' : 'none'};"
-                              @change=${(e) => this.#emit({ icon: e.detail.icon }, e)}
-                          ></mas-mnemonic-field>
-                          ${this.#statusIndicator('icon')}
-                      </sp-field-group>
-                  `
-                : nothing}
             ${this.showColors && text
                 ? html`
                       <div class="two-column-grid">
@@ -225,6 +210,22 @@ class BadgeSection extends LitElement {
                               'borderColor',
                           )}
                       </div>
+                  `
+                : nothing}
+            ${this.showIcon
+                ? html`
+                      <sp-field-group class="toggle" id="${this.field}Icon">
+                          <mas-mnemonic-field
+                              .icon="${icon}"
+                              .iconLibrary="${true}"
+                              .badgeIcon="${true}"
+                              .variant="${this.variant}"
+                              data-field-state="${this.fieldStates?.icon ?? 'no-parent'}"
+                              style="display: ${text ? 'block' : 'none'};"
+                              @change=${(e) => this.#emit({ icon: e.detail.icon }, e)}
+                          ></mas-mnemonic-field>
+                          ${this.#statusIndicator('icon')}
+                      </sp-field-group>
                   `
                 : nothing}
         `;

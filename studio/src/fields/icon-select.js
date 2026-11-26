@@ -5,6 +5,7 @@ class MasIconSelect extends LitElement {
     static properties = {
         value: { type: String },
         variant: { type: String },
+        placeholder: { type: String },
         open: { type: Boolean, state: true },
         query: { type: String, state: true },
     };
@@ -78,7 +79,7 @@ class MasIconSelect extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 2px;
-            max-height: 168px;
+            max-height: var(--mas-icon-select-list-max-height, 168px);
             overflow-y: auto;
         }
 
@@ -105,6 +106,7 @@ class MasIconSelect extends LitElement {
         super();
         this.value = '';
         this.variant = '';
+        this.placeholder = 'Select icon';
         this.open = false;
         this.query = '';
     }
@@ -177,7 +179,7 @@ class MasIconSelect extends LitElement {
             <button type="button" class="trigger" aria-haspopup="listbox" aria-expanded=${this.open} @click=${this.#toggle}>
                 ${selected
                     ? html`${renderSpIcon(selected.id, this.variant)}<span>${selected.name}</span>`
-                    : html`<span class="placeholder">Select icon</span>`}
+                    : html`<span class="placeholder">${this.placeholder}</span>`}
                 <sp-icon-chevron-down></sp-icon-chevron-down>
             </button>
         `;

@@ -46,6 +46,8 @@ const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toStr
 setHeapBudget(v8.getHeapStatistics().heap_size_limit * 0.75, () => v8.getHeapStatistics().used_heap_size);
 function handleGarbageCollection(entries) {
     const major = entries.getEntries().findLast(({ detail }) => detail?.kind === constants.NODE_PERFORMANCE_GC_MAJOR);
+    // Concurrent marking may leave evicted entries alive until the next major GC.
+    // Clearing their credit is conservative and may cause a few extra evictions.
     if (major) resetHeapEvictionCredit(major.startTime);
 }
 new PerformanceObserver(handleGarbageCollection).observe({ entryTypes: ['gc'] });

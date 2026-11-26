@@ -46,8 +46,16 @@ describe('osi-field rendering', () => {
         const value = field.shadowRoot.querySelector('.osi-value');
         expect(box.lastElementChild).to.equal(button(field));
         const buttonRect = button(field).getBoundingClientRect();
-        expect(box.getBoundingClientRect().right - buttonRect.right).to.be.at.most(1);
+        // the textfield border now sits between the box edge and the button
+        const innerRight = box.getBoundingClientRect().right - box.clientLeft;
+        expect(innerRight - buttonRect.right).to.be.at.most(1);
         expect(buttonRect.left).to.be.at.least(value.getBoundingClientRect().right - 1);
+    });
+
+    it('renders the cart button as a non-quiet action button', async () => {
+        const field = await fixture(html`<osi-field value="ABC123"></osi-field>`);
+        expect(button(field).tagName).to.equal('SP-ACTION-BUTTON');
+        expect(button(field).hasAttribute('quiet')).to.be.false;
     });
 
     it('opens the offer selector when the button is clicked', async () => {

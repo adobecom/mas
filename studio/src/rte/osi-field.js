@@ -34,10 +34,20 @@ class OsiField extends LitElement {
             min-width: 0;
             min-height: 32px;
             padding-inline-start: 8px;
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 4px;
-            background: var(--spectrum-gray-100);
-            color: var(--spectrum-gray-700);
+            background-color: var(
+                --mod-textfield-background-color,
+                var(--spectrum-textfield-background-color, var(--spectrum-gray-25))
+            );
+            border-width: var(
+                --mod-textfield-border-width,
+                var(--spectrum-textfield-border-width, var(--spectrum-border-width-100))
+            );
+            border-style: solid;
+            border-color: var(--mod-textfield-border-color, var(--spectrum-textfield-border-color, var(--spectrum-gray-500)));
+            border-radius: var(
+                --mod-textfield-corner-radius,
+                var(--spectrum-textfield-corner-radius, var(--spectrum-corner-radius-100))
+            );
         }
 
         .osi-value {
@@ -116,7 +126,6 @@ class OsiField extends LitElement {
         return html`
             <sp-action-button
                 id="offerSelectorToolButtonOSI"
-                quiet
                 @click=${this.handleOpenOfferSelector}
                 title="Offer Selector Tool"
                 ?disabled=${this.readonly}

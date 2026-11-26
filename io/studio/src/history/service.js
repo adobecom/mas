@@ -357,8 +357,10 @@ async function reserveVersion(context, event, exclusive = false) {
 async function compactReservations(context, ledger, keepId) {
     let changed = false;
     const cutoff = Date.now() - REQUEST_TTL * 1000;
-    for (const [id, entry] of Object.entries(ledger.entries)) {
-        if (id === keepId || !(Math.max(Date.parse(entry.createdAt), entry.lockedUntil ?? 0) < cutoff)) continue;
+    const stale = Object.entries(ledger.entries).filter(
+        ([id, entry]) => id !== keepId && Math.max(Date.parse(entry.createdAt), entry.lockedUntil ?? 0) < cutoff,
+    );
+    for (const [id] of stale.slice(0, 1000)) {
         const guard = await context.state.get(`${namespace(context, 'request')}${id}`);
         if (guard?.value) continue;
         delete ledger.entries[id];

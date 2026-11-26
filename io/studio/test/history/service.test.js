@@ -578,7 +578,33 @@ describe('Promotion project versions', () => {
         expect(numberingFiles.get(path).body.entries).to.deep.equal(entries);
     });
 
-    it('reclaims stale claims before enforcing the numbering metadata size limit', async () => {
+    it('caps stale guard checks after filtering recent claims and preserves guarded reservations', async () => {
+        const now = Date.now();
+        const entries = {};
+        for (let index = 0; index < 1001; index++) {
+            entries[`recent-${index}`] = { createdAt: new Date(now).toISOString() };
+        }
+        for (let index = 0; index < 1001; index++) {
+            entries[`stale-${index}`] = { createdAt: new Date(now - 96 * 86400000).toISOString() };
+        }
+        stored.set(`history.promotion.${PROJECT}.request.stale-0`, JSON.stringify({ versionPending: true }));
+        const path = `/private/history/promotion/${PROJECT}/numbering.json`;
+        numberingFiles.set(path, { etag: '"1"', body: { lastVersion: 0, entries: structuredClone(entries) } });
+
+        await call('record', { phase: 'prepare' });
+
+        const checks = state.get
+            .getCalls()
+            .filter(({ args: [key] }) => key.startsWith(`history.promotion.${PROJECT}.request.stale-`));
+        expect(checks).to.have.length(1000);
+        const remaining = numberingFiles.get(path).body.entries;
+        expect(remaining['stale-0']).to.deep.equal(entries['stale-0']);
+        expect(remaining).not.to.have.property('stale-999');
+        expect(remaining['stale-1000']).to.deep.equal(entries['stale-1000']);
+        expect(remaining['recent-1000']).to.deep.equal(entries['recent-1000']);
+    });
+
+    it('reclaims stale claims incrementally before enforcing the numbering metadata size limit', async () => {
         const createdAt = new Date(Date.now() - 96 * 86400000).toISOString();
         const entries = {};
         for (let index = 0; index < 6500; index++) {
@@ -592,7 +618,8 @@ describe('Promotion project versions', () => {
         const { event } = await call('record', { action: 'create' });
 
         expect(event.version).to.equal(1);
-        expect(numberingFiles.get(path).body.entries).to.deep.equal({});
+        expect(Object.keys(numberingFiles.get(path).body.entries)).to.have.length(4500);
+        expect(Buffer.byteLength(JSON.stringify(numberingFiles.get(path).body))).to.be.lessThan(750000);
     });
 
     it('records verified identity, ISO time, changed fields and authoritative native manifests', async () => {

@@ -1,19 +1,14 @@
 import { createTimeoutPromise, getJsonFromState } from './common.js';
 import { logDebug } from './log.js';
 
-const HARDCODED_API_KEYS = [
-    /wcms\-commerce\-ims\-ro\-user\-milo(-[a-z]+)?$/,
-    /^CreativeCloud_v\d+_\d+$/,
-    'AdobeExpressWeb',
-    'unified_checkout_client_v3',
-    'concierge-conversation-service',
-    'acom-bc-service',
-    'unified_checkout_server_v3',
-];
-
-// state `apiKeyDefaults` entries are merged over these
-const HARDCODED_API_KEY_DEFAULTS = {
-    unified_checkout_server_v3: { surface: 'sandbox', type: 'json' },
+// accepted api keys with their request parameter defaults, in the state `apiKeyDefaults` form (merged over these)
+const HARDCODED_API_KEYS = {
+    '/wcms\\-commerce\\-ims\\-ro\\-user\\-milo(-[a-z]+)?$/': {},
+    '/^CreativeCloud_v\\d+_\\d+$/': { surface: 'ccd' },
+    AdobeExpressWeb: { surface: 'express' },
+    unified_checkout_client_v3: {},
+    'concierge-conversation-service': {},
+    'acom-bc-service': {},
 };
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];
@@ -25,7 +20,7 @@ let cachedConfiguration = null;
 let configurationTimestamp = null;
 
 function parseStateApiKeys(values) {
-    return (values || []).map((value) => {
+    return values.map((value) => {
         const match = REGEX_FORM.exec(value);
         return match ? new RegExp(match[1]) : value;
     });
@@ -87,7 +82,7 @@ export async function loadConfiguration(context, now) {
 
 export function validateApiKey(context) {
     if (!context.api_key) return { statusCode: 400, message: 'missing api_key' };
-    const accepted = [...HARDCODED_API_KEYS, ...parseStateApiKeys(context.apiKeys)];
+    const accepted = parseStateApiKeys([...Object.keys(HARDCODED_API_KEYS), ...(context.apiKeys ?? [])]);
     if (!isApiKeyAccepted(context.api_key, accepted)) {
         return { statusCode: 401, message: 'unauthorized api_key' };
     }
@@ -107,7 +102,7 @@ export function getApiKeyDefaults({ api_key, apiKeyDefaults, apiKeySurfaces }) {
     const surface = findApiKeyEntry(api_key, apiKeySurfaces);
     return {
         ...(surface && { surface }),
-        ...findApiKeyEntry(api_key, HARDCODED_API_KEY_DEFAULTS),
+        ...findApiKeyEntry(api_key, HARDCODED_API_KEYS),
         ...findApiKeyEntry(api_key, apiKeyDefaults),
     };
 }

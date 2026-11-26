@@ -1,7 +1,7 @@
 import { createTimeoutPromise, getJsonFromState } from './common.js';
 import { logDebug } from './log.js';
 
-// accepted api keys with their request parameter defaults, in the state `apiKeyDefaults` form (merged over these)
+// ADR DLV-0002: accepted api keys with their request parameter defaults, in the state `apiKeyDefaults` form (merged over these)
 const API_KEY_DEFAULTS = {
     '/wcms\\-commerce\\-ims\\-ro\\-user\\-milo(-[a-z]+)?$/': {},
     '/^CreativeCloud_v\\d+_\\d+$/': { surface: 'ccd' },
@@ -94,7 +94,7 @@ const findApiKeyEntry = (api_key, config) =>
 
 /**
  * Request parameter defaults bound to the request api key by the `apiKeyDefaults` configuration
- * (`{ [apiKey or /regex/]: { surface, type } }`), most api keys serving a single surface (ADR CONT-0001).
+ * (`{ [apiKey or /regex/]: { surface, type } }`), see ADR DLV-0002.
  * The legacy `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`) is still honoured during the rollout.
  * @returns {{ surface?: string, type?: string }}
  */

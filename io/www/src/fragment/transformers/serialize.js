@@ -3,7 +3,7 @@ import { CARD_MODEL_ID } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
 
 /**
- * MWPW-214943: text-bearing fields are parsed once into a sanitized tree, in the Odin (AEM GraphQL) multi-line `json`
+ * ADR DLV-0002: text-bearing fields are parsed once into a sanitized tree, in the Odin (AEM GraphQL) multi-line `json`
  * format, which is then emitted in the requested `type`: `json` as is, `html` re-serialized, `text` flattened.
  * Fields are explicitly listed per model (rich text `text/html` fields of the model), `ctas` excepted: checkout links
  * are not rich text.

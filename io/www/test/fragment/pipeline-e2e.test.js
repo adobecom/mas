@@ -27,7 +27,7 @@ import {
 
 let fetchStub;
 
-// MWPW-214943: rich text fields are served as sanitized html by default, loose text wrapped in a paragraph
+// ADR DLV-0002: rich text fields are served as sanitized html by default, loose text wrapped in a paragraph
 const RICH_TEXT_FIELDS = new Set(['badge', 'callout', 'shortDescription', 'description', 'prices']);
 const html = (value) => ({ value: value && !value.startsWith('<p>') ? `<p>${value}</p>` : value, mimeType: 'text/html' });
 const htmlFields = (fields) =>

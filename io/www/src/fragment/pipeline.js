@@ -86,7 +86,7 @@ const PIPELINE = [
     serialize,
 ];
 
-// MWPW-214943: representations of the text-bearing fields
+// ADR DLV-0002: representations of the text-bearing fields
 const TYPES = ['html', 'json', 'text'];
 
 const RESPONSE_HEADERS = {
@@ -276,7 +276,7 @@ async function mainProcess(context, refresh) {
         };
     }
     if (!context.id) context.surface ??= apiKeySurface;
-    // MWPW-214943: the requested `type` wins over the api key's one, html by default.
+    // ADR DLV-0002: the requested `type` wins over the api key's one, html by default.
     context.type ??= apiKeyDefaults.type ?? 'html';
     if (!TYPES.includes(context.type)) {
         return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter 'type'` }) };

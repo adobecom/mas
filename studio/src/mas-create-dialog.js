@@ -20,7 +20,7 @@ import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import './common/components/mas-offer-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { showToast } from './utils.js';
+import { normalizeFragmentName, showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 import { createBaseline } from './baselines/baseline-model.js';
 
@@ -188,22 +188,6 @@ export class MasCreateDialog extends LitElement {
         }
     }
 
-    /**
-     * Normalizes a string to be used as a fragment name
-     * Converts to lowercase, replaces spaces with hyphens, and removes special characters
-     * @param {string} str - The string to normalize
-     * @returns {string} - The normalized string
-     */
-    normalizeFragmentName(str) {
-        if (!str) return '';
-        return str
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-    }
-
     handleTitleChange(value) {
         this.title = value;
         this.#setError('title', '');
@@ -319,7 +303,7 @@ export class MasCreateDialog extends LitElement {
             return;
         }
 
-        if (!this.normalizeFragmentName(this.title)) {
+        if (!normalizeFragmentName(this.title)) {
             this.#setError('title', INVALID_TITLE_ERROR);
             return;
         }
@@ -344,7 +328,7 @@ export class MasCreateDialog extends LitElement {
         const fragmentData = {
             modelId,
             title: this.title,
-            name: this.normalizeFragmentName(this.title),
+            name: normalizeFragmentName(this.title),
         };
         if (this.type === 'merch-card') {
             fragmentData.data = {

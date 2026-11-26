@@ -2761,6 +2761,7 @@ class MerchCardEditor extends LitElement {
                                   <sp-textfield
                                       placeholder="Enter addon confirmation text"
                                       id="addon-confirmation"
+                                      class="full-width"
                                       data-field="addonConfirmation"
                                       data-field-state="${this.getFieldState('addonConfirmation')}"
                                       value="${form.addonConfirmation?.values[0]}"

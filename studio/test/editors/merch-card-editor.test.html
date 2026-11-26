@@ -1261,7 +1261,7 @@
                         expect(qsStartl.value).to.equal('1');
 
                         qsStartl.value = '2';
-                        qsStartl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+                        qsStartl.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
 
                         await editor.updateComplete;
 
@@ -1283,7 +1283,7 @@
                         expect(qsDefault.value).to.equal('1');
 
                         qsDefault.value = '2';
-                        qsDefault.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+                        qsDefault.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
 
                         await editor.updateComplete;
 

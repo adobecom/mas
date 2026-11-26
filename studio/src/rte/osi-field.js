@@ -34,20 +34,10 @@ class OsiField extends LitElement {
             min-width: 0;
             min-height: 32px;
             padding-inline-start: 8px;
-            background-color: var(
-                --mod-textfield-background-color,
-                var(--spectrum-textfield-background-color, var(--spectrum-gray-25))
-            );
-            border-width: var(
-                --mod-textfield-border-width,
-                var(--spectrum-textfield-border-width, var(--spectrum-border-width-100))
-            );
-            border-style: solid;
-            border-color: var(--mod-textfield-border-color, var(--spectrum-textfield-border-color, var(--spectrum-gray-500)));
-            border-radius: var(
-                --mod-textfield-corner-radius,
-                var(--spectrum-textfield-corner-radius, var(--spectrum-corner-radius-100))
-            );
+            /* sp-textfield's own tokens are scoped to it; the system tokens resolve from sp-theme. */
+            background-color: var(--system-textfield-background-color);
+            border: var(--system-textfield-border-width) solid var(--system-textfield-border-color);
+            border-radius: var(--system-textfield-corner-radius);
         }
 
         .osi-value {

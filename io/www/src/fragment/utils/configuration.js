@@ -2,7 +2,7 @@ import { createTimeoutPromise, getJsonFromState } from './common.js';
 import { logDebug } from './log.js';
 
 // accepted api keys with their request parameter defaults, in the state `apiKeyDefaults` form (merged over these)
-const HARDCODED_API_KEYS = {
+const API_KEY_DEFAULTS = {
     '/wcms\\-commerce\\-ims\\-ro\\-user\\-milo(-[a-z]+)?$/': {},
     '/^CreativeCloud_v\\d+_\\d+$/': { surface: 'ccd' },
     AdobeExpressWeb: { surface: 'express' },
@@ -82,7 +82,7 @@ export async function loadConfiguration(context, now) {
 
 export function validateApiKey(context) {
     if (!context.api_key) return { statusCode: 400, message: 'missing api_key' };
-    const accepted = parseStateApiKeys([...Object.keys(HARDCODED_API_KEYS), ...(context.apiKeys ?? [])]);
+    const accepted = parseStateApiKeys([...Object.keys(API_KEY_DEFAULTS), ...(context.apiKeys ?? [])]);
     if (!isApiKeyAccepted(context.api_key, accepted)) {
         return { statusCode: 401, message: 'unauthorized api_key' };
     }
@@ -102,7 +102,7 @@ export function getApiKeyDefaults({ api_key, apiKeyDefaults, apiKeySurfaces }) {
     const surface = findApiKeyEntry(api_key, apiKeySurfaces);
     return {
         ...(surface && { surface }),
-        ...findApiKeyEntry(api_key, HARDCODED_API_KEYS),
+        ...findApiKeyEntry(api_key, API_KEY_DEFAULTS),
         ...findApiKeyEntry(api_key, apiKeyDefaults),
     };
 }

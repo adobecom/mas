@@ -12,6 +12,7 @@ describe('lana', () => {
     afterEach(() => {
         unmockLana();
         config.country = '';
+        config.locale = '';
         window.history.replaceState({}, '', originalHref);
     });
 
@@ -56,7 +57,7 @@ describe('lana', () => {
         });
 
         expect(lana.log.firstCall.args).to.deep.equal([
-            'Test¶page=/test/page¶facts=[{"err":"Houston","fn":"function open","str":"test","mas-commerce-service:country":""}]',
+            'Test¶page=/test/page¶facts=[{"err":"Houston","fn":"function open","str":"test","mas-commerce-service:country":"","mas-commerce-service:locale":""}]',
             {
                 clientId: 'merch-at-scale',
                 delimiter: '¶',
@@ -67,6 +68,7 @@ describe('lana', () => {
                 severity: 'e',
                 tags: 'acom',
                 country: '',
+                locale: '',
             },
         ]);
     });
@@ -87,7 +89,7 @@ describe('lana', () => {
         });
 
         expect(lana.log.firstCall.args).to.deep.equal([
-            'Failed to build price, osi 123:  Uncaught TypeError: Cannot read properties of null¶page=/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa<trunc>¶facts=[{"mas-commerce-service:country":""}]',
+            'Failed to build price, osi 123:  Uncaught TypeError: Cannot read properties of null¶page=/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa<trunc>¶facts=[{"mas-commerce-service:country":"","mas-commerce-service:locale":""}]',
             {
                 clientId: 'merch-at-scale',
                 delimiter: '¶',
@@ -98,35 +100,42 @@ describe('lana', () => {
                 severity: 'e',
                 tags: 'acom',
                 country: '',
+                locale: '',
             },
         ]);
     });
 
-    describe('commerce service country', () => {
+    describe('commerce service country and locale', () => {
         beforeEach(() => {
             window.history.replaceState({}, '', '/test/page');
         });
 
-        it('logs an empty country before the service activates', () => {
+        it('logs an empty country and locale before the service activates', () => {
             append();
 
             expect(facts()).to.deep.equal([
-                { 'mas-commerce-service:country': '' },
+                {
+                    'mas-commerce-service:country': '',
+                    'mas-commerce-service:locale': '',
+                },
             ]);
         });
 
-        it('logs the country when there are no other facts', () => {
-            updateConfig({ country: 'KZ' });
+        it('logs the country and locale when there are no other facts', () => {
+            updateConfig({ country: 'KZ', locale: 'ru_KZ' });
 
             append();
 
             expect(facts()).to.deep.equal([
-                { 'mas-commerce-service:country': 'KZ' },
+                {
+                    'mas-commerce-service:country': 'KZ',
+                    'mas-commerce-service:locale': 'ru_KZ',
+                },
             ]);
         });
 
-        it('merges the country into the first fact object', () => {
-            updateConfig({ country: 'LU' });
+        it('merges the country and locale into the first fact object', () => {
+            updateConfig({ country: 'LU', locale: 'fr_LU' });
 
             append('inline-price: Failed to render', [
                 {
@@ -141,30 +150,34 @@ describe('lana', () => {
                     'mas-commerce-service:measure':
                         'startTime:1460.40|duration:1.10',
                     'mas-commerce-service:country': 'LU',
+                    'mas-commerce-service:locale': 'fr_LU',
                 },
                 { other: 'fact' },
             ]);
         });
 
-        it('prepends the country fact when the first value is not a plain object', () => {
-            updateConfig({ country: 'LU' });
+        it('prepends the country and locale facts when the first value is not a plain object', () => {
+            updateConfig({ country: 'LU', locale: 'fr_LU' });
 
             append('Boom', ['a string fact']);
 
             expect(facts()).to.deep.equal([
-                { 'mas-commerce-service:country': 'LU' },
+                {
+                    'mas-commerce-service:country': 'LU',
+                    'mas-commerce-service:locale': 'fr_LU',
+                },
                 'a string fact',
             ]);
         });
 
-        it('logs the country for messages raised without any params', () => {
-            updateConfig({ country: 'KZ' });
+        it('logs the country and locale for messages raised without any params', () => {
+            updateConfig({ country: 'KZ', locale: 'ru_KZ' });
 
             append('MERCH-CARD failed to initialize');
 
             const [message] = lana.log.firstCall.args;
             expect(message).to.equal(
-                'MERCH-CARD failed to initialize\u00b6page=/test/page\u00b6facts=[{"mas-commerce-service:country":"KZ"}]',
+                'MERCH-CARD failed to initialize\u00b6page=/test/page\u00b6facts=[{"mas-commerce-service:country":"KZ","mas-commerce-service:locale":"ru_KZ"}]',
             );
         });
     });

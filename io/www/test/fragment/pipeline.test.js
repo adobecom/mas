@@ -123,8 +123,11 @@ function decompress(response) {
     };
 }
 
-async function getFragment(params) {
-    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }));
+// refresh invocations are not triggered from the tests, unless they pass their own openwhisk client
+const noRefresh = { openwhiskFactory: () => ({ actions: { invoke: async () => ({}) } }) };
+
+async function getFragment(params, deps = noRefresh) {
+    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }, deps));
 }
 
 const EXPECTED_HEADERS = {

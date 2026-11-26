@@ -8,7 +8,7 @@ import {
     TAG_COMPARE_CHART_PATH,
 } from '../constants.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
-import { VARIANTS, getVariantTreeData } from '../editors/variant-picker.js';
+import { VARIANTS, getFilterVariantTreeData } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 import { getService } from '../utils.js';
 import { AEM_TAG_PATTERN, fromAttribute, toAttribute } from './tag-path-utils.js';
@@ -840,7 +840,7 @@ class AemTagPickerField extends LitElement {
 
         let surfaceTags = this.flatTags;
         if (this.surface) {
-            surfaceTags = getVariantTreeData(this.surface).map((variant) => this.#variantTagPath(variant.name));
+            surfaceTags = getFilterVariantTreeData(this.surface).map((variant) => this.#variantTagPath(variant.name));
         }
 
         const showSearch = !this.personalizationToggle && surfaceTags.length > 7;

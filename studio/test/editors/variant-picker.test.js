@@ -4,6 +4,7 @@ import { fixture } from '@open-wc/testing-helpers/pure';
 import '../../src/swc.js';
 import '../../src/editors/variant-picker.js';
 import {
+    getFilterVariantTreeData,
     getVariantTreeData,
     getSurfacesVariantNames,
     hasLegacyVariantAlias,
@@ -150,6 +151,32 @@ describe('VariantPicker', () => {
             migrateLegacyVariant(fragmentStore);
 
             expect(fragment.getFieldValue('variant')).to.equal(VARIANT_NAMES.PRO);
+        });
+    });
+
+    describe('getFilterVariantTreeData', () => {
+        it('includes legacy templates on top of the supported ones', () => {
+            const names = getFilterVariantTreeData('acom').map((v) => v.name);
+            expect(names).to.include('special-offers');
+            getVariantTreeData('acom').forEach(({ name }) => expect(names).to.include(name));
+            expect(names).to.not.include('ccd-slice');
+            expect(names).to.not.include('fries');
+        });
+
+        it('keeps the supported-only list unchanged', () => {
+            const names = getVariantTreeData('acom').map((v) => v.name);
+            expect(names).to.not.include('special-offers');
+        });
+
+        it('sorts labels alphabetically', () => {
+            ['acom', 'acom-cc', 'ccd', 'express', 'adobe-home'].forEach((surface) => {
+                const labels = getFilterVariantTreeData(surface).map((v) => v.label);
+                expect(labels).to.deep.equal([...labels].sort((a, b) => a.localeCompare(b)));
+            });
+        });
+
+        it('returns every variant for sandbox', () => {
+            expect(getFilterVariantTreeData('sandbox')).to.deep.equal(getVariantTreeData('sandbox'));
         });
     });
 

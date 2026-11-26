@@ -416,6 +416,28 @@
                         expect(nmbOptions).to.equal(3);
                     });
 
+                    it('re-scopes variant values, including legacy templates, when the surface changes', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker12', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        aemTagPicker.surface = 'acom';
+                        await aemTagPicker.updateComplete;
+
+                        const checkboxes = [...aemTagPicker.shadowRoot.querySelectorAll('sp-checkbox')];
+                        const values = checkboxes.map((checkbox) => checkbox.getAttribute('value'));
+                        expect(values).to.include('/content/cq:tags/mas/variant/special-offers');
+                        expect(values).to.include('/content/cq:tags/mas/variant/plans');
+                        expect(values).to.not.include('/content/cq:tags/mas/variant/simplified-pricing-express');
+                        expect(values).to.not.include('/content/cq:tags/mas/variant/full-pricing-express');
+
+                        const labels = checkboxes.map((checkbox) => checkbox.textContent.trim());
+                        expect(labels).to.deep.equal([...labels].sort((a, b) => a.localeCompare(b)));
+                    });
+
                     it('renders variant values for the given surface and search', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker13', this.test.title);
                         await aemTagPicker.loadTags();

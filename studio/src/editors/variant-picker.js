@@ -94,6 +94,7 @@ export const VARIANTS = [
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
         surfaces: [SURFACES.ACOM_CC, SURFACES.DALP, SURFACES.ELEMENTS],
+        legacySurfaces: [SURFACES.ACOM],
     },
     { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surfaces: [SURFACES.CCD] },
     {
@@ -211,6 +212,23 @@ export const getVariantTreeData = (surface) =>
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
         return v.surfaces.some((s) => s.name === surface);
+    })
+        .map((v) => ({
+            name: v.value,
+            label: v.label,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+/**
+ * Flat tree-picker-compatible list of every template that exists on a surface, including legacy ones
+ * that can no longer be created there but are still used by existing fragments. Used by search filters only.
+ */
+export const getFilterVariantTreeData = (surface) =>
+    VARIANTS.filter((v) => {
+        if (v.value === VARIANT_NAMES.ALL) return false;
+        if (!surface) return true;
+        if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
+        return [...v.surfaces, ...(v.legacySurfaces ?? [])].some((s) => s.name === surface);
     })
         .map((v) => ({
             name: v.value,

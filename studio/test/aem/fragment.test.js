@@ -570,7 +570,7 @@ describe('Fragment', () => {
                 });
             });
 
-            it('stores "" and inherits when clearing a required field on a variation of a card inheriting from baselines', () => {
+            it('keeps a required field cleared on a variation of a card inheriting from baselines empty', () => {
                 const parent = new Fragment(
                     createFragmentConfig({
                         fields: [
@@ -586,8 +586,8 @@ describe('Fragment', () => {
 
                 variation.updateField('cardTitle', [''], parent);
 
-                expect(variation.getFieldValues('cardTitle')).to.deep.equal(['']);
-                expect(variation.getEffectiveFieldValue('cardTitle', parent, true)).to.equal('Default locale title');
+                expect(variation.getFieldValues('cardTitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+                expect(variation.getEffectiveFieldValue('cardTitle', parent, true)).to.equal('');
             });
 
             it('reads a stored EXPLICIT_EMPTY_SENTINEL on a required field as inherited', () => {

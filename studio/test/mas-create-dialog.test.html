@@ -889,6 +889,51 @@
                         expect(requestBody).to.have.property('modelId');
                     });
 
+                    it('creates the card with the promo code picked in OST and the plain OSI', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
+                        dialog.loading = false;
+
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: 'ABC123', offer: {}, promotionCode: 'TESTPROMO26' },
+                            }),
+                        );
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+                        titleField.value = 'Promo Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
+                        await dialog.updateComplete;
+
+                        dialog.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+                        await dialog.updateComplete;
+
+                        const { fields } = JSON.parse(fetchStub.getCall(0).args[1].body);
+                        expect(fields.find((field) => field.name === 'promoCode').values).to.deep.equal(['TESTPROMO26']);
+                        expect(fields.find((field) => field.name === 'osi').values).to.deep.equal(['ABC123']);
+                    });
+
+                    it('creates the card without a promo code when OST returns none', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
+                        dialog.loading = false;
+
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: 'ABC123', offer: {}, promotionCode: '' },
+                            }),
+                        );
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+                        titleField.value = 'No Promo Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
+                        await dialog.updateComplete;
+
+                        dialog.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+                        await dialog.updateComplete;
+
+                        const { fields } = JSON.parse(fetchStub.getCall(0).args[1].body);
+                        expect(fields.find((field) => field.name === 'promoCode')).to.not.exist;
+                    });
+
                     it('should display the correct dialog title based on type', async () => {
                         // Reset dialog state from previous tests
                         dialog.loading = false;

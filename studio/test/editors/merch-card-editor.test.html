@@ -369,6 +369,34 @@
                         expect(group.querySelector('osi-field').hasAttribute('readonly')).to.be.false;
                     });
 
+                    const pickOffer = async (detail) => {
+                        const osiField = editor.querySelector('osi-field#osi');
+                        osiField.value = 'new-osi';
+                        osiField.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true, detail }));
+                        await editor.updateComplete;
+                    };
+                    const fieldValues = (name) => fragmentStore.get().getField(name).values;
+
+                    it('fills Promo code from the promo picked in OST and marks the card modified', async () => {
+                        await setupTestEnvironment({ isVariation: false, promoCode: ['SAVE20'] }, 'ost-promo');
+
+                        await pickOffer({ promotionCode: 'TESTPROMO26' });
+
+                        expect(fieldValues('promoCode')).to.deep.equal(['TESTPROMO26']);
+                        expect(fieldValues('osi')).to.deep.equal(['new-osi']);
+                        expect(fragmentStore.get().hasChanges).to.be.true;
+                    });
+
+                    it('keeps Promo code when OST returns no promo', async () => {
+                        await setupTestEnvironment({ isVariation: false, promoCode: ['SAVE20'] }, 'ost-no-promo');
+
+                        await pickOffer({ promotionCode: '' });
+                        await pickOffer(undefined);
+
+                        expect(fieldValues('promoCode')).to.deep.equal(['SAVE20']);
+                        expect(fieldValues('osi')).to.deep.equal(['new-osi']);
+                    });
+
                     it('authors localized legal disclaimers in the mini compare mweb Callout field', async () => {
                         const disclaimer = '<p>{{mini-legal-disclaimer}}</p>';
                         await setupTestEnvironment(

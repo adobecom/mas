@@ -35,7 +35,13 @@ import {
 } from './backgrounds-url.js';
 import '../fields/addon-field.js';
 import '../fields/rte-field-item.js';
-import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
+import {
+    colorDisplayName,
+    parseBadgeHtml,
+    renderColorSwatch,
+    serializeBadgeHtml,
+    TRANSPARENT_SWATCH_BACKGROUND,
+} from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
@@ -3716,14 +3722,6 @@ class MerchCardEditor extends LitElement {
         };
     }
 
-    #formatColorName(color) {
-        return color
-            .replace(/(spectrum|global|color|plans|variation|-)/gi, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase())
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
     #removeGradientColors(colors) {
         return colors.filter((color) => !color.startsWith('gradient-'));
     }
@@ -4146,32 +4144,15 @@ class MerchCardEditor extends LitElement {
                     ${options.map(
                         (color) => html`
                             <sp-menu-item value="${color}">
-                                <div class="menu-item-container">
-                                    ${color === 'Default'
-                                        ? html`<span>Default</span>`
-                                        : color === 'Transparent'
-                                          ? html`<span>Transparent</span>`
-                                          : html`
-                                                ${isSpecialValue(color)
-                                                    ? html`<div
-                                                          class="color-swatch"
-                                                          style="--swatch-bg: ${variantSpecialValues[color]}"
-                                                      ></div>`
-                                                    : html`<div
-                                                          class="color-swatch"
-                                                          style="--swatch-bg: var(--${color})"
-                                                      ></div>`}
-                                                <span
-                                                    class="color-name-text"
-                                                    title="${isSpecialValue(color)
-                                                        ? this.#formatName(color)
-                                                        : this.#formatColorName(color)}"
-                                                    >${isSpecialValue(color)
-                                                        ? this.#formatName(color)
-                                                        : this.#formatColorName(color)}</span
-                                                >
-                                            `}
-                                </div>
+                                ${color === 'Default'
+                                    ? html`Default`
+                                    : color === 'Transparent'
+                                      ? html`${renderColorSwatch(TRANSPARENT_SWATCH_BACKGROUND)}Transparent`
+                                      : html`
+                                            ${renderColorSwatch(
+                                                isSpecialValue(color) ? variantSpecialValues[color] : `var(--${color})`,
+                                            )}${colorDisplayName(color, isSpecialValue(color) ? this.#formatName : undefined)}
+                                        `}
                             </sp-menu-item>
                         `,
                     )}

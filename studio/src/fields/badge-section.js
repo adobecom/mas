@@ -34,12 +34,38 @@ export function serializeBadgeHtml({ text, bgColor, borderColor, icon, variant }
     return `<merch-badge ${attrs.join(' ')}>${text}</merch-badge>`;
 }
 
-const formatColorName = (color) =>
+export const formatColorName = (color) =>
     color
         .replace(/(spectrum|global|color|plans|variation|-)/gi, ' ')
         .replace(/\b\w/g, (l) => l.toUpperCase())
         .replace(/\s+/g, ' ')
         .trim();
+
+const COLOR_DISPLAY_NAMES = {
+    'spectrum-yellow-300-plans': 'Yellow',
+    'spectrum-gray-300-plans': 'Gray',
+    'spectrum-gray-700-plans': 'Dark gray',
+    'spectrum-green-900-plans': 'Green',
+    'gradient-purple-blue': 'Gradient purple / blue',
+};
+
+/** White square crossed by a red diagonal line. */
+export const TRANSPARENT_SWATCH_BACKGROUND =
+    'linear-gradient(to top right, #fff calc(50% - 1px), var(--spectrum-red-700, #d31510) calc(50% - 1px), var(--spectrum-red-700, #d31510) calc(50% + 1px), #fff calc(50% + 1px))';
+
+/** Figma display name of a color value; colors without one keep the name from `fallback`. */
+export const colorDisplayName = (color, fallback = formatColorName) => COLOR_DISPLAY_NAMES[color] ?? fallback(color);
+
+/**
+ * Swatch for a picker menu item. Sized inline and placed in the `icon` slot because sp-picker
+ * copies it into its shadow DOM, where `.color-swatch` class styles do not apply.
+ */
+export const renderColorSwatch = (background) =>
+    html`<div
+        class="color-swatch"
+        slot="icon"
+        style="width:16px;height:16px;border:1px solid var(--spectrum-gray-300);border-radius:3px;flex-shrink:0;background:${background}"
+    ></div>`;
 
 /**
  * Reusable badge authoring section: badge text (RTE), badge icon, badge background color and
@@ -154,16 +180,17 @@ class BadgeSection extends LitElement {
                     @change=${(e) => this.#emit({ [component]: this.#pickedColor(e.target.value) }, e)}
                 >
                     <sp-menu-item value="Default"><span>Default</span></sp-menu-item>
-                    <sp-menu-item value="Transparent"><span>Transparent</span></sp-menu-item>
+                    <sp-menu-item value="Transparent">
+                        ${renderColorSwatch(TRANSPARENT_SWATCH_BACKGROUND)}
+                        <span>Transparent</span>
+                    </sp-menu-item>
                     ${options.map(
                         (color) => html`
                             <sp-menu-item value="${color}">
-                                <div class="menu-item-container">
-                                    <div class="color-swatch" style="--swatch-bg: var(--${color})"></div>
-                                    <span class="color-name-text" title="${formatColorName(color)}"
-                                        >${formatColorName(color)}</span
-                                    >
-                                </div>
+                                ${renderColorSwatch(`var(--${color})`)}
+                                <span class="color-name-text" title="${colorDisplayName(color)}"
+                                    >${colorDisplayName(color)}</span
+                                >
                             </sp-menu-item>
                         `,
                     )}

@@ -293,9 +293,7 @@ export class AemFragment extends HTMLElement {
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            const preview = await this.generatePreview(
-                this.offerSelectionSuffix,
-            );
+            const preview = await this.generatePreview(cacheSuffix);
             if (preview.status === 200) {
                 return preview.body;
             } else {
@@ -356,6 +354,7 @@ export class AemFragment extends HTMLElement {
         }
         if (flushCache) {
             cache.remove(this.cacheKey());
+            cache.remove(this.cacheKey(this.offerSelectionSuffix));
         }
         if (this.#loading === LOADING_CACHE) {
             await Promise.race([
@@ -412,12 +411,13 @@ export class AemFragment extends HTMLElement {
     }
 
     async #fetchData() {
-        const cacheSuffix = this.cacheSuffix;
+        const cacheSuffix = this.offerSelectionSuffix;
         const cacheKey = this.cacheKey(cacheSuffix);
         this.#fetchInfo = cache.getFetchInfo(cacheKey);
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(cacheKey);
+        let fragment =
+            (this.#author && cache.get(this.cacheKey())) || cache.get(cacheKey);
         if (fragment) {
             this.#rawData = fragment;
             this.#rawDataCacheSuffix = cacheSuffix;
@@ -443,9 +443,7 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
-        const serveLatest = this.getOfferSelectionFromCacheSuffix(
-            this.offerSelectionSuffix,
-        );
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
         if (serveLatest !== undefined) {
             endpoint += `&serveLatest=${serveLatest}`;
         }
@@ -461,11 +459,11 @@ export class AemFragment extends HTMLElement {
         try {
             fragment = await this.#getFragment(endpoint, cacheKey, cacheSuffix);
         } catch (error) {
-            if (cacheSuffix === this.cacheSuffix) throw error;
+            if (cacheSuffix === this.offerSelectionSuffix) throw error;
             this.#log.error(error.message, this.#fetchInfo);
             return this.#fetchData();
         }
-        if (this.#preview && cacheSuffix !== this.cacheSuffix) {
+        if (this.#preview && cacheSuffix !== this.offerSelectionSuffix) {
             return this.#fetchData();
         }
         fragment.fields.originalId ??= this.#fragmentId;
@@ -474,7 +472,7 @@ export class AemFragment extends HTMLElement {
         } else {
             cache.add(fragment, true, cacheSuffix);
         }
-        if (cacheSuffix !== this.cacheSuffix) {
+        if (cacheSuffix !== this.offerSelectionSuffix) {
             return this.#fetchData();
         }
         this.#rawData = fragment;
@@ -490,7 +488,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get data() {
-        if (this.#rawDataCacheSuffix !== this.cacheSuffix) return null;
+        if (this.#rawDataCacheSuffix !== this.offerSelectionSuffix) return null;
         if (this.#data) return this.#data;
         if (this.#author) {
             this.transformAuthorData();
@@ -501,7 +499,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get rawData() {
-        return this.#rawDataCacheSuffix === this.cacheSuffix
+        return this.#rawDataCacheSuffix === this.offerSelectionSuffix
             ? this.#rawData
             : null;
     }

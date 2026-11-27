@@ -220,6 +220,107 @@ describe('Orion fragment requests and cache isolation', () => {
         });
     }
 
+    for (const env of ['stage', 'prod']) {
+        it(`isolates fetched author responses across Orion on/off/on in ${env}`, async () => {
+            fetchStub.callsFake(async (url) => {
+                const latest =
+                    new URL(url).searchParams.get('serveLatest') === 'true';
+                return new Response(
+                    JSON.stringify({
+                        id: 'requested-id',
+                        fields: [
+                            {
+                                name: 'title',
+                                multiple: false,
+                                values: [latest ? 'Orion' : 'Legacy'],
+                            },
+                        ],
+                    }),
+                );
+            });
+
+            for (const mode of ['on', 'off', 'on']) {
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?commerce.env=${env}&mas.orion=${mode}`,
+                );
+                service.activate();
+                const fragment = startLoad('requested-id', { author: '' });
+                await fragment.updateComplete;
+
+                expect(fragment.data.fields.title).to.equal(
+                    mode === 'on' ? 'Orion' : 'Legacy',
+                );
+            }
+
+            expect(cache.has('requested-id')).to.be.false;
+            expect(fetchStub.callCount).to.equal(2);
+            expect(
+                fetchStub
+                    .getCalls()
+                    .map(({ args: [url] }) =>
+                        new URL(url).searchParams.get('serveLatest'),
+                    ),
+            ).to.deep.equal(['true', 'false']);
+
+            cache.add({
+                id: 'requested-id',
+                fields: [
+                    {
+                        name: 'title',
+                        multiple: false,
+                        values: ['Unsaved editor title'],
+                    },
+                ],
+            });
+            const draft = startLoad('requested-id', { author: '' });
+            await draft.updateComplete;
+
+            expect(draft.data.fields.title).to.equal('Unsaved editor title');
+            expect(fetchStub.callCount).to.equal(2);
+        });
+    }
+
+    it('isolates fetched author previews after switching Orion off', async () => {
+        const preview = sinon
+            .stub(
+                customElements.get('aem-fragment').prototype,
+                'generatePreview',
+            )
+            .callsFake(async (suffix) => ({
+                status: 200,
+                body: {
+                    id: 'requested-id',
+                    fields: [
+                        {
+                            name: 'title',
+                            multiple: false,
+                            values: [suffix === '-orion' ? 'Orion' : 'Legacy'],
+                        },
+                    ],
+                },
+            }));
+        try {
+            for (const mode of ['on', 'off', 'on']) {
+                switchMode(mode, true);
+                const fragment = startLoad('requested-id', { author: '' });
+                await fragment.updateComplete;
+
+                expect(fragment.data.fields.title).to.equal(
+                    mode === 'on' ? 'Orion' : 'Legacy',
+                );
+            }
+
+            expect(
+                preview.getCalls().map(({ args: [suffix] }) => suffix),
+            ).to.deep.equal(['-orion', '-legacy']);
+            expect(fetchStub.called).to.be.false;
+        } finally {
+            preview.restore();
+        }
+    });
+
     for (const [search, expected] of [
         ['?commerce.env=stage', 'false'],
         ['?commerce.env=stage&mas.orion=off', 'false'],

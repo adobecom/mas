@@ -14,10 +14,11 @@ import {
     resetCache as resetConfiguration,
     validateApiKey,
 } from './utils/configuration.js';
-import { logMemoryUsage, resetMemoryLog, setHeapBudget } from './utils/swr-cache.js';
+import { logMemoryUsage, resetHeapEvictionCredit, resetMemoryLog, setHeapBudget } from './utils/swr-cache.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import v8 from 'v8';
+import { constants, PerformanceObserver } from 'node:perf_hooks';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
 import { getFilesClient, resetFilesClient } from './utils/files-client.js';
@@ -43,6 +44,13 @@ const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toStr
 
 // The caches grow until the heap used reaches 75% of the V8 heap limit, the rest being left to the requests in flight.
 setHeapBudget(v8.getHeapStatistics().heap_size_limit * 0.75, () => v8.getHeapStatistics().used_heap_size);
+function handleGarbageCollection(entries) {
+    const major = entries.getEntries().findLast(({ detail }) => detail?.kind === constants.NODE_PERFORMANCE_GC_MAJOR);
+    // Concurrent marking may leave evicted entries alive until the next major GC.
+    // Clearing their credit is conservative and may cause a few extra evictions.
+    if (major) resetHeapEvictionCredit(major.startTime);
+}
+new PerformanceObserver(handleGarbageCollection).observe({ entryTypes: ['gc'] });
 
 // e.g. "42s" or "7m12s"
 const formatAge = (ms) => {
@@ -396,4 +404,4 @@ async function buildResponse(context, requestKey, cachedMetadata, cachedResponse
     return { id: context.body?.id, hash, lastModified, body };
 }
 
-export { main, resetCache, PIPELINE };
+export { main, resetCache, PIPELINE, handleGarbageCollection };

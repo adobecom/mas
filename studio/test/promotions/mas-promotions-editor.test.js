@@ -1480,8 +1480,8 @@ describe('MasPromotionsEditor', () => {
             const picker = selector.querySelector('mas-region-picker');
             const countries = picker.items.map(({ country }) => country);
             expect(selector.disabled).to.be.false;
-            expect(countries).to.include('US');
-            expect(countries).to.not.include('BG');
+            expect(countries).to.include.members(['US', 'BG', 'RO', 'SI', 'LV', 'LT', 'SK']);
+            expect(countries).to.not.include('HR');
         });
 
         it('keeps the same country items reference across unrelated field edits', async () => {
@@ -1621,7 +1621,7 @@ describe('MasPromotionsEditor', () => {
         it('removes countries not available on newly added surfaces', async () => {
             const el = await mountEditor();
             el.fragmentStore.updateField('surfaces', ['acom']);
-            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/BG']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/HR']);
             await el.updateComplete;
             const table = el.renderRoot.querySelector('#surfaces-table');
             table.selected = ['acom', 'ccd'];
@@ -1634,7 +1634,7 @@ describe('MasPromotionsEditor', () => {
         it('shows an info toast listing countries removed by a surface change', async () => {
             const el = await mountEditor();
             el.fragmentStore.updateField('surfaces', ['acom']);
-            el.fragmentStore.updateField('geos', ['mas:pzn/country/US', 'mas:pzn/country/BG']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US', 'mas:pzn/country/HR']);
             await el.updateComplete;
             const toastStub = sandbox.stub(Events.toast, 'emit');
             const table = el.renderRoot.querySelector('#surfaces-table');
@@ -1644,25 +1644,27 @@ describe('MasPromotionsEditor', () => {
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.lastCall.args[0].variant).to.equal('info');
             expect(toastStub.lastCall.args[0].content).to.equal(
-                'Removed countries not available on the selected surfaces: BG.',
+                'Removed countries not available on the selected surfaces: HR.',
             );
         });
 
-        it('does not rewrite geos when all countries remain eligible after adding a surface', async () => {
-            const el = await mountEditor();
-            el.fragmentStore.updateField('surfaces', ['acom']);
-            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US']);
-            await el.updateComplete;
-            const geos = el.geos;
-            const updateField = sandbox.spy(el.fragmentStore, 'updateField');
-            const table = el.renderRoot.querySelector('#surfaces-table');
-            table.selected = ['acom', 'ccd'];
-            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
-            await el.updateComplete;
-            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
-            expect(updateField.calledWith('geos')).to.be.false;
-            expect(el.geos).to.equal(geos);
-        });
+        for (const surface of ['ccd', 'adobe-home']) {
+            it(`does not rewrite eligible Bulgaria geos after adding ${surface}`, async () => {
+                const el = await mountEditor();
+                el.fragmentStore.updateField('surfaces', ['acom']);
+                el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/BG']);
+                await el.updateComplete;
+                const geos = el.geos;
+                const updateField = sandbox.spy(el.fragmentStore, 'updateField');
+                const table = el.renderRoot.querySelector('#surfaces-table');
+                table.selected = ['acom', surface];
+                table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+                await el.updateComplete;
+                expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', surface]);
+                expect(updateField.calledWith('geos')).to.be.false;
+                expect(el.geos).to.equal(geos);
+            });
+        }
 
         it('does not write geos on surface change when the fragment has no geos field', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');

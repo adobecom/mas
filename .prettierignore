@@ -6,4 +6,4 @@ web-components/docs
 web-components/commerce.json
 studio/ost
 extension/vendor
-io/studio/src/ai-chat/knowledge-corpus.js
+io/studio/src/ai-chat/masa-knowledge.js

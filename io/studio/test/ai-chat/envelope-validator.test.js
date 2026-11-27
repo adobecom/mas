@@ -204,4 +204,16 @@ describe('envelope-validator', () => {
             expect(r.ok).to.equal(true);
         });
     });
+
+    it('rejects ASK_MASA when MASA is unavailable', () => {
+        const r = validateEnvelope({ intent: 'ASK_MASA', slots: {}, confidence: 'high' }, {});
+        expect(r.ok).to.equal(false);
+        expect(r.reason).to.equal('intent-not-in-registry');
+    });
+
+    it('accepts ASK_MASA when MASA is available', () => {
+        const r = validateEnvelope({ intent: 'ASK_MASA', slots: {}, confidence: 'high' }, { masa: true });
+        expect(r.ok).to.equal(true);
+        expect(r.envelope.intent).to.equal('ASK_MASA');
+    });
 });

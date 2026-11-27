@@ -12,10 +12,19 @@ describe('ai-chat/isReleaseIntent', () => {
         expect(isReleaseIntent('help me create a new product launch')).to.equal(true);
     });
 
-    it('detects a release already under way from the history', () => {
+    it('ignores a release keyword in an earlier user turn', () => {
         const history = [{ role: 'user', content: 'kickstart cards for Firefly' }];
 
-        expect(isReleaseIntent('Photoshop', history)).to.equal(true);
+        expect(isReleaseIntent('Photoshop', history)).to.equal(false);
+    });
+
+    it('detects the turn after the guided Step 1 question', () => {
+        const history = [
+            { role: 'user', content: 'what is a release?' },
+            { role: 'assistant', content: 'Which product is this release for?' },
+        ];
+
+        expect(isReleaseIntent('PA-1375', history)).to.equal(true);
     });
 
     it('leaves an ordinary question alone', () => {
@@ -36,9 +45,9 @@ describe('ai-chat/isReleaseIntent', () => {
         expect(isReleaseIntent(message)).to.equal(false);
     });
 
-    it('still treats the continuation as a release when the history says so', () => {
+    it('still treats the continuation as a release when the Step 1 question was just asked', () => {
         const message = '[MCS product data retrieved via list_products]\n- Adobe Photoshop (code: PHSP)';
-        const history = [{ role: 'user', content: 'create cards for photoshop' }];
+        const history = [{ role: 'assistant', content: 'Which product is this release for?' }];
 
         expect(isReleaseIntent(message, history)).to.equal(true);
     });

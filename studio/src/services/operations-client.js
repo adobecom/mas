@@ -233,16 +233,20 @@ export async function executeStudioOperation(operationName, operationParams) {
         case 'search_products': {
             const products = excludeEnterprise(result.products);
             const unavailable = products.length === 0 && result.products?.length > 0;
+            const truncated = result.total > (result.products?.length ?? 0);
             return {
                 success: true,
                 operation: operationName,
                 products,
                 count: products.length,
+                total: result.total ?? products.length,
                 ...(unavailable && { unavailable }),
                 message: unavailable
                     ? OFFER_NOT_AVAILABLE_MESSAGE
                     : result.message ||
-                      `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
+                      (truncated
+                          ? `Showing ${products.length} of ${result.total} products. Narrow the search to see the rest.`
+                          : `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`),
                 rawResult: { ...result, products, ...(unavailable && { unavailable }) },
             };
         }

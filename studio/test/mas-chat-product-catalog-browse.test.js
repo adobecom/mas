@@ -62,6 +62,14 @@ describe('MasChat catalog browse renders locally', () => {
         expect(el.messages[el.messages.length - 1].content).to.include('2 product');
     });
 
+    it('says when it shows only part of a larger catalog and how to narrow it', async () => {
+        await el.presentProductCatalog({ products: RAW, total: 60 });
+
+        expect(el.messages[el.messages.length - 1].content).to.equal(
+            'Showing 2 of 60 products in the catalog. Type a product name to narrow it down:',
+        );
+    });
+
     it('handles an empty catalog result without calling the model', async () => {
         await el.presentProductCatalog({ products: [] });
 

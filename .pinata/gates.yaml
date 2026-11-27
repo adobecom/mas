@@ -18,15 +18,17 @@ provision: npm ci
 
 gates:
     io-preview-support:
-        template: protected_paths
-        name: IO changes need manual verification (no candidate IO preview)
+        template: command
+        name: IO changes outside the allowlist need manual verification
         description: >-
             IO changes need a separately deployed candidate service before
-            screenshots can verify them. Stop for manual review, even when
-            the same change also touches Studio or web components.
-        paths:
-            - 'io/www'
-            - 'io/studio'
+            screenshots can verify them. Changes limited to the paths in
+            .pinata/io-allowlist.txt (locale tables and IO tests) are covered by
+            the IO unit tests. Any other change under io/www or io/studio, and any
+            IO deletion, stops for manual review, even when the same change also
+            touches Studio or web components.
+        cmd: bash .pinata/scripts/check-io-allowlist.sh {changed_files}
+        waive_preexisting: false
         blocking: true
         failure_route: escalate_to_human
 

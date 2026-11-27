@@ -33,7 +33,7 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}
               run: |
-                  gh label create "trivial" --color "#e4e669" --description "PR only contains trivial changes (docs, config, workflows)" --force
+                  gh label create "trivial" --color "#e4e669" --description "PR only contains trivial changes (docs, config, workflows, unit tests)" --force
                   gh pr edit "$PR_NUMBER" --add-label "trivial"
 
             - name: Remove trivial label if PR is no longer trivial

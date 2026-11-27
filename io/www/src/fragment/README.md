@@ -147,25 +147,30 @@ Baselines' own variations are ignored. Each customized fragment exposes `offerBa
 
 Nothing is requested twice, whatever the collection size: distinct offers are resolved in one WCS batch whose artifacts are reused by the `wcs` transformer (and always shipped in `body.wcs`). Fragment baselines are fetched in bulk, in parallel with WCS, with one (paginated) listing of `/content/dam/mas/<surface>/<locale>/baselines/<template>` per template used; offer baselines are fetched once per locale. Both are kept in a single-flight SWR cache (5 min TTL) shared by all fragments and requests, absence included.
 
-## Orion stage testing
+## Orion offer selection (stage and production)
 
-The optional fragment query parameter `serveLatest=true` requests latest offers
-from WCS configurations whose `env` is `stage`. Production WCS requests are
-unchanged. Both the offer transformer's early WCS lookup and final prefill use
-the same mode, reusing artifacts under `body.wcs["stage-latest"]` rather than
-`body.wcs.stage`. The existing OSI/country/language/promotion keys are unchanged.
-Direct render callers can select this cache with `environment: 'stage-latest'`.
+The optional fragment parameter `serveLatest=true` selects latest WCS offers;
+`serveLatest=false` selects legacy, on both stage and production. Without it,
+stage defaults to legacy; production keeps WCS's default.
+Early lookup and final prefill share `body.wcs` namespaces: `stage-legacy`,
+`stage-latest`, `prod` (default), `prod-legacy`, and `prod-latest`.
+OSI/country/language/promotion keys are unchanged.
 
-Latest requests use a separate request metadata/ETag key only when a Stage WCS
-configuration is present. Without one, normal metadata is reused because prefill
-is unchanged. The fragment URL
-contains `serveLatest=true`; the deployed CDN must retain this query parameter
-in its cache key and forward it to the action. Verify normal/latest cache
-isolation on stage and coordinate WCS cache expiry or purge when its
-`wcs.feature.enableServeLatest` flag changes.
+IO metadata/ETag and stored-response keys isolate selections; stage-only
+configurations share the default and explicit legacy key, while mixed
+stage/production defaults remain separate. The CDN must retain and forward
+`serveLatest`, including `false`.
 
-The offers sync does not fetch WCS pricing and is unchanged. The agent/flatten
-runtime continues using its production configuration and production prefill.
+**Rollout:** `-latest-v2` avoids old IO responses but does not invalidate CDN entries.
+Deploy IO, then complete CDN invalidation for all fragment URL variants on every
+serving hostname before enabling the updated client. Verify mixed-environment
+`serveLatest=true` responses contain both `prod-latest` and `stage-latest`.
+
+**Cache cardinality:** no parameter / `true` / `false` can create up to three
+variants per fragment URL at the CDN and in IO request metadata/stored responses
+(two in IO for stage-only configurations). Production use of `mas.orion` can
+lower CDN hit ratio and increase origin load. Verify cache isolation and
+coordinate WCS cache expiry or purge when `wcs.feature.enableServeLatest` changes.
 
 ## response cache
 

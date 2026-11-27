@@ -213,3 +213,218 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         ]);
     });
 });
+
+describe('bulk-publish/publish-core.js — clearStagedTagsAfterPublish', () => {
+    const STAGED = 'mas:studio/internal/staged';
+    const CARD = '/content/dam/mas/acom/en_US/card';
+    const FR_CARD = '/content/dam/mas/acom/fr_FR/card';
+    const logger = { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() };
+    let core;
+    let stubs;
+    let publishChunkStub;
+
+    beforeEach(() => {
+        stubs = {
+            fetchFragmentByPath: sinon.stub(),
+            patchToOdin: sinon.stub().resolves({ success: true }),
+            fetchOdin: sinon.stub().resolves({ headers: { get: () => 'tag-etag' } }),
+        };
+        publishChunkStub = sinon.stub().callsFake(async ({ chunk }) => chunk.map((path) => ({ path, status: 'published' })));
+        core = proxyquire('../../src/bulk-publish/publish-core.js', {
+            './publisher.js': { publishChunk: publishChunkStub },
+            '../common.js': {
+                ...stubs,
+                getValues: (fragment, name) => {
+                    const index = fragment.fields.findIndex((f) => f.name === name);
+                    return index === -1 ? null : { values: fragment.fields[index].values, path: `/fields/${index}` };
+                },
+                processBatchWithConcurrency: (items, batchSize, processor) => Promise.all(items.map(processor)),
+            },
+        });
+    });
+
+    afterEach(() => sinon.restore());
+
+    const card = (tags) => ({
+        id: 'id-1',
+        etag: 'e1',
+        fields: [
+            { name: 'x', values: [] },
+            { name: 'tags', values: tags },
+        ],
+    });
+    const collection = (tags) => ({
+        id: 'col-1',
+        model: { path: '/conf/mas/settings/dam/cfm/models/collection' },
+        tags,
+        fields: [],
+    });
+
+    it('clears the staged tag from a published card and keeps the other tags in order', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card(['mas:a', STAGED, 'mas:b']), status: 200 });
+
+        const failures = await core.clearStagedTagsAfterPublish(
+            [{ path: CARD, status: 'published' }],
+            'https://odin',
+            't',
+            logger,
+        );
+
+        expect(failures).to.deep.equal([]);
+        expect(stubs.patchToOdin).to.have.been.calledOnceWith(
+            'https://odin',
+            'id-1',
+            't',
+            [{ op: 'replace', path: '/fields/1/values', value: ['mas:a', 'mas:b'] }],
+            'e1',
+        );
+    });
+
+    it('clears the staged tag from a published collection', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: collection([{ id: STAGED }, { id: 'mas:a' }]), status: 200 });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        const put = stubs.fetchOdin.getCalls().find((c) => c.args[3]?.method === 'PUT');
+        expect(put.args[1]).to.equal('/adobe/sites/cf/fragments/col-1/tags');
+        expect(JSON.parse(put.args[3].body)).to.deep.equal({ tags: ['mas:a'] });
+        expect(put.args[3].etag).to.equal('tag-etag');
+    });
+
+    it('clears the staged tag from a card that keeps it only in its fragment tags', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a']), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        const put = stubs.fetchOdin.getCalls().find((c) => c.args[3]?.method === 'PUT');
+        expect(put.args[1]).to.equal('/adobe/sites/cf/fragments/id-1/tags');
+        expect(JSON.parse(put.args[3].body)).to.deep.equal({ tags: ['mas:a'] });
+        expect(stubs.patchToOdin).to.not.have.been.called;
+    });
+
+    it('clears the staged tag from both the tags field and the fragment tags of a card', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a', STAGED]), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(stubs.patchToOdin).to.have.been.calledOnce;
+        expect(stubs.fetchOdin.getCalls().some((c) => c.args[3]?.method === 'PUT')).to.be.true;
+    });
+
+    it('deletes the collection tags when the staged tag was the only one', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: collection([{ id: STAGED }]), status: 200 });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(stubs.fetchOdin.getCalls().some((c) => c.args[3]?.method === 'DELETE')).to.be.true;
+    });
+
+    it('does not save fragments without the staged tag', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card(['mas:a']), status: 200 });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(stubs.patchToOdin).to.not.have.been.called;
+        expect(stubs.fetchOdin).to.not.have.been.called;
+    });
+
+    it('clears locale copies and variations, but skips failed details and dictionary paths', async () => {
+        stubs.fetchFragmentByPath.callsFake(async () => ({ fragment: card([STAGED]), status: 200 }));
+        const variation = '/content/dam/mas/acom/en_US/pzn/card-pzn';
+        const details = [
+            { path: CARD, status: 'published' },
+            { path: FR_CARD, status: 'published' },
+            { path: variation, status: 'published' },
+            { path: '/content/dam/mas/acom/en_US/failed', status: 'failed' },
+            { path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' },
+        ];
+
+        await core.clearStagedTagsAfterPublish(details, 'https://odin', 't', logger);
+
+        expect(stubs.fetchFragmentByPath.getCalls().map((c) => c.args[1])).to.deep.equal([CARD, FR_CARD, variation]);
+        expect(stubs.patchToOdin).to.have.been.calledThrice;
+    });
+
+    it('reports failures without throwing', async () => {
+        stubs.fetchFragmentByPath.onFirstCall().resolves({ fragment: null, status: 404 });
+        stubs.fetchFragmentByPath.onSecondCall().resolves({ fragment: card([STAGED]), status: 200 });
+        stubs.patchToOdin.resolves({ success: false, error: 'boom' });
+        const details = [
+            { path: CARD, status: 'published' },
+            { path: FR_CARD, status: 'published' },
+        ];
+
+        const failures = await core.clearStagedTagsAfterPublish(details, 'https://odin', 't', logger);
+
+        expect(failures).to.deep.equal([
+            { path: CARD, reason: 'staged-clear-failed', error: 'fetch 404' },
+            { path: FR_CARD, reason: 'staged-clear-failed', error: 'tags field: boom' },
+        ]);
+    });
+
+    it('names the fragment tags step when it fails after the tags field was cleared', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a', STAGED]), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+        stubs.fetchOdin
+            .withArgs(sinon.match.any, sinon.match.any, sinon.match.any, sinon.match({ method: 'PUT' }))
+            .rejects(new Error('412 Precondition Failed'));
+
+        const failures = await core.clearStagedTagsAfterPublish(
+            [{ path: CARD, status: 'published' }],
+            'https://odin',
+            't',
+            logger,
+        );
+
+        expect(failures).to.deep.equal([
+            { path: CARD, reason: 'staged-clear-failed', error: 'fragment tags: 412 Precondition Failed' },
+        ]);
+    });
+
+    it('publishes the cleared fragments again without their references', async () => {
+        stubs.fetchFragmentByPath.withArgs('https://odin', CARD).resolves({ fragment: card([STAGED]), status: 200 });
+        stubs.fetchFragmentByPath.withArgs('https://odin', FR_CARD).resolves({ fragment: card(['mas:a']), status: 200 });
+        const details = [
+            { path: CARD, status: 'published' },
+            { path: FR_CARD, status: 'published' },
+        ];
+
+        await core.clearStagedTagsAfterPublish(details, 'https://odin', 't', logger);
+
+        expect(publishChunkStub).to.have.been.calledOnce;
+        expect(publishChunkStub.firstCall.args[0]).to.include({ odinEndpoint: 'https://odin', authToken: 't' });
+        expect(publishChunkStub.firstCall.args[0].chunk).to.deep.equal([CARD]);
+        expect(publishChunkStub.firstCall.args[0].filterReferencesByStatus).to.deep.equal([]);
+    });
+
+    it('does not publish again a fragment whose clearing failed', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card([STAGED]), status: 200 });
+        stubs.patchToOdin.resolves({ success: false, error: 'boom' });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(publishChunkStub).to.not.have.been.called;
+    });
+
+    it('reports a cleared fragment that fails to publish again', async () => {
+        stubs.fetchFragmentByPath.resolves({ fragment: card([STAGED]), status: 200 });
+        publishChunkStub.resolves([{ path: CARD, status: 'failed', reason: 'error-referenced' }]);
+
+        const failures = await core.clearStagedTagsAfterPublish(
+            [{ path: CARD, status: 'published' }],
+            'https://odin',
+            't',
+            logger,
+        );
+
+        expect(failures).to.deep.equal([{ path: CARD, reason: 'staged-republish-failed', error: 'error-referenced' }]);
+    });
+});

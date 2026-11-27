@@ -1609,6 +1609,9 @@ describe('MasTranslationEditor', () => {
 
             overlay.querySelector('[slot="trigger"]').click();
             await opened;
+            // sp-overlay fires sp-opened before lazily importing focus-trap; if the fixture is removed while that
+            // import is pending, the trap activates on a detached overlay and swallows every later click in the page.
+            await import('focus-trap');
 
             expect(defaultMockRepository.searchFragmentList.calledOnce).to.be.true;
             await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());

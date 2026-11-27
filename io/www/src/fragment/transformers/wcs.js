@@ -7,6 +7,7 @@ import {
     markDegraded,
     matchesGeo,
 } from '../utils/common.js';
+import { getOfferSelection, getOfferSelectionSuffix } from '../utils/offer-selection.js';
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
@@ -344,8 +345,8 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
     url.searchParams.set('api_key', wcsContext.context.api_key);
-    if (wcsContext.serveLatest) {
-        url.searchParams.set('serveLatest', 'true');
+    if (wcsContext.serveLatest !== undefined) {
+        url.searchParams.set('serveLatest', String(wcsContext.serveLatest));
     }
     if (wcsContext.language) {
         url.searchParams.set('language', wcsContext.language);
@@ -443,8 +444,8 @@ async function computeWcsCaches(tokens, context, prefetched = {}) {
     for (const config of context.wcsConfiguration) {
         wcsContext.wcsURL = config.wcsURL;
         wcsContext.landscape = config.landscape || 'PUBLISHED';
-        wcsContext.serveLatest = config.env === 'stage' && ['true', true].includes(context.serveLatest);
-        const envKey = wcsContext.serveLatest ? 'stage-latest' : config.env;
+        wcsContext.serveLatest = getOfferSelection(context.serveLatest, config.env);
+        const envKey = `${config.env}${getOfferSelectionSuffix(wcsContext.serveLatest)}`;
         const known = prefetched[envKey] ?? {};
         const missing = tokens.filter((token) => !(wcsCacheKey(token, wcsContext) in known));
         try {

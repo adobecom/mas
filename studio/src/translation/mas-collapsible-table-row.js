@@ -19,15 +19,17 @@ import {
     findPromotionProjectIdByTag,
     isPromoVariationPath,
 } from '../promotions/promotion-model.js';
-import {
-    getGroupedVariationTagsValue,
-    getPromoVariationGeoTagsValue,
-    getPromoVariationPersonalizationTagLabels,
-} from '../editors/variation-utils.js';
+import { getGroupedVariationTagsValue, getPromoVariationGeoTagsValue, pznTagsValue } from '../editors/variation-utils.js';
 import Store from '../store.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
+
+const parseTags = (value) =>
+    value
+        .split(',')
+        .filter(Boolean)
+        .map((id) => ({ id, label: id.split('/').pop() }));
 
 export class MasCollapsibleTableRow extends LitElement {
     static styles = styles;
@@ -795,18 +797,18 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderCountry(item) {
-        const labels = getPromoVariationGeoTagsValue(item)
-            .split(',')
-            .filter(Boolean)
-            .map((tag) => tag.split('/').pop())
+        const labels = parseTags(getPromoVariationGeoTagsValue(item))
+            .map(({ label }) => label)
             .join(', ');
         return html`<sp-table-cell class="country">${labels || renderInheritedTagsNotice()}</sp-table-cell>`;
     }
 
     renderPersonalizationTags(item) {
-        const labels = getPromoVariationPersonalizationTagLabels(item).split(', ').filter(Boolean);
+        const tags = parseTags(pznTagsValue(item));
         return html`<sp-table-cell class="pzn-tags">
-            ${labels.length ? html`<sp-tags>${labels.map((label) => html`<sp-tag>${label}</sp-tag>`)}</sp-tags>` : nothing}
+            ${tags.length
+                ? html`<sp-tags>${tags.map(({ id, label }) => html`<sp-tag title=${id}>${label}</sp-tag>`)}</sp-tags>`
+                : nothing}
         </sp-table-cell>`;
     }
 

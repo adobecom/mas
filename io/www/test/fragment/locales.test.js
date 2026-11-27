@@ -24,6 +24,38 @@ import {
 import { computeRegionLocale } from '../../src/fragment/transformers/defaultLanguage.js';
 
 describe('locales', function () {
+    describe('CCD and Adobe Home English regional variations', function () {
+        for (const surface of ['ccd', 'adobe-home']) {
+            describe(surface, function () {
+                for (const country of ['BG', 'RO', 'SI', 'LV', 'LT', 'SK']) {
+                    const locale = `en_${country}`;
+
+                    it(`registers ${locale} in the en_US regional family`, function () {
+                        expect(getRegionLocales(surface, 'en_US').map(getLocaleCode)).to.include(locale);
+                        expect(getDefaultLocaleCode(surface, locale)).to.equal('en_US');
+                    });
+
+                    it(`selects ${locale} when English content is requested for ${country}`, function () {
+                        expect(computeRegionLocale({ surface, locale: 'en_US', defaultLocale: 'en_US', country })).to.equal(
+                            locale,
+                        );
+                    });
+
+                    it(`preserves ${country} for commerce when English content is requested`, function () {
+                        expect(resolveCommerceCountries(surface, 'en_US', country)).to.deep.equal({
+                            country,
+                            wcsCountry: country,
+                        });
+                    });
+                }
+
+                it('keeps Studio and backend locale mappings aligned', function () {
+                    expect(getDefaultLocales(surface)).to.deep.equal(STUDIO_DEFAULT_LOCALES[surface]);
+                });
+            });
+        }
+    });
+
     describe('Lingo Phase 5 ACOM markets', function () {
         const markets = [
             ['ar', 'SA', ['DZ', 'BH', 'IQ', 'JO', 'LB', 'MA', 'OM']],

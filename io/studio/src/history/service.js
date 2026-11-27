@@ -9,7 +9,7 @@ const { resolveScope } = require('./components/index.js');
 const { createVersion } = require('../common/aem-version.js');
 
 const logger = Core.Logger('history', { level: 'info' });
-const RETENTION = 95 * 86400;
+const REQUEST_TTL = 95 * 86400;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const HISTORY_PAGE_SIZE = 10;
@@ -238,10 +238,7 @@ async function prepareSnapshot(context, target) {
     try {
         const response = await aem(context, `/${target.id}/versions?limit=50&sort=created:desc`);
         const previous = (await response.json()).items
-            .filter(
-                (version) =>
-                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - RETENTION * 1000,
-            )
+            .filter((version) => version.comment?.startsWith('Change-set: '))
             .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
         if (previous) {
             const entry = { id: target.id, path: target.path, versionId: previous.id };
@@ -359,14 +356,17 @@ async function reserveVersion(context, event, exclusive = false) {
 
 async function compactReservations(context, ledger, keepId) {
     let changed = false;
-    const candidates = Object.entries(ledger.entries).filter(([id, entry]) => {
-        if (Date.parse(entry.createdAt) < Date.now() - RETENTION * 1000) {
-            delete ledger.entries[id];
-            changed = true;
-            return false;
-        }
-        return id !== keepId && !entry.lockedUntil;
-    });
+    const cutoff = Date.now() - REQUEST_TTL * 1000;
+    const stale = Object.entries(ledger.entries).filter(
+        ([id, entry]) => id !== keepId && Math.max(Date.parse(entry.createdAt), entry.lockedUntil ?? 0) < cutoff,
+    );
+    for (const [id] of stale.slice(0, 1000)) {
+        const guard = await context.state.get(`${namespace(context, 'request')}${id}`);
+        if (guard?.value) continue;
+        delete ledger.entries[id];
+        changed = true;
+    }
+    const candidates = Object.entries(ledger.entries).filter(([id, entry]) => id !== keepId && !entry.lockedUntil);
     const pages = new Map();
     for (const [id, entry] of candidates.slice(0, 1000)) {
         if (!entry.version) continue;
@@ -426,12 +426,8 @@ async function unlockRecord(context) {
     });
 }
 
-function entryTtl(event) {
-    return Math.max(1, Math.ceil((Date.parse(event.createdAt) + RETENTION * 1000 - Date.now()) / 1000));
-}
-
-function entryKey(context, id) {
-    return `${namespace(context, 'entry')}${id}`;
+function entryFile(id) {
+    return `entry-${identifier(id)}.json`;
 }
 
 function indexPage(version) {
@@ -462,11 +458,6 @@ async function indexEntries(context, events) {
     }
     context.index = await updateMetadata(context, 'index.json', { pages: {} }, (value) => {
         const previous = JSON.stringify(value);
-        value.pages = Object.fromEntries(
-            Object.entries(value.pages).filter(
-                ([, range]) => Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000,
-            ),
-        );
         for (const [page, entries] of pages) {
             for (const entry of entries) {
                 const position = indexPosition(entry);
@@ -493,20 +484,18 @@ async function readIndexPage(context, page) {
             (async () => {
                 const stored = await readMetadata(context, `index-${page}.json`);
                 if (!stored) fail(503, 'History index page is unavailable');
-                return Object.values(stored.value.entries)
-                    .filter((entry) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000)
-                    .sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
+                return Object.values(stored.value.entries).sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
             })(),
         );
     }
     return context.indexPages.get(page);
 }
 
-async function* indexedEntries(context, before) {
+async function* indexedEntries(context, before, version) {
     const pages = Object.entries(context.index.pages)
         .filter(
-            ([, range]) =>
-                Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000 &&
+            ([page, range]) =>
+                (version === undefined || Number(page) === indexPage(version)) &&
                 (!before || range.oldest.localeCompare(indexPosition(before)) < 0),
         )
         .map(([page, range]) => ({ page: Number(page), ...range }))
@@ -517,7 +506,9 @@ async function* indexedEntries(context, before) {
             const { page } = pages.shift();
             pending.push(
                 ...(await readIndexPage(context, page)).filter(
-                    (entry) => !before || indexPosition(entry).localeCompare(indexPosition(before)) < 0,
+                    (entry) =>
+                        (version === undefined || entry.version === version) &&
+                        (!before || indexPosition(entry).localeCompare(indexPosition(before)) < 0),
                 ),
             );
             pending.sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
@@ -541,15 +532,13 @@ async function historyCursor(context, cursor) {
     return entry;
 }
 
-async function readEntry(context, key) {
-    const stored = await context.state.get(key);
-    if (!stored?.value) return null;
-    const event = JSON.parse(stored.value);
-    return Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000 ? event : null;
-}
-
 async function findEntry(context, id) {
-    return readEntry(context, entryKey(context, id));
+    const name = entryFile(id);
+    const archived = await readMetadata(context, name);
+    if (archived) return archived.value;
+    const legacy = await context.state.get(`${namespace(context, 'entry')}${id}`);
+    if (!legacy?.value) return null;
+    return updateMetadata(context, name, JSON.parse(legacy.value), (value, exists) => !exists);
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
@@ -599,9 +588,7 @@ async function persistEvent(context, event) {
         Object.assign(event, await reserveVersion(context, event));
         if (context.recordGuard) await persistRestore(context, context.recordGuard);
     }
-    await context.state.put(entryKey(context, event.id), bounded(event), {
-        ttl: entryTtl(event),
-    });
+    event = await updateMetadata(context, entryFile(event.id), event, (value, exists) => !exists);
     await indexEntries(context, [event]);
     return event;
 }
@@ -795,7 +782,7 @@ async function list(context, params) {
     const before = params.cursor ? await historyCursor(context, params.cursor) : undefined;
     const page = [];
     let currentEventId = null;
-    if (params.cursor) {
+    if (params.cursor || query) {
         for await (const entry of indexedEntries(context)) {
             const event = await findEntry(context, entry.id);
             if (!event) continue;
@@ -807,7 +794,11 @@ async function list(context, params) {
             }
         }
     }
-    const entries = indexedEntries(context, before);
+    const version = query ? Number(query.replace(/^version /, '')) : undefined;
+    if (query && (!Number.isSafeInteger(version) || version < 1 || ![String(version), `version ${version}`].includes(query))) {
+        return { events: [], currentEventId };
+    }
+    const entries = indexedEntries(context, before, version);
     let finished = false;
     while (!finished) {
         const batch = [];
@@ -999,7 +990,7 @@ function versionPending(restored, failures) {
 }
 
 async function persistRestore(context, guard) {
-    await context.state.put(`${namespace(context, 'request')}${requestId(context)}`, bounded(guard), { ttl: RETENTION });
+    await context.state.put(`${namespace(context, 'request')}${requestId(context)}`, bounded(guard), { ttl: REQUEST_TTL });
 }
 
 async function finishRestore(context, guard, plan, after) {

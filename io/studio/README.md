@@ -188,6 +188,8 @@ If you need to force re-deploy:
   To deploy specific action
 - `aio app deploy --force-deploy -a ost-products-read`
 
+Immediately after deploying the updated history actions in each workspace, run `node scripts/history-migration.mjs --apply --namespace <configured-runtime-namespace>` from `io/studio`. `aio app deploy` does not remove undeclared actions, so the legacy `history-cleanup` cron keeps running until the migration script retires it.
+
 ## Config
 
 ### `.env`

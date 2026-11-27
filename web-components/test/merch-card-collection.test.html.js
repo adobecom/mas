@@ -413,7 +413,7 @@ runTests(async () => {
                 for (const attribute of attributes) {
                     fragment.setAttribute(attribute, 'localized');
                 }
-                const suffix = `${attributes.includes('pzn') ? '-p_localized' : ''}${attributes.includes('mask') ? '-m_localized' : ''}`;
+                const suffix = `${attributes.includes('pzn') ? '-p_localized' : ''}${attributes.includes('mask') ? '-m_localized' : ''}-legacy`;
                 const cacheKey = `${fragment.getAttribute('fragment')}${suffix}`;
                 const labels = [
                     'Abonnement annuel, facturation mensuelle',
@@ -510,7 +510,7 @@ runTests(async () => {
                     settings: { displayPlanType: false },
                     priceLiterals: { planTypeLabel: 'Unmasked label' },
                 };
-                cache.add(unmasked);
+                cache.add(unmasked, true, fragment.cacheSuffix);
                 const standalone = document.createElement('aem-fragment');
                 standalone.setAttribute('fragment', unmasked.id);
                 document.getElementById('content').append(standalone);

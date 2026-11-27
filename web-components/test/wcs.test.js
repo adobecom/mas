@@ -220,8 +220,11 @@ describe('Orion WCS requests and prefill', () => {
 
     for (const [env, orion, expected] of [
         [Env.STAGE, true, 'true'],
-        [Env.STAGE, false, null],
-        [Env.PRODUCTION, true, null],
+        [Env.STAGE, false, 'false'],
+        [Env.STAGE, undefined, 'false'],
+        [Env.PRODUCTION, true, 'true'],
+        [Env.PRODUCTION, false, 'false'],
+        [Env.PRODUCTION, undefined, null],
     ]) {
         it(`sends serveLatest=${expected} for ${env} with Orion=${orion}`, async () => {
             await mockFetch(withWcs);
@@ -266,9 +269,31 @@ describe('Orion WCS requests and prefill', () => {
         });
         await Promise.all(client.resolveOfferSelectors(options));
         expect(fetch.callCount).to.equal(1);
-        expect(new URL(fetch.firstCall.args[0]).searchParams.has('serveLatest'))
-            .to.be.false;
+        expect(
+            new URL(fetch.firstCall.args[0]).searchParams.get('serveLatest'),
+        ).to.equal('false');
     });
+
+    for (const [env, orion, namespace] of [
+        [Env.STAGE, false, 'stage-legacy'],
+        [Env.PRODUCTION, false, 'prod-legacy'],
+        [Env.PRODUCTION, true, 'prod-latest'],
+    ]) {
+        it(`uses only ${namespace} prefill for ${env} with Orion=${orion}`, async () => {
+            await mockFetch(withWcs);
+            const client = Wcs({ settings: { ...settings, env, orion } });
+            client.prefillWcsCache({
+                stage: { [key]: [{ offerId: 'default' }] },
+                prod: { [key]: [{ offerId: 'default' }] },
+                [namespace]: { [key]: [{ offerId: 'selected' }] },
+            });
+            const [offers] = await Promise.all(
+                client.resolveOfferSelectors(options),
+            );
+            expect(offers[0].offerId).to.equal('selected');
+            expect(fetch.callCount).to.equal(0);
+        });
+    }
 
     it('uses the server GB cache key without a language suffix in latest mode', async () => {
         await mockFetch(withWcs);

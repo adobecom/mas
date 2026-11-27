@@ -56,12 +56,6 @@ export const ANALYTICS_LINK_IDS = [
     'save-today',
 ];
 
-export const CONSUMER_FEATURE_FLAGS = {
-    'adobe-home': {
-        'mas-ff-defaults': 'off',
-    },
-};
-
 // TODO remove these?
 export const EVENT_CHANGE = 'change';
 export const EVENT_INPUT = 'input';

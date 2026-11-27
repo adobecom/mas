@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { createReleaseCard } from './utils/release-cards.js';
 import { fetchProducts } from './services/product-api.js';
+import { excludeEnterprise } from './utils/enterprise-offers.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
 import { EVENT_OST_MULTI_OFFER_SELECT, PAGE_NAMES } from './constants.js';
@@ -193,7 +194,7 @@ class MasProductCatalog extends LitElement {
         this.error = null;
         try {
             const result = await fetchProducts();
-            this.products = result.products || [];
+            this.products = excludeEnterprise(result.products);
         } catch (e) {
             console.error('Failed to load products:', e);
             this.error = e.message;
@@ -367,10 +368,10 @@ class MasProductCatalog extends LitElement {
 
     handleMultiOfferSelect({ detail: { base, trial } }) {
         if (!this.pendingCreate || !base?.osi) return;
-        this.executeCreate(base.osi, trial?.osi);
+        this.executeCreate(base.osi, trial?.osi, base.offer);
     }
 
-    async executeCreate(osi, trialOsi) {
+    async executeCreate(osi, trialOsi, baseOffer) {
         const { product, surface, locale, variants } = this.pendingCreate;
         this.pendingCreate = null;
         this.creating = true;
@@ -385,6 +386,7 @@ class MasProductCatalog extends LitElement {
                         variant,
                         baseOsi: osi,
                         trialOsi,
+                        baseOffer,
                         parentPath,
                         repository,
                     });

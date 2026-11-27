@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { mockDictionary } from './replace.test.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import zlib from 'zlib';
@@ -10,6 +12,7 @@ import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type:
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
+import { MockFiles } from './mocks/MockFiles.js';
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -26,8 +29,11 @@ function decompress(response) {
     };
 }
 
-async function getFragment(params) {
-    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }));
+// refresh invocations are not triggered from the tests, unless they pass their own openwhisk client
+const noRefresh = { openwhiskFactory: () => ({ actions: { invoke: async () => ({}) } }) };
+
+async function getFragment(params, deps = noRefresh) {
+    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }, deps));
 }
 
 const EXPECTED_HEADERS = {
@@ -83,7 +89,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // promotions folder — no active promotions by default
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
+        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions&limit=50`)
         .returns(createResponse(200, { items: [] }));
 
     // WCS prefill — hardcoded prod config is always merged in; return empty offers
@@ -111,7 +117,11 @@ describe('Orion fragment pipeline', () => {
             .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
             .callsFake((url) =>
                 createResponse(200, {
-                    resolvedOffers: [{ offerId: new URL(url).searchParams.has('serveLatest') ? 'orion' : 'legacy' }],
+                    resolvedOffers: [
+                        {
+                            offerId: new URL(url).searchParams.get('serveLatest') === 'true' ? 'orion' : 'legacy',
+                        },
+                    ],
                 }),
             );
     });
@@ -122,7 +132,7 @@ describe('Orion fragment pipeline', () => {
         clearSettingsCache();
     });
 
-    it('returns isolated latest prefill and keeps production requests unchanged', async () => {
+    it('returns isolated latest prefill for both stage and production', async () => {
         const state = new MockState();
         await state.put(
             'configuration',
@@ -145,13 +155,13 @@ describe('Orion fragment pipeline', () => {
         expect(latest).not.to.be.empty;
         expect(latest.every(({ offerId }) => offerId === 'orion')).to.be.true;
         expect(
-            Object.values(response.body.wcs.prod)
+            Object.values(response.body.wcs['prod-latest'])
                 .flat()
-                .every(({ offerId }) => offerId === 'legacy'),
+                .every(({ offerId }) => offerId === 'orion'),
         ).to.be.true;
     });
 
-    it('uses normal response metadata for latest requests without a Stage configuration', async () => {
+    it('isolates latest production response metadata without a stage configuration', async () => {
         const state = new MockState();
         const response = await getFragment({
             id: 'some-en-us-fragment',
@@ -160,9 +170,66 @@ describe('Orion fragment pipeline', () => {
             state,
         });
         expect(response.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
-        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
-        expect(response.body.wcs).to.have.all.keys('prod');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US');
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US-latest-v2');
+        expect(response.body.wcs).to.have.all.keys('prod-latest');
+    });
+
+    it('rebuilds latest offers instead of serving a fresh pre-rollout mixed-environment response', async () => {
+        const state = new MockState();
+        const files = new MockFiles();
+        const oldKey = 'req-some-en-us-fragment-en_US-latest';
+        const oldBody = { ...EXPECTED_BODY, wcs: { prod: {}, 'stage-latest': {} } };
+        await state.put(
+            'configuration',
+            JSON.stringify({
+                wcsConfiguration: [
+                    { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+                ],
+            }),
+        );
+        await state.put(oldKey, JSON.stringify({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() }));
+        await files.write(
+            'fragment-cache/res-some-en-us-fragment-en_US-latest.json',
+            JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync(JSON.stringify(oldBody)).toString('base64'),
+            }),
+        );
+        const request = { id: 'some-en-us-fragment', locale: 'en_US', serveLatest: 'true', state, files };
+
+        const response = await getFragment(request);
+
+        expect(response.statusCode).to.equal(200);
+        expect(response.body.wcs).to.have.all.keys('prod-latest', 'stage-latest');
+        expect(Object.values(response.body.wcs['prod-latest']).flat()).not.to.be.empty;
+        const fetchCount = fetchStub.callCount;
+        expect((await getFragment(request)).body).to.deep.equal(response.body);
+        expect(fetchStub.callCount).to.equal(fetchCount);
+    });
+
+    it('keeps production default, legacy and latest stored responses separate', async () => {
+        const state = new MockState();
+        const files = new MockFiles();
+        for (const [serveLatest, namespace, suffix] of [
+            [undefined, 'prod', ''],
+            [false, 'prod-legacy', '-legacy'],
+            [true, 'prod-latest', '-latest-v2'],
+        ]) {
+            const response = await getFragment({
+                id: 'some-en-us-fragment',
+                locale: 'en_US',
+                serveLatest,
+                state,
+                files,
+            });
+            expect(response.statusCode).to.equal(200);
+            expect(response.body.wcs).to.have.all.keys(namespace);
+            expect(state.store).to.have.property(`req-some-en-us-fragment-en_US${suffix}`);
+            const offers = Object.values(response.body.wcs[namespace]).flat();
+            expect(offers).not.to.be.empty;
+            expect(offers.every(({ offerId }) => offerId === (serveLatest ? 'orion' : 'legacy'))).to.be.true;
+        }
     });
 });
 
@@ -193,6 +260,7 @@ describe('collection placeholders', () => {
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
         clearSettingsCache();
+        clearDictionaryCache();
     });
 
     afterEach(function () {
@@ -238,6 +306,7 @@ describe('pipeline corner cases', () => {
         mockDictionary(false, fetchStub);
         resetCache();
         clearSettingsCache();
+        clearPromoCache();
     });
 
     afterEach(() => {

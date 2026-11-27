@@ -62,17 +62,22 @@ merch-card[variant="product-pricing"] merch-badge {
     --merch-badge-color: #fff !important;
     --merch-badge-padding: 0 !important;
     inset-inline-start: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
-    line-height: 18px;
+    line-height: 20px;
+}
+
+merch-card[variant="product-pricing"] merch-icon[slot="icons"] {
+    --mod-img-width: 32px;
+    --mod-img-height: 32px;
 }
 
 merch-card[variant="product-pricing"] [slot="heading-s"] {
     margin: 0;
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 900;
-    line-height: 18px;
-    letter-spacing: -0.2px;
+    line-height: 24px;
+    letter-spacing: -0.48px;
     color: #000;
 }
 
@@ -92,9 +97,11 @@ merch-card[variant="product-pricing"] [slot="body-xs"] a {
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] {
     margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 20px;
+    font-family: "Adobe Clean Display Black", adobe-clean-display, "Arial Bold Adjusted", sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 18px;
+    letter-spacing: -0.2px;
     color: #000;
     text-align: left;
 }
@@ -111,9 +118,11 @@ merch-card[variant="product-pricing"] [slot="heading-xs"] .price-alternative {
 }
 
 merch-card[variant="product-pricing"] [slot="heading-xs"] .price-strikethrough {
+    font-family: "Adobe Clean", adobe-clean, sans-serif;
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
+    letter-spacing: 0;
     text-decoration: line-through;
     color: #5c5c5c;
 }
@@ -192,5 +201,47 @@ merch-card[variant="product-pricing"] [slot="footer"] a.outline {
 
 merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
     flex-basis: 100%;
+}
+
+merch-card[variant="product-pricing"] merch-addon[slot="addon"] {
+    display: grid;
+    grid-template-columns: var(--merch-addon-checkbox-size) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    --merch-addon-gap: 8px;
+    --merch-addon-align: center;
+    padding: 16px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    background: #fff;
+    box-sizing: border-box;
+    margin-top: 16px;
+    --merch-addon-checkbox-size: 20px;
+    --merch-addon-checkbox-border: none;
+    --merch-addon-checkbox-radius: 0;
+    --merch-addon-checkbox-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M15.25 18H4.75C3.2334 18 2 16.7666 2 15.25V4.75C2 3.2334 3.2334 2 4.75 2H15.25C16.7666 2 18 3.2334 18 4.75V15.25C18 16.7666 16.7666 18 15.25 18ZM4.75 3.5C4.06055 3.5 3.5 4.06055 3.5 4.75V15.25C3.5 15.9395 4.06055 16.5 4.75 16.5H15.25C15.9395 16.5 16.5 15.9395 16.5 15.25V4.75C16.5 4.06055 15.9395 3.5 15.25 3.5H4.75Z' fill='%23000000'/%3E%3C/svg%3E") center / contain no-repeat;
+    /* Checked: shared light check over a dark rounded square, like the Student/Pro grey checkbox.
+       The last layer has no repeat keyword because merch-addon appends one. */
+    --merch-addon-checkbox-checked-bg: var(--checkmark-icon) center / 12px 12px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M15.25 18H4.75C3.2334 18 2 16.7666 2 15.25V4.75C2 3.2334 3.2334 2 4.75 2H15.25C16.7666 2 18 3.2334 18 4.75V15.25C18 16.7666 16.7666 18 15.25 18Z' fill='%23000000'/%3E%3C/svg%3E") center / contain;
+    --merch-addon-checkbox-checked-bg-color: transparent;
+    --merch-addon-checkbox-checked-color: transparent;
+    letter-spacing: 0;
+    --merch-addon-label-size: 14px;
+    --merch-addon-label-line-height: 18px;
+    --merch-addon-label-weight: 700;
+    --merch-addon-label-color: #000;
+}
+
+/* merch-addon stops styling its label once the paragraph picks up a
+   data-plan-type, so do it here. No display — that is what switches plan types. */
+merch-card[variant="product-pricing"] merch-addon[slot="addon"] p {
+    margin: 0;
+    color: #000;
+    font-family: 'Adobe Clean', adobe-clean, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+    letter-spacing: 0;
+    cursor: pointer;
 }
 `;

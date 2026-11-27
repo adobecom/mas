@@ -17,7 +17,11 @@ import {
 import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
 import { isCountdownLinkText } from './countdown.js';
 import { getFragmentMapping } from './variants/variants.js';
-import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
+import {
+    setForegroundTimeout,
+    clearForegroundTimeout,
+    swapAriaLabel,
+} from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -1068,8 +1072,17 @@ export async function processCTAs(
                                     'data-analytics-id',
                                     'buy-now',
                                 );
-                                if (checkout.hasAttribute('aria-label'))
-                                    checkout.removeAttribute('aria-label');
+                                const ariaLabel = swapAriaLabel(
+                                    checkout.getAttribute('aria-label'),
+                                    checkout.textContent,
+                                    merchCard.priceLiterals.buyNow,
+                                );
+                                if (ariaLabel !== null)
+                                    checkout.setAttribute(
+                                        'aria-label',
+                                        ariaLabel,
+                                    );
+                                else checkout.removeAttribute('aria-label');
                                 if (checkout.hasAttribute('data-modal'))
                                     checkout.setAttribute('data-modal', 'crm');
                                 const daall = checkout.getAttribute('daa-ll');

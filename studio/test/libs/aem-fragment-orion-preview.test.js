@@ -57,7 +57,7 @@ describe('Orion fragment preview pipeline', () => {
                 return new Response(
                     JSON.stringify({
                         id: fragmentId,
-                        path: '/content/dam/mas/nala/en_GB/orion-preview',
+                        path: `/content/dam/mas/nala/${service.settings.locale}/orion-preview`,
                         fields: {
                             variant: 'plans',
                             osi,
@@ -104,6 +104,34 @@ describe('Orion fragment preview pipeline', () => {
             .map(({ args: [input] }) => new URL(input))
             .filter(({ pathname }) => pathname.includes('web_commerce_artifact'));
 
+    for (const [env, mode, selection] of [
+        ['stage', 'on', true],
+        ['stage', 'off', false],
+        ['prod', 'on', true],
+        ['prod', 'off', false],
+    ]) {
+        it(`preserves ${env}/${mode} preview selection on an author cache miss`, async () => {
+            const url = new URL(href);
+            url.search = `?commerce.env=${env}&mas.orion=${mode}&mas.preview=on`;
+            window.history.replaceState({}, '', url);
+            service.activate();
+            const module = `export const previewFragment = async (id, options) => ({
+                status: 200,
+                body: { id, fields: [], selection: options.serveLatest },
+            });`;
+            AemFragment.prototype.getFragmentClientUrl.returns(`data:text/javascript,${encodeURIComponent(module)}`);
+            fragment = document.createElement('aem-fragment');
+            fragment.setAttribute('author', '');
+            fragment.setAttribute('fragment', fragmentId);
+            document.body.append(fragment);
+
+            await fragment.updateComplete;
+
+            expect(fragment.cacheKey()).to.equal(fragmentId);
+            expect(fragment.rawData.selection).to.equal(selection);
+        });
+    }
+
     it('uses latest offers for the early preview WCS lookup and reuses them as latest prefill', async () => {
         await load();
 
@@ -117,7 +145,7 @@ describe('Orion fragment preview pipeline', () => {
         const [offers] = await Promise.all(service.resolveOfferSelectors({ country: 'GB', language: 'en', wcsOsi: [osi] }));
         expect(offers.map(({ offerId }) => offerId)).to.deep.equal(['orion-EN', 'orion-MULT']);
         expect(wcsRequests()).to.have.lengthOf(1);
-        expect(localStorage.getItem(`req-${fragmentId}-en_GB-latest`)).not.to.equal(null);
+        expect(localStorage.getItem(`req-${fragmentId}-en_GB-latest-v2`)).not.to.equal(null);
     });
 
     it('uses latest offers for final preview WCS requests without an early baseline lookup', async () => {
@@ -134,6 +162,7 @@ describe('Orion fragment preview pipeline', () => {
         const loading = load();
         const url = new URL(window.location.href);
         url.searchParams.set('commerce.env', 'prod');
+        url.searchParams.delete('mas.orion');
         window.history.replaceState({}, '', url);
         service.activate();
 
@@ -144,18 +173,28 @@ describe('Orion fragment preview pipeline', () => {
         expect(fragment.rawData.wcs.prod[cacheKey][0].offerId).to.equal('legacy-EN');
     });
 
-    for (const env of ['stage', 'prod']) {
-        it(`omits the latest flag and prefill namespace for normal ${env} preview`, async () => {
+    for (const [env, mode, selection, namespace] of [
+        ['stage', '', 'false', 'stage-legacy'],
+        ['stage', '&mas.orion=off', 'false', 'stage-legacy'],
+        ['prod', '', null, 'prod'],
+        ['prod', '&mas.orion=off', 'false', 'prod-legacy'],
+        ['prod', '&mas.orion=on', 'true', 'prod-latest'],
+    ]) {
+        it(`forwards ${selection} and reuses ${namespace} offers in preview`, async () => {
             const url = new URL(href);
-            url.search = `?commerce.env=${env}&mas.orion=${env === 'prod' ? 'on' : 'off'}&mas.preview=on`;
+            url.search = `?commerce.env=${env}${mode}&mas.preview=on`;
             window.history.replaceState({}, '', url);
+            service.setAttribute('locale', 'en_US');
             service.activate();
             await load();
 
             expect(wcsRequests()).to.have.lengthOf(1);
-            expect(wcsRequests()[0].searchParams.has('serveLatest')).to.be.false;
-            expect(fragment.rawData.wcs).not.to.have.property('stage-latest');
-            expect(fragment.rawData.wcs[env][cacheKey][0].offerId).to.equal('legacy-EN');
+            expect(wcsRequests()[0].searchParams.get('serveLatest')).to.equal(selection);
+            const expected = selection === 'true' ? 'orion-EN' : 'legacy-EN';
+            expect(fragment.rawData.wcs[namespace][`${osi}-us-mult`][0].offerId).to.equal(expected);
+            const [offers] = await Promise.all(service.resolveOfferSelectors({ country: 'US', language: 'en', wcsOsi: [osi] }));
+            expect(offers[0].offerId).to.equal(expected);
+            expect(wcsRequests()).to.have.lengthOf(1);
         });
     }
 
@@ -173,12 +212,12 @@ describe('Orion fragment preview pipeline', () => {
             const prefill = sandbox.spy(service, 'prefillWcsCache');
             await loading;
 
-            expect(wcsRequests().map(({ searchParams }) => searchParams.has('serveLatest'))).to.deep.equal([
-                firstMode === 'on',
-                firstMode !== 'on',
+            expect(wcsRequests().map(({ searchParams }) => searchParams.get('serveLatest'))).to.deep.equal([
+                String(firstMode === 'on'),
+                String(firstMode !== 'on'),
             ]);
             expect(prefill.calledOnce).to.be.true;
-            const namespace = firstMode === 'on' ? 'stage' : 'stage-latest';
+            const namespace = firstMode === 'on' ? 'stage-legacy' : 'stage-latest';
             expect(prefill.firstCall.args[0][namespace][cacheKey][0].offerId).to.equal(
                 firstMode === 'on' ? 'legacy-EN' : 'orion-EN',
             );

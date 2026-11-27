@@ -31,6 +31,31 @@ describe('commerce service', () => {
     });
 
     describe(`component "${TAG_NAME_SERVICE}"`, () => {
+        it('exposes shared checkout decisions before connection and after activation', () => {
+            const disconnected = document.createElement(TAG_NAME_SERVICE);
+            const context = {
+                modal: 'crm',
+                fallbackStep: 'payment',
+                checkoutWorkflowStep: 'segmentation',
+                threeInOneEnabled: false,
+            };
+            const expected = {
+                checkoutWorkflowStep: 'payment',
+                modal: undefined,
+                fallbackUsed: true,
+            };
+            expect(
+                disconnected.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+            const service = initMasCommerceService();
+            expect(service.checkoutDecisions).to.equal(
+                disconnected.checkoutDecisions,
+            );
+            expect(
+                service.checkoutDecisions.resolveWorkflowFallback(context),
+            ).to.deep.equal(expected);
+        });
+
         describe('feature flags', () => {
             it('considers feature flags', async () => {
                 let el = await initMasCommerceService();
@@ -289,10 +314,11 @@ describe('commerce service', () => {
                     tags: 'ccd',
                     isProdDomain: false,
                     country: 'US',
+                    locale: 'en_US',
                 });
             });
 
-            it('logs the resolved country in lana facts', async () => {
+            it('logs the resolved country and locale in lana facts', async () => {
                 const el = await initMasCommerceService({
                     'lana-sample-rate': '100',
                     locale: 'fr_LU',
@@ -300,7 +326,7 @@ describe('commerce service', () => {
                 el.log.error('MERCH-CARD failed to initialize');
                 const [msg] = window.lana.log.lastCall.args;
                 expect(msg).to.match(
-                    /¶facts=\[\{"mas-commerce-service:country":"LU"\}\]$/,
+                    /¶facts=\[\{"mas-commerce-service:country":"LU","mas-commerce-service:locale":"fr_LU"\}\]$/,
                 );
             });
         });

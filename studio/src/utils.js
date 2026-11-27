@@ -207,6 +207,17 @@ export function normalizeKey(str) {
 }
 
 /**
+ * Normalizes a string to be used as a fragment name
+ * Converts to lowercase, replaces spaces with hyphens, removes special characters and collapses or trims hyphens
+ * @param {string} str - The string to normalize
+ * @returns {string} - The normalized string
+ */
+export function normalizeFragmentName(str) {
+    if (!str) return '';
+    return normalizeKey(str).replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+/**
  * Returns the fragment mapping for a given variant
  * @param {string} variant
  * @returns {object | null}
@@ -590,6 +601,19 @@ export function previewFragmentOnPage(fragment) {
 
     const locale = extractLocaleFromPath(fragment.path);
     const type = fragment?.model?.path === CARD_MODEL_PATH ? 'merch-card' : 'merch-card-collection';
+    const surface = extractSurfaceFromPath(fragment.path);
+    if (['ccd', 'adobe-home', 'commerce'].includes(surface)) {
+        const url = new URL('/web-components/docs/mas-preview.html', window.location.origin);
+        url.search = new URLSearchParams({
+            'fragment-id': fragment.id,
+            'content-type': type,
+            locale,
+            theme: 'light',
+            ...(fragment.status !== STATUS_PUBLISHED && { 'mas.preview': 'on' }),
+        });
+        window.open(url.href, '_blank');
+        return;
+    }
     const hostname = fragment?.status === STATUS_PUBLISHED ? 'milo.adobe.com' : 'main--milo--adobecom.aem.page';
     window.open(
         `https://${hostname}/merch/mas/preview?fragment-id=${fragment?.id}&content-type=${type}&locale=${locale}`,

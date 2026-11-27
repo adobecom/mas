@@ -254,6 +254,8 @@ export const styles = [
         .pzn-tags sp-tag {
             --mod-tag-background-color: var(--spectrum-gray-100);
             --mod-tag-border-color: transparent;
+            position: relative;
+            z-index: 2;
         }
 
         .grouped-promo-variation-row {

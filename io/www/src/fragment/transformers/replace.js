@@ -1,7 +1,7 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, markDegraded } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -23,7 +23,8 @@ const TRANSFORMER_NAME = 'replace';
 // single-flight refills, and stale-while-revalidate. The shared `acom/<baseLocale>` global
 // baseline is read by every placeholder request across every surface, so a synchronized
 // expiry would herd the whole fleet onto one `direct-hydrated` Odin fetch — see createSwrCache.
-const dictionaryCache = createSwrCache({ name: 'dictionary' });
+// Expired layers are revalidated with their Odin ETag: an unchanged dictionary is a body-less 304.
+const dictionaryCache = createSwrCache({ name: 'dictionary', conditional: true });
 
 export function clearDictionaryCache(preview = false) {
     dictionaryCache.clear(preview);
@@ -74,15 +75,18 @@ function collectEntries(fragment, references, dictionary) {
 // 404 there means a mid-publish/softpurge race — caching `{}` would render raw `{{tokens}}` fleet-wide
 // until TTL. Transient results resolve `null`, which is NOT cached (see createSwrCache) so they retry.
 async function buildDictionaryLayer(context, surface, locale, prefix) {
-    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async () => {
+    const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async ({ etagFor }) => {
         const { id, status } = await getDictionaryId(context, surface, locale);
-        if (!id) return status === 404 && prefix === 'region' ? {} : null;
-        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, `dictionary-${prefix}`);
+        if (!id) return status === 404 && prefix === 'region' ? { value: {} } : null;
+        const url = odinReferences(id, context.preview, REFERENCES.DIRECT);
+        const response = await fetch(url, context, `dictionary-${prefix}`, { etag: etagFor(url) });
+        if (response.status === 304) return NOT_MODIFIED;
         if (response.status != 200) return null;
         const dictionary = {};
         collectEntries(response.body, response.body.references || {}, dictionary);
-        return dictionary;
+        return { value: dictionary, etag: response.etag, url };
     });
+    if (!layer) markDegraded(context, `dictionary ${surface}/${locale}`);
     return layer ?? {};
 }
 

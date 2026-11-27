@@ -425,19 +425,23 @@
                         const AemFragment = customElements.get('aem-fragment');
                         for (const author of [false, true]) {
                             const id = `countdown-event-${author}`;
-                            AemFragment.cache.add({
-                                id,
-                                cdtStart: START,
-                                cdtEnd: END,
-                                previewLocale: 'ko_KR',
-                                fields: author
-                                    ? [{ name: 'variant', values: ['pro'] }]
-                                    : { variant: 'pro' },
-                            });
                             const fragment =
                                 document.createElement('aem-fragment');
                             fragment.setAttribute('fragment', id);
                             if (author) fragment.setAttribute('author', '');
+                            AemFragment.cache.add(
+                                {
+                                    id,
+                                    cdtStart: START,
+                                    cdtEnd: END,
+                                    previewLocale: 'ko_KR',
+                                    fields: author
+                                        ? [{ name: 'variant', values: ['pro'] }]
+                                        : { variant: 'pro' },
+                                },
+                                true,
+                                fragment.cacheSuffix,
+                            );
                             const loaded = new Promise((resolve) =>
                                 fragment.addEventListener('aem:load', resolve, {
                                     once: true,

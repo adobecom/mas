@@ -1,4 +1,5 @@
 import { fieldValuesArePersistedExplicitEmpty } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { Fragment, ICON_FIELDS } from './fragment.js';
 
 /**
  * Whether a variation field should inherit parent values in preview merge.
@@ -21,15 +22,21 @@ export function variationFieldShouldInheritParent(sourceValues, isMultiple = fal
 
 /**
  * Fills the empty fields of preview data with the parent values (in place). Fields listed in `arraysToMerge` keep their
- * own values after the parent ones, as `deepMerge` of the `customize` transformer does.
+ * own values after the parent ones, as `deepMerge` of the `customize` transformer does. Preview data setting icons other
+ * than the parent ones (clearing them included) keeps its own alt text: the parent one describes another icon. Icons
+ * matching the parent ones are the parent icons, as in `Fragment#ownsAltText`.
  * @param {{ fields: Array }} previewData
  * @param {{ fields?: Array }} parentFragment
  * @param {string[]} [arraysToMerge]
+ * @param {{ fields?: Array }} [iconParent] the fragment whose icons tell whether the preview data sets its own icons,
+ * the inheritance parent when the parent layers are merged one by one
  * @returns {{ fields: Array }} previewData
  */
-export function mergeParentFields(previewData, parentFragment, arraysToMerge = []) {
+export function mergeParentFields(previewData, parentFragment, arraysToMerge = [], iconParent = parentFragment) {
+    const setsOwnIcon = overridesParentIcons(previewData, iconParent);
     for (const parentField of parentFragment.fields ?? []) {
         if (!parentField.values?.length) continue;
+        if (setsOwnIcon && ICON_FIELDS.has(parentField.name)) continue;
         const sourceField = previewData.fields.find((field) => field.name === parentField.name);
         if (!variationFieldShouldInheritParent(sourceField?.values, sourceField?.multiple === true)) {
             if (arraysToMerge.includes(parentField.name)) sourceField.values = [...parentField.values, ...sourceField.values];
@@ -42,4 +49,44 @@ export function mergeParentFields(previewData, parentFragment, arraysToMerge = [
         }
     }
     return previewData;
+}
+
+function overridesParentIcons(previewData, parentFragment) {
+    const iconField = previewData.fields?.find((field) => field.name === 'mnemonicIcon');
+    if (variationFieldShouldInheritParent(iconField?.values, iconField?.multiple === true)) return false;
+    const parentIcons = parentFragment.fields?.find((field) => field.name === 'mnemonicIcon')?.values ?? [];
+    const normalize = (value) =>
+        String(value ?? '')
+            .normalize('NFC')
+            .trim();
+    return (
+        iconField.values.length !== parentIcons.length ||
+        iconField.values.some((value, i) => normalize(value) !== normalize(parentIcons[i]))
+    );
+}
+
+/**
+ * The fragment a card inherits its empty fields from: its merged baselines, under its locale default fragment for a
+ * variation (baselines < locale default < card, like the delivery pipeline).
+ * @param {Fragment | null} parentFragment
+ * @param {Fragment | null} baselineParent
+ * @returns {Fragment | null}
+ */
+export function buildInheritanceParent(parentFragment, baselineParent) {
+    if (!parentFragment || !baselineParent) return parentFragment ?? baselineParent;
+    return new Fragment(mergeParentFields(structuredClone({ fields: parentFragment.fields }), baselineParent));
+}
+
+/**
+ * `buildInheritanceParent`, rebuilt only when the parent or the baselines change.
+ * @returns {(parentFragment: Fragment | null, baselineParent: Fragment | null) => Fragment | null}
+ */
+export function cachedInheritanceParent() {
+    let cached = {};
+    return (parentFragment, baselineParent) => {
+        if (cached.parentFragment !== parentFragment || cached.baselineParent !== baselineParent) {
+            cached = { parentFragment, baselineParent, fragment: buildInheritanceParent(parentFragment, baselineParent) };
+        }
+        return cached.fragment;
+    };
 }

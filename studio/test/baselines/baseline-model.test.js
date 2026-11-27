@@ -10,6 +10,7 @@ import {
     getBaselineInfo,
     getBaselinesPath,
     loadBaselines,
+    parseBaselinePath,
     prepareBaselineFolder,
     resolveBaselineOffer,
 } from '../../src/baselines/baseline-model.js';
@@ -62,6 +63,23 @@ describe('baseline-model', () => {
 
     it('puts segment overrides in a lower-cased segment folder under the PA code', () => {
         expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'EDU' })).to.equal(`${FOLDER}/edu`);
+    });
+
+    it('parses the template and PA code of a baseline path', () => {
+        expect(parseBaselinePath(`${FOLDER}/${BASELINE_NAME}`)).to.deep.equal({
+            template: 'catalog',
+            productArrangementCode: 'ccsn_direct_individual',
+            marketSegment: undefined,
+        });
+    });
+
+    it('parses the market segment of a segment baseline path', () => {
+        expect(parseBaselinePath(`${FOLDER}/edu/${BASELINE_NAME}`)).to.deep.include({ marketSegment: 'edu' });
+    });
+
+    it('parses nothing out of a card path', () => {
+        expect(parseBaselinePath('/content/dam/mas/sandbox/fr_FR/my-card')).to.be.null;
+        expect(parseBaselinePath(undefined)).to.be.null;
     });
 
     it('ensures the baseline folder exists', async () => {
@@ -148,15 +166,29 @@ describe('baseline-model', () => {
                     productArrangementCode: 'PA-1',
                     market_segments: ['EDU'],
                     product_code: 'CCSN',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
                 }),
-            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
+            ).to.deep.equal({
+                productArrangementCode: 'PA-1',
+                marketSegment: 'EDU',
+                productCode: 'CCSN',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
         it('resolves the PA code and segment from the offer selector', async () => {
             service.resolveOfferSelectors.returns([
                 Promise.resolve([
-                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                    {
+                        productArrangementCode: 'PA-2',
+                        marketSegments: ['GOV'],
+                        productArrangement: { productCode: 'PHSP' },
+                        commitment: 'MONTH',
+                        term: 'MONTHLY',
+                    },
                 ]),
             ]);
 
@@ -164,6 +196,8 @@ describe('baseline-model', () => {
                 productArrangementCode: 'PA-2',
                 marketSegment: 'GOV',
                 productCode: 'PHSP',
+                commitment: 'MONTH',
+                term: 'MONTHLY',
             });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
@@ -171,11 +205,20 @@ describe('baseline-model', () => {
         it('gives up when the lookup does not settle in time', async () => {
             service.resolveOfferSelectors.returns([new Promise(() => {})]);
 
-            expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
+            expect(await resolveBaselineOffer('OSI', {}, { timeoutMs: 10 })).to.deep.equal({
                 productArrangementCode: undefined,
                 marketSegment: undefined,
                 productCode: undefined,
+                commitment: undefined,
+                term: undefined,
             });
+        });
+
+        it('reads the offer from the shared cache without a lookup', async () => {
+            const cache = new Map([['OSI', { productArrangementCode: 'PA-3', marketSegments: ['COM'] }]]);
+
+            expect(await resolveBaselineOffer('OSI', {}, { cache })).to.deep.include({ productArrangementCode: 'PA-3' });
+            expect(service.resolveOfferSelectors.called).to.be.false;
         });
     });
 
@@ -228,6 +271,20 @@ describe('baseline-model', () => {
                     data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;
+        });
+
+        it('seeds the baseline with the given fields, a seeded card title replacing the title', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+            const fields = [
+                { name: 'cardTitle', type: 'text', multiple: false, values: ['Illustrator'] },
+                { name: 'description', type: 'long-text', multiple: false, values: ['<p>Get Illustrator.</p>'] },
+            ];
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI', fields });
+
+            const { fields: seedFields, data } = repository.createFragment.firstCall.args[0];
+            expect(seedFields).to.deep.equal(fields);
+            expect(data).to.deep.equal({ osi: 'OSI', variant: 'catalog', compatVersion: COMPAT_VERSION });
         });
     });
 
@@ -308,6 +365,14 @@ describe('baseline-model', () => {
             const baselines = await findCardBaselines(createFragmentsApi(sinon.stub().rejects(notFoundError())), card);
 
             expect(baselines).to.deep.include({ fragmentBaseline: null, fragmentSegmentBaseline: null });
+        });
+
+        it('returns the PA code and market segment the baselines were looked up for', async () => {
+            resolvePa('EDU');
+
+            const baselines = await findCardBaselines(createFragmentsApi(sinon.stub().resolves(null)), card);
+
+            expect(baselines).to.deep.include({ productArrangementCode: 'PA-1', marketSegment: 'EDU' });
         });
 
         it('maps the offer baseline to card fields in the authoring format', async () => {
@@ -434,6 +499,28 @@ describe('baseline-model', () => {
 
             expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['offer.svg']);
             expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Offer']);
+        });
+
+        it('drops the template icon and alt text when the segment baseline has an icon', () => {
+            const { fragment } = buildBaselineParent({
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicIcon', 'segment.svg')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['segment.svg']);
+            expect(fragment.getField('mnemonicAlt')).to.be.undefined;
+        });
+
+        it('lets a baseline above the icon override its alt text alone', () => {
+            const { fragment, sources } = buildBaselineParent({
+                offerBaseline: layer('offer', field('mnemonicAlt', 'Offer')),
+                fragmentBaseline: layer('template', field('mnemonicIcon', 'template.svg'), field('mnemonicAlt', 'Template')),
+                fragmentSegmentBaseline: layer('segment', field('mnemonicAlt', 'Segment')),
+            });
+
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['template.svg']);
+            expect(fragment.getFieldValues('mnemonicAlt')).to.deep.equal(['Segment']);
+            expect(sources).to.deep.equal({ mnemonicIcon: 'template', mnemonicAlt: 'segment' });
         });
 
         it('concatenates compare-chart-column features across baselines, like delivery', () => {

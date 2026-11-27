@@ -1345,6 +1345,51 @@ describe('MasFragmentEditor', () => {
             }
         }
 
+        for (const staged of [true, false]) {
+            it(`${staged ? 'does not' : 'does'} publish a ${staged ? '' : 'non-'}staged card with empty required fields`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+                const { el } = createPublishingEditor({ model: CARD_MODEL_PATH, promotional: false, staged });
+                sandbox
+                    .stub(el, 'querySelector')
+                    .callsFake((selector) => (selector === 'merch-card-editor' ? { emptyRequiredFields: ['Title'] } : null));
+                const toast = sandbox.spy(Events.toast, 'emit');
+
+                await el.publishFragment();
+
+                expect(save.called).to.be.false;
+                expect(publish.called).to.equal(!staged);
+                expect(toast.calledWithMatch({ content: 'Fill in the required fields: Title.', variant: 'negative' })).to.equal(
+                    staged,
+                );
+            });
+        }
+
+        it('does not publish a staged card while its required fields await the baseline lookup', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+            const { el } = createPublishingEditor({ model: CARD_MODEL_PATH, promotional: false, staged: true });
+            sandbox.stub(el, 'querySelector').callsFake((selector) =>
+                selector === 'merch-card-editor'
+                    ? {
+                          unvalidatedRequiredFieldsMessage:
+                              'Looking for a baseline to validate the required fields. Try again in a moment.',
+                          emptyRequiredFields: [],
+                      }
+                    : null,
+            );
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.publishFragment();
+
+            expect(save.called).to.be.false;
+            expect(publish.called).to.be.false;
+            expect(
+                toast.calledWithMatch({
+                    content: 'Looking for a baseline to validate the required fields. Try again in a moment.',
+                    variant: 'negative',
+                }),
+            ).to.be.true;
+        });
+
         it('rejects unauthorized staged promo changes before showing the references dialog', async () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
             const { el } = createPublishingEditor({ model: CARD_MODEL_PATH });
@@ -1563,6 +1608,47 @@ describe('MasFragmentEditor', () => {
                 expect(mockRepo.saveFragment.calledOnce).to.equal(allowed);
             });
         }
+
+        it('does not save a card with empty required fields', async () => {
+            const fragment = new Fragment({ id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields: [] });
+            el.inEdit.value = { get: () => fragment };
+            mockRepo.saveFragment = sandbox.stub().resolves(fragment);
+            sandbox
+                .stub(el, 'querySelector')
+                .callsFake((selector) => (selector === 'merch-card-editor' ? { emptyRequiredFields: ['Title'] } : null));
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.saveFragment();
+
+            expect(mockRepo.saveFragment.called).to.be.false;
+            expect(toast.calledWithMatch({ content: 'Fill in the required fields: Title.', variant: 'negative' })).to.be.true;
+        });
+
+        it('does not save a card while its required fields await the baseline lookup', async () => {
+            const fragment = new Fragment({ id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields: [] });
+            el.inEdit.value = { get: () => fragment };
+            mockRepo.saveFragment = sandbox.stub().resolves(fragment);
+            sandbox.stub(el, 'querySelector').callsFake((selector) =>
+                selector === 'merch-card-editor'
+                    ? {
+                          unvalidatedRequiredFieldsMessage:
+                              'Looking for a baseline to validate the required fields. Try again in a moment.',
+                          emptyRequiredFields: [],
+                      }
+                    : null,
+            );
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.saveFragment();
+
+            expect(mockRepo.saveFragment.called).to.be.false;
+            expect(
+                toast.calledWithMatch({
+                    content: 'Looking for a baseline to validate the required fields. Try again in a moment.',
+                    variant: 'negative',
+                }),
+            ).to.be.true;
+        });
 
         it('rejects deleting a promo variation through a direct editor link for promo editors', async () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
@@ -2336,6 +2422,61 @@ describe('MasFragmentEditor', () => {
             expect(header).to.not.equal(nothing);
         });
 
+        describe('baseline header', () => {
+            const showBaseline = (path) => {
+                const fragment = new Fragment({
+                    id: 'baseline-id',
+                    path,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            };
+            const details = (template) => {
+                const container = document.createElement('div');
+                render(template, container);
+                const banner = container.querySelector('.baseline-banner');
+                return {
+                    badge: banner.querySelector('sp-badge[variant="purple"]').textContent.trim(),
+                    details: Object.fromEntries(
+                        [...banner.querySelectorAll('.baseline-banner-details > div')].map((row) => [
+                            row.querySelector('dt').textContent.trim(),
+                            row.querySelector('dd').textContent.trim(),
+                        ]),
+                    ),
+                };
+            };
+
+            it('marks a baseline with its template and PA code above the form and the preview', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/baseline');
+
+                for (const header of [el.localeVariationHeader, el.previewVariationHeader]) {
+                    expect(details(header)).to.deep.equal({
+                        badge: 'Baseline',
+                        details: { Template: 'Plans', 'PA code': 'ccsn_direct_individual', 'Market segment': 'COM' },
+                    });
+                }
+            });
+
+            it('marks the market segment of a segment baseline', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/edu/baseline');
+
+                expect(details(el.previewVariationHeader).details).to.deep.equal({
+                    Template: 'Plans',
+                    'PA code': 'ccsn_direct_individual',
+                    'Market segment': 'EDU',
+                });
+            });
+
+            it('shows an unknown template as is', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/custom-template/PA-1/baseline');
+
+                expect(details(el.previewVariationHeader).details.Template).to.equal('custom-template');
+            });
+        });
+
         it('renders promo variation header in preview for promo paths', () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const fragment = new Fragment({
@@ -2672,6 +2813,42 @@ describe('MasFragmentEditor', () => {
             el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/s/en_US/f', title: 'Parent' };
             const container = el.derivedFromContainer;
             expect(container).to.not.equal(nothing);
+        });
+
+        describe('derived from links', () => {
+            let container;
+
+            beforeEach(() => {
+                el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/s/en_US/f', title: 'Parent' };
+                container = document.createElement('div');
+                container.addEventListener('click', (event) => event.preventDefault());
+                render(el.derivedFromContainer, container, { host: el });
+            });
+
+            const click = (init = {}) =>
+                container
+                    .querySelector('.derived-from-link')
+                    .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
+
+            it('link to the editor of the locale default fragment, so it can open in a new tab', () => {
+                const fragmentIds = [...container.querySelectorAll('.derived-from-container a')].map((link) =>
+                    new URLSearchParams(link.getAttribute('href').slice(1)).get('fragmentId'),
+                );
+                expect(fragmentIds).to.deep.equal(['parent-id', 'parent-id']);
+            });
+
+            it('open the locale default fragment in place on a plain click', () => {
+                const navigate = sandbox.stub(el, 'navigateToLocaleDefaultFragment');
+                click();
+                expect(navigate.calledOnce).to.be.true;
+            });
+
+            it('leave modified clicks to the browser', () => {
+                const navigate = sandbox.stub(el, 'navigateToLocaleDefaultFragment');
+                click({ metaKey: true });
+                click({ ctrlKey: true });
+                expect(navigate.called).to.be.false;
+            });
         });
 
         it('renders preview skeleton', () => {

@@ -58,8 +58,15 @@
  *     Both dates are required: a project defining only a start or only an end exposes nothing.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { COLLECTION_MODEL_ID, fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
-import { createSwrCache } from '../utils/swr-cache.js';
+import {
+    COLLECTION_MODEL_ID,
+    fetch,
+    getRequestInfos,
+    markDegraded,
+    matchesGeo,
+    isGroupedVariationFragmentPath,
+} from '../utils/common.js';
+import { createSwrCache, NOT_MODIFIED } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
@@ -70,11 +77,14 @@ const hydratedProjectsCache = createSwrCache({
     name: 'promotions-hydrated',
     previewTtl: PREVIEW_CACHE_TTL,
     previewMemory: true,
+    conditional: true,
 });
 const promoVariationsCache = createSwrCache({
     name: 'promo-variations',
     previewTtl: PREVIEW_CACHE_TTL,
     previewMemory: true,
+    // production has ~1,800 surface/promotion/locale keys, more than the default 1,000
+    maxEntries: 3000,
     shouldCache: ({ complete }) => (complete ? true : { ttl: 10 * 1000 }),
 });
 
@@ -127,7 +137,9 @@ async function fetchFolderProjects(context, surface) {
  * the loader caches nothing and any stale entry survives; callers coalesce that to an empty list.
  */
 async function fetchProjects(context, surface) {
-    return (await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface))) ?? [];
+    const projects = await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface));
+    if (!projects) markDegraded(context, `promotions ${surface}`);
+    return projects ?? [];
 }
 
 function toInstant(value) {
@@ -373,15 +385,17 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
         } while (cursor);
         return { variations, complete: await hydrateCollectionVariations(variations, context) };
     });
+    if (!result.complete) markDegraded(context, `promotion variations ${cacheKey}`);
     return result.variations;
 }
 
-async function fetchHydratedProject(projectId, context) {
-    const response = await fetch(
-        odinReferences(projectId, context.preview, REFERENCES.ALL),
-        context,
-        `promotions-hydrate-${projectId}`,
-    );
+/**
+ * Loader of `hydratedProjectsCache`: the `all-hydrated` project, revalidated with the ETag of the cached one.
+ */
+async function fetchHydratedProject(projectId, context, etagFor) {
+    const url = odinReferences(projectId, context.preview, REFERENCES.ALL);
+    const response = await fetch(url, context, `promotions-hydrate-${projectId}`, { etag: etagFor(url) });
+    if (response.status === 304) return NOT_MODIFIED;
     if (response.status !== 200) {
         logError(`Failed to hydrate promotion project ${projectId}: ${response.message}`, context);
         return null;
@@ -389,7 +403,7 @@ async function fetchHydratedProject(projectId, context) {
     const hydratedProject = response.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const offerLines = hydratedProject.fields?.offers ?? [];
-    return {
+    const value = {
         fragmentPaths,
         groupedVariationPaths: fragmentPaths.filter(isGroupedVariationFragmentPath),
         groupedVariationReferences: parseGroupedVariationReferences(hydratedProject),
@@ -399,6 +413,7 @@ async function fetchHydratedProject(projectId, context) {
         promoCode: hydratedProject.fields?.promoCode ?? null,
         title: hydratedProject.fields?.title ?? null,
     };
+    return { value, etag: response.etag, url };
 }
 
 /**
@@ -411,14 +426,17 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydratedProject, defaultVariations, regionVariations] = await Promise.all([
-        hydratedProjectsCache.get(context, project.id, () => fetchHydratedProject(project.id, context)),
+        hydratedProjectsCache.get(context, project.id, ({ etagFor }) => fetchHydratedProject(project.id, context, etagFor)),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
             : {},
     ]);
 
-    if (!hydratedProject) return null;
+    if (!hydratedProject) {
+        markDegraded(context, `promotion project ${project.id}`);
+        return null;
+    }
     const { fragmentPaths, offerOverrides, offerSubstitutions, promoCode } = hydratedProject;
     const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
@@ -502,6 +520,7 @@ async function init(context) {
     settled.forEach((result, i) => {
         if (result.status === 'rejected') {
             logError(`Failed to hydrate promotion project ${matched[i].id}: ${result.reason}`, context);
+            markDegraded(context, `promotion project ${matched[i].id}`);
         } else if (result.value) {
             activeProjects.push(result.value);
         }

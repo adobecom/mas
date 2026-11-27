@@ -46,14 +46,15 @@ const stubEmptyDictionary = (preview, surface, locale, stub = fetchStub) => {
 };
 
 // Shared helper reused by the pipeline tests: stubs the surface-baseline dictionary (sandbox) for the
-// locales the pipeline exercises. The acom default layer falls through to the suite's default 404 stub.
+// locales the pipeline exercises, and an empty acom default layer (a missing one would degrade the response).
 const mockDictionary = (preview = false, stub = fetchStub, cleanCache = true) => {
     if (cleanCache) {
         clearDictionaryCache();
     }
-    ['en_US', 'fr_FR', 'de_DE'].forEach((locale) =>
-        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub),
-    );
+    for (const locale of ['en_US', 'fr_FR', 'de_DE']) {
+        mockDirectDictionary(preview, BASELINE_SURFACE, locale, { references: {} }, stub);
+        mockDirectDictionary(preview, DEFAULT_SURFACE, locale, DICTIONARY_RESPONSE, stub);
+    }
 };
 
 const odinResponse = (description, cta = '{{buy-now}}', surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({
@@ -491,6 +492,29 @@ describe('replace', () => {
             // base 404 is transient → re-fetched on the next request (not cached).
             expect(baseByPath().callCount).to.be.greaterThan(afterFirst);
         });
+
+        it('revalidates an expired layer with its ETag and keeps it on a 304', async () => {
+            const now = sinon.stub(Date, 'now').returns(1_000_000);
+            try {
+                clearDictionaryCache();
+                mockDirectDictionary(false, BASELINE_SURFACE, 'fr_FR', dictFixture({ a: 'acom-a' }), fetchStub);
+                stubEmptyDictionary(false, 'sandbox', 'fr_BE', fetchStub);
+                const id = dictionaryIdFor('sandbox', 'fr_FR');
+                fetchStub.withArgs(byPathUrl(false, 'sandbox', 'fr_FR')).returns(createResponse(200, { id }));
+                const layer = fetchStub.withArgs(directUrl(false, id));
+                layer.onFirstCall().returns(createResponse(200, dictFixture({ b: 'surf-b' }), 'OK', { etag: '"d1"' }));
+                layer.onSecondCall().returns(createResponse(304, null, 'Not Modified'));
+                expect((await runOnce()).body.fields.description).to.equal('acom-a surf-b');
+                now.returns(1_000_000 + 10 * 60 * 1000);
+                await runOnce();
+                await new Promise((resolve) => setImmediate(resolve));
+                expect((await runOnce()).body.fields.description).to.equal('acom-a surf-b');
+                expect(layer.callCount).to.equal(2);
+                expect(layer.secondCall.args[1].headers['If-None-Match']).to.equal('"d1"');
+            } finally {
+                now.restore();
+            }
+        });
     });
 
     describe('region reachability by country', () => {
@@ -611,7 +635,7 @@ describe('replace', () => {
                     ok: true,
                     status: 200,
                     statusText: 'OK',
-                    headers: { entries: () => [] },
+                    headers: { entries: () => [], get: () => null },
                     json: async () => null,
                 }),
             );

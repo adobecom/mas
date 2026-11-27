@@ -207,7 +207,8 @@ export class AemFragment extends HTMLElement {
 
     get offerSelectionSuffix() {
         const settings = (this.#service ?? getService())?.settings;
-        if (settings?.orion === undefined) return '';
+        if (!settings) return '';
+        if (settings.orion === undefined) return '-prod-default';
         return `-${settings.env === Env.STAGE ? '' : 'prod-'}${settings.orion ? 'orion' : 'legacy'}`;
     }
 

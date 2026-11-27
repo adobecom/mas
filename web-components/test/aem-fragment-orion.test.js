@@ -93,6 +93,7 @@ describe('Orion fragment requests and cache isolation', () => {
         ['-prod-orion', true],
         ['-legacy', false],
         ['-prod-legacy', false],
+        ['-prod-default', undefined],
         ['', undefined],
         ['-unknown-orion', undefined],
     ]) {
@@ -161,6 +162,7 @@ describe('Orion fragment requests and cache isolation', () => {
     });
 
     for (const search of [
+        '',
         '?mas.orion=on',
         '?mas.orion=off',
         '?commerce.env=stage&mas.orion=on',
@@ -220,8 +222,12 @@ describe('Orion fragment requests and cache isolation', () => {
         });
     }
 
-    for (const env of ['stage', 'prod']) {
-        it(`isolates fetched author responses across Orion on/off/on in ${env}`, async () => {
+    for (const [env, modes, selections] of [
+        ['stage', ['on', 'off', 'on'], ['true', 'false']],
+        ['prod', ['on', 'off', 'on'], ['true', 'false']],
+        ['prod', ['', 'on', ''], [null, 'true']],
+    ]) {
+        it(`isolates fetched author responses across Orion ${modes.map((mode) => mode || 'default').join('/')} in ${env}`, async () => {
             fetchStub.callsFake(async (url) => {
                 const latest =
                     new URL(url).searchParams.get('serveLatest') === 'true';
@@ -239,11 +245,11 @@ describe('Orion fragment requests and cache isolation', () => {
                 );
             });
 
-            for (const mode of ['on', 'off', 'on']) {
+            for (const mode of modes) {
                 window.history.replaceState(
                     {},
                     '',
-                    `${baseHref}?commerce.env=${env}&mas.orion=${mode}`,
+                    `${baseHref}?commerce.env=${env}${mode ? `&mas.orion=${mode}` : ''}`,
                 );
                 service.activate();
                 const fragment = startLoad('requested-id', { author: '' });
@@ -262,7 +268,7 @@ describe('Orion fragment requests and cache isolation', () => {
                     .map(({ args: [url] }) =>
                         new URL(url).searchParams.get('serveLatest'),
                     ),
-            ).to.deep.equal(['true', 'false']);
+            ).to.deep.equal(selections);
 
             cache.add({
                 id: 'requested-id',
@@ -282,44 +288,69 @@ describe('Orion fragment requests and cache isolation', () => {
         });
     }
 
-    it('isolates fetched author previews after switching Orion off', async () => {
-        const preview = sinon
-            .stub(
-                customElements.get('aem-fragment').prototype,
-                'generatePreview',
-            )
-            .callsFake(async (suffix) => ({
-                status: 200,
-                body: {
-                    id: 'requested-id',
-                    fields: [
-                        {
-                            name: 'title',
-                            multiple: false,
-                            values: [suffix === '-orion' ? 'Orion' : 'Legacy'],
-                        },
-                    ],
-                },
-            }));
-        try {
-            for (const mode of ['on', 'off', 'on']) {
-                switchMode(mode, true);
-                const fragment = startLoad('requested-id', { author: '' });
-                await fragment.updateComplete;
+    for (const [searches, suffixes] of [
+        [
+            [
+                '?commerce.env=stage&mas.orion=on',
+                '?commerce.env=stage&mas.orion=off',
+                '?commerce.env=stage&mas.orion=on',
+            ],
+            ['-orion', '-legacy'],
+        ],
+        [
+            ['', '?mas.orion=on', ''],
+            ['-prod-default', '-prod-orion'],
+        ],
+    ]) {
+        it(`isolates fetched author previews across ${suffixes.join('/')}`, async () => {
+            const preview = sinon
+                .stub(
+                    customElements.get('aem-fragment').prototype,
+                    'generatePreview',
+                )
+                .callsFake(async (suffix) => ({
+                    status: 200,
+                    body: {
+                        id: 'requested-id',
+                        fields: [
+                            {
+                                name: 'title',
+                                multiple: false,
+                                values: [
+                                    ['-orion', '-prod-orion'].includes(suffix)
+                                        ? 'Orion'
+                                        : 'Legacy',
+                                ],
+                            },
+                        ],
+                    },
+                }));
+            try {
+                for (const search of searches) {
+                    window.history.replaceState(
+                        {},
+                        '',
+                        `${baseHref}${search}${search ? '&' : '?'}mas.preview=on`,
+                    );
+                    service.activate();
+                    const fragment = startLoad('requested-id', { author: '' });
+                    await fragment.updateComplete;
 
-                expect(fragment.data.fields.title).to.equal(
-                    mode === 'on' ? 'Orion' : 'Legacy',
-                );
+                    expect(fragment.data.fields.title).to.equal(
+                        search.endsWith('mas.orion=on') ? 'Orion' : 'Legacy',
+                    );
+                }
+
+                expect(
+                    preview.getCalls().map(({ args: [suffix] }) => suffix),
+                ).to.deep.equal(suffixes);
+                expect(cache.has('requested-id')).to.be.false;
+                expect(fetchStub.called).to.be.false;
+            } finally {
+                preview.restore();
             }
-
-            expect(
-                preview.getCalls().map(({ args: [suffix] }) => suffix),
-            ).to.deep.equal(['-orion', '-legacy']);
-            expect(fetchStub.called).to.be.false;
-        } finally {
-            preview.restore();
-        }
-    });
+        });
+    }
 
     for (const [search, expected] of [
         ['?commerce.env=stage', 'false'],

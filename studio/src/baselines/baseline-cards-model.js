@@ -48,7 +48,7 @@ const NEW_PLAN_CARD_FIELDS = {
  * @property {Record<string, PlanOffer | CheckedPlanOffer>} offers - offers by plan type
  */
 
-const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values ?? [];
+export const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values ?? [];
 
 const parseHtml = (html) => {
     const template = document.createElement('template');
@@ -289,7 +289,7 @@ const createPathAllocator = (takenPaths) => {
     };
 };
 
-const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey, allocatePath) => {
+const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey, allocatePath, baseline) => {
     const title = buildPlanTitle(card.title, plan);
     const parentPath = folderOf(card.path);
     return {
@@ -298,6 +298,7 @@ const buildPlanCardItem = (card, plan, { osi, trialOsi }, disclaimerKey, allocat
         ...allocatePath(parentPath, title),
         parentPath,
         title,
+        baseline,
         fields: buildPlanCardFields(card, { plan, osi, trialOsi, disclaimerKey }),
         tags: withPlanTypeTag(card.tags ?? [], plan),
     };
@@ -329,7 +330,8 @@ const buildCollectionItem = ({ card, marketSegment }, plan, label, cards, alloca
  * @param {{ surface: string, products: Product[], label: string, disclaimerKeys?: Record<string, string> }} plan -
  * `products` hold the result of `checkPlanOffers` as `offers`; `disclaimerKeys` are placeholder keys by plan type
  * @returns {object[]} items, each with its `type` ('baseline' | 'card' | 'collection'), unique `path`, `title` and
- * AEM `fields`; baselines also carry what `createBaseline` needs, cards their `tags`, collections their `cards` paths
+ * AEM `fields`; baselines also carry what `createBaseline` needs, cards their `tags` & `baseline` path, collections
+ * their `cards` paths
  */
 export function buildBaselineCardsPlan({ surface, products, label, disclaimerKeys = {} }) {
     const baselines = new Map();
@@ -348,7 +350,7 @@ export function buildBaselineCardsPlan({ surface, products, label, disclaimerKey
             for (const plan of PLAN_TYPES) {
                 const offer = product.offers[plan];
                 if (!offer?.osi || offer.error) continue;
-                const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan], allocatePath);
+                const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan], allocatePath, baseline.path);
                 cards.push(planCard);
                 (groupCards[plan] ??= []).push(planCard.path);
             }

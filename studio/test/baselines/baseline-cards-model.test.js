@@ -415,6 +415,7 @@ describe('baseline-cards-model', () => {
             expect(getField(items[1].fields, 'ctas').values).to.deep.equal([
                 `<p slot="footer">${buyNow(ILST_TEAM_OSI)}${SEE_TERMS}</p>`,
             ]);
+            expect(items[1].baseline).to.equal(items[0].path);
         });
 
         it('builds the baseline for createBaseline with the card content as seed fields', async () => {

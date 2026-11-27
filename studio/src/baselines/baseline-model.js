@@ -159,22 +159,26 @@ export async function resolveBaselineOffer(offerSelectorId, offer, { timeoutMs, 
  * @param {object} repository - mas-repository element
  * @param {{ title: string, osi: string, fields?: Array }} baseline - `fields` seed the baseline content (AEM field
  * format); a seeded `cardTitle` replaces the title
+ * @param {{ withToast?: boolean }} [options]
  */
-export async function createBaseline(repository, { title, osi, fields, ...baseline }) {
+export async function createBaseline(repository, { title, osi, fields, ...baseline }, { withToast = true } = {}) {
     const { folder, exists } = await prepareBaselineFolder(repository.aem.sites.cf.fragments, baseline);
     if (exists) return { exists };
     const tags = await filterExistingTags(repository.aem.tags, buildBaselineTags(baseline));
     const data = { osi, cardTitle: title, variant: baseline.template, compatVersion: COMPAT_VERSION };
     for (const { name } of fields ?? []) delete data[name];
-    const fragment = await repository.createFragment({
-        modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
-        title,
-        name: BASELINE_NAME,
-        parentPath: folder,
-        tags,
-        ...(fields && { fields }),
-        data,
-    });
+    const fragment = await repository.createFragment(
+        {
+            modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
+            title,
+            name: BASELINE_NAME,
+            parentPath: folder,
+            tags,
+            ...(fields && { fields }),
+            data,
+        },
+        withToast,
+    );
     if (fragment?.id) {
         const store = new FragmentStore(fragment);
         trackPendingProject(Store.baselines.list.data, store);

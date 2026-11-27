@@ -279,6 +279,81 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
     });
 });
 
+describe('mas-bulk-publish-editor (report)', () => {
+    afterEach(() => {
+        sinon.restore();
+        Store.bulkPublishProjects.inEdit.set(null);
+    });
+
+    const completeStatuses = [
+        BULK_PUBLISH_STATUS.PUBLISHED,
+        BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+        BULK_PUBLISH_STATUS.FAILED,
+    ];
+    const incompleteStatuses = [
+        BULK_PUBLISH_STATUS.DRAFT,
+        BULK_PUBLISH_STATUS.PUBLISHING,
+        BULK_PUBLISH_STATUS.LOCKED,
+        BULK_PUBLISH_STATUS.REVERTING,
+        BULK_PUBLISH_STATUS.REVERTED,
+    ];
+
+    for (const status of completeStatuses) {
+        it(`canReport is true for ${status}`, async () => {
+            const el = await makeEditor();
+            Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ status }));
+            await el.updateComplete;
+            expect(el.canReport).to.equal(true);
+        });
+    }
+
+    for (const status of incompleteStatuses) {
+        it(`canReport is false for ${status}`, async () => {
+            const el = await makeEditor();
+            Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ status }));
+            await el.updateComplete;
+            expect(el.canReport).to.equal(false);
+        });
+    }
+
+    it('handleDownloadReport calls the report action with the project id and downloads a CSV', async () => {
+        sessionStorage.setItem('masAccessToken', 'tok');
+        const meta = document.createElement('meta');
+        meta.name = 'io-base-url';
+        meta.content = 'https://io.example';
+        document.head.append(meta);
+        const report = {
+            generatedAt: '2026-01-01T00:00:00.000Z',
+            projectPublishedAt: '',
+            summary: { total: 0, live: 0, failed: 0, notLive: 0 },
+            missingIndexes: [],
+            rows: [],
+        };
+        const fetchStub = sinon
+            .stub(window, 'fetch')
+            .resolves(new Response(JSON.stringify(report), { status: 200, headers: { 'content-type': 'application/json' } }));
+        const createObjectURL = sinon.stub(URL, 'createObjectURL').returns('blob:report');
+        sinon.stub(URL, 'revokeObjectURL');
+        const click = sinon.stub(HTMLAnchorElement.prototype, 'click');
+
+        try {
+            const el = await makeEditor();
+            Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ status: BULK_PUBLISH_STATUS.PUBLISHED }));
+            await el.updateComplete;
+            await el.handleDownloadReport();
+
+            const [url, init] = fetchStub.firstCall.args;
+            expect(url).to.equal('https://io.example/bulk-report');
+            expect(JSON.parse(init.body).projectId).to.equal('frag-id-1');
+            expect(createObjectURL.calledOnce).to.equal(true);
+            expect(click.firstCall.thisValue.download).to.not.match(/[<>:"/\\|?*]/);
+        } finally {
+            sessionStorage.removeItem('masAccessToken');
+            meta.remove();
+        }
+    });
+});
+
 describe('mas-bulk-publish-editor (field handlers)', () => {
     afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
 

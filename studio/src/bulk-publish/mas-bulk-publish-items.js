@@ -20,6 +20,8 @@ class MasBulkPublishItems extends LitElement {
         disabled: { type: Boolean },
         isPublished: { type: Boolean },
         modifications: { type: Object },
+        canReport: { type: Boolean },
+        reportPending: { type: Boolean },
         collapsed: { state: true },
     };
 
@@ -30,6 +32,8 @@ class MasBulkPublishItems extends LitElement {
         this.disabled = false;
         this.isPublished = false;
         this.modifications = null;
+        this.canReport = false;
+        this.reportPending = false;
         this.collapsed = false;
     }
 
@@ -240,6 +244,26 @@ class MasBulkPublishItems extends LitElement {
                               Check for modifications
                           </sp-action-button>`
                         : nothing}
+                    <span
+                        tabindex=${this.canReport ? -1 : 0}
+                        aria-label=${this.canReport ? nothing : 'Report available once the project is complete'}
+                    >
+                        <sp-action-button
+                            size="s"
+                            quiet
+                            data-testid="report-btn"
+                            ?disabled=${!this.canReport || this.reportPending}
+                            @click=${() => emit(this, 'download-report')}
+                        >
+                            <sp-icon-download slot="icon"></sp-icon-download>
+                            Report
+                        </sp-action-button>
+                        ${this.canReport
+                            ? nothing
+                            : html`<sp-tooltip self-managed placement="bottom">
+                                  Report available once the project is complete
+                              </sp-tooltip>`}
+                    </span>
                     <sp-action-button
                         size="s"
                         quiet

@@ -111,6 +111,8 @@
                             service.resolveOfferSelectors = sandbox.stub();
                             document.body.append(service);
                             await dialog.updateComplete;
+                            await dialog.offerField.updateComplete;
+                            sandbox.stub(dialog.offerField.osiField, 'handleOpenOfferSelector');
                         });
 
                         afterEach(() => {
@@ -118,6 +120,20 @@
                             service.remove();
                             dialog.close();
                         });
+
+                        const selectOffer = (detail) => {
+                            dialog.offerField.openOfferSelector();
+                            document.dispatchEvent(new CustomEvent('ost-offer-select', { detail }));
+                        };
+
+                        const renderedOfferField = async () => {
+                            await dialog.updateComplete;
+                            await dialog.offerField.updateComplete;
+                            return dialog.offerField.shadowRoot;
+                        };
+
+                        const offerErrorText = async () =>
+                            (await renderedOfferField()).querySelector('#error').textContent.trim();
 
                         const stubBaselineCreation = () => {
                             const repository = document.querySelector('mas-repository');
@@ -139,11 +155,7 @@
                             service.resolveOfferSelectors.returns([Promise.reject(new Error('Lookup failed'))]);
                             dialog.productArrangementCode = 'PREVIOUS-PA';
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: {} },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await waitUntil(
                                 () => dialog.errors.offer === 'No PA code found for this offer',
                                 'offer lookup should finish',
@@ -156,11 +168,7 @@
                         it('shows the missing PA code error when submitting before the lookup finishes', async () => {
                             service.resolveOfferSelectors.returns([new Promise(() => {})]);
                             dialog.template = 'catalog';
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: {} },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
@@ -168,19 +176,13 @@
 
                             expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
-                            expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
-                                'No PA code found for this offer',
-                            );
+                            expect(await offerErrorText()).to.equal('No PA code found for this offer');
                         });
 
                         it('uses the resolved PA code for the selected offer', async () => {
                             service.resolveOfferSelectors.returns([Promise.resolve([{ productArrangementCode: 'PA-123' }])]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: {} },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await delay();
 
                             expect(dialog.productArrangementCode).to.equal('PA-123');
@@ -189,17 +191,11 @@
                         it('shows an offer error when the selected offer has no PA code', async () => {
                             service.resolveOfferSelectors.returns([Promise.resolve([{}])]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: {} },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await delay();
 
                             expect(dialog.productArrangementCode).to.equal('');
-                            expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
-                                'No PA code found for this offer',
-                            );
+                            expect(await offerErrorText()).to.equal('No PA code found for this offer');
                         });
 
                         it('rejects a card title without letters or digits', async () => {
@@ -254,14 +250,10 @@
                         });
 
                         it('stores the product code carried by the selected offer', async () => {
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: {
-                                        offerSelectorId: 'ABC123',
-                                        offer: { productArrangementCode: 'PA-1', product_code: 'CCSN' },
-                                    },
-                                }),
-                            );
+                            selectOffer({
+                                offerSelectorId: 'ABC123',
+                                offer: { productArrangementCode: 'PA-1', product_code: 'CCSN' },
+                            });
                             await delay();
 
                             expect(dialog.productCode).to.equal('CCSN');
@@ -274,9 +266,7 @@
                                 ]),
                             ]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await delay();
 
                             expect(dialog.productCode).to.equal('PHSP');
@@ -286,9 +276,7 @@
                             service.resolveOfferSelectors.returns([new Promise(() => {})]);
                             dialog.productCode = 'OLD';
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await delay();
 
                             expect(dialog.productCode).to.equal('');
@@ -296,15 +284,14 @@
 
                         it('exposes accessible labels and errors on an empty offer', async () => {
                             await dialog.handleSubmit();
-                            await dialog.updateComplete;
 
-                            const root = dialog.shadowRoot;
-                            const offerButton = root.querySelector('[aria-labelledby="offer-label"] sp-action-button');
-                            expect(root.querySelector('#offer-label').textContent.trim()).to.equal('Offer');
+                            const root = await renderedOfferField();
+                            const offerButton = root.querySelector('[aria-labelledby="label"] sp-action-button');
+                            expect(root.querySelector('#label').textContent.trim()).to.equal('Offer');
                             expect(offerButton.getAttribute('aria-invalid')).to.equal('true');
                             expect(offerButton.classList.contains('invalid')).to.be.true;
-                            expect(offerButton.getAttribute('aria-describedby')).to.equal('offer-error');
-                            expect(root.querySelector('#offer-error').textContent.trim()).to.equal('Select an offer');
+                            expect(offerButton.getAttribute('aria-describedby')).to.equal('error');
+                            expect(root.querySelector('#error').textContent.trim()).to.equal('Select an offer');
                         });
 
                         it('labels the template picker and describes its error', async () => {
@@ -326,10 +313,12 @@
                             dialog.title = '';
 
                             await dialog.handleSubmit();
-                            await dialog.updateComplete;
+                            const offerRoot = await renderedOfferField();
 
-                            for (const id of ['title-error', 'offer-error']) {
-                                const region = dialog.shadowRoot.querySelector(`#${id}`).closest('.field-message');
+                            for (const region of [
+                                dialog.shadowRoot.querySelector('#title-error').closest('.field-message'),
+                                offerRoot.querySelector('#error').closest('.field-message'),
+                            ]) {
                                 expect(region.getAttribute('aria-live')).to.equal('polite');
                             }
                         });
@@ -344,21 +333,16 @@
                         });
 
                         it('keeps the offer button and relabels it once an offer is selected', async () => {
-                            const selectButton = dialog.shadowRoot.querySelector(
-                                '[aria-labelledby="offer-label"] sp-action-button',
-                            );
+                            const offerButton = () =>
+                                dialog.offerField.shadowRoot.querySelector('[aria-labelledby="label"] sp-action-button');
+                            const selectButton = offerButton();
                             expect(selectButton.textContent.trim()).to.equal('Select offer…');
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: { productArrangementCode: 'PA-1' } },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: { productArrangementCode: 'PA-1' } });
                             await delay();
+                            await renderedOfferField();
 
-                            const changeButton = dialog.shadowRoot.querySelector(
-                                '[aria-labelledby="offer-label"] sp-action-button',
-                            );
+                            const changeButton = offerButton();
                             expect(changeButton).to.equal(selectButton);
                             expect(changeButton.textContent.trim()).to.equal('Change offer');
                         });
@@ -661,18 +645,24 @@
                         });
 
                         it('shows an offer error after the offer selector closes without a selection', async () => {
-                            sandbox.stub(dialog.osiField, 'handleOpenOfferSelector');
-
-                            dialog.openOfferSelector();
+                            dialog.offerField.openOfferSelector();
                             document.dispatchEvent(new CustomEvent('ost-close'));
-                            await dialog.updateComplete;
 
-                            expect(dialog.osiField.handleOpenOfferSelector.calledOnce).to.be.true;
-                            expect(dialog.offerSelectorOpened).to.be.false;
+                            expect(dialog.offerField.osiField.handleOpenOfferSelector.calledOnce).to.be.true;
                             expect(dialog.touched.osi).to.be.true;
-                            expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
-                                'Select an offer',
+                            expect(await offerErrorText()).to.equal('Select an offer');
+                        });
+
+                        it('ignores an offer selected from another offer selector', async () => {
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', {
+                                    detail: { offerSelectorId: 'OTHER', offer: { productArrangementCode: 'PA-1' } },
+                                }),
                             );
+                            await delay();
+
+                            expect(dialog.osi).to.equal('');
+                            expect(dialog.productArrangementCode).to.equal('');
                         });
 
                         it('tracks when the card offer selector is opened', async () => {
@@ -703,11 +693,7 @@
                         });
 
                         it('uses the PA code carried by the selected offer without resolving it', async () => {
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: { productArrangementCode: 'PA-OFFER' } },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: { productArrangementCode: 'PA-OFFER' } });
                             await delay();
 
                             expect(dialog.productArrangementCode).to.equal('PA-OFFER');
@@ -719,11 +705,7 @@
                                 Promise.resolve([{ productArrangementCode: 'PA-EDU', marketSegments: ['EDU'] }]),
                             ]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: { market_segments: ['COM'] } },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: { market_segments: ['COM'] } });
                             await delay();
 
                             expect(dialog.productArrangementCode).to.equal('PA-EDU');
@@ -733,11 +715,7 @@
                         it('shows a missing PA code error when the lookup returns no offers', async () => {
                             service.resolveOfferSelectors.returns([Promise.resolve(undefined)]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', {
-                                    detail: { offerSelectorId: 'ABC123', offer: {} },
-                                }),
-                            );
+                            selectOffer({ offerSelectorId: 'ABC123', offer: {} });
                             await delay();
 
                             expect(dialog.productArrangementCode).to.equal('');
@@ -753,12 +731,8 @@
                                 .onSecondCall()
                                 .returns([Promise.resolve([{ productArrangementCode: 'PA-2' }])]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'FIRST', offer: {} } }),
-                            );
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'SECOND', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'FIRST', offer: {} });
+                            selectOffer({ offerSelectorId: 'SECOND', offer: {} });
                             await delay();
                             resolveFirst([{ productArrangementCode: 'PA-1' }]);
                             await delay();
@@ -777,12 +751,8 @@
                                 .onSecondCall()
                                 .returns([Promise.resolve([{ productArrangementCode: 'PA-2' }])]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'FIRST', offer: {} } }),
-                            );
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'SECOND', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'FIRST', offer: {} });
+                            selectOffer({ offerSelectorId: 'SECOND', offer: {} });
                             await delay();
                             rejectFirst(new Error('Lookup failed'));
                             await delay();
@@ -800,12 +770,8 @@
                                 .onSecondCall()
                                 .returns([Promise.resolve([{ productArrangementCode: 'PA-1' }])]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'SAME', offer: {} } }),
-                            );
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'SAME', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'SAME', offer: {} });
+                            selectOffer({ offerSelectorId: 'SAME', offer: {} });
                             await delay();
                             rejectFirst(new Error('Lookup failed'));
                             await delay();
@@ -818,9 +784,7 @@
                             let resolveFirst;
                             service.resolveOfferSelectors.returns([new Promise((resolve) => (resolveFirst = resolve))]);
 
-                            document.dispatchEvent(
-                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'FIRST', offer: {} } }),
-                            );
+                            selectOffer({ offerSelectorId: 'FIRST', offer: {} });
                             await delay();
                             dialog.close();
                             resolveFirst([{ productArrangementCode: 'PA-1' }]);

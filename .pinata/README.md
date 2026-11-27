@@ -7,17 +7,19 @@ ecosystem package.
 
 ## What is included
 
-| File                                 | Purpose                                                                                                |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `manifest.yaml`                      | MAS identity and shared planning models.                                                               |
-| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection. |
-| `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                          |
-| `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                       |
-| `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                    |
-| `scripts/check-contract.py`          | Configuration and model-reference checks.                                                              |
-| `scripts/check-dist-sync.sh`         | Rebuild web-component bundles/docs (no drift check).                                                   |
-| `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                         |
-| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                       |
+| File                                     | Purpose                                                                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `manifest.yaml`                          | MAS identity and shared planning models.                                                                             |
+| `gates.yaml`                             | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection.               |
+| `floor/gates.yaml`                       | Organization minimums checked alongside the repository gates.                                                        |
+| `preview.yaml`                           | Preview startup, test surfaces, and authentication requirements.                                                     |
+| `pr.yaml`                                | Jira-first branch names and MAS before/after links.                                                                  |
+| `scripts/check-contract.py`              | Configuration and model-reference checks.                                                                            |
+| `scripts/check-dist-sync.sh`             | Rebuild web-component bundles/docs (no drift check).                                                                 |
+| `scripts/test-preview-supervisor.sh`     | Isolated tests of preview startup and cleanup.                                                                       |
+| `scripts/test_contract.py`               | Offline checks for ownership references, IO review policy, and preview mappings.                                     |
+| `scripts/deploy-candidate-io.mjs`        | io-studio-candidate gate: dispatch the CI deploy and wait for its verdict (tests in `deploy-candidate-io.test.mjs`). |
+| `scripts/check-candidate-io-current.mjs` | io-candidate-current gate: confirm the bot workspace still serves this candidate after `visual`.                     |
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
@@ -29,6 +31,13 @@ The old `.config.json`, issue-triggered agent/SDLC/review workflows, demo
 `restyle-component` workflow, and `justfile` are intentionally not migrated.
 They configure separate automation, not the installed pinata-code workflow.
 No secrets, generated run history, or shared package copies belong here.
+
+## Script language
+
+Scripts with logic (parsing JSON/YAML, branching, signal handling, polling) are
+`.mjs` with `node --test` tests: dependencies are injected so they run without
+real `git`/`gh`. Shell is for thin command chains with no logic to unit-test
+(`check-dist-sync.sh`).
 
 ## Verification
 
@@ -77,20 +86,66 @@ It was disabled on 2026-08-17 for order-dependent suite failures and
 re-enabled on 2026-10-01. MAS's existing unit-test CI remains unchanged and
 must still pass before merge.
 
-### IO changes require manual verification
+### IO changes
 
-The first gate, `io-preview-support`, stops changes under `io/www/` or
-`io/studio/` for human review. It also applies when a change includes Studio
-or web-component files: a working UI preview does not verify changed IO code.
-Pasting a preview URL does not remove this gate. A human approval to continue
-is an explicit exception, not proof that IO was tested automatically.
+`io/www` changes stop at `io-preview-support` for human review. There is no
+candidate io/www deploy, and a working UI preview does not verify changed
+pipeline code. A human approval to continue is an explicit exception.
 
-Current previews load deployed IO services. `maslibs` points at changed web
-components only; `aem.env=stage` selects a deployed Studio service, not the
-candidate's IO code. Before removing this gate, provide a separate `io/www`
-dependency install and tests, deploy candidate IO to an isolated workspace,
-and route previews to it using `mas-io-url` or `io.studio.env` as appropriate.
-No IO deployment or additional dependency installation is added by this PR.
+`io/studio` changes stop at `io-preview-support` for a human until self-hosted
+runner isolation/cleanup is verified; then the `io-studio-candidate` gate goes
+back in `gates.yaml`, together with `io-candidate-current` (below). That gate dispatches
+`.github/workflows/io-studio-candidate.yaml` on the pushed candidate branch: it
+refuses branches that touch `.github` or `.pinata`, runs the io/studio unit
+tests, and deploys to the `pinatacode[bot]` workspace resolved by
+`resolve-aio-identity.yaml` (Vault key `pinatacode`, stage Odin bucket, no
+shared service secrets), then health-checks it. The `studio-io-candidate`
+surface previews Studio with `io.project=merchatscale&io.studio.env=pinata`.
+Piñata never holds the deploy credentials; they stay in Vault and the runner.
+
+`vault-path` supplies the workspace `.env` and `.aio`; `odin_bucket_path`
+supplies the content environment's Odin bucket. Stage content does not mean a
+stage IO workspace. The deployed `.env` determines the namespace: verify the
+workflow's `namespace` output against the preview URL before rollout. Neither
+the Vault key nor that URL proves which namespace was deployed.
+
+Candidate and PR workflows share a workspace concurrency group held through
+deployment **and** health verification. Their advisory preflight checks both
+workflows for known queued, pending, waiting or running conflicts and fails with
+the conflicting PR/run and retry guidance. It excludes the current run; candidate
+identity is the original actor, while PR identity is the author. The check can
+race, GitHub can replace a pending concurrency job, and manual deploys outside
+these workflows are not protected. This is not strict zero-queue admission.
+
+The lock ends after the health check, so a later candidate can replace this one's
+IO before or during its `visual` screenshots. Every io/studio deploy stamps the
+deployed commit into `/health-check` (`sha`), and `io-candidate-current` runs
+after `visual`, before `adversary`: it fails, naming both commits, unless the bot
+workspace still serves the candidate HEAD. A mismatch needs a redeploy and
+recapture, not new code, so it escalates:
+
+```yaml
+io-candidate-current:
+    template: command
+    name: Bot workspace still serves this candidate
+    cmd: node .pinata/scripts/check-candidate-io-current.mjs {changed_files}
+    blocking: true
+    failure_route: escalate_to_human
+```
+
+The shared preview stays single-slot: a human opening it later sees whichever
+candidate deployed last. `/health-check` shows which commit that is.
+
+Omitting shared AOS/OST credentials for automated candidates is intentional.
+Passing unit tests, deploy and `/health-check` establishes only those contracts;
+health proves availability, not AOS/OST flows or NALA readiness. Secret-dependent
+behavior requires human verification. Existing human workspace, QA bucket and
+shared-secret selection remain unchanged.
+
+Rollout still requires harmless same-workspace deploy-plus-health serialization
+and conflict tests, different-workspace/human-path checks, actual namespace/preview
+URL evidence, and self-hosted runner isolation/cleanup evidence. Read-only tokens
+and non-persisted checkout credentials are not a sandbox or proof of ephemerality.
 
 ### Ownership and configuration protection
 

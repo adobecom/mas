@@ -45,39 +45,26 @@
                 }
             }
         </script>
-        <script>
-            const BUCKETS = {
-                qa: 'e155390',
-                stage: 'e59471',
-                prod: 'e59433',
-            };
-            const params = new URLSearchParams(window.location.search);
-            const envOverride = params.get('aem.env');
-            const isLocal = window.location.href.includes('localhost');
-            let bucket;
-            let baseUrl;
-            if (isLocal) {
-                const proxyPort = params.get('proxy.port') || 8080;
-                baseUrl = `http://localhost:${proxyPort}`;
-            } else {
-                bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
-                baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
-            }
-            if (envOverride) {
-                document.querySelector('title').innerText += ` [${envOverride.toUpperCase()}]`;
-            }
+        <script type="module">
+            import { resolveAemEnv, resolveIoBaseUrl } from './studio/src/io-base-url.js';
+
+            const { env, baseUrl, authorUrl } = resolveAemEnv(window.location.search, window.location.href);
+            if (env) document.querySelector('title').innerText += ` [${env.toUpperCase()}]`;
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
-            const authorBucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
-            document
-                .querySelector('meta[name="aem-author-url"]')
-                ?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
-            // The env is interpolated into a URL, so keep it to a bare label: a value
-            // carrying '/' or '.' would move the host off adobeioruntime.
-            const ioLabel = (value) => (/^[a-z0-9-]{1,40}$/.test(value ?? '') ? value : '');
-            const ioStudioEnvParam = ioLabel(params.get('io.studio.env') || envOverride);
-            const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
-            const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
-            document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
+            document.querySelector('meta[name="aem-author-url"]')?.setAttribute('content', authorUrl);
+            try {
+                document
+                    .querySelector('meta[name="io-base-url"]')
+                    ?.setAttribute('content', resolveIoBaseUrl(window.location.search));
+            } catch (error) {
+                // Without an IO base, users, bulk publish and translation all fail; say why up front.
+                console.error(error);
+                const banner = document.createElement('p');
+                banner.className = 'io-config-error';
+                banner.role = 'alert';
+                banner.textContent = `${error.message} Fix io.studio.env in the URL and reload.`;
+                document.body.prepend(banner);
+            }
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
@@ -104,13 +91,15 @@
         <link rel="stylesheet" href="./studio/con-button.css" />
         <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
         <script>
-            function initMasStudio() {
+            async function initMasStudio() {
                 console.info('[M@S Studio] IMS is ready, signed in');
+                const { resolveAemEnv } = await import('./studio/src/io-base-url.js');
+                const { env, bucket, baseUrl } = resolveAemEnv(window.location.search, window.location.href);
                 const studio = document.createElement('mas-studio');
                 studio.setAttribute('base-url', baseUrl);
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
-                if (envOverride) studio.aemEnv = envOverride;
+                if (env) studio.aemEnv = env;
             }
             const context = {
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,

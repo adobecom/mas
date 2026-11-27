@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { createTag } from '../utils.js';
+import { createTag } from '../commerce.js';
 import { html, css } from 'lit';
 import { CSS } from './product.css.js';
 import Media from '../media.js';

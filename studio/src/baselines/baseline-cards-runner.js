@@ -2,7 +2,7 @@ import { TAG_MERCH_CARD, TAG_MERCH_CARD_COLLECTION, TAG_MODEL_ID_MAPPING } from 
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { processConcurrently } from '../common/utils/item-loading.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { buildBaselineTags, createBaseline } from './baseline-model.js';
+import { buildBaselineTags, createBaseline, filterExistingTags } from './baseline-model.js';
 import { fieldValues } from './baseline-cards-model.js';
 
 export const ITEM_STATUS = {
@@ -111,14 +111,16 @@ async function createOrReuse(repository, item, folders) {
 
 /**
  * Saves the tags an item's fragment misses, as tags are saved after the fragment is created and that can fail: a
- * fragment created or reused without its tags fails the item.
+ * fragment created or reused without its tags fails the item. Like `createBaseline`, a baseline only expects its tags
+ * that exist in AEM.
  * @param {ItemResult} result - result with the item fragment
  * @returns {Promise<ItemResult>} `result` when the fragment has all its tags
  */
 async function ensureTags(repository, item, result) {
     if (!result.fragment) return result;
     const current = (result.fragment.tags ?? []).map(normalizeTagId);
-    const expected = (item.type === 'baseline' ? buildBaselineTags(item) : (item.tags ?? [])).map(normalizeTagId);
+    const tags = item.type === 'baseline' ? await filterExistingTags(repository.aem.tags, buildBaselineTags(item)) : item.tags;
+    const expected = (tags ?? []).map(normalizeTagId);
     const missing = expected.filter((tag) => !current.includes(tag));
     if (!missing.length) return result;
     try {

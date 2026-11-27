@@ -258,6 +258,26 @@ describe('baseline-cards-runner', () => {
             expect(results.get(card('abm').path).status).to.equal(ITEM_STATUS.BLOCKED);
         });
 
+        it('creates a baseline without its tags missing from AEM, without blocking its cards & collections', async () => {
+            const repository = createRepository();
+            const absentTag = 'mas:product_arrangement_code/ilst_direct_team';
+            repository.aem.tags.exists
+                .withArgs('/content/cq:tags/mas/product_arrangement_code/ilst_direct_team')
+                .resolves(false);
+            repository.aem.saveValidTags.callsFake(async (id, tags) => tags.filter((tag) => tag !== absentTag));
+
+            const { results } = await run(repository);
+
+            expect(repository.aem.saveValidTags.called).to.be.false;
+            expect(finalStatuses(results)).to.deep.equal({
+                baseline: ITEM_STATUS.CREATED,
+                'abm-card': ITEM_STATUS.CREATED,
+                'puf-card': ITEM_STATUS.CREATED,
+                'abm-collection': ITEM_STATUS.CREATED,
+                'puf-collection': ITEM_STATUS.CREATED,
+            });
+        });
+
         it('keeps going after a failure and blocks the collections that need the failed card', async () => {
             const repository = createRepository();
             repository.createFragment.withArgs(sinon.match({ name: 'puf-card' })).resolves(undefined);

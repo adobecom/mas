@@ -34,7 +34,7 @@ const BASELINE_LAYERS = [
     ['fragmentSegmentBaseline', 'segment'],
 ];
 
-const CARD_OWN_FIELDS = new Set([...NON_INHERITED_FIELDS, 'variant']);
+export const CARD_OWN_FIELDS = new Set([...NON_INHERITED_FIELDS, 'variant']);
 
 export const buildBaselineFolderPath = ({ surface, locale, template, productArrangementCode, marketSegment }) => {
     const folder = `${getBaselinesPath({ surface, locale })}/${template}/${productArrangementCode}`;
@@ -127,33 +127,53 @@ export async function prepareBaselineFolder(fragmentsApi, baseline) {
     return { folder, exists: Boolean(existing) };
 }
 
-export async function resolveBaselineOffer(offerSelectorId, offer, timeoutMs) {
+/**
+ * PA code, market segment & product code of an offer: read from an OST offer, else resolved from its selector.
+ * @param {string} offerSelectorId
+ * @param {object} offer - OST offer, `{}` when only the selector is known
+ * @param {{ timeoutMs?: number, cache?: Map }} [options] - `cache` is shared with `loadOfferData` so each selector is
+ * resolved once
+ */
+export async function resolveBaselineOffer(offerSelectorId, offer, { timeoutMs, cache } = {}) {
     if (offer.productArrangementCode) {
         return {
             productArrangementCode: offer.productArrangementCode,
             marketSegment: offer.market_segments?.[0],
             productCode: offer.product_code,
+            commitment: offer.commitment,
+            term: offer.term,
         };
     }
-    const resolvedOffer = await loadOfferData({}, { fallbackWcsOsi: offerSelectorId, timeoutMs });
+    const resolvedOffer = await loadOfferData({}, { fallbackWcsOsi: offerSelectorId, timeoutMs, cache });
     return {
         productArrangementCode: resolvedOffer?.productArrangementCode,
         marketSegment: resolvedOffer?.marketSegments?.[0],
         productCode: resolvedOffer?.productArrangement?.productCode,
+        commitment: resolvedOffer?.commitment,
+        term: resolvedOffer?.term,
     };
 }
 
-export async function createBaseline(repository, { title, osi, ...baseline }) {
+/**
+ * Creates the baseline card of a template & PA code [& market segment] unless it exists.
+ * @param {object} repository - mas-repository element
+ * @param {{ title: string, osi: string, fields?: Array }} baseline - `fields` seed the baseline content (AEM field
+ * format); a seeded `cardTitle` replaces the title
+ */
+export async function createBaseline(repository, { title, osi, fields, ...baseline }) {
     const { folder, exists } = await prepareBaselineFolder(repository.aem.sites.cf.fragments, baseline);
     if (exists) return { exists };
     const tags = await filterExistingTags(repository.aem.tags, buildBaselineTags(baseline));
+    const data = { osi, cardTitle: title, variant: baseline.template, compatVersion: COMPAT_VERSION };
+    for (const { name } of fields ?? []) delete data[name];
     const fragment = await repository.createFragment({
         modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         title,
         name: BASELINE_NAME,
         parentPath: folder,
         tags,
-        data: { osi, cardTitle: title, variant: baseline.template, compatVersion: COMPAT_VERSION },
+        ...(fields && { fields }),
+        data,
     });
     if (fragment?.id) {
         const store = new FragmentStore(fragment);

@@ -207,6 +207,17 @@ export function normalizeKey(str) {
 }
 
 /**
+ * Normalizes a string to be used as a fragment name
+ * Converts to lowercase, replaces spaces with hyphens, removes special characters and collapses or trims hyphens
+ * @param {string} str - The string to normalize
+ * @returns {string} - The normalized string
+ */
+export function normalizeFragmentName(str) {
+    if (!str) return '';
+    return normalizeKey(str).replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+/**
  * Returns the fragment mapping for a given variant
  * @param {string} variant
  * @returns {object | null}

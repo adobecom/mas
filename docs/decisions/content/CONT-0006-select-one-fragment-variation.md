@@ -34,6 +34,7 @@ We will model these adaptations as **variations**: partial fragments of the same
     - Lives next to its parent fragment, in the default locale only. Translation copies it with its parent.
     - Its `pznTags` field targets the variation: `mas:pzn/{segment}` tags match the `pzn` request tokens, and `mas:pzn/country/{xx}` / locale tags match the request geo.
     - Scoring: each matched `pzn` token is worth 100 and a geo match 10. The highest non-zero score wins, and a score of zero applies nothing.
+    - A PZN or promotion variation tagged with both a geo and an audience applies only when both match. A geo-only or audience-only variation needs only its own match.
     - `{name}` describes the audience, e.g. `edu`, `trial`, `pzn-kw`. It is not interpreted: only `pznTags` select the variation.
 
 A PZN segment (request `pzn` parameter, chosen by the page) is not a WCS market segment (resolved from the offer, [CONT-0005](./CONT-0005-layer-merch-content-through-baselines.md)). An EDU offer gets the EDU baseline everywhere. An `edu` PZN variation only applies to EDU-targeted visitors, whatever the card's offer.

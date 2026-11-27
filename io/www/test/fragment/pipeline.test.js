@@ -103,7 +103,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // Includes the settings, price literals and countdown-copy placeholder.
-const EXPECTED_BODY_HASH = '74e46522f6ff8fee5c5e49aee0e3d2ba19ed2363fee3c3b293ae55c4d2c4fbf6';
+const EXPECTED_BODY_HASH = '11b5b54cfbe26d5330c1ff693b4f85cb3ed4efb00a420a111f981b9d88162747';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -166,8 +166,8 @@ describe('Orion fragment pipeline', () => {
             state,
         });
         expect(response.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
-        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US.y-html');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest.y-html');
         expect(response.body.wcs).to.have.all.keys('prod');
     });
 });
@@ -182,7 +182,7 @@ const runOnFilledState = async (fetchStub, entry, headers) => {
         },
     });
     const state = new MockState();
-    await state.put('req-some-en-us-fragment-fr_FR', entry);
+    await state.put('req-some-en-us-fragment-fr_FR.y-html', entry);
     await state.put('configuration', JSON.stringify({ debugLogs: true }));
     return await getFragment({
         id: 'some-en-us-fragment',
@@ -222,7 +222,7 @@ describe('collection placeholders', () => {
             .withArgs('https://odin.adobe.com/adobe/contentFragments/acom_en_US_dictionary?references=direct-hydrated')
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
-            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
+            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US.y-html',
             '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"settings-id":"settings-id","dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
         );
         const result = await getFragment({
@@ -327,6 +327,28 @@ describe('pipeline corner cases', () => {
         expect(result.statusCode).to.equal(400);
         expect(result.message).to.equal('Preview mode is not supported in this pipeline');
         expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 400 on an unknown type', async () => {
+        const result = await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', type: 'xml', state: new MockState() });
+        expect(result.statusCode).to.equal(400);
+        expect(result.body.message).to.equal("invalid parameter 'type'");
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it("keys the request metadata on the requested type, or the api key's one", async () => {
+        setupFragmentMocks(fetchStub, {});
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({ apiKeyDefaults: { 'wcms-commerce-ims-ro-user-milo': { type: 'text' } } }),
+        );
+        expect((await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', state })).statusCode).to.equal(200);
+        expect((await getFragment({ id: 'some-en-us-fragment', locale: 'en_US', type: 'json', state })).statusCode).to.equal(
+            200,
+        );
+        const keys = Object.keys(state.store).filter((key) => key.startsWith('req-'));
+        expect(keys).to.include.members(['req-some-en-us-fragment-en_US.y-text', 'req-some-en-us-fragment-en_US.y-json']);
     });
 
     it('should 400 when api_key param is missing', async () => {
@@ -508,7 +530,7 @@ describe('pipeline corner cases', () => {
             .returns(createResponse(200, { path: '/content/bad-path' }));
         const state = new MockState();
         await state.put(
-            'req-some-en-us-fragment-fr_FR',
+            'req-some-en-us-fragment-fr_FR.y-html',
             JSON.stringify({
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',

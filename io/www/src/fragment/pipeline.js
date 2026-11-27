@@ -9,7 +9,7 @@ import {
     storeRequestMetadata,
 } from './utils/cache.js';
 import {
-    getApiKeySurface,
+    getApiKeyDefaults,
     loadConfiguration,
     resetCache as resetConfiguration,
     validateApiKey,
@@ -33,6 +33,7 @@ import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
+import { transformer as serialize } from './transformers/serialize.js';
 import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
@@ -71,7 +72,22 @@ function successResponse(context, { id, hash, lastModified, body }) {
     };
 }
 
-const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
+const PIPELINE = [
+    fetchFragment,
+    defaultLanguage,
+    offer,
+    promotions,
+    mask,
+    customize,
+    settings,
+    replace,
+    wcs,
+    corrector,
+    serialize,
+];
+
+// ADR DLV-0002: representations of the text-bearing fields
+const TYPES = ['html', 'json', 'text'];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -250,7 +266,8 @@ async function refreshInBackground(context, requestKey, refresh) {
 async function mainProcess(context, refresh) {
     // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
     // A requested surface conflicting with the api key's (here) or the fragment's (fetchFragment) one is a 404.
-    const apiKeySurface = getApiKeySurface(context);
+    const apiKeyDefaults = getApiKeyDefaults(context);
+    const apiKeySurface = apiKeyDefaults.surface;
     context.requestedSurface = context.surface;
     if (context.surface && apiKeySurface && context.surface !== apiKeySurface) {
         return {
@@ -259,6 +276,11 @@ async function mainProcess(context, refresh) {
         };
     }
     if (!context.id) context.surface ??= apiKeySurface;
+    // ADR DLV-0002: the requested `type` wins over the api key's one, html by default.
+    context.type ??= apiKeyDefaults.type ?? 'html';
+    if (!TYPES.includes(context.type)) {
+        return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter 'type'` }) };
+    }
     const { id, locale, offer, template, surface } = context;
     // without a fragment id, the offer baseline is resolved from `offer`, `template` & `surface`.
     if (!locale || (!id && !(offer && template && surface))) {

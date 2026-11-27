@@ -1,14 +1,15 @@
 import { createTimeoutPromise, getJsonFromState } from './common.js';
 import { logDebug } from './log.js';
 
-const HARDCODED_API_KEYS = [
-    /wcms\-commerce\-ims\-ro\-user\-milo(-[a-z]+)?$/,
-    /^CreativeCloud_v\d+_\d+$/,
-    'AdobeExpressWeb',
-    'unified_checkout_client_v3',
-    'concierge-conversation-service',
-    'acom-bc-service',
-];
+// ADR DLV-0002: accepted api keys with their request parameter defaults, in the state `apiKeyDefaults` form (merged over these)
+const API_KEY_DEFAULTS = {
+    '/wcms\\-commerce\\-ims\\-ro\\-user\\-milo(-[a-z]+)?$/': {},
+    '/^CreativeCloud_v\\d+_\\d+$/': { surface: 'ccd' },
+    AdobeExpressWeb: { surface: 'express' },
+    unified_checkout_client_v3: {},
+    'concierge-conversation-service': {},
+    'acom-bc-service': {},
+};
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];
 
@@ -19,7 +20,7 @@ let cachedConfiguration = null;
 let configurationTimestamp = null;
 
 function parseStateApiKeys(values) {
-    return (values || []).map((value) => {
+    return values.map((value) => {
         const match = REGEX_FORM.exec(value);
         return match ? new RegExp(match[1]) : value;
     });
@@ -81,21 +82,29 @@ export async function loadConfiguration(context, now) {
 
 export function validateApiKey(context) {
     if (!context.api_key) return { statusCode: 400, message: 'missing api_key' };
-    const accepted = [...HARDCODED_API_KEYS, ...parseStateApiKeys(context.apiKeys)];
+    const accepted = parseStateApiKeys([...Object.keys(API_KEY_DEFAULTS), ...(context.apiKeys ?? [])]);
     if (!isApiKeyAccepted(context.api_key, accepted)) {
         return { statusCode: 401, message: 'unauthorized api_key' };
     }
     return { statusCode: 200 };
 }
 
+const findApiKeyEntry = (api_key, config) =>
+    Object.entries(config ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])))?.[1];
+
 /**
- * Surface bound to the request api key by the `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`),
- * most api keys serving a single surface (ADR CONT-0001).
- * @returns {string|undefined}
+ * Request parameter defaults bound to the request api key by the `apiKeyDefaults` configuration
+ * (`{ [apiKey or /regex/]: { surface, type } }`), see ADR DLV-0002.
+ * The legacy `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`) is still honoured during the rollout.
+ * @returns {{ surface?: string, type?: string }}
  */
-export function getApiKeySurface({ api_key, apiKeySurfaces }) {
-    const entry = Object.entries(apiKeySurfaces ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])));
-    return entry?.[1];
+export function getApiKeyDefaults({ api_key, apiKeyDefaults, apiKeySurfaces }) {
+    const surface = findApiKeyEntry(api_key, apiKeySurfaces);
+    return {
+        ...(surface && { surface }),
+        ...findApiKeyEntry(api_key, API_KEY_DEFAULTS),
+        ...findApiKeyEntry(api_key, apiKeyDefaults),
+    };
 }
 
 export function resetCache() {

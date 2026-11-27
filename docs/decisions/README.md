@@ -25,3 +25,4 @@ ADRs are grouped by domain: `<domain>/<PREFIX>-NNNN-short-title.md`, each domain
 | ID                                                                   | Title                                                        | Status |
 | -------------------------------------------------------------------- | ------------------------------------------------------------ | ------ |
 | [DLV-0001](./delivery/DLV-0001-layer-caches-from-edge-to-origins.md) | Layer fragment caches from the CDN edge down to Odin and WCS | active |
+| [DLV-0002](./delivery/DLV-0002-define-the-fragment-api-contract.md)  | Define the fragment API contract                             | active |

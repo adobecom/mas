@@ -61,7 +61,7 @@ describe('mas-bulk-publish (overview)', () => {
             makeProjectStore({
                 items: JSON.stringify([
                     { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' },
-                    { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'valid' },
+                    { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'resolved' },
                 ]),
                 fragments: ['/content/dam/mas/acom/en_US/col1', '/content/dam/mas/acom/en_US/card1'],
             }),
@@ -137,6 +137,29 @@ describe('mas-bulk-publish (methods)', () => {
         el.openProject(ps);
         expect(Store.bulkPublishProjects.projectId.get()).to.equal('abc-123');
         expect(navigateStub.calledOnce).to.equal(true);
+    });
+
+    it('counts resolved and legacy valid items without counting pending or errors', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+
+        expect(
+            el.countByType([
+                { status: 'resolved', type: 'fragment' },
+                { status: 'valid', type: 'collection' },
+                { status: 'resolved', type: 'placeholder' },
+                { status: 'pending', type: 'fragment' },
+                { status: 'error', type: 'collection' },
+            ]),
+        ).to.deep.equal({ fragment: 1, collection: 1, placeholder: 1 });
+    });
+
+    it('produces resolved items for fragment-only projects', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        const path = '/content/dam/mas/acom/en_US/card1';
+
+        expect(el.projectItems(makeProjectStore({ fragments: [path] }).get())).to.deep.equal([
+            { path, status: 'resolved', type: 'fragment' },
+        ]);
     });
 
     it('renders the revert dialog inside the page container', async () => {
@@ -230,6 +253,27 @@ describe('mas-bulk-publish (methods)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         const localesField = payload.fields.find((f) => f.name === 'locales');
         expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
+    });
+
+    it('duplicates legacy item metadata as resolved without changing other metadata or source items', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        const items = [
+            { path: '/x', status: 'valid', type: 'collection', alreadyPublished: true },
+            { path: '/bad', status: 'error', reason: 'not-found' },
+        ];
+        const projectStore = makeProjectStore({ items: JSON.stringify(items), fragments: ['/x'] });
+        el.duplicatePending = { projectStore, proposedTitle: 'Copy' };
+        repositoryEl.createFragment = sandbox.stub().resolves({ id: 'new-id', fields: [] });
+        Store.search.set({ path: 'sandbox' });
+
+        await el.handleDuplicateConfirmed({ detail: { title: 'Copy' } });
+
+        const [payload] = repositoryEl.createFragment.firstCall.args;
+        expect(JSON.parse(payload.fields.find((field) => field.name === 'items').values[0])).to.deep.equal([
+            { ...items[0], status: 'resolved' },
+            items[1],
+        ]);
+        expect(projectStore.get().items).to.equal(JSON.stringify(items));
     });
 
     it('handleDuplicateConfirmed copies the fragments field to the new project', async () => {

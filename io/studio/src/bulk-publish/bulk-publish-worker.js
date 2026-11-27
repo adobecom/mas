@@ -95,7 +95,15 @@ async function runWorker(input, deps = {}) {
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
 
-    const { projectId, odinEndpoint, authToken, publishedBy = '', includeCards = false, includeVariations = false } = input;
+    const {
+        projectId,
+        odinEndpoint,
+        authToken,
+        publishedBy = '',
+        includeCards = false,
+        includeVariations = false,
+        publishReferences = true,
+    } = input;
     const startedAt = now().toISOString();
 
     const { fragment } = await readProject(odinEndpoint, projectId, authToken);
@@ -190,7 +198,7 @@ async function runWorker(input, deps = {}) {
 
     const publishPaths = (includeCards || includeVariations) && expandedPaths ? expandedPaths : paths;
     const resolved = resolve(publishPaths, locales);
-    const details = await publish(resolved, odinEndpoint, authToken, logger);
+    const details = await publish(resolved, odinEndpoint, authToken, logger, { publishReferences });
     relabelNotLocalized(details);
     details.push(...(await publishIndexes(details, odinEndpoint, authToken, logger)));
 
@@ -259,6 +267,7 @@ async function main(params, deps = {}) {
         publishedBy: params.publishedBy || '',
         includeCards: params.includeCards || false,
         includeVariations: params.includeVariations || false,
+        publishReferences: params.publishReferences ?? true,
     };
     try {
         const result = await doRunWorker(input, deps);

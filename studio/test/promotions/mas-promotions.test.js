@@ -632,12 +632,171 @@ describe('MasPromotions', () => {
             return {
                 operation: { set: sandbox.stub() },
                 aem: {
-                    sites: { cf: { fragments: { publish: sandbox.stub().resolves() } } },
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sandbox.stub().callsFake(async (fragment) => ({
+                                    items: [{ path: fragment.path, status: 'SUCCESS_TRIGGERED' }],
+                                })),
+                                getWithEtag: sandbox.stub().callsFake(async (id) =>
+                                    Store.promotions.list.data
+                                        .get()
+                                        .find((item) => item.get().id === id)
+                                        ?.get(),
+                                ),
+                            },
+                        },
+                    },
                     tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() },
                 },
                 ...overrides,
             };
         }
+
+        it('shows shared publish results at the top without claiming the promotion was published', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Sale', status: 'DRAFT' });
+            const { el } = await mountWithRepo(promotion, makePublishableRepo());
+            const dialog = el.shadowRoot.querySelector('mas-promotion-publish-dialog');
+            expect(dialog).to.exist;
+            dialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: {
+                        promotionId: 'promo-1',
+                        promotion: { status: 'not-started' },
+                        error: 'Could not create Bulk Publish project',
+                        projects: [],
+                    },
+                }),
+            );
+            await el.updateComplete;
+            expect(el.publishError).to.include('Sale');
+            expect(el.shadowRoot.querySelector('[role="alert"]').textContent).to.include(
+                'Could not create Bulk Publish project',
+            );
+            expect(promotion.status).to.equal('DRAFT');
+        });
+
+        it('clears only the previous publish error when starting publication', async () => {
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Sale',
+                status: 'DRAFT',
+                endDate: '2099-12-31T00:00:00.000Z',
+            });
+            const { el } = await mountWithRepo(promotion, makePublishableRepo());
+            const request = sandbox.stub(el.promotionPublishDialog, 'requestPublish').resolves();
+            el.error = 'Independent view error';
+            el.publishError = 'Previous publish error';
+
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await waitUntil(() => request.calledOnce);
+            await el.updateComplete;
+
+            expect(el.error).to.equal('Independent view error');
+            expect(el.publishError).to.equal(null);
+            expect(el.shadowRoot.querySelector('[role="alert"]').textContent).to.include('Independent view error');
+            expect(el.shadowRoot.textContent).not.to.include('Previous publish error');
+        });
+
+        for (const error of [null, 'Bulk Publish failed']) {
+            it(`preserves independent view errors after a ${error ? 'failed' : 'successful'} publish result`, async () => {
+                const { el } = await mountWithRepo(makePromotion({ id: 'promo-1', title: 'Sale' }), makePublishableRepo());
+                el.error = 'Independent view error';
+                el.publishError = 'Previous publish error';
+                const result = {
+                    promotionId: 'promo-1',
+                    promotion: { status: 'accepted' },
+                    error,
+                    projects: [],
+                };
+
+                for (let index = 0; index < 2; index++) {
+                    el.promotionPublishDialog.dispatchEvent(new CustomEvent('promotion-publish-result', { detail: result }));
+                }
+                await el.updateComplete;
+
+                expect(el.error).to.equal('Independent view error');
+                expect(el.publishError).to.equal(error ? `Sale: ${error}` : null);
+                const alerts = el.shadowRoot.querySelectorAll('[role="alert"]');
+                expect(alerts).to.have.lengthOf(1);
+                expect(alerts[0].textContent.split('Independent view error')).to.have.lengthOf(2);
+                expect(alerts[0].textContent).not.to.include('Previous publish error');
+                if (error) expect(alerts[0].textContent.split(`Sale: ${error}`)).to.have.lengthOf(2);
+            });
+        }
+
+        it('renders identical view and publish errors only once', async () => {
+            const { el } = await mountWithRepo(makePromotion({ id: 'promo-1', title: 'Sale' }));
+            el.error = 'Sale: Publication failed';
+            el.publishError = 'Sale: Publication failed';
+
+            await el.updateComplete;
+
+            expect(
+                el.shadowRoot.querySelector('[role="alert"]').textContent.split('Sale: Publication failed'),
+            ).to.have.lengthOf(2);
+        });
+
+        it('leaves repository-handled refresh failures owned by the repository toast', async () => {
+            const { el, repo } = await mountWithRepo(makePromotion({ id: 'promo-1', title: 'Sale' }), makePublishableRepo());
+            const toast = sandbox.spy();
+            Events.toast.subscribe(toast);
+            repo.loadPromotions.callsFake(async () => {
+                Events.toast.emit({ message: 'Refresh failed', variant: 'negative' });
+            });
+            el.error = 'Independent view error';
+            try {
+                el.promotionPublishDialog.dispatchEvent(
+                    new CustomEvent('promotion-publish-result', {
+                        detail: { promotionId: 'promo-1', promotion: { status: 'accepted' }, error: null, projects: [] },
+                    }),
+                );
+                await waitUntil(() => toast.calledOnce);
+                await el.updateComplete;
+
+                expect(el.error).to.equal('Independent view error');
+                expect(el.publishError).to.equal(null);
+                expect(el.shadowRoot.textContent).not.to.include('Could not refresh promotions');
+            } finally {
+                Events.toast.unsubscribe(toast);
+            }
+        });
+
+        it('reports a list refresh error after acceptance instead of leaving an unhandled rejection', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Sale', status: 'DRAFT' });
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+            repo.loadPromotions.rejects(new Error('Refresh failed'));
+            el.promotionPublishDialog.dispatchEvent(
+                new CustomEvent('promotion-publish-result', {
+                    detail: { promotionId: 'promo-1', promotion: { status: 'accepted' }, error: null, projects: [] },
+                }),
+            );
+            await waitUntil(() => el.error?.includes('Refresh failed'), 'refresh error should be visible');
+        });
+
+        it('retains view and publish errors without duplicating repeated unexpected refresh failures', async () => {
+            const { el, repo } = await mountWithRepo(makePromotion({ id: 'promo-1', title: 'Sale' }), makePublishableRepo());
+            repo.loadPromotions.rejects(new Error('Refresh failed'));
+            sandbox.stub(console, 'error');
+            el.error = 'Independent view error';
+            const detail = {
+                promotionId: 'promo-1',
+                promotion: { status: 'accepted' },
+                error: 'Bulk Publish failed',
+                projects: [],
+            };
+            for (let index = 0; index < 2; index++) {
+                el.promotionPublishDialog.dispatchEvent(new CustomEvent('promotion-publish-result', { detail }));
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+            await el.updateComplete;
+
+            expect(el.error).to.equal('Independent view error Could not refresh promotions: Refresh failed');
+            expect(el.publishError).to.equal('Sale: Bulk Publish failed');
+            expect(
+                el.shadowRoot.querySelector('[role="alert"]').textContent.split('Could not refresh promotions'),
+            ).to.have.lengthOf(2);
+        });
 
         it('publishes a promotion project and refreshes the list', async () => {
             const promotion = makePromotion({
@@ -655,6 +814,51 @@ describe('MasPromotions', () => {
 
             expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
             expect(repo.loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('shows actual Bulk creation failures at the top while preserving promotion request acceptance', async () => {
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Ready',
+                status: 'DRAFT',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+                fragments: ['/content/dam/mas/acom/en_US/card'],
+                tags: [{ id: 'mas:promotion/sale' }],
+            });
+            const parentPath = '/content/dam/mas/acom/en_US/promotions/sale';
+            const repository = makePublishableRepo();
+            repository.aem.sites.cf.fragments.search = makeSharedSearchStub(sandbox, {
+                [parentPath]: [{ id: 'variation-1', path: `${parentPath}/card`, status: 'DRAFT' }],
+            });
+            repository.aem.sites.cf.fragments.create = sandbox.stub().rejects(new Error('Create denied'));
+            repository.getBulkPublishParentPath = (surface) => `/content/dam/mas/${surface}/bulk-publish-projects`;
+            const previousToken = sessionStorage.getItem('masAccessToken');
+            sessionStorage.setItem('masAccessToken', 'test-token');
+            const meta = document.createElement('meta');
+            meta.name = 'io-base-url';
+            meta.content = 'https://io.example';
+            document.head.append(meta);
+            try {
+                const { el, repo } = await mountWithRepo(promotion, repository);
+                findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                await waitUntil(() => el.promotionPublishDialog.phase === 'confirm');
+                el.promotionPublishDialog.confirm();
+                await waitUntil(() => el.promotionPublishDialog.phase === 'result' && !el.publishBusy);
+                await el.updateComplete;
+
+                expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+                expect(el.promotionPublishDialog.result.promotion.status).to.equal('accepted');
+                expect(el.shadowRoot.querySelector('[role="alert"]').textContent).to.include(
+                    'Could not create Bulk Publish project for acom: Create denied',
+                );
+                expect(el.promotionPublishDialog.result.projects).to.deep.equal([]);
+                expect(promotion.status).to.equal('DRAFT');
+            } finally {
+                meta.remove();
+                if (previousToken === null) sessionStorage.removeItem('masAccessToken');
+                else sessionStorage.setItem('masAccessToken', previousToken);
+            }
         });
 
         it('shows the staged confirmation dialog before publishing and aborts when cancelled', async () => {
@@ -718,10 +922,10 @@ describe('MasPromotions', () => {
                 repoOverrides,
             );
             findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
+            await waitUntil(() => el.promotionPublishDialog.phase === 'confirm', 'confirm dialog should open');
             await el.updateComplete;
             Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            el.promotionPublishDialog.confirm();
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
         });

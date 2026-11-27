@@ -90,14 +90,13 @@ import { COUNTDOWN_RANGE_MESSAGE, countdownDateError } from './countdown-preview
 import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
+import './mas-promotion-publish-dialog.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
-    confirmPublishDespiteUnpublishedPromoVariations,
     confirmUnpublishAlongsidePromoVariations,
-    publishPromotionProject,
     unpublishPromotionProject,
     promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
@@ -202,6 +201,7 @@ class MasPromotionsEditor extends LitElement {
         promotionItemsLoading: { type: Boolean, state: true },
         promotionPublish: { type: Boolean, state: true },
         promotionPublishAction: { type: String, state: true },
+        promotionPublishError: { state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
@@ -248,6 +248,7 @@ class MasPromotionsEditor extends LitElement {
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionPublish = false;
         this.promotionPublishAction = null;
+        this.promotionPublishError = null;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
@@ -648,11 +649,38 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #reloadPromotionFromServer() {
-        const id = this.fragment?.id;
-        if (!id) return;
+        const currentStore = this.fragmentStore;
+        const currentPromotion = currentStore?.get();
+        if (!currentPromotion?.id) return;
+        const lifecycleToken = this.#itemsSelectionStoreToken;
+        let changed;
+        const reactivity = new ReactiveController(
+            this,
+            [
+                currentStore,
+                this.inEdit,
+                this.promotionId,
+                Store.promotions.selectedCards,
+                Store.promotions.selectedCollections,
+                Store.promotions.selectedOffers,
+            ],
+            () => {
+                changed = true;
+            },
+        );
+        changed = false;
         try {
-            const promotion = await this.#fetchPromotionModelById(id);
-            if (!promotion) return;
+            const promotion = await this.#fetchPromotionModelById(currentPromotion.id);
+            if (
+                !promotion ||
+                !this.isConnected ||
+                lifecycleToken !== this.#itemsSelectionStoreToken ||
+                currentStore !== this.fragmentStore ||
+                currentPromotion !== this.fragment ||
+                changed ||
+                this.#promotionPublishOptions.hasUnsavedChanges
+            )
+                return;
             this.repository.updatePromotionInList(promotion.initialValue);
             this.storeController?.hostDisconnected();
             this.fragmentStore = new FragmentStore(promotion);
@@ -663,13 +691,36 @@ class MasPromotionsEditor extends LitElement {
         } catch (error) {
             console.error(error);
             showToast('Failed to refresh promotion.', 'negative');
+        } finally {
+            reactivity.hostDisconnected();
+            this.removeController(reactivity);
         }
     }
 
-    async #confirmPublishWithUnpublishedPromoVariations() {
-        return confirmPublishDespiteUnpublishedPromoVariations(this.repository.aem, this.fragment, (title, message, options) =>
-            showConfirmDialog(this, title, message, options),
-        );
+    get promotionPublishDialog() {
+        return this.renderRoot.querySelector('mas-promotion-publish-dialog');
+    }
+
+    #confirmPromotionPublish(event) {
+        if (!this.#checkPermission(canManagePromotions())) {
+            event.preventDefault();
+            return;
+        }
+        if (
+            this.#promotionPublishOptions.hasUnsavedChanges ||
+            event.detail.promotion.id !== this.fragment?.id ||
+            (!canPublishPromotionNow(this.fragment) && !canSchedulePromotion(this.fragment))
+        ) {
+            event.preventDefault();
+            showToast('The promotion changed or can no longer be published. Review it before publishing.', 'negative');
+        }
+    }
+
+    async #onPromotionPublishResult({ detail }) {
+        this.promotionPublishError = detail.error;
+        if (detail.promotion.status === 'accepted' || detail.promotion.status === 'unknown') {
+            await this.#reloadPromotionFromServer();
+        }
     }
 
     get #promotionPublishOptions() {
@@ -680,6 +731,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #publishOrSchedulePromotion() {
+        if (this.promotionPublish || this.isDialogOpen || this.promotionPublishDialog.phase !== 'closed') return;
         if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
@@ -695,14 +747,11 @@ class MasPromotionsEditor extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths, skippedCount } = await this.#confirmPublishWithUnpublishedPromoVariations();
-        if (!confirmed) return;
-        if (!this.#checkPermission(canManagePromotions())) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'publish';
+        this.promotionPublishError = null;
         try {
-            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths, skippedCount);
-            if (ok) await this.#reloadPromotionFromServer();
+            await this.promotionPublishDialog.requestPublish(this.repository, this.fragment);
         } finally {
             this.promotionPublish = false;
             this.promotionPublishAction = null;
@@ -710,6 +759,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
+        if (this.promotionPublish || this.isDialogOpen || this.promotionPublishDialog.phase !== 'closed') return;
         if (!this.#checkPermission(canManagePromotions())) return;
         const confirmed =
             !this.fragment?.isStaged ||
@@ -1913,7 +1963,7 @@ class MasPromotionsEditor extends LitElement {
                       <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
                   </div>`
                 : nothing}
-            ${this.promotionPublish
+            ${this.promotionPublish && this.promotionPublishAction !== 'publish'
                 ? html`<div class="publishing-overlay">
                       <sp-progress-circle
                           label=${this.promotionPublishAction === 'unpublish' ? 'Unpublishing project' : 'Publishing project'}
@@ -1931,8 +1981,15 @@ class MasPromotionsEditor extends LitElement {
                     this.duplicateDialogOpen = false;
                 }}
             ></mas-promotion-duplicate-dialog>
+            <mas-promotion-publish-dialog
+                @promotion-publish-confirm=${this.#confirmPromotionPublish}
+                @promotion-publish-result=${this.#onPromotionPublishResult}
+            ></mas-promotion-publish-dialog>
             <div class="page-container">
                 ${this.renderValidationBanner()}
+                ${this.promotionPublishError
+                    ? html`<div class="fragment-validation-banner" role="alert">${this.promotionPublishError}</div>`
+                    : nothing}
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
                 </div>

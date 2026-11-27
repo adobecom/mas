@@ -109,6 +109,7 @@ function matchVariationByBasePath(variation, baseToDefaultPath) {
             model: variation.model,
             fields: variation.fields,
             tags: variation.tags,
+            ...(variation.validationStatus ? { validationStatus: variation.validationStatus } : {}),
         },
     };
 }
@@ -654,6 +655,7 @@ async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName)
                 model: item.model,
                 fields: item.fields,
                 tags: item.tags,
+                ...(item.validationStatus ? { validationStatus: item.validationStatus } : {}),
             };
         });
 }

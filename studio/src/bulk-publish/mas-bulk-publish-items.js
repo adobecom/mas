@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
 import { buildEditorHref, renderRowLinkOverlay } from '../common/utils/editor-link.js';
-import { itemTypeFromPath } from './bulk-publish-utils.js';
+import { isResolvedItem, itemTypeFromPath } from './bulk-publish-utils.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -97,10 +97,10 @@ class MasBulkPublishItems extends LitElement {
                 <span class="status-staged">Staged</span>
             </span>`;
         }
-        if (item.status === 'valid') {
+        if (isResolvedItem(item)) {
             return html`<span class="status-cell status-valid">
                 <sp-icon-checkmark-circle></sp-icon-checkmark-circle>
-                Validated
+                Fragment found
             </span>`;
         }
 

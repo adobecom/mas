@@ -94,6 +94,7 @@ describe('getSettings', () => {
                 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScale',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
+            orion: false,
             hasExplicitCountry: false,
         });
     });
@@ -106,7 +107,7 @@ describe('getSettings', () => {
         expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
-    describe('Orion stage testing', () => {
+    describe('Orion offer selection', () => {
         let meta;
         let baseHref;
         const config = { commerce: { allowOverride: 'true' } };
@@ -171,21 +172,46 @@ describe('getSettings', () => {
         });
 
         for (const value of ['true', 'ON', 'True']) {
-            it(`does not enable Orion in production through "${value}"`, () => {
+            it(`enables Orion in production through "${value}"`, () => {
                 meta.content = value;
                 window.history.replaceState(
                     {},
                     '',
                     `${baseHref}?mas.orion=${value}`,
                 );
-                expect(getSettings(config, mockService).orion).not.to.be.true;
+                expect(getSettings(config, mockService).orion).to.be.true;
             });
         }
 
         it('respects the existing commerce environment override permission', () => {
             meta.content = 'on';
-            expect(getSettings({}, mockService).orion).not.to.be.true;
+            const settings = getSettings({}, mockService);
+            expect(settings.env).to.equal(Env.PRODUCTION);
+            expect(settings.orion).to.be.true;
         });
+
+        it('defaults stage to explicit legacy selection', () => {
+            meta.remove();
+            expect(getSettings(config, mockService).orion).to.be.false;
+        });
+
+        for (const value of ['off', 'false', 'OFF', 'FaLsE']) {
+            it(`selects legacy in production through "${value}" metadata`, () => {
+                meta.content = value;
+                window.history.replaceState({}, '', baseHref);
+                expect(getSettings(config, mockService).orion).to.be.false;
+            });
+        }
+
+        for (const value of ['', 'other']) {
+            it(`preserves the production WCS default for "${value}"`, () => {
+                meta.content = value;
+                window.history.replaceState({}, '', baseHref);
+                expect(getSettings(config, mockService)).not.to.have.property(
+                    'orion',
+                );
+            });
+        }
 
         it('does not enable Orion from session storage', () => {
             window.sessionStorage.setItem('mas.orion', 'true');
@@ -272,6 +298,7 @@ describe('getSettings', () => {
             wcsApiKey,
             wcsURL: WCS_STAGE_URL,
             landscape: Landscape.DRAFT,
+            orion: false,
             hasExplicitCountry: true,
         });
         window.sessionStorage.removeItem(PARAM_ENV);

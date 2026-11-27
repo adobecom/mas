@@ -202,8 +202,23 @@ export class AemFragment extends HTMLElement {
     }
 
     get cacheSuffix() {
+        return this.#author ? '' : this.offerSelectionSuffix;
+    }
+
+    get offerSelectionSuffix() {
         const settings = (this.#service ?? getService())?.settings;
-        return settings?.env === Env.STAGE && settings.orion ? '-orion' : '';
+        if (!settings) return '';
+        if (settings.orion === undefined) return '-prod-default';
+        return `-${settings.env === Env.STAGE ? '' : 'prod-'}${settings.orion ? 'orion' : 'legacy'}`;
+    }
+
+    getOfferSelectionFromCacheSuffix(cacheSuffix) {
+        return {
+            '-orion': true,
+            '-prod-orion': true,
+            '-legacy': false,
+            '-prod-legacy': false,
+        }[cacheSuffix];
     }
 
     cacheKey(cacheSuffix = this.cacheSuffix) {
@@ -340,6 +355,7 @@ export class AemFragment extends HTMLElement {
         }
         if (flushCache) {
             cache.remove(this.cacheKey());
+            cache.remove(this.cacheKey(this.offerSelectionSuffix));
         }
         if (this.#loading === LOADING_CACHE) {
             await Promise.race([
@@ -396,12 +412,13 @@ export class AemFragment extends HTMLElement {
     }
 
     async #fetchData() {
-        const cacheSuffix = this.cacheSuffix;
+        const cacheSuffix = this.offerSelectionSuffix;
         const cacheKey = this.cacheKey(cacheSuffix);
         this.#fetchInfo = cache.getFetchInfo(cacheKey);
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(cacheKey);
+        let fragment =
+            (this.#author && cache.get(this.cacheKey())) || cache.get(cacheKey);
         if (fragment) {
             this.#rawData = fragment;
             this.#rawDataCacheSuffix = cacheSuffix;
@@ -427,8 +444,9 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
-        if (cacheSuffix) {
-            endpoint += '&serveLatest=true';
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
+        if (serveLatest !== undefined) {
+            endpoint += `&serveLatest=${serveLatest}`;
         }
 
         if (this.#mask) {
@@ -442,11 +460,11 @@ export class AemFragment extends HTMLElement {
         try {
             fragment = await this.#getFragment(endpoint, cacheKey, cacheSuffix);
         } catch (error) {
-            if (cacheSuffix === this.cacheSuffix) throw error;
+            if (cacheSuffix === this.offerSelectionSuffix) throw error;
             this.#log.error(error.message, this.#fetchInfo);
             return this.#fetchData();
         }
-        if (this.#preview && cacheSuffix !== this.cacheSuffix) {
+        if (this.#preview && cacheSuffix !== this.offerSelectionSuffix) {
             return this.#fetchData();
         }
         fragment.fields.originalId ??= this.#fragmentId;
@@ -455,7 +473,7 @@ export class AemFragment extends HTMLElement {
         } else {
             cache.add(fragment, true, cacheSuffix);
         }
-        if (cacheSuffix !== this.cacheSuffix) {
+        if (cacheSuffix !== this.offerSelectionSuffix) {
             return this.#fetchData();
         }
         this.#rawData = fragment;
@@ -471,7 +489,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get data() {
-        if (this.#rawDataCacheSuffix !== this.cacheSuffix) return null;
+        if (this.#rawDataCacheSuffix !== this.offerSelectionSuffix) return null;
         if (this.#data) return this.#data;
         if (this.#author) {
             this.transformAuthorData();
@@ -482,7 +500,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get rawData() {
-        return this.#rawDataCacheSuffix === this.cacheSuffix
+        return this.#rawDataCacheSuffix === this.offerSelectionSuffix
             ? this.#rawData
             : null;
     }
@@ -586,13 +604,14 @@ export class AemFragment extends HTMLElement {
         return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
-    async generatePreview(cacheSuffix = this.cacheSuffix) {
+    async generatePreview(cacheSuffix = this.offerSelectionSuffix) {
         const fragmentClientUrl = this.getFragmentClientUrl();
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
         const defaultOptions = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
-            ...(cacheSuffix ? { serveLatest: true } : {}),
+            ...(serveLatest !== undefined ? { serveLatest } : {}),
         };
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??

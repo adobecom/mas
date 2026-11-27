@@ -79,8 +79,8 @@ describe('promotion-countries', () => {
 
     it('returns only countries available on every selected surface', () => {
         const countries = getEligibleCountries(['acom', 'ccd']);
-        expect(countries).to.include('US');
-        expect(countries).to.not.include('BG');
+        expect(countries).to.include.members(['US', 'BG', 'RO', 'SI', 'LV', 'LT', 'SK']);
+        expect(countries).to.not.include('HR');
     });
 
     it('replaces country tags and keeps other geos', () => {
@@ -121,7 +121,7 @@ describe('promotion-countries', () => {
     });
 
     it('preserves eligible country tags when a surface change prunes another country', () => {
-        const geos = ['/content/cq:tags/mas/pzn/country/en_US', 'mas:pzn/smb', 'mas:pzn/country/bg'];
+        const geos = ['/content/cq:tags/mas/pzn/country/en_US', 'mas:pzn/smb', 'mas:pzn/country/hr'];
         expect(pruneIneligibleCountries(geos, ['ccd'])).to.deep.equal(geos.slice(0, 2));
     });
 
@@ -136,7 +136,7 @@ describe('promotion-countries', () => {
     });
 
     it('removes countries not available on the selected surfaces', () => {
-        const geos = ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/country/BG'];
+        const geos = ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/country/HR'];
         expect(pruneIneligibleCountries(geos, ['ccd'])).to.deep.equal(['mas:locale/en_US', 'mas:pzn/country/US']);
     });
 
@@ -144,8 +144,10 @@ describe('promotion-countries', () => {
         expect(pruneIneligibleCountries(['mas:pzn/smb', 'mas:pzn/country/US'], [])).to.deep.equal(['mas:pzn/smb']);
     });
 
-    it('returns the same geos reference when nothing is pruned', () => {
-        const geos = ['mas:pzn/country/US'];
-        expect(pruneIneligibleCountries(geos, ['acom'])).to.equal(geos);
-    });
+    for (const surface of ['ccd', 'adobe-home']) {
+        it(`preserves English regional country tags on ${surface} without rewriting geos`, () => {
+            const geos = ['US', 'BG', 'RO', 'SI', 'LV', 'LT', 'SK'].map((country) => `mas:pzn/country/${country}`);
+            expect(pruneIneligibleCountries(geos, ['acom', surface])).to.equal(geos);
+        });
+    }
 });

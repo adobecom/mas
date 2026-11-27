@@ -166,15 +166,29 @@ describe('baseline-model', () => {
                     productArrangementCode: 'PA-1',
                     market_segments: ['EDU'],
                     product_code: 'CCSN',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
                 }),
-            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
+            ).to.deep.equal({
+                productArrangementCode: 'PA-1',
+                marketSegment: 'EDU',
+                productCode: 'CCSN',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
         it('resolves the PA code and segment from the offer selector', async () => {
             service.resolveOfferSelectors.returns([
                 Promise.resolve([
-                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                    {
+                        productArrangementCode: 'PA-2',
+                        marketSegments: ['GOV'],
+                        productArrangement: { productCode: 'PHSP' },
+                        commitment: 'MONTH',
+                        term: 'MONTHLY',
+                    },
                 ]),
             ]);
 
@@ -182,6 +196,8 @@ describe('baseline-model', () => {
                 productArrangementCode: 'PA-2',
                 marketSegment: 'GOV',
                 productCode: 'PHSP',
+                commitment: 'MONTH',
+                term: 'MONTHLY',
             });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
@@ -189,11 +205,20 @@ describe('baseline-model', () => {
         it('gives up when the lookup does not settle in time', async () => {
             service.resolveOfferSelectors.returns([new Promise(() => {})]);
 
-            expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
+            expect(await resolveBaselineOffer('OSI', {}, { timeoutMs: 10 })).to.deep.equal({
                 productArrangementCode: undefined,
                 marketSegment: undefined,
                 productCode: undefined,
+                commitment: undefined,
+                term: undefined,
             });
+        });
+
+        it('reads the offer from the shared cache without a lookup', async () => {
+            const cache = new Map([['OSI', { productArrangementCode: 'PA-3', marketSegments: ['COM'] }]]);
+
+            expect(await resolveBaselineOffer('OSI', {}, { cache })).to.deep.include({ productArrangementCode: 'PA-3' });
+            expect(service.resolveOfferSelectors.called).to.be.false;
         });
     });
 
@@ -246,6 +271,20 @@ describe('baseline-model', () => {
                     data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;
+        });
+
+        it('seeds the baseline with the given fields, a seeded card title replacing the title', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+            const fields = [
+                { name: 'cardTitle', type: 'text', multiple: false, values: ['Illustrator'] },
+                { name: 'description', type: 'long-text', multiple: false, values: ['<p>Get Illustrator.</p>'] },
+            ];
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI', fields });
+
+            const { fields: seedFields, data } = repository.createFragment.firstCall.args[0];
+            expect(seedFields).to.deep.equal(fields);
+            expect(data).to.deep.equal({ osi: 'OSI', variant: 'catalog', compatVersion: COMPAT_VERSION });
         });
     });
 

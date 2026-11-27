@@ -44,6 +44,7 @@ const PAGE_GETTERS = [
     { getter: 'bulkEditEditor', matchingPages: [PAGE_NAMES.BULK_EDIT_EDITOR], tag: 'mas-bulk-edit-editor' },
     { getter: 'advancedTools', matchingPages: [PAGE_NAMES.ADVANCED_TOOLS], tag: 'mas-advanced-tools' },
     { getter: 'baselines', matchingPages: [PAGE_NAMES.BASELINES], tag: 'mas-baselines' },
+    { getter: 'baselineCards', matchingPages: [PAGE_NAMES.BASELINE_CARDS], tag: 'mas-baseline-cards' },
 ];
 
 // Pre-register stubs so customElements.get(tag) returns a constructor in template tests,
@@ -308,6 +309,7 @@ describe('MasStudio – lazy-load behavior', () => {
     for (const [getter, page, path] of [
         ['bulkEdit', PAGE_NAMES.BULK_EDIT, './bulk-edit/mas-bulk-edit.js'],
         ['bulkEditEditor', PAGE_NAMES.BULK_EDIT_EDITOR, './bulk-edit/mas-bulk-edit-editor.js'],
+        ['baselineCards', PAGE_NAMES.BASELINE_CARDS, './baselines/mas-baseline-cards.js'],
     ]) {
         it(`${getter} returns nothing and imports its module until the element is defined`, () => {
             sandbox.stub(customElements, 'get').returns(undefined);

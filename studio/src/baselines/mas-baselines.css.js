@@ -17,6 +17,11 @@ export default [
             margin-bottom: 24px;
         }
 
+        .baselines-actions {
+            display: flex;
+            gap: 12px;
+        }
+
         .baselines-toolbar {
             display: flex;
             align-items: center;

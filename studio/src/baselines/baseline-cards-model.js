@@ -1,13 +1,14 @@
-import { BASELINE_NAME, BASELINE_SOURCE_LOCALE } from '../constants.js';
+import { BASELINE_NAME, BASELINE_SOURCE_LOCALE, CARD_MODEL_PATH } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
-import { normalizeFragmentName } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, normalizeFragmentName } from '../utils.js';
 import { getPlanType } from '../utils/plan-type.js';
 import {
     buildBaselineFolderPath,
     CARD_OWN_FIELDS,
     DEFAULT_MARKET_SEGMENT,
     hasContent,
+    parseBaselinePath,
     resolveBaselineOffer,
 } from './baseline-model.js';
 
@@ -26,7 +27,9 @@ const PLAN_FIELDS = new Set(['prices', 'ctas', 'callout']);
 const PLAN_CARD_FIELDS = new Set([...CARD_OWN_FIELDS, ...PLAN_FIELDS, 'cardName']);
 const NOT_COPIED_FIELDS = new Set(['variations', 'originalId']);
 const PLAN_TYPE_TAG_PREFIX = 'mas:plan_type/';
+const MARKET_SEGMENT_TAG_PREFIX = 'mas:market_segments/';
 
+const OFFER_SELECTOR = '[data-wcs-osi]';
 const PRICE_SELECTOR = '[is="inline-price"][data-wcs-osi]';
 const BUY_NOW_SELECTOR = 'a[data-analytics-id="buy-now"][data-wcs-osi]';
 const FREE_TRIAL_SELECTOR = 'a[data-analytics-id="free-trial"][data-wcs-osi]';
@@ -49,6 +52,31 @@ const NEW_PLAN_CARD_FIELDS = {
  */
 
 export const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values ?? [];
+
+const FRAGMENT_ID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+/**
+ * Fragment ids found in pasted text, in order and lowercased: Studio search links, fragment editor links or bare ids.
+ * @param {string} text
+ * @returns {string[]}
+ */
+export const parseFragmentIds = (text) => (text.match(FRAGMENT_ID_PATTERN) ?? []).map((id) => id.toLowerCase());
+
+/**
+ * Why a fragment cannot be an ABM card to create baselines & collections from in a surface; `null` for a valid card.
+ * @param {object} fragment - fragment (AEM format)
+ * @param {string} surface
+ * @returns {string | null}
+ */
+export function getAbmCardError(fragment, surface) {
+    if (fragment.model?.path !== CARD_MODEL_PATH) return 'Not a card.';
+    if (parseBaselinePath(fragment.path)) return 'A baseline, not a card.';
+    const cardSurface = extractSurfaceFromPath(fragment.path);
+    if (cardSurface !== surface) return `Surface ${cardSurface}, not ${surface}.`;
+    const locale = extractLocaleFromPath(fragment.path);
+    if (locale !== BASELINE_SOURCE_LOCALE) return `Locale ${locale}, not ${BASELINE_SOURCE_LOCALE}.`;
+    return null;
+}
 
 const parseHtml = (html) => {
     const template = document.createElement('template');
@@ -82,6 +110,30 @@ export const getTrialOsi = (card) =>
         ?.getAttribute('data-wcs-osi');
 
 /**
+ * Whether a card looks free: no price nor CTA bound to an offer. Its `osi` field is ignored, as a free card can keep
+ * the one of the card it was copied from.
+ */
+export const isFreeCard = (card) =>
+    ['prices', 'ctas'].every((name) =>
+        fieldValues(card, name).every((html) => !parseHtml(html).content.querySelector(OFFER_SELECTOR)),
+    );
+
+/**
+ * Market segment of a card, read from its market segment tag, else the default one; upper case like WCS ones.
+ */
+export const getCardMarketSegment = (card) => {
+    const tagId = (card.tags ?? []).map(normalizeTagId).find((id) => id.startsWith(MARKET_SEGMENT_TAG_PREFIX));
+    return (tagId?.slice(MARKET_SEGMENT_TAG_PREFIX.length) ?? DEFAULT_MARKET_SEGMENT).toUpperCase();
+};
+
+/**
+ * Key of a product: its PA code & market segment.
+ * @param {Product} product
+ * @returns {string}
+ */
+export const getProductKey = ({ productArrangementCode, marketSegment }) => `${productArrangementCode}/${marketSegment}`;
+
+/**
  * Groups the ABM cards by the PA code & market segment of their own `osi`, in paste order. The ABM offer & trial of a
  * product are read from its first card: its `osi` and its free trial CTA.
  * @param {object[]} cards - card fragments (AEM format)
@@ -101,7 +153,7 @@ export async function groupCardsByProduct(cards, { cache, timeoutMs } = {}) {
             unresolvedCards.push(card);
             return;
         }
-        const key = `${productArrangementCode}/${marketSegment}`;
+        const key = getProductKey({ productArrangementCode, marketSegment });
         const product = products.get(key);
         if (product) {
             product.cards.push(card);
@@ -116,6 +168,21 @@ export async function groupCardsByProduct(cards, { cache, timeoutMs } = {}) {
         });
     });
     return { products: [...products.values()], unresolvedCards };
+}
+
+/**
+ * Templates of a product with several ABM cards. Their offers resolve to the same product, so they get one baseline, copied
+ * from the first of them, and the same plan offers.
+ * @param {Product} product
+ * @returns {Array<[string, object[]]>} each template with its cards, in paste order
+ */
+export function getSharedTemplateCards({ cards }) {
+    const cardsByTemplate = new Map();
+    for (const card of cards) {
+        const template = fieldValues(card, 'variant')[0];
+        cardsByTemplate.set(template, [...(cardsByTemplate.get(template) ?? []), card]);
+    }
+    return [...cardsByTemplate].filter(([, templateCards]) => templateCards.length > 1);
 }
 
 /**
@@ -317,6 +384,7 @@ const buildCollectionItem = ({ card, marketSegment }, plan, label, cards, alloca
         fields: [
             { name: 'label', type: 'text', multiple: false, values: [title] },
             { name: 'cards', type: 'content-fragment', multiple: true, values: cards },
+            { name: 'enableBaselines', type: 'boolean', multiple: false, values: [true] },
         ],
     };
 };
@@ -325,19 +393,23 @@ const buildCollectionItem = ({ card, marketSegment }, plan, label, cards, alloca
  * Baselines, plan cards & collections to create from products with checked offers, in creation order: one baseline per
  * template, PA code & market segment, copied from its ABM card; one card per template & plan the product has a valid
  * offer for, inheriting from that baseline; one collection per template, market segment & plan with the cards of that
- * plan, in product order. A plan no product has gets no collection. Everything is created in en_US; cards & collections next to the ABM
- * cards, with a `-1`, `-2`… suffix when their name is the one of an ABM card or of another planned item.
- * @param {{ surface: string, products: Product[], label: string, disclaimerKeys?: Record<string, string> }} plan -
- * `products` hold the result of `checkPlanOffers` as `offers`; `disclaimerKeys` are placeholder keys by plan type
+ * plan, in paste order, with baselines enabled. A plan no product has gets no collection. Free cards are not copied: each one joins, as is, the
+ * collections of its template & market segment. Everything is created in en_US; cards & collections next to the ABM
+ * cards, with a `-1`, `-2`… suffix when their name is the one of a pasted card or of another planned item.
+ * @param {{ surface: string, products: Product[], freeCards?: object[], cardIds?: string[], label: string,
+ * disclaimerKeys?: Record<string, string> }} plan - `products` hold the result of `checkPlanOffers` as `offers`;
+ * `cardIds` are the ids of all pasted cards, in paste order; `disclaimerKeys` are placeholder keys by plan type
  * @returns {object[]} items, each with its `type` ('baseline' | 'card' | 'collection'), unique `path`, `title` and
  * AEM `fields`; baselines also carry what `createBaseline` needs, cards their `tags` & `baseline` path, collections
  * their `cards` paths
  */
-export function buildBaselineCardsPlan({ surface, products, label, disclaimerKeys = {} }) {
+export function buildBaselineCardsPlan({ surface, products, freeCards = [], cardIds = [], label, disclaimerKeys = {} }) {
     const baselines = new Map();
     const cards = [];
     const collectionGroups = new Map();
-    const allocatePath = createPathAllocator(products.flatMap((product) => product.cards.map(({ path }) => path)));
+    const pastedCards = [...products.flatMap((product) => product.cards), ...freeCards];
+    const allocatePath = createPathAllocator(pastedCards.map(({ path }) => path));
+    const entry = (card, path) => ({ index: cardIds.indexOf(card.id), path });
     for (const product of products) {
         for (const card of product.cards) {
             const baseline = buildBaselineItem(surface, product, card);
@@ -352,14 +424,19 @@ export function buildBaselineCardsPlan({ surface, products, label, disclaimerKey
                 if (!offer?.osi || offer.error) continue;
                 const planCard = buildPlanCardItem(card, plan, offer, disclaimerKeys[plan], allocatePath, baseline.path);
                 cards.push(planCard);
-                (groupCards[plan] ??= []).push(planCard.path);
+                (groupCards[plan] ??= []).push(entry(card, planCard.path));
             }
         }
     }
+    for (const card of freeCards) {
+        const group = collectionGroups.get(`${fieldValues(card, 'variant')[0]}/${getCardMarketSegment(card)}`);
+        for (const plan of PLAN_TYPES) group?.cards[plan]?.push(entry(card, card.path));
+    }
     const collections = [...collectionGroups.values()].flatMap((group) =>
-        PLAN_TYPES.filter((plan) => group.cards[plan]).map((plan) =>
-            buildCollectionItem(group, plan, label, group.cards[plan], allocatePath),
-        ),
+        PLAN_TYPES.filter((plan) => group.cards[plan]).map((plan) => {
+            const paths = group.cards[plan].toSorted((a, b) => a.index - b.index).map(({ path }) => path);
+            return buildCollectionItem(group, plan, label, paths, allocatePath);
+        }),
     );
     return [...baselines.values(), ...cards, ...collections];
 }

@@ -1074,6 +1074,36 @@ describe('Router', () => {
         });
     });
 
+    describe('baseline cards page', () => {
+        afterEach(() => {
+            document.querySelectorAll('mas-baseline-cards').forEach((el) => el.remove());
+        });
+
+        it('should check the unsaved changes of the baseline cards page', () => {
+            Store.page.value = PAGE_NAMES.BASELINE_CARDS;
+            const page = document.createElement('mas-baseline-cards');
+            Object.defineProperty(page, 'hasChanges', { value: true });
+            document.body.appendChild(page);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(page);
+            expect(result.hasChanges).to.equal(true);
+            expect(result.shouldCheckUnsavedChanges).to.equal(true);
+        });
+
+        it('should not check unsaved changes when the baseline cards page has none', () => {
+            Store.page.value = PAGE_NAMES.BASELINE_CARDS;
+            const page = document.createElement('mas-baseline-cards');
+            Object.defineProperty(page, 'hasChanges', { value: false });
+            document.body.appendChild(page);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(page);
+            expect(result.hasChanges).to.equal(false);
+            expect(result.shouldCheckUnsavedChanges).to.equal(false);
+        });
+    });
+
     describe('masks route and editor branches', () => {
         let originalMasksCreating;
         let originalMasksFragmentId;

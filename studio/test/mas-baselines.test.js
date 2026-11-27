@@ -5,7 +5,7 @@ import Store from '../src/store.js';
 import router from '../src/router.js';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
-import { FILTER_TYPE, MAS_OFFERS_URL, TABLE_TYPE } from '../src/constants.js';
+import { FILTER_TYPE, MAS_OFFERS_URL, PAGE_NAMES, TABLE_TYPE } from '../src/constants.js';
 import { resetProductArrangementCodes } from '../src/common/utils/product-arrangement-codes.js';
 import { asTagQueryResponse, emptyTagQuery } from './helpers/aem-tag-fetch.js';
 import '../src/baselines/mas-baselines.js';
@@ -118,10 +118,23 @@ describe('MasBaselines', () => {
 
     it('renders an enabled Create Baseline button', async () => {
         const el = await renderBaselines();
-        const button = el.shadowRoot.querySelector('sp-button');
+        const button = el.shadowRoot.querySelector('sp-button[variant="accent"]');
 
         expect(button.textContent.trim()).to.equal('Create Baseline');
         expect(button.hasAttribute('disabled')).to.be.false;
+    });
+
+    it('opens the Create baselines and collections page', async () => {
+        const navigate = sandbox.spy();
+        sandbox.stub(router, 'navigateToPage').returns(navigate);
+        const el = await renderBaselines();
+        const button = el.shadowRoot.querySelector('sp-button[variant="secondary"]');
+
+        button.click();
+
+        expect(button.textContent.trim()).to.equal('Create Baselines and collections');
+        expect(router.navigateToPage.calledWith(PAGE_NAMES.BASELINE_CARDS)).to.be.true;
+        expect(navigate.calledOnce).to.be.true;
     });
 
     it('renders the baseline table columns', async () => {

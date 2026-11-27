@@ -184,7 +184,7 @@ export async function createBaseline(repository, { title, osi, fields, ...baseli
         trackPendingProject(Store.baselines.list.data, store);
         Store.baselines.list.data.set((list) => [store, ...list]);
     }
-    return { folder, fragment };
+    return { folder, fragment, tags };
 }
 
 export const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);

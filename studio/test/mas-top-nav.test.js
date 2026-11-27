@@ -125,6 +125,13 @@ describe('MasTopNav', () => {
             expect(el.isLocalePickerDisabled).to.be.true;
         });
 
+        it('is disabled on the baseline cards page', async () => {
+            Store.page.value = PAGE_NAMES.BASELINE_CARDS;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isLocalePickerDisabled).to.be.true;
+            expect(el.querySelector('mas-locale-picker').hasAttribute('disabled')).to.be.true;
+        });
+
         it('updates the locale filter when the locale changes on the baselines page', async () => {
             Store.page.value = PAGE_NAMES.BASELINES;
             const originalFilters = Store.filters.value;
@@ -132,6 +139,25 @@ describe('MasTopNav', () => {
             await el.onLocaleChanged({ detail: { locale: 'fr_FR' } });
             expect(Store.filters.value.locale).to.equal('fr_FR');
             Store.filters.value = originalFilters;
+        });
+    });
+
+    describe('folder picker', () => {
+        it('is disabled while baselines and collections are created', async () => {
+            Store.page.value = PAGE_NAMES.BASELINE_CARDS;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const picker = el.querySelector('mas-nav-folder-picker');
+            expect(picker.hasAttribute('disabled')).to.be.false;
+
+            Store.baselines.creating.set(true);
+            try {
+                await el.updateComplete;
+                expect(picker.hasAttribute('disabled')).to.be.true;
+            } finally {
+                Store.baselines.creating.set(false);
+            }
+            await el.updateComplete;
+            expect(picker.hasAttribute('disabled')).to.be.false;
         });
     });
 

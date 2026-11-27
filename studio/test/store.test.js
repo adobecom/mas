@@ -134,5 +134,10 @@ describe('store', () => {
             Store.page.set(PAGE_NAMES.BASELINES);
             expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINES);
         });
+
+        it('accepts the baseline cards page', () => {
+            Store.page.set(PAGE_NAMES.BASELINE_CARDS);
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINE_CARDS);
+        });
     });
 });

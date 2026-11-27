@@ -7,9 +7,12 @@ import {
     buildPlanCardFields,
     buildPlanTitle,
     checkPlanOffers,
+    getAbmCardError,
     getPlanOfferError,
     getTrialOsi,
     groupCardsByProduct,
+    isFreeCard,
+    parseFragmentIds,
     withPlanTypeTag,
 } from '../../src/baselines/baseline-cards-model.js';
 
@@ -103,6 +106,19 @@ const ccProEduCard = () =>
 
 const getField = (fields, name) => fields.find((item) => item.name === name);
 
+const freeCard = ({ id, marketSegment = 'com' }) => ({
+    id,
+    title: `CC: Mini Compare Mweb: ${id}: Individual: default`,
+    path: `${FOLDER}/${id}`,
+    tags: [{ id: 'mas:plan_type/abm' }, { id: `mas:market_segments/${marketSegment}` }],
+    fields: [
+        field('variant', [TEMPLATE]),
+        field('osi', ['ccpro-abm']),
+        field('prices', ['<p>Free</p>'], longText),
+        field('ctas', ['<p><a href="https://get.adobe.com/reader/download">Download now</a></p>'], longText),
+    ],
+});
+
 const ccProProduct = (offers) => ({
     productArrangementCode: CCSN_INDIVIDUAL,
     marketSegment: 'COM',
@@ -121,6 +137,44 @@ const checkedProducts = async (products, cache = createCache()) =>
     Promise.all(products.map(async (product) => ({ ...product, offers: await checkPlanOffers(product, { cache }) })));
 
 describe('baseline-cards-model', () => {
+    describe('parseFragmentIds', () => {
+        it('reads the fragment ids of Studio search links, fragment editor links and bare ids, in order', () => {
+            const text = [
+                'https://mas.adobe.com/studio.html#page=content&path=acom-cc&query=6F0A4E52-1B1A-4F1E-9C1A-0B5B6C7D8E9F',
+                'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d&path=acom-cc',
+                'not a link',
+                '11111111-2222-4333-8444-555555555555',
+            ].join('\n');
+
+            expect(parseFragmentIds(text)).to.deep.equal([
+                '6f0a4e52-1b1a-4f1e-9c1a-0b5b6c7d8e9f',
+                '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+                '11111111-2222-4333-8444-555555555555',
+            ]);
+        });
+    });
+
+    describe('getAbmCardError', () => {
+        const fragment = (path, modelPath = '/conf/mas/settings/dam/cfm/models/card') => ({ path, model: { path: modelPath } });
+
+        it('accepts an en_US card of the surface', () => {
+            expect(getAbmCardError(fragment(`${FOLDER}/card`), 'acom-cc')).to.be.null;
+        });
+
+        it('rejects a collection, a baseline, a card of another surface and a card of another locale', () => {
+            expect(
+                getAbmCardError(fragment(`${FOLDER}/collection`, '/conf/mas/settings/dam/cfm/models/collection'), 'acom-cc'),
+            ).to.equal('Not a card.');
+            expect(getAbmCardError(fragment(`${BASELINES}/${TEMPLATE}/${ILST_TEAM}/baseline`), 'acom-cc')).to.equal(
+                'A baseline, not a card.',
+            );
+            expect(getAbmCardError(fragment(`${FOLDER}/card`), 'sandbox')).to.equal('Surface acom-cc, not sandbox.');
+            expect(getAbmCardError(fragment('/content/dam/mas/acom-cc/fr_FR/mini-compare/card'), 'acom-cc')).to.equal(
+                'Locale fr_FR, not en_US.',
+            );
+        });
+    });
+
     describe('groupCardsByProduct', () => {
         it('groups the cards by the PA code of their own offer, in paste order', async () => {
             const catalogCard = { ...illustratorTeamCard(), id: 'catalog' };
@@ -369,6 +423,23 @@ describe('baseline-cards-model', () => {
         });
     });
 
+    describe('isFreeCard', () => {
+        it('is true for a card without price nor CTA bound to an offer, whatever its osi field', () => {
+            expect(isFreeCard(freeCard({ id: 'reader' }))).to.be.true;
+        });
+
+        it('is false for a card with an offer price', () => {
+            expect(isFreeCard(ccProCard())).to.be.false;
+        });
+
+        it('is false for a card with free prices but a CTA bound to an offer', () => {
+            const card = freeCard({ id: 'trial' });
+            getField(card.fields, 'ctas').values = [`<p>${freeTrial('ccpro-abm-trial')}</p>`];
+
+            expect(isFreeCard(card)).to.be.false;
+        });
+    });
+
     describe('withPlanTypeTag', () => {
         it('normalizes tag ids and keeps a single plan type tag', () => {
             expect(
@@ -403,6 +474,39 @@ describe('baseline-cards-model', () => {
                 label: LABEL,
                 disclaimerKeys,
             });
+
+        it('adds free cards as is, in paste order, to the collections of their template and market segment', async () => {
+            const reader = freeCard({ id: 'reader' });
+            const eduReader = freeCard({ id: 'edu-reader', marketSegment: 'edu' });
+            const otherTemplate = { ...freeCard({ id: 'other' }), fields: [field('variant', ['plans'])] };
+            const items = buildBaselineCardsPlan({
+                surface: 'acom-cc',
+                products: await checkedProducts([ccProProduct(ALL_CC_PRO_OFFERS), ccProEduProduct()]),
+                freeCards: [reader, eduReader, otherTemplate],
+                cardIds: [reader.id, ccProCard().id, otherTemplate.id, ccProEduCard().id, eduReader.id],
+                label: LABEL,
+            });
+
+            expect(items.filter(({ type }) => type === 'collection').map(({ title, cards }) => [title, cards])).to.deep.equal([
+                [
+                    `CC: Mini Compare Mweb: ${LABEL}: ABM`,
+                    [reader.path, `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-abm-default`],
+                ],
+                [
+                    `CC: Mini Compare Mweb: ${LABEL}: M2M`,
+                    [reader.path, `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-m2m-default`],
+                ],
+                [
+                    `CC: Mini Compare Mweb: ${LABEL}: PUF`,
+                    [reader.path, `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-puf-default`],
+                ],
+                [
+                    `CC: Mini Compare Mweb: ${LABEL}: EDU: ABM`,
+                    [`${FOLDER}/cc-mini-compare-mweb-cc-pro-students-abm-default`, eduReader.path],
+                ],
+            ]);
+            expect(items.filter(({ type }) => type !== 'collection')).to.have.length(6);
+        });
 
         it('builds the Illustrator Team baseline, ABM card without trial and ABM collection', async () => {
             const items = await buildPlan([illustratorTeamProduct()]);
@@ -466,6 +570,11 @@ describe('baseline-cards-model', () => {
                 [`CC: Mini Compare Mweb: ${LABEL}: PUF`, [`${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-puf-default`]],
             ]);
             expect(getField(collections[1].fields, 'cards').values).to.deep.equal(collections[1].cards);
+            expect(collections.map(({ fields }) => getField(fields, 'enableBaselines').values)).to.deep.equal([
+                [true],
+                [true],
+                [true],
+            ]);
         });
 
         it('builds one collection per template, market segment and plan', async () => {
@@ -528,6 +637,24 @@ describe('baseline-cards-model', () => {
                 [planCards[1], 'cc-mini-compare-mweb-cc-pro-individual-abm-default-1'],
             ]);
             expect(items.find(({ type }) => type === 'collection').cards).to.deep.equal(planCards);
+        });
+
+        it('suffixes a plan card whose name is the one of a free card', async () => {
+            const reader = {
+                ...freeCard({ id: 'reader' }),
+                path: `${FOLDER}/cc-mini-compare-mweb-cc-pro-individual-abm-default`,
+            };
+
+            const items = buildBaselineCardsPlan({
+                surface: 'acom-cc',
+                products: await checkedProducts([ccProProduct({ abm: ALL_CC_PRO_OFFERS.abm })]),
+                freeCards: [reader],
+                cardIds: [ccProCard().id, reader.id],
+                label: LABEL,
+            });
+
+            expect(items.find(({ type }) => type === 'card').path).to.equal(`${reader.path}-1`);
+            expect(items.find(({ type }) => type === 'collection').cards).to.deep.equal([`${reader.path}-1`, reader.path]);
         });
 
         it('does not map an ABM card with a plan title onto its own path', async () => {

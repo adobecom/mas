@@ -1,7 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import styles from './mas-baselines.css.js';
-import { BASELINE_CREATE_TYPE, FILTER_TYPE, TABLE_TYPE } from '../constants.js';
+import { BASELINE_CREATE_TYPE, FILTER_TYPE, PAGE_NAMES, TABLE_TYPE } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -238,10 +238,16 @@ class MasBaselines extends LitElement {
         return html`<div class="page-container list-page">
             <div class="baselines-header">
                 <h1>Baselines</h1>
-                <sp-button variant="accent" @click=${() => (this.createDialogOpen = true)}>
-                    <sp-icon-add slot="icon"></sp-icon-add>
-                    Create Baseline
-                </sp-button>
+                <div class="baselines-actions">
+                    <sp-button variant="secondary" @click=${router.navigateToPage(PAGE_NAMES.BASELINE_CARDS)}>
+                        <sp-icon-add slot="icon"></sp-icon-add>
+                        Create Baselines and collections
+                    </sp-button>
+                    <sp-button variant="accent" @click=${() => (this.createDialogOpen = true)}>
+                        <sp-icon-add slot="icon"></sp-icon-add>
+                        Create Baseline
+                    </sp-button>
+                </div>
             </div>
             <sp-divider size="s"></sp-divider>
             <div class="baselines-toolbar">

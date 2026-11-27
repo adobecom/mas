@@ -46,6 +46,7 @@ class MasTopNav extends LitElement {
         this.bulkEditProjects.projectId,
         this.masks.fragmentId,
         this.masks.creating,
+        Store.baselines.creating,
     ]);
 
     createRenderRoot() {
@@ -511,7 +512,8 @@ class MasTopNav extends LitElement {
                               this.isBulkPublishEditorPage ||
                               this.isBulkEditEditorPage ||
                               this.isPromotionsPage ||
-                              this.isPromotionsEditorPage}
+                              this.isPromotionsEditorPage ||
+                              Store.baselines.creating.get()}
                           ></mas-nav-folder-picker>`
                         : nothing}
                     ${!this.pickersToHide.includes(PICKERS.LOCALE)

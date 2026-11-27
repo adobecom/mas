@@ -250,6 +250,7 @@ const Store = {
         filters: new ReactiveStore({}),
         allBaselines: new ReactiveStore([]),
         displayBaselines: new ReactiveStore([]),
+        creating: new ReactiveStore(false),
     },
     bulkEditProjects: {
         list: {
@@ -411,6 +412,7 @@ function pageValidator(value) {
         PAGE_NAMES.MASKS_EDITOR,
         PAGE_NAMES.OFFER_MAPPING,
         PAGE_NAMES.BASELINES,
+        PAGE_NAMES.BASELINE_CARDS,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

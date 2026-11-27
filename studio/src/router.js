@@ -206,6 +206,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BASELINE_CARDS: {
+                const editor = document.querySelector('mas-baseline-cards');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.BULK_EDIT_EDITOR: {
                 const editor = document.querySelector('mas-bulk-edit-editor');
                 const hasUnsavedChanges = editor && editor.hasChanges;

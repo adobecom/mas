@@ -293,6 +293,12 @@ class MasStudio extends LitElement {
         return html`<mas-baselines></mas-baselines>`;
     }
 
+    get baselineCards() {
+        if (this.page.value !== PAGE_NAMES.BASELINE_CARDS) return nothing;
+        if (!this.#lazyLoad('mas-baseline-cards', './baselines/mas-baseline-cards.js')) return nothing;
+        return html`<mas-baseline-cards></mas-baseline-cards>`;
+    }
+
     get pickersToHide() {
         if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
             return [PICKERS.FOLDER, PICKERS.LOCALE];
@@ -382,6 +388,8 @@ class MasStudio extends LitElement {
                 return this.advancedTools;
             case PAGE_NAMES.BASELINES:
                 return this.baselines;
+            case PAGE_NAMES.BASELINE_CARDS:
+                return this.baselineCards;
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR:
                 return this.settings;

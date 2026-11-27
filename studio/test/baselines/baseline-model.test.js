@@ -260,7 +260,7 @@ describe('baseline-model', () => {
 
             const result = await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
 
-            expect(result).to.deep.equal({ folder: FOLDER, fragment: { id: 'baseline-id' } });
+            expect(result).to.deep.equal({ folder: FOLDER, fragment: { id: 'baseline-id' }, tags: TAGS });
             expect(
                 repository.createFragment.calledOnceWithExactly(
                     {

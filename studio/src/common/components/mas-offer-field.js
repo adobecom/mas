@@ -68,6 +68,10 @@ export class MasOfferField extends LitElement {
         this.osiField.handleOpenOfferSelector();
     }
 
+    focus(options) {
+        this.shadowRoot.querySelector('sp-action-button').focus(options);
+    }
+
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (selectingField !== this || !offer) return;
         selectingField = null;

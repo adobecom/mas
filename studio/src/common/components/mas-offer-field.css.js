@@ -16,6 +16,7 @@ export const offerFieldStyles = css`
 
     .offer-card {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 12px;
         padding: 12px;
@@ -25,10 +26,15 @@ export const offerFieldStyles = css`
 
     .offer-details {
         display: flex;
+        flex: 1 1 160px;
         flex-direction: column;
         gap: 4px;
         min-width: 0;
         overflow-wrap: anywhere;
+    }
+
+    .offer-card sp-action-button {
+        flex-shrink: 0;
     }
 
     .offer-details p {

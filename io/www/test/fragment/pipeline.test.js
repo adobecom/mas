@@ -171,8 +171,41 @@ describe('Orion fragment pipeline', () => {
         });
         expect(response.statusCode).to.equal(200);
         expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US');
-        expect(state.store).to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US-latest-v2');
         expect(response.body.wcs).to.have.all.keys('prod-latest');
+    });
+
+    it('rebuilds latest offers instead of serving a fresh pre-rollout mixed-environment response', async () => {
+        const state = new MockState();
+        const files = new MockFiles();
+        const oldKey = 'req-some-en-us-fragment-en_US-latest';
+        const oldBody = { ...EXPECTED_BODY, wcs: { prod: {}, 'stage-latest': {} } };
+        await state.put(
+            'configuration',
+            JSON.stringify({
+                wcsConfiguration: [
+                    { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+                ],
+            }),
+        );
+        await state.put(oldKey, JSON.stringify({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() }));
+        await files.write(
+            'fragment-cache/res-some-en-us-fragment-en_US-latest.json',
+            JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync(JSON.stringify(oldBody)).toString('base64'),
+            }),
+        );
+        const request = { id: 'some-en-us-fragment', locale: 'en_US', serveLatest: 'true', state, files };
+
+        const response = await getFragment(request);
+
+        expect(response.statusCode).to.equal(200);
+        expect(response.body.wcs).to.have.all.keys('prod-latest', 'stage-latest');
+        expect(Object.values(response.body.wcs['prod-latest']).flat()).not.to.be.empty;
+        const fetchCount = fetchStub.callCount;
+        expect((await getFragment(request)).body).to.deep.equal(response.body);
+        expect(fetchStub.callCount).to.equal(fetchCount);
     });
 
     it('keeps production default, legacy and latest stored responses separate', async () => {
@@ -181,7 +214,7 @@ describe('Orion fragment pipeline', () => {
         for (const [serveLatest, namespace, suffix] of [
             [undefined, 'prod', ''],
             [false, 'prod-legacy', '-legacy'],
-            [true, 'prod-latest', '-latest'],
+            [true, 'prod-latest', '-latest-v2'],
         ]) {
             const response = await getFragment({
                 id: 'some-en-us-fragment',

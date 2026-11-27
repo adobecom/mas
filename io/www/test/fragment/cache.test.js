@@ -16,7 +16,7 @@ describe('request metadata key', () => {
     it('keeps latest fragment response metadata apart from normal responses', async () => {
         const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'prod' }, { env: 'stage' }] };
         const latest = await requestKey({ ...params, serveLatest: 'true' });
-        expect(latest).to.equal('req-some-id-en_US-latest');
+        expect(latest).to.equal('req-some-id-en_US-latest-v2');
         expect(await requestKey(params)).to.equal('req-some-id-en_US-stage-legacy');
     });
 
@@ -54,7 +54,7 @@ describe('request metadata key', () => {
         it(`isolates explicit production selection ${JSON.stringify(serveLatest)}`, async () => {
             const params = { id: 'some-id', locale: 'en_US', wcsConfiguration: [{ env: 'prod' }] };
             const normal = await requestKey(params);
-            const suffix = String(serveLatest) === 'true' ? 'latest' : 'legacy';
+            const suffix = String(serveLatest) === 'true' ? 'latest-v2' : 'legacy';
             expect(await requestKey({ ...params, serveLatest })).to.equal(`${normal}-${suffix}`);
         });
     }

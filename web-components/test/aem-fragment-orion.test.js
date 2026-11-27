@@ -188,6 +188,38 @@ describe('Orion fragment requests and cache isolation', () => {
         });
     }
 
+    for (const [env, mode, expected] of [
+        ['stage', 'on', 'true'],
+        ['stage', 'off', 'false'],
+        ['prod', 'on', 'true'],
+        ['prod', 'off', 'false'],
+    ]) {
+        it(`preserves ${env}/${mode} selection on an author cache miss`, async () => {
+            window.history.replaceState(
+                {},
+                '',
+                `${baseHref}?commerce.env=${env}&mas.orion=${mode}`,
+            );
+            service.activate();
+            fetchStub.resolves(
+                new Response(
+                    JSON.stringify({ id: 'requested-id', fields: [] }),
+                ),
+            );
+
+            const fragment = startLoad('requested-id', { author: '' });
+            await fragment.updateComplete;
+
+            expect(fragment.cacheKey()).to.equal('requested-id');
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(
+                new URL(fetchStub.firstCall.args[0]).searchParams.get(
+                    'serveLatest',
+                ),
+            ).to.equal(expected);
+        });
+    }
+
     for (const [search, expected] of [
         ['?commerce.env=stage', 'false'],
         ['?commerce.env=stage&mas.orion=off', 'false'],

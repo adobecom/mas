@@ -11,7 +11,7 @@ const escapeKeyValue = (value) =>
         .replaceAll('%', '.');
 
 // e.g. `req-<id>-fr_FR-CA.p-edu.m-catalog`, or `req-.offer-en_US.o-<offer>.t-plans.s-acom` without a fragment id;
-// `-latest` / `-legacy` follow the geo for explicit WCS selection; stage-only defaults also use `-legacy`.
+// `-latest-v2` / `-legacy` follow the geo for explicit WCS selection; stage-only defaults also use `-legacy`.
 // Mixed configurations default to `-stage-legacy`, keeping production defaults apart from explicit legacy selection.
 const getRequestMetadataKey = ({
     id,
@@ -32,7 +32,9 @@ const getRequestMetadataKey = ({
           (wcsConfiguration.some(({ env }) => env === 'stage') ? '-stage-legacy' : '')
         : '';
     const fragment =
-        [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country].filter(Boolean).join('-') + selectionSuffix;
+        [`req-${id ? escapeKeyValue(id) : '.offer'}`, geo.locale, geo.country].filter(Boolean).join('-') +
+        selectionSuffix +
+        (selectionSuffix === '-latest' ? '-v2' : '');
     const parameters = Object.entries({ p: pzn, m: mask, o: offer, t: template, s: surface })
         .filter(([, value]) => value)
         .map(([tag, value]) => `.${tag}-${escapeKeyValue(value)}`);

@@ -161,6 +161,11 @@ configurations share the default and explicit legacy key, while mixed
 stage/production defaults remain separate. The CDN must retain and forward
 `serveLatest`, including `false`.
 
+**Rollout:** `-latest-v2` avoids old IO responses but does not invalidate CDN entries.
+Deploy IO, then complete CDN invalidation for all fragment URL variants on every
+serving hostname before enabling the updated client. Verify mixed-environment
+`serveLatest=true` responses contain both `prod-latest` and `stage-latest`.
+
 **Cache cardinality:** no parameter / `true` / `false` can create up to three
 variants per fragment URL at the CDN and in IO request metadata/stored responses
 (two in IO for stage-only configurations). Production use of `mas.orion` can

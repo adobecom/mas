@@ -104,6 +104,34 @@ describe('Orion fragment preview pipeline', () => {
             .map(({ args: [input] }) => new URL(input))
             .filter(({ pathname }) => pathname.includes('web_commerce_artifact'));
 
+    for (const [env, mode, selection] of [
+        ['stage', 'on', true],
+        ['stage', 'off', false],
+        ['prod', 'on', true],
+        ['prod', 'off', false],
+    ]) {
+        it(`preserves ${env}/${mode} preview selection on an author cache miss`, async () => {
+            const url = new URL(href);
+            url.search = `?commerce.env=${env}&mas.orion=${mode}&mas.preview=on`;
+            window.history.replaceState({}, '', url);
+            service.activate();
+            const module = `export const previewFragment = async (id, options) => ({
+                status: 200,
+                body: { id, fields: [], selection: options.serveLatest },
+            });`;
+            AemFragment.prototype.getFragmentClientUrl.returns(`data:text/javascript,${encodeURIComponent(module)}`);
+            fragment = document.createElement('aem-fragment');
+            fragment.setAttribute('author', '');
+            fragment.setAttribute('fragment', fragmentId);
+            document.body.append(fragment);
+
+            await fragment.updateComplete;
+
+            expect(fragment.cacheKey()).to.equal(fragmentId);
+            expect(fragment.rawData.selection).to.equal(selection);
+        });
+    }
+
     it('uses latest offers for the early preview WCS lookup and reuses them as latest prefill', async () => {
         await load();
 
@@ -117,7 +145,7 @@ describe('Orion fragment preview pipeline', () => {
         const [offers] = await Promise.all(service.resolveOfferSelectors({ country: 'GB', language: 'en', wcsOsi: [osi] }));
         expect(offers.map(({ offerId }) => offerId)).to.deep.equal(['orion-EN', 'orion-MULT']);
         expect(wcsRequests()).to.have.lengthOf(1);
-        expect(localStorage.getItem(`req-${fragmentId}-en_GB-latest`)).not.to.equal(null);
+        expect(localStorage.getItem(`req-${fragmentId}-en_GB-latest-v2`)).not.to.equal(null);
     });
 
     it('uses latest offers for final preview WCS requests without an early baseline lookup', async () => {

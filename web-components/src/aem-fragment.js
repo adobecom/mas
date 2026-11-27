@@ -202,8 +202,12 @@ export class AemFragment extends HTMLElement {
     }
 
     get cacheSuffix() {
+        return this.#author ? '' : this.offerSelectionSuffix;
+    }
+
+    get offerSelectionSuffix() {
         const settings = (this.#service ?? getService())?.settings;
-        if (this.#author || settings?.orion === undefined) return '';
+        if (settings?.orion === undefined) return '';
         return `-${settings.env === Env.STAGE ? '' : 'prod-'}${settings.orion ? 'orion' : 'legacy'}`;
     }
 
@@ -289,7 +293,9 @@ export class AemFragment extends HTMLElement {
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            const preview = await this.generatePreview(cacheSuffix);
+            const preview = await this.generatePreview(
+                this.offerSelectionSuffix,
+            );
             if (preview.status === 200) {
                 return preview.body;
             } else {
@@ -437,7 +443,9 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
-        const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
+        const serveLatest = this.getOfferSelectionFromCacheSuffix(
+            this.offerSelectionSuffix,
+        );
         if (serveLatest !== undefined) {
             endpoint += `&serveLatest=${serveLatest}`;
         }
@@ -597,7 +605,7 @@ export class AemFragment extends HTMLElement {
         return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
-    async generatePreview(cacheSuffix = this.cacheSuffix) {
+    async generatePreview(cacheSuffix = this.offerSelectionSuffix) {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const serveLatest = this.getOfferSelectionFromCacheSuffix(cacheSuffix);
         const defaultOptions = {

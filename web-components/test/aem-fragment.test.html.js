@@ -100,7 +100,11 @@ runTests(async () => {
                             values: [EXPLICIT_EMPTY_SENTINEL],
                             multiple: false,
                         },
-                        { name: 'title', values: ['Keep me'], multiple: false },
+                        {
+                            name: 'title',
+                            values: ['Keep me'],
+                            multiple: false,
+                        },
                     ],
                     tags: [],
                     settings: {},
@@ -263,7 +267,7 @@ runTests(async () => {
 
         describe('aem-fragment with merch-card', () => {
             it('renders a merch card from cache', async () => {
-                cache.add(cc);
+                cache.add(cc, true, '-legacy');
                 expect(aemMock.count).to.equal(0);
 
                 const [ccCard] = getTemplateContent('cards');
@@ -288,7 +292,7 @@ runTests(async () => {
                     promoProject: 'GlobalIntroPricing',
                     promoVariationProject: 'GlobalIntroPricing',
                 };
-                cache.add(promoFragment);
+                cache.add(promoFragment, true, '-legacy');
 
                 const promoCard = document.createElement('merch-card');
                 const promoAemFragment = document.createElement('aem-fragment');
@@ -525,7 +529,9 @@ runTests(async () => {
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');
-                const topCollectionData = cache.get('collection');
+                const getCached = (id) =>
+                    cache.get(`${id}${topCollection.cacheSuffix}`);
+                const topCollectionData = getCached('collection');
                 const settingsBase = {
                     displayPlanType: true,
                 };
@@ -536,10 +542,10 @@ runTests(async () => {
                         '{planType, select, ABM {Annual, paid monthly.} other {}}',
                 };
 
-                const childCollection1 = cache.get(
+                const childCollection1 = getCached(
                     'enUS82d1-0acb-4a6d-8155-e5b002acffdf',
                 );
-                const childCollection2 = cache.get(
+                const childCollection2 = getCached(
                     'enUSb2de-4963-42f2-a0d0-d158bd78e404',
                 );
                 [topCollectionData, childCollection1, childCollection2].forEach(
@@ -551,7 +557,7 @@ runTests(async () => {
                     },
                 );
 
-                const childCollection3 = cache.get(
+                const childCollection3 = getCached(
                     'enUSc155-8081-4d9b-8215-a4fb0b8418dd',
                 );
                 compareSettings(childCollection3, {
@@ -562,13 +568,13 @@ runTests(async () => {
                 compareDictionary(childCollection3, dictionaryBase);
                 comparePriceLiterals(childCollection3, priceLiteralsBase);
 
-                const card1 = cache.get('enUS5d11-fe6b-40f8-96d1-50ac800c9f70');
-                const card2 = cache.get('enUS8fc3-578e-44be-be4f-d8be1c45c75b');
-                const card3 = cache.get('enUS1223-be01-4c0e-9a97-f63e8d0458e9');
-                const card4 = cache.get('enUS265d-2542-4533-8089-b75fb19d28d8');
-                const card6 = cache.get('enUS3a5c-b4a4-4305-bda5-92be2662fbab');
-                const card7 = cache.get('enUS0932-c802-49e4-8589-f8bcf6bfe98c');
-                const card8 = cache.get('enUS3a5c-b4a4-4305-bda5-92be2662fbab');
+                const card1 = getCached('enUS5d11-fe6b-40f8-96d1-50ac800c9f70');
+                const card2 = getCached('enUS8fc3-578e-44be-be4f-d8be1c45c75b');
+                const card3 = getCached('enUS1223-be01-4c0e-9a97-f63e8d0458e9');
+                const card4 = getCached('enUS265d-2542-4533-8089-b75fb19d28d8');
+                const card6 = getCached('enUS3a5c-b4a4-4305-bda5-92be2662fbab');
+                const card7 = getCached('enUS0932-c802-49e4-8589-f8bcf6bfe98c');
+                const card8 = getCached('enUS3a5c-b4a4-4305-bda5-92be2662fbab');
 
                 [card1, card2, card3, card4, card6, card7, card8].forEach(
                     (card) => {
@@ -579,7 +585,7 @@ runTests(async () => {
                     },
                 );
 
-                const card5 = cache.get('enUS0b82-24e6-4ca7-a08d-577a3ad6ebda');
+                const card5 = getCached('enUS0b82-24e6-4ca7-a08d-577a3ad6ebda');
                 compareSettings(card5, {
                     ...settingsBase,
                     displayPlanType: false,
@@ -608,7 +614,7 @@ runTests(async () => {
                 expect(aemFragment.fetchInfo).to.include({
                     'aem-fragment:status': 404,
                     'aem-fragment:url':
-                        'https://www.adobe.com/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                        'https://www.adobe.com/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&serveLatest=false',
                     'aem-fragment:serverTiming':
                         'cdn-cache|desc=HIT|edge|dur=1|sis|desc=0|ak_p|desc="1748272422155_390603879_647296830_1088_9412_44_0_219"|dur=1',
                 });
@@ -627,7 +633,7 @@ runTests(async () => {
                 addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&serveLatest=false',
                 );
             });
             it('fetches fragment from freyja on publish with overriden country', async () => {
@@ -641,7 +647,7 @@ runTests(async () => {
                 const aemFragment = addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA&serveLatest=false',
                 );
             });
 
@@ -667,7 +673,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR&serveLatest=false',
                     );
                 } finally {
                     publishService.remove();
@@ -696,7 +702,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES&serveLatest=false',
                     );
                 } finally {
                     publishService.remove();
@@ -967,12 +973,14 @@ runTests(async () => {
             it('includes mask and pzn in cacheKey', () => {
                 const aemFragment = document.createElement('aem-fragment');
                 aemFragment.setAttribute('fragment', 'frag-id');
-                expect(aemFragment.cacheKey()).to.equal('frag-id');
+                expect(aemFragment.cacheKey()).to.equal('frag-id-legacy');
                 aemFragment.setAttribute('mask', 'story');
-                expect(aemFragment.cacheKey()).to.equal('frag-id-m_story');
+                expect(aemFragment.cacheKey()).to.equal(
+                    'frag-id-m_story-legacy',
+                );
                 aemFragment.setAttribute('pzn', 'seg1');
                 expect(aemFragment.cacheKey()).to.equal(
-                    'frag-id-p_seg1-m_story',
+                    'frag-id-p_seg1-m_story-legacy',
                 );
             });
         });

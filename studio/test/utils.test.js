@@ -56,7 +56,7 @@ describe('previewFragmentOnPage', () => {
     it('keeps published acom cards on Milo', () => {
         previewFragmentOnPage(fragment);
         expect(open.firstCall.args).to.deep.equal([
-            `https://milo.adobe.com/merch/mas/preview?fragment-id=${fragment.id}&content-type=merch-card&locale=en_US`,
+            `https://milo.adobe.com/merch/mas/preview?fragment-id=${fragment.id}&content-type=merch-card&locale=en_US&mas.preview=on`,
             '_blank',
         ]);
     });

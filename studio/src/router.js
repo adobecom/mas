@@ -759,7 +759,7 @@ export class Router extends EventTarget {
         if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
         if (this.#isBulkPublishPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
-            return canAccessBulkPublish() ? page : PAGE_NAMES.WELCOME;
+            return canAccessBulkPublish(Store.surface()) ? page : PAGE_NAMES.WELCOME;
         }
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;

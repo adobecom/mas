@@ -1,4 +1,5 @@
 import { fixture, html, expect } from '@open-wc/testing';
+import sinon from 'sinon';
 import Store from '../../src/store.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 import { BULK_PUBLISH_STATUS, QUICK_ACTION, STAGED } from '../../src/constants.js';
@@ -21,7 +22,106 @@ function seedInEdit(el, data = {}, { id = null } = {}) {
 }
 
 describe('mas-bulk-publish-editor', () => {
-    afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
+    let originalProfile;
+    let originalUsers;
+    let originalSearch;
+
+    beforeEach(() => {
+        originalProfile = Store.profile.get();
+        originalUsers = Store.users.get();
+        originalSearch = Store.search.get();
+        Store.profile.set({ email: 'admin@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.search.set(originalSearch);
+    });
+
+    it('denies a foreign project even when CCD is selected', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        Store.bulkPublishProjects.inEdit.set(
+            new FragmentStore(
+                new Fragment({
+                    id: 'foreign-project',
+                    path: '/content/dam/mas/express/bulk-publish-projects/project',
+                    fields: [{ name: 'status', values: [BULK_PUBLISH_STATUS.DRAFT] }],
+                }),
+            ),
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.textContent).to.include('You do not have access');
+        expect(el.shadowRoot.querySelector('mas-quick-actions')).to.be.null;
+    });
+
+    it('allows publishing when a CCD project contains an Express item', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        seedInEdit(el, { status: BULK_PUBLISH_STATUS.DRAFT }, { id: 'ccd-project' });
+        el.localItems = [{ path: '/content/dam/mas/express/en_US/card', status: 'valid' }];
+        await el.updateComplete;
+        expect(el.canStartPublishing).to.be.true;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.false;
+        expect(el.checkEditingAccess()).to.be.true;
+    });
+
+    for (const [status, action] of [
+        [BULK_PUBLISH_STATUS.LOCKED, QUICK_ACTION.DELETE],
+        [BULK_PUBLISH_STATUS.PUBLISHING, QUICK_ACTION.DELETE],
+        [BULK_PUBLISH_STATUS.PUBLISHING, QUICK_ACTION.LOCK],
+    ]) {
+        it(`keeps ${action} disabled for ${status} projects with cross-surface items`, async () => {
+            Store.profile.set({ email: 'curator@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+            Store.search.set({ path: 'ccd' });
+            const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+            Store.bulkPublishProjects.inEdit.set(
+                new FragmentStore(
+                    new Fragment({
+                        id: 'ccd-project',
+                        path: '/content/dam/mas/ccd/bulk-publish-projects/project',
+                        fields: [
+                            { name: 'status', values: [status] },
+                            { name: 'fragments', values: ['/content/dam/mas/express/en_US/card'] },
+                            { name: 'locales', values: [] },
+                            { name: 'snapshots', values: ['snapshot'] },
+                        ],
+                    }),
+                ),
+            );
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('mas-quick-actions').disabled.has(action)).to.be.true;
+        });
+    }
+
+    it('allows reverting a publishing CCD project with cross-surface items when snapshots exist', async () => {
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        seedInEdit(
+            el,
+            {
+                status: BULK_PUBLISH_STATUS.PUBLISHING,
+                fragments: ['/content/dam/mas/express/en_US/card'],
+                snapshots: ['snapshot'],
+            },
+            { id: 'ccd-project' },
+        );
+        await el.updateComplete;
+
+        expect(el.disabledActions.has(QUICK_ACTION.REVERT)).to.be.false;
+    });
 
     it('renders empty state (textarea visible, PUBLISH disabled)', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
@@ -240,6 +340,20 @@ describe('mas-bulk-publish-editor', () => {
     });
 
     describe('Check for modifications', () => {
+        it('passes the project context when comparing cross-surface snapshots', async () => {
+            const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+            const entries = [JSON.stringify({ fragmentId: 'express-card', path: '/content/dam/mas/express/en_US/card' })];
+            seedInEdit(el, { status: BULK_PUBLISH_STATUS.DRAFT, snapshots: entries, locales: [] }, { id: 'ccd-project' });
+            sinon.stub(el, 'token').get(() => 'token');
+            sinon.stub(el, 'ioBaseUrl').get(() => 'https://io.example');
+            const fetchStub = sinon.stub(window, 'fetch').resolves(new Response('[]', { status: 200 }));
+            await el.updateComplete;
+
+            await el.handleCheckModifications();
+
+            expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.deep.equal({ projectId: 'ccd-project', entries });
+        });
+
         it('"check-modifications" event from items triggers handleCheckModifications', async () => {
             const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
             await el.updateComplete;

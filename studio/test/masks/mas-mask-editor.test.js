@@ -18,6 +18,16 @@ async function mount() {
 const delay = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('mas-mask-editor', () => {
+    let originalProfile;
+    let originalUsers;
+
+    beforeEach(() => {
+        originalProfile = Store.profile.get();
+        originalUsers = Store.users.get();
+        Store.profile.set({ email: 'admin@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+    });
+
     afterEach(() => {
         Store.masks.editing.set(null);
         Store.masks.fragmentId.set(null);
@@ -26,6 +36,26 @@ describe('mas-mask-editor', () => {
         Store.masks.setAem(null);
         Store.search.set({});
         document.querySelectorAll('mas-mask-editor').forEach((node) => node.remove());
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+    });
+
+    it('denies a foreign mask opened by id even when CCD is selected', async () => {
+        Store.profile.set({ email: 'curator@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'curator@adobe.com', groups: ['GRP-ODIN-MAS-CCDAH-CURATORS'] }]);
+        Store.search.set({ path: 'ccd' });
+        Store.masks.editing.set(
+            new Fragment({
+                id: 'foreign-mask',
+                path: '/content/dam/mas/express/en_US/masks/promo',
+                title: 'Foreign mask',
+                fields: [],
+            }),
+        );
+        Store.masks.fragmentId.set('foreign-mask');
+        const el = await mount();
+        expect(el.shadowRoot.textContent).to.include('You do not have access');
+        expect(el.shadowRoot.querySelector('#mask-name')).to.be.null;
     });
 
     it('blurs empty parts and reveals parts that have content', async () => {

@@ -40,6 +40,7 @@ function createContext({ status = 'DRAFT', aem = createAemStub() } = {}) {
             aem,
             deleteFragment: sinon.stub().resolves(),
         },
+        checkEditingAccess: sinon.stub().returns(true),
         updatePending: sinon.spy(),
         toggleDropdown: sinon.spy(),
     };

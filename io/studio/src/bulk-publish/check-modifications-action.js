@@ -2,6 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { checkModifications } = require('./snapshot.js');
 const { exposeRequestId } = require('../response-headers.js');
+const { authorizeProject, authorizeEntries } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-check-modifications', { level: 'info' });
 
@@ -26,9 +27,15 @@ async function main(params) {
             return errorResponse(400, 'entries must be a non-empty array', logger);
         }
 
+        if (params.projectId) {
+            await authorizeProject({ projectId: params.projectId, odinEndpoint, authToken });
+        } else {
+            await authorizeEntries({ entries, odinEndpoint, authToken });
+        }
         const results = await checkModifications({ entries, odinEndpoint, authToken });
         return { statusCode: 200, body: results };
     } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
         logger.error(JSON.stringify({ event: 'check-modifications-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }

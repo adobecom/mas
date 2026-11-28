@@ -135,6 +135,15 @@ describe('checkModificationsAction', () => {
     });
     afterEach(() => fetchStub.restore());
 
+    it('sends project context when comparing cross-surface snapshot entries', async () => {
+        fetchStub.resolves(new Response('[]', { status: 200 }));
+        const entries = [JSON.stringify({ fragmentId: 'express-card', path: '/content/dam/mas/express/en_US/card' })];
+
+        await checkModificationsAction({ ioBaseUrl: 'https://io.example', projectId: 'ccd-project', entries, token: 'tok' });
+
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.deep.equal({ projectId: 'ccd-project', entries });
+    });
+
     it('POSTs entries to the check-modifications endpoint', async () => {
         fetchStub.resolves(
             new Response(JSON.stringify([{ fragmentId: 'f1', modified: false }]), {

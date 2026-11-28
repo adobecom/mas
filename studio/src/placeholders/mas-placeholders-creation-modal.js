@@ -2,6 +2,7 @@ import { LitElement, html } from 'lit';
 import { createPlaceholder } from './mas-placeholders-repository.js';
 import { normalizeKey, showToast } from '../utils.js';
 import Store from '../store.js';
+import { canEditPlaceholders } from '../groups.js';
 import '../rte/rte-field.js';
 
 const initialPlaceholder = {
@@ -58,6 +59,10 @@ class MasPlaceholdersCreationModal extends LitElement {
 
     async createPlaceholder() {
         if (this.saving) return;
+        if (!canEditPlaceholders(Store.surface())) {
+            showToast('You do not have access to edit placeholders for this surface.', 'negative');
+            return;
+        }
         if (!this.placeholder.key || !this.placeholder.value) {
             showToast('Key and Value are required.', 'negative');
             return;

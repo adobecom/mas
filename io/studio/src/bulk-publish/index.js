@@ -2,6 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 const { exposeRequestId } = require('../response-headers.js');
+const { authorizeProject } = require('./permissions.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
 const WORKER_ACTION_NAME = 'bulk-publish-worker';
@@ -18,6 +19,18 @@ async function main(params) {
         const authToken = getBearerToken(params);
         const allowed = await isAllowed(authToken, params.allowedClientId);
         if (!allowed) return errorResponse(401, 'Authorization failed', logger);
+
+        await authorizeProject(
+            {
+                projectId: params.projectId,
+                odinEndpoint,
+                authToken,
+                includeCards: params.includeCards || false,
+                includeVariations: params.includeVariations || false,
+            },
+            undefined,
+            'dispatch',
+        );
 
         const workerActionName = buildSiblingActionName(params, WORKER_ACTION_NAME, {
             overrideParamName: 'bulkPublishWorkerActionName',
@@ -40,6 +53,7 @@ async function main(params) {
         );
         return { statusCode: 202, body: { accepted: true, activationId: workerResult?.activationId || null } };
     } catch (error) {
+        if (error.statusCode) return errorResponse(error.statusCode, error.message, logger);
         logger.error(JSON.stringify({ event: 'dispatch-error', error: error.message || String(error) }));
         return errorResponse(500, 'Internal server error', logger);
     }

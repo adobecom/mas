@@ -67,6 +67,29 @@ const QUALIFYING_CTA_SELECTOR = TRIAL_TO_BUY_CTA_ANALYTICS_IDS.map(
     (id) => `a[data-analytics-id="${id}"]`,
 ).join(',');
 
+// Milo replaces each Studio field link with a mas-field on its own async path, so a field
+// whose fragment is already cached can render while its neighbour is still a plain link.
+const FIELD_LINK_SELECTOR =
+    'a[href*="mas.adobe.com/studio.html"][href*="field="]';
+
+/** Resolves true once every Studio field link in `layer` is replaced, false on timeout. */
+async function fieldLinksConverted(layer) {
+    const links = [...layer.querySelectorAll(FIELD_LINK_SELECTOR)];
+    if (!links.length) return true;
+    let observer;
+    let timeoutId;
+    const converted = await new Promise((resolve) => {
+        observer = new MutationObserver(() => {
+            if (links.every((link) => !link.isConnected)) resolve(true);
+        });
+        observer.observe(layer, { childList: true, subtree: true });
+        timeoutId = setTimeout(() => resolve(false), MERCH_CARD_LOAD_TIMEOUT);
+    });
+    observer.disconnect();
+    clearTimeout(timeoutId);
+    return converted;
+}
+
 export async function stripTrialCtas(template, indexed, self) {
     let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);
     const anchors = [...template.content.querySelectorAll('a')];
@@ -78,16 +101,15 @@ export async function stripTrialCtas(template, indexed, self) {
     if (indexed && !qualifyingCta) {
         // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
         const thisField = self.getAttribute('field');
+        const parent = self.parentElement;
+        const fieldsInParent = parent.querySelectorAll(
+            `mas-field, ${FIELD_LINK_SELECTOR}`,
+        );
+        const layer = fieldsInParent.length > 1 ? parent : parent.parentElement;
+        if (!(await fieldLinksConverted(layer))) return template.innerHTML;
 
         const masFieldsReadyPromises = [];
-        const masFields =
-            self.parentElement.querySelectorAll('mas-field').length > 1
-                ? self.parentElement.querySelectorAll(
-                      'mas-field[field^="ctas"]',
-                  )
-                : self.parentElement.parentElement.querySelectorAll(
-                      'mas-field[field^="ctas"]',
-                  );
+        const masFields = layer.querySelectorAll('mas-field[field^="ctas"]');
         masFields.forEach((c) => {
             if (c.getAttribute('field') !== thisField) {
                 masFieldsReadyPromises.push(c.checkReady());
